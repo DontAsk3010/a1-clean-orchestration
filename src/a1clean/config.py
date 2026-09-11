@@ -7,6 +7,13 @@ import os
 FROZEN_GENERATION_ID = "BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01"
 FROZEN_IMPL_VERSION = "UNIVERSAL_DELTA_DATA_PLANE_V2_20260911"
 FROZEN_RAW_FOLDER_DRIVE_ID = "1gTyt7CzqlubcdZGjWV_lM9Iw8Zg4ib3e"
+FROZEN_CURRENT_FOLDER_DRIVE_ID = "1SRN-WWkHJefLGLSN6_SktpVU0Ugjwqc-"
+FROZEN_PARITY_STAGING_FOLDER_DRIVE_ID = "1WTb_lGBD6Tuwfcb-1WhsICjyJqzzBtwU"
+
+CANONICAL_RAW_FOLDER_NAME = "02_CURRENT_HISTORICAL_RAW_DATA_UJI"
+CANONICAL_CURRENT_FOLDER_NAME = "UNIVERSAL_BEHAVIOR_DATA_PLANE_CURRENT"
+PARITY_STAGING_FOLDER_NAME = "UNIVERSAL_BEHAVIOR_DATA_PLANE_PARITY_STAGING"
+
 
 @dataclass(frozen=True)
 class DataPlaneConfig:
@@ -14,6 +21,8 @@ class DataPlaneConfig:
     raw_dir: Path
     runtime_ingest_dir: Path
     raw_folder_drive_id: str
+    current_folder_drive_id: str
+    parity_staging_folder_drive_id: str
     run_root: Path
     scratch_dir: Path
     generation_id: str = FROZEN_GENERATION_ID
@@ -32,6 +41,10 @@ class DataPlaneConfig:
             raw_dir=raw_dir,
             runtime_ingest_dir=runtime_ingest_dir,
             raw_folder_drive_id=os.environ.get("A1_RAW_FOLDER_DRIVE_ID", FROZEN_RAW_FOLDER_DRIVE_ID),
+            current_folder_drive_id=os.environ.get("A1_CURRENT_FOLDER_DRIVE_ID", FROZEN_CURRENT_FOLDER_DRIVE_ID),
+            parity_staging_folder_drive_id=os.environ.get(
+                "A1_PARITY_STAGING_FOLDER_DRIVE_ID", FROZEN_PARITY_STAGING_FOLDER_DRIVE_ID
+            ),
             run_root=run_root,
             scratch_dir=scratch,
         )
