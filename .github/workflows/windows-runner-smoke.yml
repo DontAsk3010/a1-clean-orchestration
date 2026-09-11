@@ -35,9 +35,22 @@ jobs:
       - name: Verify Python
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
-          $ErrorActionPreference = 'Stop'
-          python --version
-          python -c "import sys; assert sys.version_info >= (3, 11), sys.version"
+          $ErrorActionPreference = 'Continue'
+          $ok = $false
+
+          Write-Host "Trying python..."
+          & python -c "import sys; print(sys.executable); print(sys.version); raise SystemExit(0 if sys.version_info >= (3,11) else 3)"
+          if ($LASTEXITCODE -eq 0) { $ok = $true }
+
+          if (-not $ok) {
+            Write-Host "Trying Windows Python Launcher: py -3 ..."
+            & py -3 -c "import sys; print(sys.executable); print(sys.version); raise SystemExit(0 if sys.version_info >= (3,11) else 3)"
+            if ($LASTEXITCODE -eq 0) { $ok = $true }
+          }
+
+          if (-not $ok) {
+            throw "Python 3.11+ is not available to the runner via 'python' or 'py -3'."
+          }
 
       - name: Verify canonical local RAW copy is readable only
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
