@@ -21,6 +21,13 @@ jobs:
       - run: python3 -m venv .venv
       - run: .venv/bin/pip install -U pip
       - run: .venv/bin/pip install -e .
+      - name: Runner preflight
+        env:
+          A1_RAW_DIR: ${{ vars.A1_RAW_DIR }}
+          A1_RUN_ROOT: ${{ inputs.staging_root }}
+          A1_SCRATCH_DIR: ${{ vars.A1_SCRATCH_DIR }}
+          A1_RAW_FOLDER_DRIVE_ID: 1gTyt7CzqlubcdZGjWV_lM9Iw8Zg4ib3e
+        run: .venv/bin/python -m a1clean.runner_preflight
       - name: Frozen delta into STAGING only
         env:
           A1_RAW_DIR: ${{ vars.A1_RAW_DIR }}
