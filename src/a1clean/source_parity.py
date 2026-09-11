@@ -137,30 +137,23 @@ def _baseline_runtime_children(reader_api) -> dict[str, dict]:
     return folders
 
 
-class _ScopedRequest:
-    def __init__(self, request, selected_id: str):
-        self._request = request
-        self._selected_id = selected_id
+class _StaticListRequest:
+    def __init__(self, selected_metadata: dict):
+        self._selected_metadata = dict(selected_metadata)
 
     def execute(self):
-        result = self._request.execute()
-        result = dict(result)
-        result["files"] = [
-            item for item in result.get("files", []) if item.get("id") == self._selected_id
-        ]
-        # The governed source-scoped gate deliberately exposes exactly one canonical source
-        # to the frozen engine. It is a technical migration gate, never full-corpus evidence.
-        result["nextPageToken"] = None
-        return result
+        # Full dynamic membership was already proven by source-preflight. The frozen engine
+        # receives one exact canonical metadata snapshot only for this technical parity gate.
+        return {"files": [dict(self._selected_metadata)], "nextPageToken": None}
 
 
 class _ScopedFiles:
-    def __init__(self, files_resource, selected_id: str):
+    def __init__(self, files_resource, selected_metadata: dict):
         self._files = files_resource
-        self._selected_id = selected_id
+        self._selected_metadata = dict(selected_metadata)
 
     def list(self, *args, **kwargs):
-        return _ScopedRequest(self._files.list(*args, **kwargs), self._selected_id)
+        return _StaticListRequest(self._selected_metadata)
 
     def __getattr__(self, name: str):
         return getattr(self._files, name)
@@ -169,12 +162,12 @@ class _ScopedFiles:
 class _SingleSourceDriveApi:
     """Read-only Drive proxy exposing one already-verified canonical source to frozen V2."""
 
-    def __init__(self, reader_api, selected_id: str):
+    def __init__(self, reader_api, selected_metadata: dict):
         self._reader_api = reader_api
-        self._selected_id = selected_id
+        self._selected_metadata = dict(selected_metadata)
 
     def files(self):
-        return _ScopedFiles(self._reader_api.files(), self._selected_id)
+        return _ScopedFiles(self._reader_api.files(), self._selected_metadata)
 
 
 def _candidate_files(root: Path, folder: str, prefix: str, suffix: str) -> dict[str, Path]:
@@ -298,7 +291,6 @@ def _persist_evidence(
     writer_api,
     *,
     candidate_root: Path,
-    report_path: Path,
     source_name: str,
     pass_state: bool,
 ) -> dict:
@@ -311,12 +303,17 @@ def _persist_evidence(
 
     manifest_dir = candidate_root / "00_MANIFESTS"
     stem = Path(source_name).stem
-    evidence_paths = [report_path]
+    evidence_paths: list[Path] = []
     for path in sorted(manifest_dir.iterdir() if manifest_dir.exists() else []):
         if path.is_file() and (
             path.name.startswith(source_name)
             or path.name.startswith(stem)
-            or path.name in {"GLOBAL_DATA_PLANE_MANIFEST.json", "GLOBAL_SOURCE_DISCOVERY.json", "LATEST_DELTA_REFRESH.json"}
+            or path.name
+            in {
+                "GLOBAL_DATA_PLANE_MANIFEST.json",
+                "GLOBAL_SOURCE_DISCOVERY.json",
+                "LATEST_DELTA_REFRESH.json",
+            }
         ):
             evidence_paths.append(path)
     market_index = candidate_root / "03_MARKET_DAY_INDEX" / f"{stem}__MARKET_DAY_INDEX.json"
@@ -330,13 +327,12 @@ def _persist_evidence(
         if path in seen:
             continue
         seen.add(path)
-        prefix = "PARITY_REPORT__" if path == report_path.resolve() else "CANDIDATE__"
         uploads.append(
             _upload_file(
                 writer_api,
                 parent_id=run_folder_id,
                 source=path,
-                target_name=prefix + path.name,
+                target_name="CANDIDATE__" + path.name,
             )
         )
     return {
@@ -344,6 +340,7 @@ def _persist_evidence(
         "folder_id": run_folder_id,
         "folder_name": folder_name,
         "uploads": uploads,
+        "final_report_target_name": "PARITY_REPORT_FINAL.json",
         "persistence_mode": "HASH_EVIDENCE_ONLY_SOURCE_SCOPE_TECHNICAL_GATE",
         "note": (
             "Physical and semantic candidate bodies were compared byte-for-byte by MD5 against the governed baseline, "
@@ -392,6 +389,10 @@ def run_source_scoped_parity(source_name: str) -> dict:
     )
     if source_meta.get("name") != source_name:
         raise RuntimeError("SOURCE_METADATA_NAME_DRIFT")
+    if int(source_meta.get("size", -1)) != int(selected.get("drive_size", -2)):
+        raise RuntimeError("SOURCE_METADATA_SIZE_DRIFT")
+    if source_meta.get("md5Checksum") != selected.get("drive_md5"):
+        raise RuntimeError("SOURCE_METADATA_MD5_DRIFT")
 
     temp_parent = Path(os.environ.get("RUNNER_TEMP") or tempfile.gettempdir()).resolve()
     run_root = Path(tempfile.mkdtemp(prefix="a1-source-parity-", dir=str(temp_parent))).resolve()
@@ -411,7 +412,7 @@ def run_source_scoped_parity(source_name: str) -> dict:
             data_plane_impl_version=FROZEN_IMPL_VERSION,
         )
         scratch.mkdir(parents=True, exist_ok=True)
-        scoped_drive = _SingleSourceDriveApi(reader_api, selected["drive_id"])
+        scoped_drive = _SingleSourceDriveApi(reader_api, source_meta)
         delta_result = run_delta(config, scoped_drive)
 
         baseline_folders = _baseline_runtime_children(reader_api)
@@ -433,7 +434,9 @@ def run_source_scoped_parity(source_name: str) -> dict:
         baseline_source_manifest = _download_json(reader_api, baseline_source_manifest_item["id"])
 
         candidate_global = json.loads(
-            _find_candidate_manifest(candidate_manifest_dir, "GLOBAL_DATA_PLANE_MANIFEST.json").read_text(encoding="utf-8")
+            _find_candidate_manifest(candidate_manifest_dir, "GLOBAL_DATA_PLANE_MANIFEST.json").read_text(
+                encoding="utf-8"
+            )
         )
         baseline_global_item = _exact_named(manifest_items, "GLOBAL_DATA_PLANE_MANIFEST.json")
         baseline_global = _download_json(reader_api, baseline_global_item["id"])
@@ -519,17 +522,25 @@ def run_source_scoped_parity(source_name: str) -> dict:
                 "parity_staging": "EVIDENCE_WRITE_ONLY",
             },
         }
-        report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+
         persisted = _persist_evidence(
             writer_api,
             candidate_root=run_root,
-            report_path=report_path,
             source_name=source_name,
             pass_state=parity_pass,
         )
         report["staging_evidence"] = persisted
         report["pass"] = parity_pass and persisted.get("pass") is True
         report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+
+        final_report_upload = _upload_file(
+            writer_api,
+            parent_id=persisted["folder_id"],
+            source=report_path,
+            target_name=persisted["final_report_target_name"],
+        )
+        report["final_report_upload"] = final_report_upload
+        report["pass"] = report["pass"] and final_report_upload.get("pass") is True
         return report
     finally:
         shutil.rmtree(run_root, ignore_errors=True)
