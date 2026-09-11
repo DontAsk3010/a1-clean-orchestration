@@ -1,77 +1,36 @@
-# Self-hosted parity runner setup — Windows-first, Drive-persistent
+# Execution-plane policy — remote/cloud only
 
-This is a one-time execution-plane setup. It does not change market methodology.
+This document supersedes the earlier owner-laptop self-hosted runner setup.
 
-## Owner execution environment
+## Owner-machine prohibition
 
-- GitHub self-hosted runner registered to this private repository.
-- Primary owner environment: **Windows x64**.
-- Labels required by the parity workflow: `self-hosted`, `windows`, `x64`, `a1-clean-parity`.
-- Python 3.11+ available from PowerShell/Command Prompt.
+The owner's Windows x64 workstation is **not** an execution plane for A1 CLEAN/QHPX corpus processing. Do not run full parity, delta processing, RAW mirroring, baseline mirroring, persistent staging, pattern-discovery corpus jobs, or production automation on that laptop.
 
-## Storage authority
+The previously registered Windows self-hosted runner is not part of the governed architecture and must remain stopped/removed.
 
-Persistent A1 CLEAN parity data stays in **Google Drive**, not on the owner's laptop.
+## Persistent data location
 
-Canonical sources remain cloud-side and read-only:
+Google Drive is the persistent evidence plane:
 
-- RAW folder: `02_CURRENT_HISTORICAL_RAW_DATA_UJI`
-- Governed baseline runtime: `UNIVERSAL_BEHAVIOR_DATA_PLANE_CURRENT`
+- `02_CURRENT_HISTORICAL_RAW_DATA_UJI` — canonical RAW, read-only;
+- `UNIVERSAL_BEHAVIOR_DATA_PLANE_CURRENT` — governed baseline, read-only;
+- `UNIVERSAL_BEHAVIOR_DATA_PLANE_PARITY_STAGING` — separate parity output/evidence target;
+- manifests, checkpoints, reconciliation evidence, and parity reports remain in Drive.
 
-Parity output is written only to the separate Drive folder:
+No full corpus, baseline mirror, or parity result is to be retained on the owner's laptop.
 
-- `UNIVERSAL_BEHAVIOR_DATA_PLANE_PARITY_STAGING`
-- Drive folder ID: `1WTb_lGBD6Tuwfcb-1WhsICjyJqzzBtwU`
+## Compute
 
-The staging folder is a sibling of the governed current runtime, not a child of it. Never point staging writes at `UNIVERSAL_BEHAVIOR_DATA_PLANE_CURRENT` or the canonical RAW folder.
+GitHub remains the control/orchestration plane. A **remote/cloud compute environment** must perform actual corpus processing. The compute target may use its own ephemeral working storage when technically required by Python/SQLite, but that storage is not canonical and must not become a persistent project store. Governed output is committed back to Google Drive.
 
-## Local Windows disk policy
+## Current gate
 
-The Windows runner is an **execution plane**, not a persistent evidence store.
+The local Windows parity workflow has been removed. Do not re-enable parity execution until a remote/cloud compute target and its authenticated Drive I/O path have been selected, configured, and validated without changing frozen V2 semantics.
 
-- Do not create a permanent full RAW mirror on C: or D:.
-- Do not create a permanent full baseline mirror on C: or D:.
-- Do not retain parity output on C: or D: after Drive commit.
-- Local storage is permitted only for bounded ephemeral scratch required by the running process (for example temporary SQLite, a currently processed file/chunk, or upload staging).
-- Ephemeral material must be deleted after successful reconciliation/Drive commit and must not become an alternative canonical source.
+## Safety invariants
 
-This policy is intended to keep the owner's laptop light while preserving the frozen data-plane semantics.
-
-## Drive authentication and permissions
-
-Credentials must never be committed to GitHub or workflow YAML.
-
-The runner must have:
-
-- read access to canonical RAW;
-- read access to the governed baseline runtime;
-- write access only where required for the dedicated parity-staging folder;
-- no parity write path into RAW or the governed current runtime.
-
-Use the least-privilege mechanism available. Authentication setup is operational only and must not change source identity, routing, semantic processing, or parity rules.
-
-## Preflight requirements before a full corpus run
-
-The Drive-only orchestration adapter must verify:
-
-1. Windows runner identity and expected labels.
-2. Canonical RAW Drive folder identity.
-3. Governed baseline Drive folder identity.
-4. Dedicated parity-staging Drive folder identity.
-5. RAW/baseline are never selected as write destinations.
-6. Staging write access works.
-7. Local scratch is ephemeral and separate from canonical/staging identities.
-8. Resume/checkpoint state identifies the exact Drive objects already committed.
-
-## Parity sequence
-
-1. Register/configure the Windows x64 self-hosted runner and add label `a1-clean-parity`.
-2. Keep the runner online (`Listening for Jobs`).
-3. Configure Drive authentication with least privilege.
-4. Use the Drive-only adapter to read canonical RAW/baseline and write candidate results to `UNIVERSAL_BEHAVIOR_DATA_PLANE_PARITY_STAGING`.
-5. Use only bounded ephemeral local scratch during processing.
-6. Reconcile candidate artifacts against the governed baseline.
-7. Delete/release ephemeral local material after successful Drive commit/reconciliation.
-8. Do not merge/enable canonical automation unless the parity comparator passes.
-
-The previous local-full-mirror design is superseded. Linux is not the default owner environment for this project; it may be evaluated later only as an optional server/cloud execution target for a concrete operational reason.
+- Canonical RAW is never modified by parity.
+- Current governed baseline is never used as parity write target.
+- Parity writes only to the separate Drive staging area.
+- No formula, threshold, selector, signal, or behavior-reading methodology changes are authorized by compute migration.
+- No sampling may be used as final parity evidence.
