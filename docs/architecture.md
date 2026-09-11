@@ -1,13 +1,25 @@
-# A1 CLEAN automation architecture
+# Architecture
 
-- **Drive:** canonical evidence and authority/output plane.
-- **GitHub:** source/version/review/workflow control plane.
-- **Self-hosted Linux runner:** first execution plane for parity and later delta jobs.
-- **Colab:** current lab/bootstrap/manual fallback during migration.
-- **Pattern discovery:** separate downstream lane; never a second analytical authority.
+## Authority separation
 
-The repository contains no canonical RAW, access shards, semantic bundles, credentials, tokens, or trading formula/signal logic.
+- **Google Drive** = canonical evidence plane and persistent project storage.
+- **GitHub** = source control, review, CI, workflow definitions, and orchestration.
+- **Remote/cloud compute** = execution plane for corpus processing.
+- **Owner Windows laptop** = administration/access endpoint only; not a corpus execution plane.
+- **Colab** = lab/bootstrap/manual fallback while migration remains gated.
 
-## Migration rule
+GitHub is not a second analytical engine. Compute migration must not change frozen parser/routing/delta semantics or behavior-reading methodology.
 
-`frozen_v2.py` is the parity anchor mechanically derived from the audited notebook. The current generation, implementation version, routing inference constants, shard sizes, delta classifications, and reconciliation behavior are frozen. Environment-specific paths/authentication are injected instead of Colab-specific mounting.
+## Persistent project data
+
+Persistent project data remains in Google Drive. Canonical RAW and governed baseline are read-only during parity. Parity output is written to a separate Drive staging area.
+
+The owner laptop must not retain a full RAW mirror, baseline mirror, persistent parity staging, or corpus-processing artifacts.
+
+## Remote compute working storage
+
+A remote executor may use ephemeral local scratch only when technically necessary for streaming, SQLite, decompression, or source-scoped processing. Ephemeral scratch is disposable and non-canonical. Governed artifacts, checkpoints, reconciliation evidence, and PASS/HOLD state must be persisted back to Drive.
+
+## Current migration gate
+
+Local self-hosted Windows corpus execution is disabled. A remote/cloud compute target and Drive-authenticated I/O path must be established before staging parity is run.
