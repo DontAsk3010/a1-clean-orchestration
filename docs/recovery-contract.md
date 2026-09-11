@@ -1,7 +1,15 @@
 # Recovery contract
 
-Operational checkpoint lifecycle: `DISCOVERED -> PROCESSING_STAGING -> SOURCE_RECONCILED -> COMMIT_READY -> COMMITTED`.
+Recovery state is operational only and must not create analytical logic.
 
-A checkpoint records run identity, authority revision, repo commit, generation/implementation version, current source/stage, last validated and committed source, reconciliation state, HOLD reason, and `NEXT_EXACT_RESUME_POINT`.
+Required lifecycle:
 
-This layer must never change market semantics. Global PASS is promoted only after required source actions and reconciliation complete. Canonical delta concurrency is single-writer and must use `cancel-in-progress: false`.
+`DISCOVERED -> PROCESSING_STAGING -> SOURCE_RECONCILED -> COMMIT_READY -> COMMITTED`
+
+Persistent checkpoint state and resume evidence belong in Google Drive, not on the owner laptop. A remote/cloud executor may keep transient scratch/checkpoint material only long enough to safely commit the governed checkpoint back to Drive.
+
+A checkpoint must identify the run/job, authority revision, repository commit, generation/implementation version, source plan, current source/stage, last validated source, last committed source, reconciliation state, HOLD reason if any, and `NEXT_EXACT_RESUME_POINT`.
+
+A terminated executor must resume from the last governed committed checkpoint rather than restart the entire corpus when source-level recovery evidence is valid.
+
+Global PASS is forbidden until all required source actions and global reconciliation complete.
