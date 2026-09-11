@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import os
 
@@ -13,9 +14,26 @@ def _load_credentials(scopes: list[str]):
         path = Path(credential_path).expanduser().resolve()
         if not path.is_file():
             raise FileNotFoundError(f"A1_GOOGLE_APPLICATION_CREDENTIALS not found: {path}")
-        from google.oauth2 import service_account
 
-        return service_account.Credentials.from_service_account_file(str(path), scopes=scopes)
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        credential_type = payload.get("type")
+
+        if credential_type == "service_account":
+            from google.oauth2 import service_account
+
+            return service_account.Credentials.from_service_account_file(
+                str(path), scopes=scopes
+            )
+
+        if credential_type == "authorized_user":
+            from google.oauth2.credentials import Credentials
+
+            creds = Credentials.from_authorized_user_file(str(path), scopes=scopes)
+            return creds
+
+        raise ValueError(
+            "Unsupported Drive credential JSON type. Expected 'authorized_user' or 'service_account'."
+        )
 
     import google.auth
 
