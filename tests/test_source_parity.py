@@ -3,36 +3,22 @@ from pathlib import Path
 
 from a1clean.parity import STABLE_SOURCE_KEYS
 from a1clean.source_parity import (
-    _ScopedRequest,
+    _StaticListRequest,
     _compare_hashed_file_family,
     _stable_source,
 )
 
 
-class _Request:
-    def __init__(self, payload):
-        self.payload = payload
-
-    def execute(self):
-        return self.payload
-
-
-def test_scoped_request_exposes_only_selected_source_and_stops_pagination():
-    request = _ScopedRequest(
-        _Request(
-            {
-                "files": [
-                    {"id": "keep", "name": "a.csv"},
-                    {"id": "drop", "name": "b.csv"},
-                ],
-                "nextPageToken": "unexpected-next-page",
-            }
-        ),
-        "keep",
-    )
-    result = request.execute()
-    assert result["files"] == [{"id": "keep", "name": "a.csv"}]
-    assert result["nextPageToken"] is None
+def test_static_list_request_exposes_exact_selected_canonical_metadata_only():
+    selected = {
+        "id": "keep",
+        "name": "a.csv",
+        "mimeType": "text/csv",
+        "size": "123",
+        "md5Checksum": "abc",
+    }
+    result = _StaticListRequest(selected).execute()
+    assert result == {"files": [selected], "nextPageToken": None}
 
 
 def test_stable_source_uses_existing_parity_contract_keys_only():
