@@ -9,11 +9,11 @@ Parity proves that migrated execution preserves the governed V2 data-plane behav
 - Candidate parity output: separate Google Drive staging folder.
 - Checkpoints, manifests, reconciliation evidence, and PASS/HOLD records: Google Drive.
 
-The owner Windows laptop is not a parity execution or persistence target.
+The owner Windows laptop may execute parity compute, but it is not a persistent parity storage target.
 
 ## Execution plane
 
-Parity must run on a remote/cloud compute target. Ephemeral working storage on that executor is allowed only when technically required by the frozen implementation and must not become canonical storage.
+Parity may run on the owner's Windows x64 self-hosted runner as a **compute-only** executor. Local working storage is allowed only as bounded ephemeral scratch required by the frozen implementation and must not become canonical storage or a permanent full RAW/baseline/staging mirror.
 
 ## Required comparisons
 
@@ -25,5 +25,6 @@ Normalize only environmental fields such as timestamps, refresh/run identifiers,
 
 - Never write parity output into `UNIVERSAL_BEHAVIOR_DATA_PLANE_CURRENT`.
 - Never mutate canonical RAW.
+- Never retain a permanent full RAW/baseline/staging mirror on the laptop.
 - Never use sampling as final parity evidence.
 - Never change frozen V2 parser/routing/delta constants or semantics to make parity pass.
