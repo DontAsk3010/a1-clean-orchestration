@@ -15,25 +15,25 @@ concurrency:
   cancel-in-progress: false
 jobs:
   parity:
-    runs-on: [self-hosted, linux, x64, a1-clean-parity]
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
     steps:
       - uses: actions/checkout@v4
-      - run: python3 -m venv .venv
-      - run: .venv/bin/pip install -U pip
-      - run: .venv/bin/pip install -e .
+      - run: python -m venv .venv
+      - run: .\.venv\Scripts\python.exe -m pip install -U pip
+      - run: .\.venv\Scripts\python.exe -m pip install -e .
       - name: Runner preflight
         env:
           A1_RAW_DIR: ${{ vars.A1_RAW_DIR }}
           A1_RUN_ROOT: ${{ inputs.staging_root }}
           A1_SCRATCH_DIR: ${{ vars.A1_SCRATCH_DIR }}
           A1_RAW_FOLDER_DRIVE_ID: 1gTyt7CzqlubcdZGjWV_lM9Iw8Zg4ib3e
-        run: .venv/bin/python -m a1clean.runner_preflight
+        run: .\.venv\Scripts\python.exe -m a1clean.runner_preflight
       - name: Frozen delta into STAGING only
         env:
           A1_RAW_DIR: ${{ vars.A1_RAW_DIR }}
           A1_RUN_ROOT: ${{ inputs.staging_root }}
           A1_SCRATCH_DIR: ${{ vars.A1_SCRATCH_DIR }}
           A1_RAW_FOLDER_DRIVE_ID: 1gTyt7CzqlubcdZGjWV_lM9Iw8Zg4ib3e
-        run: .venv/bin/a1clean delta
+        run: .\.venv\Scripts\a1clean.exe delta
       - name: Compare parity
-        run: .venv/bin/a1clean parity "${{ inputs.baseline_root }}" "${{ inputs.staging_root }}"
+        run: .\.venv\Scripts\a1clean.exe parity "${{ inputs.baseline_root }}" "${{ inputs.staging_root }}"
