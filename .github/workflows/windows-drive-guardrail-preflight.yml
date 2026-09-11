@@ -27,17 +27,24 @@ jobs:
       - name: Checkout migration code
         uses: actions/checkout@v4
 
-      - name: Verify local external credential binding exists
+      - name: Verify separate external Drive credential bindings exist
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          if ([string]::IsNullOrWhiteSpace($env:A1_GOOGLE_APPLICATION_CREDENTIALS)) {
-            throw 'A1_GOOGLE_APPLICATION_CREDENTIALS is not configured for the runner process.'
+          $bindings = @(
+            @{ Name = 'A1_DRIVE_READER_CREDENTIALS'; Path = $env:A1_DRIVE_READER_CREDENTIALS },
+            @{ Name = 'A1_DRIVE_WRITER_CREDENTIALS'; Path = $env:A1_DRIVE_WRITER_CREDENTIALS }
+          )
+          foreach ($binding in $bindings) {
+            if ([string]::IsNullOrWhiteSpace($binding.Path)) {
+              throw "$($binding.Name) is not configured for the runner process."
+            }
+            if (-not (Test-Path -LiteralPath $binding.Path -PathType Leaf)) {
+              throw "$($binding.Name) points to a credential file that does not exist. Credential content/path is intentionally not printed."
+            }
           }
-          if (-not (Test-Path -LiteralPath $env:A1_GOOGLE_APPLICATION_CREDENTIALS -PathType Leaf)) {
-            throw 'Configured Drive credential file does not exist. Credential content/path is intentionally not printed.'
-          }
-          Write-Host 'External Drive credential binding: PRESENT'
+          Write-Host 'Drive reader credential binding: PRESENT'
+          Write-Host 'Drive writer credential binding: PRESENT'
 
       - name: Install migration package
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
@@ -62,6 +69,7 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           Write-Host 'PREFLIGHT ONLY.'
-          Write-Host 'RAW and governed CURRENT are never written by this workflow.'
+          Write-Host 'RAW and governed CURRENT are opened only via the reader identity and are never written by this workflow.'
+          Write-Host 'PARITY_STAGING is opened via the separate writer identity.'
           Write-Host 'Drive write probe is one tiny create/delete object in PARITY_STAGING only.'
           Write-Host 'No frozen V2 corpus processing and no canonical delta execution occur here.'
