@@ -44,9 +44,16 @@ Current frozen migration bindings:
 - governed baseline runtime: `UNIVERSAL_BEHAVIOR_DATA_PLANE_CURRENT` / `1SRN-WWkHJefLGLSN6_SktpVU0Ugjwqc-`;
 - parity staging: `UNIVERSAL_BEHAVIOR_DATA_PLANE_PARITY_STAGING` / `1WTb_lGBD6Tuwfcb-1WhsICjyJqzzBtwU`.
 
-Drive credentials are external to the repository. `A1_GOOGLE_APPLICATION_CREDENTIALS` may point to an `authorized_user` OAuth credential JSON or a service-account credential JSON. Secrets must never be committed to GitHub or pasted into project documentation/chat.
+Drive credentials are external to the repository and split by role:
 
-`drive-preflight` is deliberately fail-closed: the three governed folder identities must match and be distinct; canonical RAW and governed CURRENT must be read-only to the execution identity; parity staging must be writable. Only after those gates pass does the preflight create and immediately delete one tiny probe object in parity staging.
+- `A1_DRIVE_READER_CREDENTIALS` — reader identity used only for canonical RAW and governed CURRENT; those folders must be non-editable to this identity.
+- `A1_DRIVE_WRITER_CREDENTIALS` — writer identity used only for PARITY_STAGING.
+
+Each credential file may be an `authorized_user` OAuth credential JSON or a service-account credential JSON. `A1_GOOGLE_APPLICATION_CREDENTIALS` remains a compatibility fallback only. Secrets must never be committed to GitHub or pasted into project documentation/chat.
+
+`drive-preflight` is deliberately fail-closed: the three governed folder identities must match and be distinct; canonical RAW and governed CURRENT must be read-only through the reader identity; parity staging must be writable through the separate writer identity. Only after those gates pass does the preflight create and immediately delete one tiny probe object in parity staging.
+
+Because PARITY_STAGING is currently in My Drive, service-account-only staging writes are not assumed. Google documents that service accounts do not have storage quota and should use shared drives or OAuth on behalf of a human user for Drive uploads. The writer channel therefore remains credential-agnostic and must be validated by the live guardrail before any parity output is allowed.
 
 ## Current governed baseline candidate
 
@@ -58,7 +65,7 @@ This is a data-plane baseline candidate for parity only. It is **not** a behavio
 
 Windows runner connectivity is proven. The compute-only smoke workflow passes Windows/X64, Python 3.11+, and local RAW readability.
 
-Drive guardrail code and unit tests are installed on `migration/parity-v2`. The live Drive preflight is intentionally **not yet dispatched** until an external runner credential is bound and the intended RAW-read/CURRENT-read/STAGING-write permission separation is proven.
+Drive guardrail code and unit tests are installed on `migration/parity-v2`. The live Drive preflight is intentionally **not yet dispatched** until separate reader/writer credential bindings are present and the intended RAW-read/CURRENT-read/STAGING-write separation is proven.
 
 After Drive guardrail PASS, run source-preflight against the dynamically discovered canonical universe. Only then may source-scoped staging parity be opened. The former local-path parity workflow remains disabled.
 
