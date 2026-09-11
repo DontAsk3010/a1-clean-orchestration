@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "a1-clean-orchestration"
+version = "0.1.0"
+description = "Governed orchestration and parity migration for A1 CLEAN/QHPX"
+requires-python = ">=3.11"
+dependencies = [
+  "google-auth",
+  "google-api-python-client",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+pattern = ["numpy","scipy","scikit-learn","ruptures","stumpy","tslearn"]
+
+[project.scripts]
+a1clean = "a1clean.cli:main"
+
+[tool.setuptools.packages.find]
+where=["src"]
+
+[tool.pytest.ini_options]
+testpaths=["tests"]

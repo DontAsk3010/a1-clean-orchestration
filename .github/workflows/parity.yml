@@ -1,0 +1,32 @@
+name: Parity - Manual Self Hosted
+on:
+  workflow_dispatch:
+    inputs:
+      baseline_root:
+        description: Existing governed baseline runtime root
+        required: true
+      staging_root:
+        description: Separate parity staging runtime root
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: a1-clean-parity
+  cancel-in-progress: false
+jobs:
+  parity:
+    runs-on: [self-hosted, linux, x64, a1-clean-parity]
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m venv .venv
+      - run: .venv/bin/pip install -U pip
+      - run: .venv/bin/pip install -e .
+      - name: Frozen delta into STAGING only
+        env:
+          A1_RAW_DIR: ${{ vars.A1_RAW_DIR }}
+          A1_RUN_ROOT: ${{ inputs.staging_root }}
+          A1_SCRATCH_DIR: ${{ vars.A1_SCRATCH_DIR }}
+          A1_RAW_FOLDER_DRIVE_ID: 1gTyt7CzqlubcdZGjWV_lM9Iw8Zg4ib3e
+        run: .venv/bin/a1clean delta
+      - name: Compare parity
+        run: .venv/bin/a1clean parity "${{ inputs.baseline_root }}" "${{ inputs.staging_root }}"
