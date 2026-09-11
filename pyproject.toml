@@ -22,5 +22,8 @@ a1clean = "a1clean.cli:main"
 [tool.setuptools.packages.find]
 where=["src"]
 
+[tool.setuptools.package-data]
+a1clean = ["_frozen_v2_source.py.gz"]
+
 [tool.pytest.ini_options]
 testpaths=["tests"]
