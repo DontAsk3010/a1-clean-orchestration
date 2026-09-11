@@ -4,6 +4,7 @@ import io
 import json
 from datetime import datetime, timezone
 
+from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseUpload
 
 from .config import (
@@ -58,15 +59,17 @@ def evaluate_folder_separation(raw: dict, current: dict, staging: dict) -> dict:
     current_caps = current.get("capabilities") or {}
     staging_caps = staging.get("capabilities") or {}
 
-    checks["raw_reader_is_read_only"] = {
-        "pass": not bool(raw_caps.get("canAddChildren")) and not bool(raw_caps.get("canEdit")),
-        "capabilities": raw_caps,
+    # Drive file capabilities describe the underlying user's ACL role on the item.
+    # They do not prove the OAuth token's effective scope. With the same owner
+    # principal, canEdit can remain true even when the reader access token is
+    # drive.readonly. Keep RAW/CURRENT ACL capabilities as diagnostics only and
+    # prove effective reader no-write separately with a safe probe in STAGING.
+    acl_observations = {
+        "raw_via_reader": raw_caps,
+        "current_via_reader": current_caps,
+        "staging_via_writer": staging_caps,
     }
-    checks["current_reader_is_read_only"] = {
-        "pass": not bool(current_caps.get("canAddChildren"))
-        and not bool(current_caps.get("canEdit")),
-        "capabilities": current_caps,
-    }
+
     checks["staging_writer_has_write_capability"] = {
         "pass": bool(staging_caps.get("canAddChildren")),
         "capabilities": staging_caps,
@@ -75,7 +78,83 @@ def evaluate_folder_separation(raw: dict, current: dict, staging: dict) -> dict:
     return {
         "pass": all(row.get("pass") is True for row in checks.values()),
         "checks": checks,
+        "acl_observations": acl_observations,
     }
+
+
+def _probe_media() -> MediaIoBaseUpload:
+    return MediaIoBaseUpload(
+        io.BytesIO(b"A1 CLEAN parity staging guardrail probe. Safe to delete.\n"),
+        mimetype="text/plain",
+        resumable=False,
+    )
+
+
+def _reader_staging_write_denial_probe(reader_api, writer_api, staging_folder_id: str) -> dict:
+    """Prove the reader channel cannot write, without touching RAW/CURRENT.
+
+    The only attempted write target is PARITY_STAGING. A 401/403 from the reader
+    channel is the expected PASS. If a file is unexpectedly created, the writer
+    channel immediately removes it and the guardrail fails closed.
+    """
+
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    name = f"A1_READER_WRITE_DENIAL_PROBE_{stamp}.txt"
+    created_id = None
+    try:
+        created = (
+            reader_api.files()
+            .create(
+                body={"name": name, "parents": [staging_folder_id]},
+                media_body=_probe_media(),
+                fields="id,name,parents",
+                supportsAllDrives=True,
+            )
+            .execute()
+        )
+        created_id = created.get("id")
+        cleanup = "NOT_CREATED"
+        if created_id:
+            try:
+                writer_api.files().delete(
+                    fileId=created_id, supportsAllDrives=True
+                ).execute()
+                cleanup = "DELETED_BY_WRITER_AFTER_UNEXPECTED_READER_WRITE"
+            except Exception as cleanup_exc:
+                cleanup = (
+                    f"CLEANUP_FAILED:{type(cleanup_exc).__name__}:{cleanup_exc}"
+                )
+        return {
+            "pass": False,
+            "write_denied": False,
+            "unexpected_reader_write_succeeded": True,
+            "created_id": created_id,
+            "created_name": created.get("name"),
+            "cleanup": cleanup,
+        }
+    except HttpError as exc:
+        status = getattr(exc.resp, "status", None)
+        if status in (401, 403):
+            return {
+                "pass": True,
+                "write_denied": True,
+                "http_status": status,
+                "created_id": None,
+            }
+        return {
+            "pass": False,
+            "write_denied": False,
+            "http_status": status,
+            "created_id": None,
+            "error": f"HttpError:{exc}",
+        }
+    except Exception as exc:
+        return {
+            "pass": False,
+            "write_denied": False,
+            "created_id": created_id,
+            "error": f"{type(exc).__name__}: {exc}",
+        }
 
 
 def _staging_create_delete_probe(api, staging_folder_id: str) -> dict:
@@ -83,16 +162,11 @@ def _staging_create_delete_probe(api, staging_folder_id: str) -> dict:
     name = f"A1_PARITY_STAGING_WRITE_PROBE_{stamp}.txt"
     created_id = None
     try:
-        media = MediaIoBaseUpload(
-            io.BytesIO(b"A1 CLEAN parity staging write probe. Safe to delete.\n"),
-            mimetype="text/plain",
-            resumable=False,
-        )
         created = (
             api.files()
             .create(
                 body={"name": name, "parents": [staging_folder_id]},
-                media_body=media,
+                media_body=_probe_media(),
                 fields="id,name,parents",
                 supportsAllDrives=True,
             )
@@ -140,8 +214,8 @@ def run_drive_guardrail_preflight(*, write_probe: bool = True) -> dict:
 
     report = evaluate_folder_separation(raw, current, staging)
     report["credential_channels"] = {
-        "raw_and_current": "READER_IDENTITY / READONLY_SCOPE",
-        "parity_staging": "WRITER_IDENTITY / WRITE_SCOPE",
+        "raw_and_current": "READER_CREDENTIAL / DRIVE_READONLY_SCOPE",
+        "parity_staging": "WRITER_CREDENTIAL / DRIVE_WRITE_SCOPE",
     }
     report["folders"] = {
         "raw_via_reader": raw,
@@ -151,21 +225,36 @@ def run_drive_guardrail_preflight(*, write_probe: bool = True) -> dict:
 
     if write_probe:
         if report["pass"]:
-            probe = _staging_create_delete_probe(
+            reader_probe = _reader_staging_write_denial_probe(
+                reader_api, writer_api, FROZEN_PARITY_STAGING_FOLDER_DRIVE_ID
+            )
+        else:
+            reader_probe = {
+                "pass": False,
+                "skipped": True,
+                "reason": "Folder identity/staging capability checks did not pass.",
+            }
+        report["reader_write_denial_probe_in_staging"] = reader_probe
+        report["pass"] = report["pass"] and reader_probe.get("pass") is True
+
+        if report["pass"]:
+            writer_probe = _staging_create_delete_probe(
                 writer_api, FROZEN_PARITY_STAGING_FOLDER_DRIVE_ID
             )
         else:
-            probe = {
+            writer_probe = {
                 "pass": False,
                 "skipped": True,
-                "reason": "Folder identity/permission separation did not pass; write probe not attempted.",
+                "reason": "Reader no-write proof did not pass; writer probe not attempted.",
             }
-        report["staging_create_delete_probe"] = probe
-        report["pass"] = report["pass"] and probe.get("pass") is True
+        report["staging_writer_create_delete_probe"] = writer_probe
+        report["pass"] = report["pass"] and writer_probe.get("pass") is True
 
     report["note"] = (
-        "RAW and governed CURRENT are opened only through the reader credential and must be non-editable to that identity. "
-        "PARITY_STAGING is opened through the separate writer credential. The only write in this preflight is one tiny create/delete probe in staging."
+        "RAW and governed CURRENT are read only through the reader credential; no write is attempted against either folder. "
+        "Drive capabilities are ACL observations and may show owner/editor rights even for a readonly OAuth token. "
+        "Effective reader no-write is proven only by a denied create attempt in PARITY_STAGING. "
+        "The writer channel then performs one tiny create/delete probe in PARITY_STAGING."
     )
     return report
 
