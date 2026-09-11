@@ -8,10 +8,19 @@ Current branch goal: **parity first**. Nothing in this repository authorizes for
 
 - `src/a1clean/frozen_v2.py` — mechanical V2 parity anchor from the governed notebook.
 - `a1clean delta` — executes the frozen engine against the configured runtime root.
+- `a1clean source-preflight` — discovers the current canonical RAW universe from Google Drive and verifies matching local read-only files.
 - `a1clean parity BASELINE CANDIDATE` — compares governed baseline vs staging artifacts.
 - `checkpoint.py` — operational restart state.
 - `pattern_discovery/` — isolated Ruptures/STUMPY/DTW-tslearn wrappers with no project analytical defaults.
 - `.github/workflows/ci.yml` — lightweight GitHub-hosted tests only.
+
+## Dynamic source universe
+
+The RAW source universe is **never hard-coded to a fixed file count**. No governed logic may assume 17, 18, or any other constant number of source files.
+
+At each preflight/run, the required universe is discovered from all valid source files currently present in the canonical Google Drive RAW folder. Reported source counts are observations only. If the canonical folder gains or loses a governed source, discovery must reflect that current state automatically without changing analytical methodology or editing a fixed count in code.
+
+Canonical Drive controls source membership. The local Windows RAW folder is only a read-only compute-side copy/cache and must not promote extra local files into the governed universe automatically.
 
 ## Execution policy
 
