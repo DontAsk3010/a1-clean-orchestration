@@ -20,7 +20,7 @@ def _folder(folder_id: str, name: str, *, add: bool, edit: bool) -> dict:
     }
 
 
-def test_drive_guardrail_accepts_readonly_raw_current_and_writable_staging():
+def test_drive_guardrail_accepts_readonly_reader_and_writable_writer():
     report = evaluate_folder_separation(
         _folder("raw", CANONICAL_RAW_FOLDER_NAME, add=False, edit=False),
         _folder("current", CANONICAL_CURRENT_FOLDER_NAME, add=False, edit=False),
@@ -29,24 +29,24 @@ def test_drive_guardrail_accepts_readonly_raw_current_and_writable_staging():
     assert report["pass"] is True
 
 
-def test_drive_guardrail_holds_if_raw_is_writable():
+def test_drive_guardrail_holds_if_raw_reader_is_writable():
     report = evaluate_folder_separation(
         _folder("raw", CANONICAL_RAW_FOLDER_NAME, add=True, edit=True),
         _folder("current", CANONICAL_CURRENT_FOLDER_NAME, add=False, edit=False),
         _folder("staging", PARITY_STAGING_FOLDER_NAME, add=True, edit=True),
     )
     assert report["pass"] is False
-    assert report["checks"]["raw_read_only"]["pass"] is False
+    assert report["checks"]["raw_reader_is_read_only"]["pass"] is False
 
 
-def test_drive_guardrail_holds_if_staging_is_not_writable():
+def test_drive_guardrail_holds_if_staging_writer_is_not_writable():
     report = evaluate_folder_separation(
         _folder("raw", CANONICAL_RAW_FOLDER_NAME, add=False, edit=False),
         _folder("current", CANONICAL_CURRENT_FOLDER_NAME, add=False, edit=False),
         _folder("staging", PARITY_STAGING_FOLDER_NAME, add=False, edit=False),
     )
     assert report["pass"] is False
-    assert report["checks"]["staging_write_capability"]["pass"] is False
+    assert report["checks"]["staging_writer_has_write_capability"]["pass"] is False
 
 
 def test_drive_guardrail_holds_on_folder_identity_collision():
