@@ -20,29 +20,21 @@ def _folder(folder_id: str, name: str, *, add: bool, edit: bool) -> dict:
     }
 
 
-def test_drive_guardrail_accepts_readonly_reader_and_writable_writer():
+def test_drive_guardrail_accepts_owner_acl_on_reader_paths_when_staging_writer_is_valid():
     report = evaluate_folder_separation(
-        _folder("raw", CANONICAL_RAW_FOLDER_NAME, add=False, edit=False),
-        _folder("current", CANONICAL_CURRENT_FOLDER_NAME, add=False, edit=False),
+        _folder("raw", CANONICAL_RAW_FOLDER_NAME, add=True, edit=True),
+        _folder("current", CANONICAL_CURRENT_FOLDER_NAME, add=True, edit=True),
         _folder("staging", PARITY_STAGING_FOLDER_NAME, add=True, edit=True),
     )
     assert report["pass"] is True
-
-
-def test_drive_guardrail_holds_if_raw_reader_is_writable():
-    report = evaluate_folder_separation(
-        _folder("raw", CANONICAL_RAW_FOLDER_NAME, add=True, edit=True),
-        _folder("current", CANONICAL_CURRENT_FOLDER_NAME, add=False, edit=False),
-        _folder("staging", PARITY_STAGING_FOLDER_NAME, add=True, edit=True),
-    )
-    assert report["pass"] is False
-    assert report["checks"]["raw_reader_is_read_only"]["pass"] is False
+    assert report["acl_observations"]["raw_via_reader"]["canEdit"] is True
+    assert report["acl_observations"]["current_via_reader"]["canEdit"] is True
 
 
 def test_drive_guardrail_holds_if_staging_writer_is_not_writable():
     report = evaluate_folder_separation(
-        _folder("raw", CANONICAL_RAW_FOLDER_NAME, add=False, edit=False),
-        _folder("current", CANONICAL_CURRENT_FOLDER_NAME, add=False, edit=False),
+        _folder("raw", CANONICAL_RAW_FOLDER_NAME, add=True, edit=True),
+        _folder("current", CANONICAL_CURRENT_FOLDER_NAME, add=True, edit=True),
         _folder("staging", PARITY_STAGING_FOLDER_NAME, add=False, edit=False),
     )
     assert report["pass"] is False
@@ -51,8 +43,8 @@ def test_drive_guardrail_holds_if_staging_writer_is_not_writable():
 
 def test_drive_guardrail_holds_on_folder_identity_collision():
     report = evaluate_folder_separation(
-        _folder("same", CANONICAL_RAW_FOLDER_NAME, add=False, edit=False),
-        _folder("same", CANONICAL_CURRENT_FOLDER_NAME, add=False, edit=False),
+        _folder("same", CANONICAL_RAW_FOLDER_NAME, add=True, edit=True),
+        _folder("same", CANONICAL_CURRENT_FOLDER_NAME, add=True, edit=True),
         _folder("staging", PARITY_STAGING_FOLDER_NAME, add=True, edit=True),
     )
     assert report["pass"] is False
