@@ -9,9 +9,13 @@ Current branch goal: **parity first**. Nothing in this repository authorizes for
 - `src/a1clean/frozen_v2.py` — mechanical V2 parity anchor from the governed notebook.
 - `a1clean delta` — executes the frozen engine against the configured runtime root.
 - `a1clean parity BASELINE CANDIDATE` — compares governed baseline vs staging artifacts.
+- `a1clean drive-preflight` — validates governed Drive folder identity/permission separation and performs one tiny create/delete probe in parity staging only.
+- `a1clean source-preflight` — dynamically discovers the canonical Drive RAW universe and reconciles it against the local read-only RAW copy by exact name/size/checksum.
 - `checkpoint.py` — operational restart state.
 - `pattern_discovery/` — isolated Ruptures/STUMPY/DTW-tslearn wrappers with no project analytical defaults.
 - `.github/workflows/ci.yml` — lightweight GitHub-hosted tests only.
+- `.github/workflows/windows-runner-smoke.yml` — compute-endpoint smoke test only.
+- `.github/workflows/windows-drive-guardrail-preflight.yml` — manual-only Drive guardrail/source-identity preflight; it never runs automatically on PR/push.
 
 ## Execution policy
 
@@ -32,6 +36,18 @@ The governed RAW universe is discovered dynamically from the canonical Google Dr
 
 Canonical Drive controls membership. Local RAW files are read-only compute-side copies/cache. Missing local counterparts, duplicate canonical filenames, size mismatches, or checksum mismatches must HOLD rather than silently continue.
 
+## Governed Drive identities
+
+Current frozen migration bindings:
+
+- canonical RAW folder: `02_CURRENT_HISTORICAL_RAW_DATA_UJI` / `1gTyt7CzqlubcdZGjWV_lM9Iw8Zg4ib3e`;
+- governed baseline runtime: `UNIVERSAL_BEHAVIOR_DATA_PLANE_CURRENT` / `1SRN-WWkHJefLGLSN6_SktpVU0Ugjwqc-`;
+- parity staging: `UNIVERSAL_BEHAVIOR_DATA_PLANE_PARITY_STAGING` / `1WTb_lGBD6Tuwfcb-1WhsICjyJqzzBtwU`.
+
+Drive credentials are external to the repository. `A1_GOOGLE_APPLICATION_CREDENTIALS` may point to an `authorized_user` OAuth credential JSON or a service-account credential JSON. Secrets must never be committed to GitHub or pasted into project documentation/chat.
+
+`drive-preflight` is deliberately fail-closed: the three governed folder identities must match and be distinct; canonical RAW and governed CURRENT must be read-only to the execution identity; parity staging must be writable. Only after those gates pass does the preflight create and immediately delete one tiny probe object in parity staging.
+
 ## Current governed baseline candidate
 
 The latest completed Colab refresh has been verified from Drive. `Raw Maret 03-31-2025.csv` was accepted as `NEW_PROCESSED`; all currently discovered canonical sources are `ACCESS_READY_FOR_AI`; latest holds are empty; changed/removed are zero; unresolved routing remains zero; and the delta semantic gate is `READY_FOR_AI_DELTA`.
@@ -40,9 +56,11 @@ This is a data-plane baseline candidate for parity only. It is **not** a behavio
 
 ## Current gate
 
-The former local-path parity workflow remains disabled until Drive-persistent output/checkpoint I/O and bounded local scratch are fully validated. Do not re-enable parity by pointing the frozen engine at permanent local RAW/baseline/staging folders.
+Windows runner connectivity is proven. The compute-only smoke workflow passes Windows/X64, Python 3.11+, and local RAW readability.
 
-Next implementation gate: finish Drive-aware I/O, run source-preflight against the dynamic canonical universe, validate read-baseline/write-staging separation, then perform full staging parity against `UNIVERSAL_BEHAVIOR_DATA_PLANE_PARITY_STAGING`.
+Drive guardrail code and unit tests are installed on `migration/parity-v2`. The live Drive preflight is intentionally **not yet dispatched** until an external runner credential is bound and the intended RAW-read/CURRENT-read/STAGING-write permission separation is proven.
+
+After Drive guardrail PASS, run source-preflight against the dynamically discovered canonical universe. Only then may source-scoped staging parity be opened. The former local-path parity workflow remains disabled.
 
 ## Safety
 
