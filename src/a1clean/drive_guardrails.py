@@ -58,16 +58,16 @@ def evaluate_folder_separation(raw: dict, current: dict, staging: dict) -> dict:
     current_caps = current.get("capabilities") or {}
     staging_caps = staging.get("capabilities") or {}
 
-    checks["raw_read_only"] = {
+    checks["raw_reader_is_read_only"] = {
         "pass": not bool(raw_caps.get("canAddChildren")) and not bool(raw_caps.get("canEdit")),
         "capabilities": raw_caps,
     }
-    checks["current_read_only"] = {
+    checks["current_reader_is_read_only"] = {
         "pass": not bool(current_caps.get("canAddChildren"))
         and not bool(current_caps.get("canEdit")),
         "capabilities": current_caps,
     }
-    checks["staging_write_capability"] = {
+    checks["staging_writer_has_write_capability"] = {
         "pass": bool(staging_caps.get("canAddChildren")),
         "capabilities": staging_caps,
     }
@@ -131,21 +131,29 @@ def _staging_create_delete_probe(api, staging_folder_id: str) -> dict:
 
 
 def run_drive_guardrail_preflight(*, write_probe: bool = True) -> dict:
-    api = build_drive_api(read_write=True)
-    raw = _folder_snapshot(api, FROZEN_RAW_FOLDER_DRIVE_ID)
-    current = _folder_snapshot(api, FROZEN_CURRENT_FOLDER_DRIVE_ID)
-    staging = _folder_snapshot(api, FROZEN_PARITY_STAGING_FOLDER_DRIVE_ID)
+    reader_api = build_drive_api(read_write=False)
+    writer_api = build_drive_api(read_write=True)
+
+    raw = _folder_snapshot(reader_api, FROZEN_RAW_FOLDER_DRIVE_ID)
+    current = _folder_snapshot(reader_api, FROZEN_CURRENT_FOLDER_DRIVE_ID)
+    staging = _folder_snapshot(writer_api, FROZEN_PARITY_STAGING_FOLDER_DRIVE_ID)
 
     report = evaluate_folder_separation(raw, current, staging)
+    report["credential_channels"] = {
+        "raw_and_current": "READER_IDENTITY / READONLY_SCOPE",
+        "parity_staging": "WRITER_IDENTITY / WRITE_SCOPE",
+    }
     report["folders"] = {
-        "raw": raw,
-        "current": current,
-        "staging": staging,
+        "raw_via_reader": raw,
+        "current_via_reader": current,
+        "staging_via_writer": staging,
     }
 
     if write_probe:
         if report["pass"]:
-            probe = _staging_create_delete_probe(api, FROZEN_PARITY_STAGING_FOLDER_DRIVE_ID)
+            probe = _staging_create_delete_probe(
+                writer_api, FROZEN_PARITY_STAGING_FOLDER_DRIVE_ID
+            )
         else:
             probe = {
                 "pass": False,
@@ -156,8 +164,8 @@ def run_drive_guardrail_preflight(*, write_probe: bool = True) -> dict:
         report["pass"] = report["pass"] and probe.get("pass") is True
 
     report["note"] = (
-        "RAW and governed CURRENT must be read-only to the runner identity. "
-        "Only PARITY_STAGING is allowed to accept writes. The probe creates and deletes one tiny file in staging only."
+        "RAW and governed CURRENT are opened only through the reader credential and must be non-editable to that identity. "
+        "PARITY_STAGING is opened through the separate writer credential. The only write in this preflight is one tiny create/delete probe in staging."
     )
     return report
 
