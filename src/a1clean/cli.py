@@ -8,6 +8,7 @@ from .drive_guardrails import run_drive_guardrail_preflight
 from .google_drive import build_drive_api
 from .frozen_v2 import run_delta
 from .parity import compare_runtime_roots
+from .source_parity import run_source_scoped_parity
 from .source_preflight import run_source_preflight
 
 
@@ -21,8 +22,13 @@ def main(argv=None):
     )
     sub.add_parser(
         "drive-preflight",
-        help="Verify RAW/CURRENT read-only and PARITY_STAGING write-only separation, including a tiny staging create/delete probe",
+        help="Verify governed Drive access separation, including reader write denial and a tiny staging writer create/delete probe",
     )
+    sp = sub.add_parser(
+        "source-parity",
+        help="Run one canonical source through frozen V2 and compare it against the governed Drive baseline as a technical migration gate",
+    )
+    sp.add_argument("--source-name", required=True)
     q = sub.add_parser("parity", help="Compare baseline runtime with candidate staging runtime")
     q.add_argument("baseline")
     q.add_argument("candidate")
@@ -60,6 +66,11 @@ def main(argv=None):
         report = run_drive_guardrail_preflight(write_probe=True)
         print(json.dumps(report, indent=2))
         return 0 if report["pass"] else 2
+
+    if args.cmd == "source-parity":
+        report = run_source_scoped_parity(args.source_name)
+        print(json.dumps(report, indent=2))
+        return 0 if report["pass"] else 4
 
     report = compare_runtime_roots(args.baseline, args.candidate)
     print(json.dumps(report, indent=2))
