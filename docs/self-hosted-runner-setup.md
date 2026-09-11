@@ -1,60 +1,77 @@
-# Self-hosted parity runner setup — Windows-first
+# Self-hosted parity runner setup — Windows-first, Drive-persistent
 
 This is a one-time execution-plane setup. It does not change market methodology.
 
-## Required runner characteristics
+## Owner execution environment
 
 - GitHub self-hosted runner registered to this private repository.
 - Primary owner environment: **Windows x64**.
 - Labels required by the parity workflow: `self-hosted`, `windows`, `x64`, `a1-clean-parity`.
 - Python 3.11+ available from PowerShell/Command Prompt.
-- Canonical RAW available as a local Windows filesystem path for read access.
-- Governed current baseline runtime available as a local Windows filesystem path for comparison.
-- A separate writable parity-staging path. Never point staging to `UNIVERSAL_BEHAVIOR_DATA_PLANE_CURRENT`.
-- Google Drive **read-only** API credentials available through Application Default Credentials (ADC), only for source identity/discovery parity.
-- Scratch directory on local SSD/NVMe where possible.
 
-## Recommended Windows directory layout
+## Storage authority
 
-Example only; actual drive/path may differ:
+Persistent A1 CLEAN parity data stays in **Google Drive**, not on the owner's laptop.
 
-```text
-D:\A1_CLEAN\
-├── RAW\                  # canonical RAW, read-only during parity
-├── BASELINE\             # current governed V2 runtime, read-only
-├── PARITY_STAGING\       # runner output only
-└── SCRATCH\              # temp SQLite / temporary work
-```
+Canonical sources remain cloud-side and read-only:
 
-## Repository variables used by the workflow
+- RAW folder: `02_CURRENT_HISTORICAL_RAW_DATA_UJI`
+- Governed baseline runtime: `UNIVERSAL_BEHAVIOR_DATA_PLANE_CURRENT`
 
-- `A1_RAW_DIR` — local canonical RAW Windows path, for example `D:\A1_CLEAN\RAW`.
-- `A1_SCRATCH_DIR` — local temporary scratch Windows path, for example `D:\A1_CLEAN\SCRATCH`.
+Parity output is written only to the separate Drive folder:
 
-`baseline_root` and `staging_root` are supplied explicitly when manually dispatching the parity workflow. No schedule is enabled at this gate.
+- `UNIVERSAL_BEHAVIOR_DATA_PLANE_PARITY_STAGING`
+- Drive folder ID: `1WTb_lGBD6Tuwfcb-1WhsICjyJqzzBtwU`
 
-## Drive authentication
+The staging folder is a sibling of the governed current runtime, not a child of it. Never point staging writes at `UNIVERSAL_BEHAVIOR_DATA_PLANE_CURRENT` or the canonical RAW folder.
 
-Use an environment-appropriate ADC mechanism. Do not place OAuth tokens, service-account JSON, passwords, or API keys in this repository or workflow YAML. A service account is acceptable only if the canonical Drive folder is explicitly shared to it with the least privilege required. User ADC is also acceptable for a dedicated local Windows runner.
+## Local Windows disk policy
 
-## Fast-fail check
+The Windows runner is an **execution plane**, not a persistent evidence store.
 
-From PowerShell in the repository virtual environment:
+- Do not create a permanent full RAW mirror on C: or D:.
+- Do not create a permanent full baseline mirror on C: or D:.
+- Do not retain parity output on C: or D: after Drive commit.
+- Local storage is permitted only for bounded ephemeral scratch required by the running process (for example temporary SQLite, a currently processed file/chunk, or upload staging).
+- Ephemeral material must be deleted after successful reconciliation/Drive commit and must not become an alternative canonical source.
 
-```powershell
-.\.venv\Scripts\python.exe -m a1clean.runner_preflight
-```
+This policy is intended to keep the owner's laptop light while preserving the frozen data-plane semantics.
 
-The preflight validates Python, local RAW/staging separation, staging write access, and read-only Drive API identity access. It reports free disk space as an observation but intentionally does not invent a project threshold.
+## Drive authentication and permissions
+
+Credentials must never be committed to GitHub or workflow YAML.
+
+The runner must have:
+
+- read access to canonical RAW;
+- read access to the governed baseline runtime;
+- write access only where required for the dedicated parity-staging folder;
+- no parity write path into RAW or the governed current runtime.
+
+Use the least-privilege mechanism available. Authentication setup is operational only and must not change source identity, routing, semantic processing, or parity rules.
+
+## Preflight requirements before a full corpus run
+
+The Drive-only orchestration adapter must verify:
+
+1. Windows runner identity and expected labels.
+2. Canonical RAW Drive folder identity.
+3. Governed baseline Drive folder identity.
+4. Dedicated parity-staging Drive folder identity.
+5. RAW/baseline are never selected as write destinations.
+6. Staging write access works.
+7. Local scratch is ephemeral and separate from canonical/staging identities.
+8. Resume/checkpoint state identifies the exact Drive objects already committed.
 
 ## Parity sequence
 
 1. Register/configure the Windows x64 self-hosted runner and add label `a1-clean-parity`.
-2. Set repository variables for local Windows RAW and scratch paths.
-3. Ensure baseline runtime is locally readable.
-4. Create an empty separate staging root.
-5. Run preflight.
-6. Manually dispatch `Parity - Manual Self Hosted`.
-7. Do not merge/enable canonical automation unless the parity comparator passes.
+2. Keep the runner online (`Listening for Jobs`).
+3. Configure Drive authentication with least privilege.
+4. Use the Drive-only adapter to read canonical RAW/baseline and write candidate results to `UNIVERSAL_BEHAVIOR_DATA_PLANE_PARITY_STAGING`.
+5. Use only bounded ephemeral local scratch during processing.
+6. Reconcile candidate artifacts against the governed baseline.
+7. Delete/release ephemeral local material after successful Drive commit/reconciliation.
+8. Do not merge/enable canonical automation unless the parity comparator passes.
 
-Linux is not the default owner environment for this project. It may be evaluated later only as an optional server/cloud execution target if there is a specific operational reason.
+The previous local-full-mirror design is superseded. Linux is not the default owner environment for this project; it may be evaluated later only as an optional server/cloud execution target for a concrete operational reason.
