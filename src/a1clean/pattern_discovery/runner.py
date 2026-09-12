@@ -108,14 +108,12 @@ def _scope_token(scope: dict[str, Any]) -> str:
     )
 
 
-def _checkpoint_name(reader: GovernedSourceReader, plan: DiscoveryPlan, scope: dict[str, Any]) -> str:
-    return (
-        f"{reader.stem}__{_safe_token(plan.plan_id)}__{_scope_token(scope)}__"
-        "LANE2_CHECKPOINT_CURRENT.json"
-    )
-
-
-def _run_key(reader: GovernedSourceReader, plan: DiscoveryPlan, scope: dict[str, Any]) -> str:
+def _run_key(
+    reader: GovernedSourceReader,
+    plan: DiscoveryPlan,
+    scope: dict[str, Any],
+    software_revision: str,
+) -> str:
     return fingerprint(
         {
             "runner_schema": RUNNER_SCHEMA,
@@ -123,8 +121,21 @@ def _run_key(reader: GovernedSourceReader, plan: DiscoveryPlan, scope: dict[str,
             "source": reader.identity.as_dict(),
             "plan": plan.as_dict(),
             "scope": scope,
+            "software_revision": software_revision,
         }
     )[:24]
+
+
+def _checkpoint_name(
+    reader: GovernedSourceReader,
+    plan: DiscoveryPlan,
+    scope: dict[str, Any],
+    run_key: str,
+) -> str:
+    return (
+        f"{reader.stem}__{_safe_token(plan.plan_id)}__{_scope_token(scope)}__"
+        f"{_safe_token(run_key)}__LANE2_CHECKPOINT.json"
+    )
 
 
 def _evidence_shard_name(reader: GovernedSourceReader, plan: DiscoveryPlan, run_key: str, shard_ordinal: int) -> str:
@@ -275,8 +286,8 @@ def run_source_discovery(
     reader = GovernedSourceReader(reader_api, source_name=source_name)
     selected_indices = _resolve_manifest_indices(reader, scope)
     store = Lane2DriveStore(writer_api)
-    run_key = _run_key(reader, plan, scope)
-    checkpoint_name = _checkpoint_name(reader, plan, scope)
+    run_key = _run_key(reader, plan, scope, software_revision)
+    checkpoint_name = _checkpoint_name(reader, plan, scope, run_key)
     checkpoint = store.read_json_optional(store.control_folder_id, checkpoint_name)
     if checkpoint is None:
         checkpoint = _base_checkpoint(
