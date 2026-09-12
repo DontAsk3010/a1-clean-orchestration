@@ -10,15 +10,23 @@ from .config import FROZEN_RAW_FOLDER_DRIVE_ID
 from .google_drive import build_drive_api
 
 
-def _md5_file(path: Path, chunk_size: int = 8 * 1024 * 1024) -> str:
-    digest = hashlib.md5(usedforsecurity=False)
+def _hash_file(path: Path, chunk_size: int = 8 * 1024 * 1024) -> tuple[str, str]:
+    """Compute MD5 and SHA256 in one sequential read of the local canonical copy."""
+    md5 = hashlib.md5(usedforsecurity=False)
+    sha256 = hashlib.sha256()
     with path.open("rb") as fh:
         while True:
             chunk = fh.read(chunk_size)
             if not chunk:
                 break
-            digest.update(chunk)
-    return digest.hexdigest()
+            md5.update(chunk)
+            sha256.update(chunk)
+    return md5.hexdigest(), sha256.hexdigest()
+
+
+def _md5_file(path: Path, chunk_size: int = 8 * 1024 * 1024) -> str:
+    """Compatibility wrapper retained for existing callers/tests."""
+    return _hash_file(path, chunk_size=chunk_size)[0]
 
 
 def list_canonical_drive_sources(api, folder_id: str) -> list[dict]:
@@ -46,10 +54,17 @@ def list_canonical_drive_sources(api, folder_id: str) -> list[dict]:
 def compare_local_sources(local_dir: Path, drive_files: Iterable[dict]) -> dict:
     local_dir = Path(local_dir).expanduser().resolve()
     local_files = {p.name: p for p in local_dir.iterdir() if p.is_file()}
+    drive_files = [dict(f) for f in drive_files]
+
+    duplicate_drive_names = sorted(
+        name
+        for name in {str(f.get("name")) for f in drive_files}
+        if sum(1 for f in drive_files if str(f.get("name")) == name) > 1
+    )
     drive_by_name = {str(f["name"]): dict(f) for f in drive_files}
 
     required: list[dict] = []
-    failed = False
+    failed = bool(duplicate_drive_names)
     for name in sorted(drive_by_name):
         remote = drive_by_name[name]
         local = local_files.get(name)
@@ -57,10 +72,13 @@ def compare_local_sources(local_dir: Path, drive_files: Iterable[dict]) -> dict:
             "name": name,
             "drive_id": remote.get("id"),
             "drive_size": int(remote["size"]) if remote.get("size") is not None else None,
+            "drive_modified_time": remote.get("modifiedTime"),
+            "drive_mime_type": remote.get("mimeType"),
             "local_path": str(local) if local else None,
             "local_size": local.stat().st_size if local else None,
             "drive_md5": remote.get("md5Checksum"),
             "local_md5": None,
+            "local_sha256": None,
             "status": None,
         }
         if local is None:
@@ -70,7 +88,7 @@ def compare_local_sources(local_dir: Path, drive_files: Iterable[dict]) -> dict:
             row["status"] = "HOLD_SIZE_MISMATCH"
             failed = True
         elif row["drive_md5"]:
-            row["local_md5"] = _md5_file(local)
+            row["local_md5"], row["local_sha256"] = _hash_file(local)
             if row["local_md5"].lower() != str(row["drive_md5"]).lower():
                 row["status"] = "HOLD_CHECKSUM_MISMATCH"
                 failed = True
@@ -82,12 +100,6 @@ def compare_local_sources(local_dir: Path, drive_files: Iterable[dict]) -> dict:
         required.append(row)
 
     extras = sorted(set(local_files) - set(drive_by_name))
-    duplicate_drive_names = sorted(
-        name for name in {str(f.get("name")) for f in drive_files}
-        if sum(1 for f in drive_files if str(f.get("name")) == name) > 1
-    )
-    if duplicate_drive_names:
-        failed = True
 
     return {
         "pass": not failed,
@@ -97,7 +109,10 @@ def compare_local_sources(local_dir: Path, drive_files: Iterable[dict]) -> dict:
         "required_sources": required,
         "extra_local_files": extras,
         "duplicate_drive_names": duplicate_drive_names,
-        "note": "Canonical Drive listing controls the required source universe. Extra local files are reported but never promoted automatically.",
+        "note": (
+            "Canonical Drive listing controls the required source universe. Extra local files are reported but never promoted automatically. "
+            "Exact local MD5 and SHA256 are computed in one sequential read so the governed delta machine can classify persistent state without a second full-file hash pass."
+        ),
     }
 
 
