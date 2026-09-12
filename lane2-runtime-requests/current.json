@@ -1,0 +1,22 @@
+{
+  "schema": "A1_LANE2_DIRECT_RUNTIME_REQUEST_V1",
+  "request_id": "L2_FIRST_GOVERNED_RUNTIME_20260913_DES2024_AALI",
+  "enabled": true,
+  "authorization_phrase": "AUTHORIZE_LANE2_ALGORITHMIC_DISCOVERY",
+  "scope_type": "EXACT_TICKER_DAY",
+  "source_name": "Raw Des 02-31-2024.csv",
+  "source_drive_id": "1wvBmhpQIV-evJJOPN_g8nks3KZBzmVHC",
+  "source_sha256": "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+  "trading_date": "2024-12-02",
+  "ticker": "AALI",
+  "expected_data_row_count": 104,
+  "expected_source_row_first": 4997,
+  "expected_source_row_last": 5100,
+  "plan_path": "plans/lane2/runtime-certification-v1.json",
+  "packets_per_shard": 1,
+  "purpose": "FIRST_GOVERNED_LANE2_RUNTIME_CERTIFICATION_ONLY",
+  "ai_semantic_labels_allowed": false,
+  "formula_or_trading_logic_allowed": false,
+  "canonical_raw_mutation_allowed": false,
+  "canonical_current_mutation_allowed": false
+}
