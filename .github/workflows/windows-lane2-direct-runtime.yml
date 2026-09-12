@@ -1,0 +1,137 @@
+name: Windows Lane 2 Direct Governed Runtime
+
+on:
+  push:
+    branches:
+      - lane2/algorithmic-pattern-discovery-v1
+    paths:
+      - lane2-runtime-requests/current.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-lane2-direct-runtime
+  cancel-in-progress: false
+
+jobs:
+  direct-runtime:
+    name: Direct governed Lane 2 exact-scope runtime
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact triggering Lane 2 revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Load and validate governed runtime request
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ('${{ github.ref_name }}' -ne 'lane2/algorithmic-pattern-discovery-v1') {
+            throw 'Direct Lane 2 runtime is authorized only on lane2/algorithmic-pattern-discovery-v1.'
+          }
+          $path = 'lane2-runtime-requests/current.json'
+          if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            throw "Governed runtime request missing: $path"
+          }
+          $req = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_LANE2_DIRECT_RUNTIME_REQUEST_V1') { throw 'Unsupported Lane 2 direct-runtime request schema.' }
+          if ($req.enabled -ne $true) { throw 'Lane 2 direct-runtime request is not enabled.' }
+          if ($req.authorization_phrase -ne 'AUTHORIZE_LANE2_ALGORITHMIC_DISCOVERY') { throw 'Exact Lane 2 authorization phrase is required.' }
+          if ($req.scope_type -ne 'EXACT_TICKER_DAY') { throw 'First governed direct runtime is restricted to EXACT_TICKER_DAY.' }
+          if ([string]::IsNullOrWhiteSpace($req.source_name)) { throw 'source_name is required.' }
+          if ([string]::IsNullOrWhiteSpace($req.source_drive_id)) { throw 'source_drive_id is required.' }
+          if ([string]::IsNullOrWhiteSpace($req.source_sha256)) { throw 'source_sha256 is required.' }
+          if ([string]::IsNullOrWhiteSpace($req.trading_date)) { throw 'trading_date is required.' }
+          if ([string]::IsNullOrWhiteSpace($req.ticker)) { throw 'ticker is required.' }
+          if ([string]::IsNullOrWhiteSpace($req.plan_path)) { throw 'plan_path is required.' }
+          $pps = [int]$req.packets_per_shard
+          if ($pps -le 0) { throw 'packets_per_shard must be positive.' }
+          "A1_L2_SOURCE_NAME=$($req.source_name)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "A1_L2_EXPECTED_SOURCE_DRIVE_ID=$($req.source_drive_id)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "A1_L2_EXPECTED_SOURCE_SHA256=$($req.source_sha256)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "A1_L2_TRADING_DATE=$($req.trading_date)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "A1_L2_TICKER=$($req.ticker)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "A1_L2_PLAN_PATH=$($req.plan_path)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "A1_L2_PACKETS_PER_SHARD=$pps" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "A1_L2_REQUEST_ID=$($req.request_id)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify external Drive credential bindings exist
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bindings = @(
+            @{ Name = 'A1_DRIVE_READER_CREDENTIALS'; Path = $env:A1_DRIVE_READER_CREDENTIALS },
+            @{ Name = 'A1_DRIVE_WRITER_CREDENTIALS'; Path = $env:A1_DRIVE_WRITER_CREDENTIALS }
+          )
+          foreach ($binding in $bindings) {
+            if ([string]::IsNullOrWhiteSpace($binding.Path)) { throw "$($binding.Name) is not configured for the runner process." }
+            if (-not (Test-Path -LiteralPath $binding.Path -PathType Leaf)) { throw "$($binding.Name) points to a credential file that does not exist." }
+          }
+
+      - name: Install governed Lane 2 machine and pattern dependencies
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[pattern]'
+
+      - name: Verify exact governed source identity before analysis
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          @'
+          import os
+          from a1clean.google_drive import build_drive_api
+          from a1clean.pattern_discovery.source_reader import GovernedSourceReader
+
+          reader = GovernedSourceReader(build_drive_api(read_write=False), source_name=os.environ['A1_L2_SOURCE_NAME'])
+          ident = reader.identity
+          if ident.source_drive_id != os.environ['A1_L2_EXPECTED_SOURCE_DRIVE_ID']:
+              raise SystemExit(f"SOURCE_DRIVE_ID_MISMATCH:{ident.source_drive_id}")
+          if ident.source_sha256 != os.environ['A1_L2_EXPECTED_SOURCE_SHA256']:
+              raise SystemExit(f"SOURCE_SHA256_MISMATCH:{ident.source_sha256}")
+          matches = [r for r in reader.semantic_manifest_rows if r.trading_date == os.environ['A1_L2_TRADING_DATE'] and r.ticker == os.environ['A1_L2_TICKER']]
+          if len(matches) != 1:
+              raise SystemExit(f"EXACT_TICKER_DAY_SCOPE_CARDINALITY:{len(matches)}")
+          ref = matches[0]
+          print('GOVERNED_SOURCE_IDENTITY_PASS')
+          print(f"SOURCE={ident.source_name}")
+          print(f"SOURCE_DRIVE_ID={ident.source_drive_id}")
+          print(f"SOURCE_SHA256={ident.source_sha256}")
+          print(f"TRADING_DATE={ref.trading_date}")
+          print(f"TICKER={ref.ticker}")
+          print(f"DATA_ROW_COUNT={ref.data_row_count}")
+          print(f"SOURCE_ROW_FIRST={ref.source_row_first}")
+          print(f"SOURCE_ROW_LAST={ref.source_row_last}")
+          '@ | py -3.11 -
+
+      - name: Verify explicit governed plan exists
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Test-Path -LiteralPath $env:A1_L2_PLAN_PATH -PathType Leaf)) {
+            throw "Governed discovery plan not found: $env:A1_L2_PLAN_PATH"
+          }
+
+      - name: Run same durable Lane 2 machine directly
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m a1clean.cli pattern-discovery-source `
+            --source-name "$env:A1_L2_SOURCE_NAME" `
+            --plan "$env:A1_L2_PLAN_PATH" `
+            --trading-date "$env:A1_L2_TRADING_DATE" `
+            --ticker "$env:A1_L2_TICKER" `
+            --packets-per-shard $env:A1_L2_PACKETS_PER_SHARD `
+            --software-revision '${{ github.sha }}'
+
+      - name: Safety declaration
+        if: always()
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          Write-Host 'DIRECT GOVERNED LANE 2 RUNTIME PATH.'
+          Write-Host 'Triggered only by an explicit versioned request file on the Lane 2 development branch.'
+          Write-Host 'No schedule, no main-branch mutation, no merge, no AI semantic labels, no formula/trading logic.'
+          Write-Host 'Canonical RAW/CURRENT remain read-only; writes are restricted to dedicated Lane 2 evidence/control/audit homes.'
