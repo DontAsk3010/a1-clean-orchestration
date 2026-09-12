@@ -1,0 +1,104 @@
+name: Windows Governed Canonical Promotion
+
+on:
+  workflow_dispatch:
+    inputs:
+      promotion_mode:
+        description: 'PREPARE performs zero canonical writes; CANONICAL executes the guarded promotion transaction.'
+        required: true
+        default: PREPARE
+        type: choice
+        options:
+          - PREPARE
+          - CANONICAL
+      authorization_phrase:
+        description: 'Required only for CANONICAL: AUTHORIZE_GATE_G_CANONICAL_COMMIT'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-governed-canonical-promotion
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    name: Permanent governed canonical promotion transaction
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 240
+    env:
+      A1_RAW_DIR: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
+    steps:
+      - name: Require migration parity branch
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ('${{ github.ref_name }}' -ne 'migration/parity-v2') {
+            throw 'This workflow must be dispatched on migration/parity-v2.'
+          }
+
+      - name: Checkout permanent production-machine code
+        uses: actions/checkout@v4
+
+      - name: Verify separate external Drive credential bindings exist
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bindings = @(
+            @{ Name = 'A1_DRIVE_READER_CREDENTIALS'; Path = $env:A1_DRIVE_READER_CREDENTIALS },
+            @{ Name = 'A1_DRIVE_WRITER_CREDENTIALS'; Path = $env:A1_DRIVE_WRITER_CREDENTIALS }
+          )
+          foreach ($binding in $bindings) {
+            if ([string]::IsNullOrWhiteSpace($binding.Path)) {
+              throw "$($binding.Name) is not configured for the runner process."
+            }
+            if (-not (Test-Path -LiteralPath $binding.Path -PathType Leaf)) {
+              throw "$($binding.Name) points to a credential file that does not exist. Credential content/path is intentionally not printed."
+            }
+          }
+          Write-Host 'Drive reader credential binding: PRESENT'
+          Write-Host 'Drive writer credential binding: PRESENT'
+
+      - name: Install governed machine package
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e .
+
+      - name: Re-verify governed Drive separation before promotion path
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m a1clean.cli drive-preflight
+
+      - name: Require exact canonical authorization phrase when requested
+        if: ${{ inputs.promotion_mode == 'CANONICAL' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ('${{ inputs.authorization_phrase }}' -ne 'AUTHORIZE_GATE_G_CANONICAL_COMMIT') {
+            throw 'CANONICAL mode requires the exact governed authorization phrase.'
+          }
+
+      - name: Run permanent governed promotion transaction
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        env:
+          A1_CANONICAL_COMMIT_AUTHORIZATION: ${{ inputs.authorization_phrase }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m a1clean.canonical_promotion --mode '${{ inputs.promotion_mode }}'
+
+      - name: Safety declaration
+        if: always()
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          Write-Host 'GATE G USES THE SAME PERMANENT A1 CLEAN MACHINE AND GOVERNED SHADOW STATE.'
+          Write-Host 'PREPARE performs no canonical writes. CANONICAL requires the exact explicit authorization phrase.'
+          Write-Host 'Canonical RAW is never written by this workflow.'
+          Write-Host 'Source derivative promotion is source-scoped and backed up before mutation.'
+          Write-Host 'Control promotion is hash/size read back and rollback evidence is retained in PARITY_STAGING.'
+          Write-Host 'Semantic research completion is independent from live trading readiness.'
+          Write-Host 'This workflow does not add formula, score, threshold, selector, signal, Telegram analytical logic, news AI, participant analysis, or unattended scheduling.'
