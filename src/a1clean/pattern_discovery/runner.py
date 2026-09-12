@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 import io
 import json
 import os
@@ -11,7 +11,7 @@ from typing import Any
 
 from ..google_drive import build_drive_api
 from .contracts import DiscoveryPlan, LANE_ID, PatternDiscoveryContractError, fingerprint
-from .drive_store import Lane2DriveStore, sha256_bytes
+from .drive_store import Lane2DriveStore
 from .engine import INDEPENDENCE_ASSERTIONS, run_discovery_plan
 from .source_reader import GovernedSourceReader
 
@@ -43,23 +43,86 @@ def _load_plan(path: Path) -> DiscoveryPlan:
     return DiscoveryPlan.from_dict(obj)
 
 
-def _next_ref(reader: GovernedSourceReader, next_index: int) -> dict[str, Any] | None:
-    if next_index >= len(reader.semantic_manifest_rows):
+def _normalize_scope(*, trading_date: str | None, ticker: str | None) -> dict[str, Any]:
+    normalized_date = (trading_date or "").strip()
+    normalized_ticker = (ticker or "").strip()
+    if bool(normalized_date) != bool(normalized_ticker):
+        raise PatternDiscoveryContractError("EXACT_SCOPE_REQUIRES_TRADING_DATE_AND_TICKER")
+    if not normalized_date:
+        return {"scope_type": "FULL_SOURCE"}
+    try:
+        parsed = date.fromisoformat(normalized_date)
+    except ValueError as exc:
+        raise PatternDiscoveryContractError(f"EXACT_SCOPE_TRADING_DATE_INVALID:{normalized_date}") from exc
+    if parsed.isoformat() != normalized_date:
+        raise PatternDiscoveryContractError(f"EXACT_SCOPE_TRADING_DATE_NOT_CANONICAL:{normalized_date}")
+    return {
+        "scope_type": "EXACT_TICKER_DAY",
+        "trading_date": normalized_date,
+        "ticker": normalized_ticker,
+    }
+
+
+def _resolve_manifest_indices(reader: GovernedSourceReader, scope: dict[str, Any]) -> tuple[int, ...]:
+    if scope["scope_type"] == "FULL_SOURCE":
+        return tuple(range(len(reader.semantic_manifest_rows)))
+    matches = tuple(
+        idx
+        for idx, row in enumerate(reader.semantic_manifest_rows)
+        if row.trading_date == scope["trading_date"] and row.ticker == scope["ticker"]
+    )
+    if len(matches) != 1:
+        raise PatternDiscoveryContractError(
+            "EXACT_TICKER_DAY_SCOPE_CARDINALITY:"
+            f"DATE={scope['trading_date']}:TICKER={scope['ticker']}:COUNT={len(matches)}"
+        )
+    return matches
+
+
+def _selection_fingerprint(selected_indices: tuple[int, ...]) -> str:
+    return fingerprint({"manifest_indices": list(selected_indices)})
+
+
+def _selected_ref(
+    reader: GovernedSourceReader,
+    selected_indices: tuple[int, ...],
+    selection_position: int,
+) -> dict[str, Any] | None:
+    if selection_position >= len(selected_indices):
         return None
-    return reader.semantic_manifest_rows[next_index].as_dict()
+    manifest_index = selected_indices[selection_position]
+    return {
+        "selection_position": selection_position,
+        "manifest_index": manifest_index,
+        **reader.semantic_manifest_rows[manifest_index].as_dict(),
+    }
 
 
-def _checkpoint_name(reader: GovernedSourceReader, plan: DiscoveryPlan) -> str:
-    return f"{reader.stem}__{_safe_token(plan.plan_id)}__LANE2_CHECKPOINT_CURRENT.json"
+def _scope_token(scope: dict[str, Any]) -> str:
+    if scope["scope_type"] == "FULL_SOURCE":
+        return "FULL_SOURCE"
+    return (
+        "TD_"
+        f"{_safe_token(scope['trading_date'])}_"
+        f"{_safe_token(scope['ticker'])}"
+    )
 
 
-def _run_key(reader: GovernedSourceReader, plan: DiscoveryPlan) -> str:
+def _checkpoint_name(reader: GovernedSourceReader, plan: DiscoveryPlan, scope: dict[str, Any]) -> str:
+    return (
+        f"{reader.stem}__{_safe_token(plan.plan_id)}__{_scope_token(scope)}__"
+        "LANE2_CHECKPOINT_CURRENT.json"
+    )
+
+
+def _run_key(reader: GovernedSourceReader, plan: DiscoveryPlan, scope: dict[str, Any]) -> str:
     return fingerprint(
         {
             "runner_schema": RUNNER_SCHEMA,
             "lane_id": LANE_ID,
             "source": reader.identity.as_dict(),
             "plan": plan.as_dict(),
+            "scope": scope,
         }
     )[:24]
 
@@ -84,6 +147,8 @@ def _validate_checkpoint(
     *,
     reader: GovernedSourceReader,
     plan: DiscoveryPlan,
+    scope: dict[str, Any],
+    selected_indices: tuple[int, ...],
     run_key: str,
     packets_per_shard: int,
     software_revision: str,
@@ -95,6 +160,9 @@ def _validate_checkpoint(
         "source_identity": reader.identity.as_dict(),
         "plan_id": plan.plan_id,
         "plan_fingerprint": plan.sha256,
+        "scope": scope,
+        "selection_fingerprint": _selection_fingerprint(selected_indices),
+        "total_manifest_packets": len(selected_indices),
         "packets_per_shard": packets_per_shard,
         "software_revision": software_revision,
     }
@@ -122,10 +190,15 @@ def _base_checkpoint(
     *,
     reader: GovernedSourceReader,
     plan: DiscoveryPlan,
+    scope: dict[str, Any],
+    selected_indices: tuple[int, ...],
     run_key: str,
     packets_per_shard: int,
     software_revision: str,
 ) -> dict[str, Any]:
+    selected_source_rows = sum(
+        reader.semantic_manifest_rows[idx].data_row_count for idx in selected_indices
+    )
     return {
         "schema": CHECKPOINT_SCHEMA,
         "lane_id": LANE_ID,
@@ -137,15 +210,18 @@ def _base_checkpoint(
         "plan_id": plan.plan_id,
         "plan_fingerprint": plan.sha256,
         "plan": plan.as_dict(),
+        "scope": scope,
+        "selection_fingerprint": _selection_fingerprint(selected_indices),
+        "total_manifest_packets": len(selected_indices),
+        "selected_source_rows": selected_source_rows,
         "packets_per_shard": packets_per_shard,
         "software_revision": software_revision,
         "independence_assertions": dict(INDEPENDENCE_ASSERTIONS),
-        "total_manifest_packets": len(reader.semantic_manifest_rows),
         "completed_manifest_packets": 0,
         "completed_source_rows": 0,
         "evidence_shards": [],
         "last_completed": None,
-        "next_exact_resume_point": _next_ref(reader, 0),
+        "next_exact_resume_point": _selected_ref(reader, selected_indices, 0),
         "hold": None,
     }
 
@@ -155,19 +231,26 @@ def _persist_hold(
     checkpoint_name: str,
     checkpoint: dict[str, Any],
     *,
-    manifest_index: int,
+    selection_position: int,
+    selected_indices: tuple[int, ...],
     error: Exception,
     reader: GovernedSourceReader,
 ) -> None:
+    next_ref = _selected_ref(reader, selected_indices, selection_position)
     checkpoint["status"] = "HOLD"
     checkpoint["updated_at_utc"] = _utc_now()
     checkpoint["hold"] = {
-        "manifest_index": manifest_index,
+        "selection_position": selection_position,
+        "manifest_index": (
+            selected_indices[selection_position]
+            if selection_position < len(selected_indices)
+            else None
+        ),
         "error_type": type(error).__name__,
         "reason": str(error),
-        "next_exact_resume_point": _next_ref(reader, manifest_index),
+        "next_exact_resume_point": next_ref,
     }
-    checkpoint["next_exact_resume_point"] = _next_ref(reader, manifest_index)
+    checkpoint["next_exact_resume_point"] = next_ref
     store.upsert_json(folder_id=store.control_folder_id, name=checkpoint_name, obj=checkpoint)
 
 
@@ -177,6 +260,8 @@ def run_source_discovery(
     plan_path: Path,
     packets_per_shard: int,
     software_revision: str,
+    trading_date: str | None = None,
+    ticker: str | None = None,
 ) -> dict[str, Any]:
     if packets_per_shard <= 0:
         raise PatternDiscoveryContractError("PACKETS_PER_SHARD_MUST_BE_POSITIVE")
@@ -184,17 +269,21 @@ def run_source_discovery(
         raise PatternDiscoveryContractError("SOFTWARE_REVISION_REQUIRED")
 
     plan = _load_plan(plan_path)
+    scope = _normalize_scope(trading_date=trading_date, ticker=ticker)
     reader_api = build_drive_api(read_write=False)
     writer_api = build_drive_api(read_write=True)
     reader = GovernedSourceReader(reader_api, source_name=source_name)
+    selected_indices = _resolve_manifest_indices(reader, scope)
     store = Lane2DriveStore(writer_api)
-    run_key = _run_key(reader, plan)
-    checkpoint_name = _checkpoint_name(reader, plan)
+    run_key = _run_key(reader, plan, scope)
+    checkpoint_name = _checkpoint_name(reader, plan, scope)
     checkpoint = store.read_json_optional(store.control_folder_id, checkpoint_name)
     if checkpoint is None:
         checkpoint = _base_checkpoint(
             reader=reader,
             plan=plan,
+            scope=scope,
+            selected_indices=selected_indices,
             run_key=run_key,
             packets_per_shard=packets_per_shard,
             software_revision=software_revision,
@@ -205,6 +294,8 @@ def run_source_discovery(
             checkpoint,
             reader=reader,
             plan=plan,
+            scope=scope,
+            selected_indices=selected_indices,
             run_key=run_key,
             packets_per_shard=packets_per_shard,
             software_revision=software_revision,
@@ -218,6 +309,7 @@ def run_source_discovery(
                 "status": "NOOP_ALREADY_COMPLETE",
                 "run_key": run_key,
                 "source_identity": reader.identity.as_dict(),
+                "scope": scope,
                 "plan_id": plan.plan_id,
                 "plan_fingerprint": plan.sha256,
                 "completed_manifest_packets": checkpoint.get("completed_manifest_packets"),
@@ -231,16 +323,18 @@ def run_source_discovery(
         checkpoint["updated_at_utc"] = _utc_now()
         store.upsert_json(folder_id=store.control_folder_id, name=checkpoint_name, obj=checkpoint)
 
-    start_index = int(checkpoint.get("completed_manifest_packets") or 0)
-    total = len(reader.semantic_manifest_rows)
+    start_position = int(checkpoint.get("completed_manifest_packets") or 0)
+    total = len(selected_indices)
     shard_ordinal = len(checkpoint.get("evidence_shards", [])) + 1
 
-    while start_index < total:
-        end_index = min(start_index + packets_per_shard, total)
+    while start_position < total:
+        end_position = min(start_position + packets_per_shard, total)
         buffer = io.StringIO()
         shard_source_rows = 0
+        selection_position = start_position
         try:
-            for manifest_index in range(start_index, end_index):
+            for selection_position in range(start_position, end_position):
+                manifest_index = selected_indices[selection_position]
                 ref = reader.semantic_manifest_rows[manifest_index]
                 packet = reader.load_packet(manifest_index)
                 result = run_discovery_plan(packet, plan)
@@ -248,19 +342,24 @@ def run_source_discovery(
                     "schema": "A1_ALGORITHMIC_PATTERN_DISCOVERY_EVIDENCE_LINE_V1",
                     "lane_id": LANE_ID,
                     "run_key": run_key,
-                    "manifest_ref": ref.as_dict(),
+                    "scope": scope,
+                    "manifest_ref": {
+                        "selection_position": selection_position,
+                        "manifest_index": manifest_index,
+                        **ref.as_dict(),
+                    },
                     "result": result,
                 }
                 buffer.write(json.dumps(envelope, sort_keys=True, ensure_ascii=False, separators=(",", ":")))
                 buffer.write("\n")
                 shard_source_rows += packet.row_count
         except Exception as exc:
-            failing_index = manifest_index if "manifest_index" in locals() else start_index
             _persist_hold(
                 store,
                 checkpoint_name,
                 checkpoint,
-                manifest_index=failing_index,
+                selection_position=selection_position,
+                selected_indices=selected_indices,
                 error=exc,
                 reader=reader,
             )
@@ -274,29 +373,33 @@ def run_source_discovery(
             data=shard_bytes,
             mime_type="application/x-ndjson",
         )
+        first_manifest_index = selected_indices[start_position]
+        last_manifest_index = selected_indices[end_position - 1]
         shard_record = {
             **uploaded,
             "shard_ordinal": shard_ordinal,
-            "manifest_index_first": start_index,
-            "manifest_index_last": end_index - 1,
-            "packet_count": end_index - start_index,
+            "selection_position_first": start_position,
+            "selection_position_last": end_position - 1,
+            "manifest_index_first": first_manifest_index,
+            "manifest_index_last": last_manifest_index,
+            "packet_count": end_position - start_position,
             "source_row_count": shard_source_rows,
         }
         checkpoint["evidence_shards"].append(shard_record)
-        checkpoint["completed_manifest_packets"] = end_index
+        checkpoint["completed_manifest_packets"] = end_position
         checkpoint["completed_source_rows"] = int(checkpoint.get("completed_source_rows") or 0) + shard_source_rows
-        checkpoint["last_completed"] = reader.semantic_manifest_rows[end_index - 1].as_dict()
-        checkpoint["next_exact_resume_point"] = _next_ref(reader, end_index)
+        checkpoint["last_completed"] = _selected_ref(reader, selected_indices, end_position - 1)
+        checkpoint["next_exact_resume_point"] = _selected_ref(reader, selected_indices, end_position)
         checkpoint["updated_at_utc"] = _utc_now()
-        checkpoint["status"] = "IN_PROGRESS" if end_index < total else "RECONCILING"
+        checkpoint["status"] = "IN_PROGRESS" if end_position < total else "RECONCILING"
         store.upsert_json(folder_id=store.control_folder_id, name=checkpoint_name, obj=checkpoint)
-        start_index = end_index
+        start_position = end_position
         shard_ordinal += 1
 
     _verify_completed_shards(store, checkpoint)
     packet_count = int(checkpoint["completed_manifest_packets"])
     source_rows = int(checkpoint["completed_source_rows"])
-    expected_rows = int(reader.identity.source_data_rows)
+    expected_rows = int(checkpoint["selected_source_rows"])
     if packet_count != total:
         raise PatternDiscoveryContractError(f"FINAL_PACKET_COUNT_MISMATCH:{packet_count}:{total}")
     if source_rows != expected_rows:
@@ -307,6 +410,8 @@ def run_source_discovery(
         "lane_id": LANE_ID,
         "run_key": run_key,
         "source_identity": reader.identity.as_dict(),
+        "scope": scope,
+        "selection_fingerprint": _selection_fingerprint(selected_indices),
         "plan_id": plan.plan_id,
         "plan_fingerprint": plan.sha256,
         "plan": plan.as_dict(),
@@ -322,8 +427,9 @@ def run_source_discovery(
         "evidence_shard_count": len(checkpoint["evidence_shards"]),
         "evidence_shards": checkpoint["evidence_shards"],
         "reconciliation": {
-            "exact_semantic_manifest_packet_coverage": True,
+            "exact_selected_manifest_packet_coverage": True,
             "exact_source_row_accounting": True,
+            "full_source_scope": scope["scope_type"] == "FULL_SOURCE",
             "no_sampling": True,
             "no_synthetic_rows": True,
             "ai_semantic_labels_consumed": False,
@@ -340,9 +446,10 @@ def run_source_discovery(
         "schema": RUN_RESULT_SCHEMA,
         "lane_id": LANE_ID,
         "pass": True,
-        "status": "PASS_COMPLETE_SOURCE_DISCOVERY_EVIDENCE",
+        "status": "PASS_COMPLETE_GOVERNED_SCOPE_DISCOVERY_EVIDENCE",
         "run_key": run_key,
         "source_identity": reader.identity.as_dict(),
+        "scope": scope,
         "plan_id": plan.plan_id,
         "plan_fingerprint": plan.sha256,
         "software_revision": software_revision,
@@ -370,10 +477,14 @@ def run_source_discovery(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Run governed independent algorithmic pattern discovery for one source.")
+    parser = argparse.ArgumentParser(
+        description="Run governed independent algorithmic pattern discovery for one governed source or exact ticker-day scope."
+    )
     parser.add_argument("--source-name", required=True)
     parser.add_argument("--plan", required=True, type=Path)
     parser.add_argument("--packets-per-shard", required=True, type=int)
+    parser.add_argument("--trading-date")
+    parser.add_argument("--ticker")
     parser.add_argument("--software-revision", default=os.environ.get("GITHUB_SHA", "LOCAL_UNVERSIONED"))
     args = parser.parse_args(argv)
     result = run_source_discovery(
@@ -381,6 +492,8 @@ def main(argv: list[str] | None = None) -> int:
         plan_path=args.plan,
         packets_per_shard=args.packets_per_shard,
         software_revision=args.software_revision,
+        trading_date=args.trading_date,
+        ticker=args.ticker,
     )
     print(json.dumps(result, sort_keys=True, indent=2))
     return 0

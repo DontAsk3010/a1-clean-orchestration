@@ -11,8 +11,18 @@ on:
         description: 'Repository-relative explicit governed discovery-plan JSON path'
         required: true
         type: string
+      trading_date:
+        description: 'Optional exact ticker-day trading date YYYY-MM-DD; must be supplied together with ticker'
+        required: false
+        default: ''
+        type: string
+      ticker:
+        description: 'Optional exact ticker; must be supplied together with trading_date'
+        required: false
+        default: ''
+        type: string
       packets_per_shard:
-        description: 'Operational evidence partition size in ticker-day packets; does not change analytical semantics'
+        description: 'Operational evidence partition size in selected ticker-day packets; does not change analytical semantics'
         required: true
         default: '100'
         type: string
@@ -43,6 +53,11 @@ jobs:
           }
           if ('${{ inputs.authorization_phrase }}' -ne 'AUTHORIZE_LANE2_ALGORITHMIC_DISCOVERY') {
             throw 'Exact Lane 2 algorithmic-discovery authorization phrase is required.'
+          }
+          $date = '${{ inputs.trading_date }}'.Trim()
+          $ticker = '${{ inputs.ticker }}'.Trim()
+          if ([string]::IsNullOrWhiteSpace($date) -xor [string]::IsNullOrWhiteSpace($ticker)) {
+            throw 'Exact ticker-day scope requires both trading_date and ticker, or neither for full-source scope.'
           }
 
       - name: Checkout governed Lane 2 production code
@@ -88,6 +103,8 @@ jobs:
           py -3.11 -m a1clean.cli pattern-discovery-source `
             --source-name '${{ inputs.source_name }}' `
             --plan '${{ inputs.plan_path }}' `
+            --trading-date '${{ inputs.trading_date }}' `
+            --ticker '${{ inputs.ticker }}' `
             --packets-per-shard ([int]'${{ inputs.packets_per_shard }}') `
             --software-revision '${{ github.sha }}'
 
@@ -97,6 +114,7 @@ jobs:
         run: |
           Write-Host 'LANE 2 IS AN INDEPENDENT NON-AI ALGORITHMIC EVIDENCE READER.'
           Write-Host 'It consumes governed numeric/source chronology only; AI semantic labels and later outcomes are not inputs.'
+          Write-Host 'Exact ticker-day scope is resolved only from the governed semantic manifest identity; blank date+ticker means full-source scope.'
           Write-Host 'No sampling, synthetic rows, trading signal, formula, score, threshold, selector, ranking, or Telegram analytical logic is authorized here.'
           Write-Host 'Algorithm/model/window/prediction parameters must come from the explicit governed discovery plan; the workflow invents none.'
           Write-Host 'Canonical RAW and governed CURRENT are read-only. Lane 2 writes only to its dedicated governed research evidence/control/audit folders.'

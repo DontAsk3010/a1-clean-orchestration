@@ -1,0 +1,28 @@
+{
+  "plan_id": "L2_RUNTIME_CERTIFICATION_UNINTERPRETED_V1",
+  "ruptures": [
+    {
+      "run_id": "runtime_cert_raw_close_pelt_l2",
+      "field": "RAW_CLOSE",
+      "algorithm": "Pelt",
+      "model": "l2",
+      "predict_kwargs": {
+        "pen": 1.0
+      }
+    }
+  ],
+  "stumpy": [
+    {
+      "run_id": "runtime_cert_raw_close_matrix_profile_w3",
+      "field": "RAW_CLOSE",
+      "window": 3
+    }
+  ],
+  "dtw": [
+    {
+      "run_id": "runtime_cert_raw_close_vs_raw_volume_dtw",
+      "left_field": "RAW_CLOSE",
+      "right_field": "RAW_VOLUME"
+    }
+  ]
+}

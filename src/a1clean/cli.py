@@ -50,11 +50,13 @@ def main(argv=None):
     )
     lane2 = sub.add_parser(
         "pattern-discovery-source",
-        help="Run the independent governed algorithmic pattern-discovery machine for one governed source using an explicit discovery plan",
+        help="Run the independent governed algorithmic pattern-discovery machine for one governed source or exact ticker-day scope using an explicit discovery plan",
     )
     lane2.add_argument("--source-name", required=True)
     lane2.add_argument("--plan", required=True, type=Path)
     lane2.add_argument("--packets-per-shard", required=True, type=int)
+    lane2.add_argument("--trading-date")
+    lane2.add_argument("--ticker")
     lane2.add_argument("--software-revision", default=os.environ.get("GITHUB_SHA", "LOCAL_UNVERSIONED"))
     q = sub.add_parser("parity", help="Compare baseline runtime with candidate staging runtime")
     q.add_argument("baseline")
@@ -115,6 +117,8 @@ def main(argv=None):
             plan_path=args.plan,
             packets_per_shard=args.packets_per_shard,
             software_revision=args.software_revision,
+            trading_date=args.trading_date,
+            ticker=args.ticker,
         )
         print(json.dumps(report, indent=2))
         return 0 if report.get("pass") else 7
