@@ -6,8 +6,10 @@ import pytest
 
 from a1clean.pattern_discovery.contracts import PatternDiscoveryContractError
 from a1clean.pattern_discovery.runner import (
+    _checkpoint_name,
     _normalize_scope,
     _resolve_manifest_indices,
+    _run_key,
     _selected_ref,
 )
 
@@ -26,13 +28,31 @@ class _Row:
         }
 
 
+class _Identity:
+    def as_dict(self):
+        return {
+            "source_name": "Raw Des 02-31-2024.csv",
+            "source_drive_id": "drive-id",
+            "source_sha256": "sha256",
+        }
+
+
+class _Plan:
+    plan_id = "L2_RUNTIME_CERTIFICATION_UNINTERPRETED_V1"
+
+    def as_dict(self):
+        return {"plan_id": self.plan_id, "ruptures": [], "stumpy": [], "dtw": []}
+
+
 def _reader():
     return SimpleNamespace(
+        stem="Raw Des 02-31-2024",
+        identity=_Identity(),
         semantic_manifest_rows=(
             _Row("2024-12-02", "AALI", 104),
             _Row("2024-12-02", "ABBA", 6),
             _Row("2024-12-03", "AALI", 98),
-        )
+        ),
     )
 
 
@@ -84,3 +104,21 @@ def test_exact_scope_fails_closed_when_manifest_identity_is_not_unique_or_missin
     exact = _normalize_scope(trading_date="2024-12-02", ticker="AALI")
     with pytest.raises(PatternDiscoveryContractError, match="COUNT=2"):
         _resolve_manifest_indices(duplicate_reader, exact)
+
+
+def test_runtime_identity_is_software_revision_specific():
+    reader = _reader()
+    plan = _Plan()
+    scope = _normalize_scope(trading_date="2024-12-02", ticker="AALI")
+
+    old_key = _run_key(reader, plan, scope, "old-revision")
+    new_key = _run_key(reader, plan, scope, "new-revision")
+
+    assert old_key != new_key
+    old_name = _checkpoint_name(reader, plan, scope, old_key)
+    new_name = _checkpoint_name(reader, plan, scope, new_key)
+    assert old_name != new_name
+    assert old_key in old_name
+    assert new_key in new_name
+    assert old_name.endswith("__LANE2_CHECKPOINT.json")
+    assert new_name.endswith("__LANE2_CHECKPOINT.json")
