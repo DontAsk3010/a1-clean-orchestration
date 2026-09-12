@@ -5,7 +5,7 @@ import json
 
 from .config import DataPlaneConfig
 from .drive_guardrails import run_drive_guardrail_preflight
-from .full_shadow import run_full_shadow_parity
+from .full_shadow_compat import run_full_shadow_parity
 from .google_drive import build_drive_api
 from .frozen_v2 import run_delta
 from .parity import compare_runtime_roots
