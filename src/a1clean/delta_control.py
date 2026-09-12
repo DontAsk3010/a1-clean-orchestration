@@ -4,6 +4,7 @@ from pathlib import Path
 
 from .config import FROZEN_GENERATION_ID, FROZEN_IMPL_VERSION, FROZEN_RAW_FOLDER_DRIVE_ID
 from .delta_state import source_row_by_id
+from .semantic_work import build_semantic_controls
 
 
 def _chronological_sources(sources: list[dict]) -> list[dict]:
@@ -131,12 +132,15 @@ def build_control_bundle(
     started_at_utc: str,
     finished_at_utc: str,
     refresh_id: str,
+    semantic_runtime: dict | None = None,
 ) -> dict:
-    """Build the next governed control-plane state from exact source outputs.
+    """Build governed data-plane controls plus independent semantic work controls.
 
     Unchanged source artifacts are reused by reference. NEW/CHANGED/replacement
     source manifests come from the frozen V2 source processor, not from new
-    analytical logic.
+    analytical logic. Semantic completion is tracked independently from source
+    delta classification; this function schedules work but performs no semantic
+    interpretation and creates no behavior labels.
     """
 
     if classification.get("holds"):
@@ -225,6 +229,9 @@ def build_control_bundle(
             "new_changed_only_full_processing": True,
             "semantic_reader_status": "NOT_RUN_BY_THIS_NOTEBOOK",
             "behavior_event_journey_pass_status": "NOT_EVALUATED_BY_THIS_NOTEBOOK",
+            "data_plane_state_is_not_semantic_completion": True,
+            "semantic_work_state_file": "PERSISTENT_SEMANTIC_RESEARCH_STATE.json",
+            "semantic_work_queue_file": "AI_SEMANTIC_WORK_QUEUE.json",
         }
     )
 
@@ -319,13 +326,14 @@ def build_control_bundle(
         "data_plane_impl_version": FROZEN_IMPL_VERSION,
         "created_at_utc": finished_at_utc,
         "semantic_gate": semantic_gate,
+        "queue_role": "DATA_CHANGE_TRIGGER_ONLY_NOT_SEMANTIC_COMPLETION_AUTHORITY",
         "full_semantic_sources": semantic_reopen,
         "removed_sources_invalidate_prior_semantic_objects": removed_semantic,
         "cross_ticker_reconciliation_required": True,
         "cross_date_open_journey_carry_required": True,
         "cross_month_atlas_reconciliation_required": True,
         "unchanged_source_policy": (
-            "DO_NOT_FULL_REREAD; REOPEN ONLY REQUIRED BOUNDARY CONTEXT OR LINKED OPEN JOURNEY"
+            "DO_NOT_FULL_REREAD_SOLELY_FOR_DATA_DELTA; AUTHORITATIVE_SEMANTIC_WORK_QUEUE_MAY_STILL_REQUIRE_RESUME_OR_RECONCILIATION"
         ),
     }
 
@@ -357,7 +365,16 @@ def build_control_bundle(
         "finished_at_utc": finished_at_utc,
         "semantic_gate": semantic_gate,
         "active_source_count": len(active_sources),
+        "data_plane_state_is_not_semantic_completion": True,
     }
+
+    semantic_controls = build_semantic_controls(
+        active_sources=active_sources,
+        classification=classification,
+        semantic_delta_queue=semantic_queue,
+        semantic_runtime=semantic_runtime,
+        updated_at_utc=finished_at_utc,
+    )
 
     return {
         "GLOBAL_DATA_PLANE_MANIFEST.json": global_manifest,
@@ -366,4 +383,5 @@ def build_control_bundle(
         "PERSISTENT_SOURCE_STATE.json": persistent_state,
         "LATEST_DELTA_REFRESH.json": delta_refresh,
         "AI_SEMANTIC_DELTA_QUEUE.json": semantic_queue,
+        **semantic_controls,
     }
