@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+from pathlib import Path
 
 from .config import DataPlaneConfig
 from .delta_machine import MACHINE_MODE_CANONICAL, MACHINE_MODE_SHADOW, run_governed_delta_machine
@@ -10,6 +12,7 @@ from .full_shadow_compat import run_full_shadow_parity
 from .google_drive import build_drive_api
 from .frozen_v2 import run_delta
 from .parity import compare_runtime_roots
+from .pattern_discovery.runner import run_source_discovery
 from .source_parity import run_source_scoped_parity
 from .source_preflight import run_source_preflight
 
@@ -45,6 +48,14 @@ def main(argv=None):
         choices=[MACHINE_MODE_SHADOW, MACHINE_MODE_CANONICAL],
         default=MACHINE_MODE_SHADOW,
     )
+    lane2 = sub.add_parser(
+        "pattern-discovery-source",
+        help="Run the independent governed algorithmic pattern-discovery machine for one governed source using an explicit discovery plan",
+    )
+    lane2.add_argument("--source-name", required=True)
+    lane2.add_argument("--plan", required=True, type=Path)
+    lane2.add_argument("--packets-per-shard", required=True, type=int)
+    lane2.add_argument("--software-revision", default=os.environ.get("GITHUB_SHA", "LOCAL_UNVERSIONED"))
     q = sub.add_parser("parity", help="Compare baseline runtime with candidate staging runtime")
     q.add_argument("baseline")
     q.add_argument("candidate")
@@ -97,6 +108,16 @@ def main(argv=None):
         report = run_governed_delta_machine(mode=args.mode)
         print(json.dumps(report, indent=2))
         return 0 if report.get("pass") else 6
+
+    if args.cmd == "pattern-discovery-source":
+        report = run_source_discovery(
+            source_name=args.source_name,
+            plan_path=args.plan,
+            packets_per_shard=args.packets_per_shard,
+            software_revision=args.software_revision,
+        )
+        print(json.dumps(report, indent=2))
+        return 0 if report.get("pass") else 7
 
     report = compare_runtime_roots(args.baseline, args.candidate)
     print(json.dumps(report, indent=2))
