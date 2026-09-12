@@ -2,102 +2,101 @@
 
 ## Authority separation
 
-- **Google Drive** = canonical evidence plane and persistent project storage.
+- **Google Drive** = canonical evidence plane and persistent project state.
 - **GitHub** = source control, review, CI, workflow definitions, audit trail, and orchestration.
-- **Owner Windows x64 environment** = compute/execution plane when authorized; persistent governed evidence remains in Drive.
-- **Colab** = lab/bootstrap/manual fallback, not the target operating system.
-- **AI semantic reader** = research/validation/behavior-atlas lane, not a live trading execution dependency.
+- **Windows x64 self-hosted runner** = compute-only execution plane; local scratch is bounded and non-canonical.
+- **Colab** = lab/bootstrap/manual fallback, not the production operating system.
+- **AI semantic reader** = research/validation/behavior-atlas lane, not a live trading dependency.
 
-GitHub is not a second analytical engine. Compute migration and automation work must not change frozen parser/routing/delta semantics or behavior-reading methodology.
+GitHub is not a second analytical engine. Automation must not change frozen parser/routing/data-plane semantics or behavior-reading methodology.
 
 ## Delivery discipline — success path, not a sandbox
 
-This repository is built to converge on one durable governed operating system. It is not a place for open-ended experimentation, parallel prototype engines, or permanent test-only implementations.
+The repository converges on one durable governed operating system. Every change must advance the current authorized gate, repair an observed production-path blocker, or harden an already governed production requirement. SHADOW/parity/readback/NOOP verification uses the same production modules rather than a disposable implementation.
 
-Every repository change must satisfy at least one of these conditions:
+A PASSed gate is not reopened merely to try alternatives. Reopen requires actual new evidence, a dependency/authority change, an observed defect, or explicit owner instruction.
 
-1. advance the current explicitly authorized gate toward its acceptance criteria;
-2. repair a blocker observed by that gate without widening analytical scope; or
-3. harden a production requirement already owned by current authority, such as restart safety, reconciliation, provenance, access separation, or recovery.
+## Permanent machine
 
-Verification remains mandatory, but parity, shadow, dry-run, and validation must exercise the same production modules, state model, Drive I/O contract, checkpoint/recovery path, and reconciliation gates intended for governed operation. A test-only alternate engine is not an acceptable primary deliverable.
+One machine owns:
 
-Once an exact audited gate has PASSed, do not reopen or redesign it merely to try another implementation. Reopen only when new evidence, a changed dependency, an actual defect, or an explicit owner instruction requires it. Optional tooling, infrastructure alternatives, algorithmic-discovery expansion, external-news AI, participant-flow extensions, formula/model work, scheduling, and live deployment are not pulled into the current gate unless the governing authority explicitly makes them necessary.
+`canonical discovery -> exact identity -> delta classification -> source-scoped processing -> reconciliation -> persistent controls -> semantic work-state continuity -> canonical conditional promotion -> post-commit readback -> PASS/HOLD`
+
+Data transitions remain `VERIFIED_UNCHANGED`, `NEW`, `CHANGED`, `REPLACEMENT_SAME_CONTENT`, `REMOVED`, and fail-closed `HOLD`. Source membership is always discovered dynamically; source count is never an invariant.
 
 ## Permanent dual-state rule
 
-DATA-PLANE state and SEMANTIC-RESEARCH work state are independent.
+DATA-PLANE state and SEMANTIC-RESEARCH state are independent. `VERIFIED_UNCHANGED` means source/data-plane derivatives do not require rebuild; it never means behavior research is complete.
 
-`VERIFIED_UNCHANGED` means source/data-plane bytes and governed derivatives do not require rebuild. It never means AI behavior research is complete. The permanent machine emits a separate semantic research ledger and authoritative semantic work queue so unfinished historical/replay research can resume from its exact checkpoint without rebuilding unchanged data-plane artifacts.
+The semantic ledger/work queue preserves unfinished source/date/ticker scope, OPEN carry, reconciliation obligations, and exact resume points without forcing unchanged data-plane artifacts through frozen V2 again.
 
-The semantic ledger/scheduler performs orchestration only. It creates no behavior labels, formula, score, threshold, selector, signal, or trading decision.
+Semantic orchestration creates no behavior label, score, threshold, selector, signal, or trading decision.
+
+## Canonical promotion and activation
+
+Canonical promotion is a guarded commit policy of the same permanent machine. RAW is never a write target. A promotion transaction requires reconciled source/control state, explicit authorization, source-scoped backup/purge/upsert when a real delta exists, exact post-write readback, and rollback evidence on failure.
+
+The production activation cycle consumes canonical state, re-enters the permanent machine, conditionally promotes only material changes, then performs governed post-commit readback. Material no-change is a real NOOP: volatile timestamps/run IDs do not create canonical rewrite loops.
+
+## Governed unattended trigger
+
+The operational control-plane trigger is `HOURLY_LIGHTWEIGHT_WATCH` after promotion to the default `main` branch. Schedule is `17 * * * *`.
+
+This is intentionally **not** an hourly execution of the heavy corpus path. It is a two-tier admission architecture:
+
+`hourly lightweight Drive metadata watch`
+
+`-> no material RAW/checkpoint drift: stop as NOOP`
+
+`-> material drift: admit the existing permanent exact activation path`
+
+The watch compares canonical RAW membership/size/modified metadata and semantic CURRENT-checkpoint metadata against governed canonical state. It does not hash the local corpus and does not mutate canonical state. Missing/ambiguous metadata becomes an activation hint so the exact production path can verify or HOLD; the watch never promotes evidence by itself.
+
+Only an admitted activation performs the expensive steps: local MD5+SHA256 verification, persistent delta classification, source processing when required, semantic control refresh, reconciliation, conditional canonical promotion, and post-commit readback.
+
+Manual dispatch remains fallback. Concurrency is serialized; scheduled runs do not cancel an in-progress governed run.
+
+This hourly policy is designed for historical/backfill RAW and research-control continuity. It is not the future realtime HPX/AmiBroker signal clock.
 
 ## Live trading execution rule — no AI in the latency-critical path
 
-Future live trading is deterministic. AI must not sit between HPX/QHPX market data and the governed live trading result, and live operation must not wait for AI to finish reading each second.
+Future live trading remains deterministic and independent from AI semantic completion. Preferred initial topology:
 
-Target live topology is selected from deterministic implementations such as:
+`HPX/QHPX -> AmiBroker/AFL canonical deterministic engine -> optional thin Python bridge/logging/retry/health -> Telegram`
 
-`HPX/QHPX -> AmiBroker governed engine -> Telegram transport`
+A Python analytical engine may only become authoritative after a later governed parity/admission gate proves equivalent or superior behavior on the same market evidence. Programming language itself does not determine accuracy.
 
-or, only when technically justified and governed parity proves equivalence:
+Telegram is transport/presentation only and must not calculate independent thresholds, targets, rankings, or analytical conclusions.
 
-`HPX/QHPX -> deterministic Python governed engine/bridge -> Telegram transport`
+## Live-route admission criteria
 
-A hybrid is allowed and is the first operational preference when AmiBroker remains the canonical analytical engine while Python handles non-analytical transport, persistence, logging, health, retry, and Telegram delivery:
+Any future analytical route change must be proven on the same recorded-live/live evidence for provider-field semantics, timestamps/order, session boundaries, duplicates/missing/late/stale/reconnect handling, canonical-state equivalence, formula/output parity, latency/jitter, restart/recovery continuity, and end-to-end provenance.
 
-`HPX/QHPX -> AmiBroker canonical deterministic state -> thin Python bridge/logging -> Telegram`
-
-Python must not silently become a second analytical engine. If analytical execution is ever moved from AFL/AmiBroker to Python, the Python implementation requires explicit governed parity against the canonical formula/state semantics before it may become authoritative.
-
-## Live-path selection criterion
-
-Programming language does not determine trading accuracy. The authoritative route must be chosen from measured evidence, not preference. If a Python analytical route is proposed later, compare it against the incumbent canonical path on the same recorded-live/replay source and require equivalence for:
-
-- source field semantics and entitlement/availability states;
-- event/tick/bar timestamp ordering and session boundaries;
-- duplicate, missing, late, stale, and reconnect handling;
-- canonical current-state outputs for every eligible ticker;
-- deterministic formula outputs from identical inputs;
-- end-to-end latency and jitter;
-- restart/recovery behavior and state continuity;
-- replay versus live/recorded-live parity;
-- audit provenance from HPX/QHPX input to Telegram output.
-
-This comparison is a governed admission gate, not an invitation to maintain two competing analytical engines. Until evidence proves otherwise, prefer the shortest validated path with the fewest transformations between the HPX/QHPX feed and the canonical deterministic analytical engine. Because the current market-data/replay environment is already HPX/QHPX-linked to AmiBroker, AmiBroker should remain the first production analytical candidate; Python is initially a thin operational bridge unless a later parity gate proves a Python analytical path superior or necessary.
-
-Telegram is presentation/transport only. It must not calculate independent thresholds, targets, rankings, or analytical conclusions.
+This is separate from the historical/backfill GitHub schedule.
 
 ## AI future role
 
-AI may be used during research/testing to read behavior/event/journey evidence, reconcile pattern families, and help build the Behavior Atlas before narrative-to-deterministic translation is authorized.
-
-Later, AI may also prepare **supplementary** external information such as issuer/company context, disclosures, market context, and news updates for Telegram. That lane is outside the current implementation scope. Such information remains supplementary unless the governing Master explicitly authorizes it as an analytical input. It must preserve publication/known-at time so later information cannot be backdated into an earlier trading decision.
-
-## Realtime research continuity
-
-Even after live trading begins, historical/shadow-live/recorded-live research may continue asynchronously. Capture state, deterministic current market state, semantic research state, and post-session/EOD reconciliation remain separate. Semantic backlog never changes the live formula result and does not block authorized lossless market capture merely because AI research is behind.
+AI is valid for research/testing behavior-event-journey reading and later may prepare supplementary issuer/company/external-market/news context for Telegram. That supplementary lane is non-authoritative unless separately admitted by Master authority and must preserve publication/known-at time.
 
 ## Persistent project data
 
-Persistent project data remains in Google Drive. Canonical RAW and governed runtime targets are protected by the active commit policy. Shadow/parity output is written to a separate Drive staging area.
-
-The owner laptop must not become canonical persistent storage for full RAW mirrors, baseline mirrors, or governed corpus artifacts. Bounded ephemeral scratch is permitted when technically required by the active source/job.
-
-## Compute-only local working storage
-
-The Windows executor may use bounded ephemeral local scratch only when technically necessary for streaming, SQLite, decompression, or source-scoped processing. Scratch is disposable and non-canonical. Governed artifacts, checkpoints, reconciliation evidence, and PASS/HOLD state must be persisted to the governed evidence plane.
+Persistent RAW, governed runtime, controls, checkpoints, reconciliation evidence, rollback evidence, and PASS/HOLD state remain in Google Drive. The Windows executor must not become canonical storage for corpus mirrors.
 
 ## Gate progression rule
 
-The engineering path is linear and evidence-gated:
+`authorized gate -> durable production implementation -> persisted runtime/readback evidence -> PASS/HOLD -> repair only observed blocker -> close gate -> next authorized gate`
 
-`current authorized gate -> production-path implementation -> persisted verification evidence -> PASS/HOLD -> repair only observed blocker if HOLD -> close gate -> next explicitly authorized gate`
-
-A gate is not complete because code exists or CI is green. It closes only when its required runtime/readback/reconciliation evidence passes. Conversely, a completed gate is not kept open as a permanent experimentation area.
+Code existing or CI green alone does not close a runtime gate. Conversely, once runtime/readback acceptance has PASSed, the gate is closed rather than kept as an experimentation area.
 
 ## Current engineering state
 
-Full dynamic corpus frozen-V2 shadow parity has PASSed. The permanent governed delta machine has also PASSed its observed no-change SHADOW path. The same production machine now contains the independent semantic work ledger/scheduler implementation, and static CI has PASSed. The remaining F2 task is runtime proof of that dual-state path against the current governed semantic checkpoint in SHADOW mode; it is not a request to add new analytical features or a realtime AI loop.
+The following are CLOSED/PASS on the permanent path:
 
-Canonical commit, scheduling, PR merge, formula changes, and live production deployment remain separate authority gates.
+- full dynamic corpus frozen-V2 shadow parity;
+- permanent governed delta-machine SHADOW baseline;
+- dual-state semantic ledger/work scheduler runtime;
+- canonical promotion transaction/readback;
+- post-commit automation activation;
+- material-no-change NOOP behavior.
+
+The unattended trigger implementation adds the lightweight hourly admission layer without introducing a second engine or live-trading dependency. Promotion to `main` is what activates the GitHub schedule. Formula/model/signal work and HPX/AmiBroker live deployment remain separate future authority gates.
