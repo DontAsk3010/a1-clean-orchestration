@@ -1,7 +1,10 @@
 from a1clean.automation_activation import (
     ACTIVATION_AUTH_PHRASE,
     ACTIVATE_CANONICAL_IF_CHANGED,
+    HOURLY_TRIGGER_POLICY,
+    MANUAL_TRIGGER_POLICY,
     VERIFY,
+    _trigger_policy,
 )
 from a1clean.post_commit import (
     _material_fingerprint,
@@ -97,3 +100,12 @@ def test_activation_modes_and_authorization_are_explicit():
     assert VERIFY == "VERIFY"
     assert ACTIVATE_CANONICAL_IF_CHANGED == "ACTIVATE_CANONICAL_IF_CHANGED"
     assert ACTIVATION_AUTH_PHRASE == "AUTHORIZE_GOVERNED_AUTOMATION_ACTIVATION"
+    assert MANUAL_TRIGGER_POLICY == "MANUAL_GOVERNED"
+    assert HOURLY_TRIGGER_POLICY == "HOURLY_LIGHTWEIGHT_WATCH"
+
+
+def test_trigger_policy_defaults_manual_and_accepts_hourly(monkeypatch):
+    monkeypatch.delenv("A1_AUTOMATION_TRIGGER_POLICY", raising=False)
+    assert _trigger_policy() == MANUAL_TRIGGER_POLICY
+    monkeypatch.setenv("A1_AUTOMATION_TRIGGER_POLICY", "hourly_lightweight_watch")
+    assert _trigger_policy() == HOURLY_TRIGGER_POLICY
