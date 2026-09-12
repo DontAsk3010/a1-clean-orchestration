@@ -19,10 +19,20 @@ VERIFY = "VERIFY"
 ACTIVATE_CANONICAL_IF_CHANGED = "ACTIVATE_CANONICAL_IF_CHANGED"
 ACTIVATION_AUTH_PHRASE = "AUTHORIZE_GOVERNED_AUTOMATION_ACTIVATION"
 ACTIVATION_RESULT = "AUTOMATION_ACTIVATION_RESULT.json"
+MANUAL_TRIGGER_POLICY = "MANUAL_GOVERNED"
+HOURLY_TRIGGER_POLICY = "HOURLY_LIGHTWEIGHT_WATCH"
+_ALLOWED_TRIGGER_POLICIES = {MANUAL_TRIGGER_POLICY, HOURLY_TRIGGER_POLICY}
 
 
 def _stamp() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
+def _trigger_policy() -> str:
+    policy = str(os.environ.get("A1_AUTOMATION_TRIGGER_POLICY") or MANUAL_TRIGGER_POLICY).strip().upper()
+    if policy not in _ALLOWED_TRIGGER_POLICIES:
+        raise RuntimeError(f"UNSUPPORTED_AUTOMATION_TRIGGER_POLICY: {policy}")
+    return policy
 
 
 def _persist_result(result: dict) -> dict:
@@ -50,6 +60,9 @@ def run_automation_activation(*, mode: str = VERIFY, authorization: str | None =
     if mode not in {VERIFY, ACTIVATE_CANONICAL_IF_CHANGED}:
         raise ValueError(f"Unsupported activation mode: {mode}")
 
+    trigger_policy = _trigger_policy()
+    unattended_authorized = trigger_policy == HOURLY_TRIGGER_POLICY
+
     readback_before = run_post_commit_readback()
     if readback_before.get("pass") is not True:
         raise RuntimeError("AUTOMATION_ACTIVATION_REQUIRES_POST_COMMIT_READBACK_PASS")
@@ -65,7 +78,8 @@ def run_automation_activation(*, mode: str = VERIFY, authorization: str | None =
         "pending_source_changes_before": readback_before.get("pending_source_changes"),
         "pending_control_changes_before": readback_before.get("pending_control_changes"),
         "raw_write_authorized": False,
-        "unattended_scheduling_authorized": False,
+        "trigger_policy": trigger_policy,
+        "unattended_scheduling_authorized": unattended_authorized,
     }
 
     if mode == VERIFY:
@@ -76,8 +90,8 @@ def run_automation_activation(*, mode: str = VERIFY, authorization: str | None =
                 "canonical_write_performed": False,
                 "next_stage": "EXPLICIT_ACTIVATION_AUTHORIZATION",
                 "note": (
-                    "Post-commit baseline consumption is proven. The production cycle is ready for governed activation, "
-                    "but this mode intentionally performs no canonical promotion and does not enable unattended scheduling."
+                    "Post-commit baseline consumption is proven. VERIFY performs no canonical promotion. "
+                    "Trigger policy reporting is informational in VERIFY mode."
                 ),
             }
         )
@@ -94,12 +108,18 @@ def run_automation_activation(*, mode: str = VERIFY, authorization: str | None =
         if promotion.get("pass") is not True or promotion.get("status") != "CANONICAL_PROMOTION_COMMITTED":
             raise RuntimeError("AUTOMATION_ACTIVATION_CANONICAL_PROMOTION_DID_NOT_COMMIT")
 
-    # Re-enter the same permanent machine after any canonical commit. A newer
-    # research checkpoint may legitimately create another pending semantic delta
-    # while this cycle is running; that is reported as follow-up work, not failure.
     readback_after = run_post_commit_readback()
     if readback_after.get("pass") is not True:
         raise RuntimeError("AUTOMATION_ACTIVATION_POST_PROMOTION_READBACK_FAILED")
+
+    next_stage = "AUTOMATION_OPERATIONAL" if unattended_authorized else "AUTOMATION_TRIGGER_POLICY_DECISION"
+    note = (
+        "The durable automation cycle is active on the same production machine and canonical promotion path. "
+        "Hourly unattended policy means only the lightweight metadata watch runs every hour; the heavy governed activation path runs only when the watch detects a material RAW/checkpoint change."
+        if unattended_authorized
+        else
+        "The durable automation cycle is active on the same production machine and canonical promotion path. Manual governed triggering remains the active policy."
+    )
 
     return _persist_result(
         {
@@ -111,13 +131,8 @@ def run_automation_activation(*, mode: str = VERIFY, authorization: str | None =
             "pending_canonical_change_after": readback_after.get("pending_canonical_change"),
             "followup_delta_pending": bool(readback_after.get("pending_canonical_change")),
             "activation_ready": True,
-            "trigger_policy": "MANUAL_GOVERNED",
-            "unattended_scheduling_authorized": False,
-            "next_stage": "AUTOMATION_TRIGGER_POLICY_DECISION",
-            "note": (
-                "The durable automation cycle is activated on the same production machine and canonical promotion path. "
-                "Manual governed triggering remains the active policy; no schedule or always-on trigger is enabled by this gate."
-            ),
+            "next_stage": next_stage,
+            "note": note,
         }
     )
 
