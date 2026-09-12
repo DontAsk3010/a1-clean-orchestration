@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   governed-delta:
-    name: Permanent governed delta machine - shadow commit policy
+    name: Permanent governed dual-state machine - shadow commit policy
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 240
     env:
@@ -60,7 +60,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           py -3.11 -m a1clean.cli drive-preflight
 
-      - name: Run permanent governed delta machine in shadow commit mode
+      - name: Run permanent governed dual-state machine in shadow commit mode
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
@@ -70,10 +70,14 @@ jobs:
         if: always()
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
-          Write-Host 'PERMANENT GOVERNED DELTA MACHINE.'
-          Write-Host 'Gate F runs the same production delta-state engine under SHADOW commit policy; this is not a separate tester engine.'
+          Write-Host 'PERMANENT GOVERNED DUAL-STATE MACHINE.'
+          Write-Host 'Gate F/F2 runs the same durable production modules under SHADOW commit policy; this is not a separate tester engine.'
           Write-Host 'Canonical RAW controls dynamic source membership and no source count is hard-coded.'
-          Write-Host 'VERIFIED_UNCHANGED sources are reused; only NEW/CHANGED/replacement sources enter frozen V2 source processing.'
-          Write-Host 'Checkpoints, processed delta artifacts, control bundle, and canonical deployment plan persist only under PARITY_STAGING while Gate F is open.'
-          Write-Host 'Canonical RAW and governed CURRENT are not written by this workflow.'
-          Write-Host 'No sampling, filtering, behavior-label creation, formula, signal, threshold, selector, optimization, or Telegram analytical logic is introduced.'
+          Write-Host 'VERIFIED_UNCHANGED is DATA-PLANE state only and NEVER certifies semantic-research completion.'
+          Write-Host 'VERIFIED_UNCHANGED source artifacts are reused; unfinished semantic work resumes from governed semantic checkpoint/state without rebuilding unchanged corpus artifacts.'
+          Write-Host 'The control bundle includes PERSISTENT_SEMANTIC_RESEARCH_STATE.json and AI_SEMANTIC_WORK_QUEUE.json; AI_SEMANTIC_DELTA_QUEUE.json remains a data-change trigger, not semantic-completion authority.'
+          Write-Host 'Canonical RAW, governed CURRENT, and behavior-control state are not written by this SHADOW workflow; evidence persists only under PARITY_STAGING.'
+          Write-Host 'AI semantic reading is research/testing only and is NOT part of the future live trading decision path.'
+          Write-Host 'Future live production must be deterministic: HPX/QHPX -> governed AmiBroker/AFL and/or parity-proven deterministic Python -> Telegram transport/presentation.'
+          Write-Host 'Python may initially serve as thin transport/logging/retry/health bridge and must not silently become a second analytical engine.'
+          Write-Host 'No sampling, filtering, behavior-label creation, formula, signal, threshold, selector, optimization, or Telegram analytical logic is introduced by this workflow.'

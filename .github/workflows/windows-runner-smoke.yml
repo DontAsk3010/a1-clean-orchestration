@@ -1,0 +1,74 @@
+name: Windows Runner Smoke
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-runner-smoke
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Compute-only runner connectivity
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 10
+    env:
+      A1_RAW_DIR: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
+    steps:
+      - name: Checkout migration code
+        uses: actions/checkout@v4
+
+      - name: Verify Windows compute endpoint
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Write-Host "Computer: $env:COMPUTERNAME"
+          Write-Host "Runner OS: $env:RUNNER_OS"
+          Write-Host "Runner arch: $env:RUNNER_ARCH"
+          if ($env:RUNNER_OS -ne 'Windows') { throw "Expected Windows runner" }
+
+      - name: Verify Python
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $ok = $false
+
+          Write-Host "Trying python..."
+          & python -c "import sys; print(sys.executable); print(sys.version); raise SystemExit(0 if sys.version_info >= (3,11) else 3)"
+          if ($LASTEXITCODE -eq 0) { $ok = $true }
+
+          if (-not $ok) {
+            Write-Host "Trying Windows Python Launcher: py -3 ..."
+            & py -3 -c "import sys; print(sys.executable); print(sys.version); raise SystemExit(0 if sys.version_info >= (3,11) else 3)"
+            if ($LASTEXITCODE -eq 0) { $ok = $true }
+          }
+
+          if (-not $ok) {
+            throw "Python 3.11+ is not available to the runner via 'python' or 'py -3'."
+          }
+
+      - name: Verify canonical local RAW copy is readable only
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $raw = $env:A1_RAW_DIR
+          if (-not (Test-Path -LiteralPath $raw -PathType Container)) {
+            throw "RAW folder not found: $raw"
+          }
+          $files = Get-ChildItem -LiteralPath $raw -File
+          $bytes = ($files | Measure-Object -Property Length -Sum).Sum
+          Write-Host "RAW path: $raw"
+          Write-Host "Observed local file count: $($files.Count)"
+          Write-Host "Observed local bytes: $bytes"
+          Write-Host "NOTE: counts are observational only; no fixed source-count rule is applied."
+
+      - name: Safety declaration
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          Write-Host "SMOKE PASS: runner connectivity only."
+          Write-Host "No corpus processing, no RAW mutation, no governed runtime write, no parity staging write."
