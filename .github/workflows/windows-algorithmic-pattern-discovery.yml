@@ -1,0 +1,103 @@
+name: Windows Governed Algorithmic Pattern Discovery
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_name:
+        description: 'Exact governed canonical source name, for example Raw Des 02-31-2024.csv'
+        required: true
+        type: string
+      plan_path:
+        description: 'Repository-relative explicit governed discovery-plan JSON path'
+        required: true
+        type: string
+      packets_per_shard:
+        description: 'Operational evidence partition size in ticker-day packets; does not change analytical semantics'
+        required: true
+        default: '100'
+        type: string
+      authorization_phrase:
+        description: 'Exact owner-authorized Lane 2 execution phrase'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-governed-algorithmic-pattern-discovery
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    name: Independent governed algorithmic discovery
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Guard governed branch and explicit authorization
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ('${{ github.ref_name }}' -ne 'lane2/algorithmic-pattern-discovery-v1') {
+            throw 'Lane 2 discovery execution is currently authorized only on lane2/algorithmic-pattern-discovery-v1.'
+          }
+          if ('${{ inputs.authorization_phrase }}' -ne 'AUTHORIZE_LANE2_ALGORITHMIC_DISCOVERY') {
+            throw 'Exact Lane 2 algorithmic-discovery authorization phrase is required.'
+          }
+
+      - name: Checkout governed Lane 2 production code
+        uses: actions/checkout@v4
+
+      - name: Verify external Drive credential bindings exist
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bindings = @(
+            @{ Name = 'A1_DRIVE_READER_CREDENTIALS'; Path = $env:A1_DRIVE_READER_CREDENTIALS },
+            @{ Name = 'A1_DRIVE_WRITER_CREDENTIALS'; Path = $env:A1_DRIVE_WRITER_CREDENTIALS }
+          )
+          foreach ($binding in $bindings) {
+            if ([string]::IsNullOrWhiteSpace($binding.Path)) {
+              throw "$($binding.Name) is not configured for the runner process."
+            }
+            if (-not (Test-Path -LiteralPath $binding.Path -PathType Leaf)) {
+              throw "$($binding.Name) points to a credential file that does not exist. Credential content/path is intentionally not printed."
+            }
+          }
+
+      - name: Install governed Lane 2 machine and exact optional pattern dependencies
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[pattern]'
+
+      - name: Verify explicit plan exists in checked-out governed code
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $plan = '${{ inputs.plan_path }}'
+          if ([string]::IsNullOrWhiteSpace($plan)) { throw 'plan_path is required.' }
+          if (-not (Test-Path -LiteralPath $plan -PathType Leaf)) {
+            throw "Governed discovery plan not found in checked-out repository: $plan"
+          }
+
+      - name: Run same durable Lane 2 production machine
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m a1clean.cli pattern-discovery-source `
+            --source-name '${{ inputs.source_name }}' `
+            --plan '${{ inputs.plan_path }}' `
+            --packets-per-shard ([int]'${{ inputs.packets_per_shard }}') `
+            --software-revision '${{ github.sha }}'
+
+      - name: Safety declaration
+        if: always()
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          Write-Host 'LANE 2 IS AN INDEPENDENT NON-AI ALGORITHMIC EVIDENCE READER.'
+          Write-Host 'It consumes governed numeric/source chronology only; AI semantic labels and later outcomes are not inputs.'
+          Write-Host 'No sampling, synthetic rows, trading signal, formula, score, threshold, selector, ranking, or Telegram analytical logic is authorized here.'
+          Write-Host 'Algorithm/model/window/prediction parameters must come from the explicit governed discovery plan; the workflow invents none.'
+          Write-Host 'Canonical RAW and governed CURRENT are read-only. Lane 2 writes only to its dedicated governed research evidence/control/audit folders.'
+          Write-Host 'Evidence is restart-safe and source-linked; reconciliation with AI happens only in a later separate gate.'
