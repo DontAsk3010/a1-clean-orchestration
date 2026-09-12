@@ -5,6 +5,7 @@ import json
 
 from .config import DataPlaneConfig
 from .drive_guardrails import run_drive_guardrail_preflight
+from .full_shadow import run_full_shadow_parity
 from .google_drive import build_drive_api
 from .frozen_v2 import run_delta
 from .parity import compare_runtime_roots
@@ -29,6 +30,10 @@ def main(argv=None):
         help="Run one canonical source through frozen V2 and compare it against the governed Drive baseline as a technical migration gate",
     )
     sp.add_argument("--source-name", required=True)
+    sub.add_parser(
+        "full-shadow-parity",
+        help="Run restart-safe frozen V2 shadow parity across the complete dynamically discovered canonical RAW universe",
+    )
     q = sub.add_parser("parity", help="Compare baseline runtime with candidate staging runtime")
     q.add_argument("baseline")
     q.add_argument("candidate")
@@ -71,6 +76,11 @@ def main(argv=None):
         report = run_source_scoped_parity(args.source_name)
         print(json.dumps(report, indent=2))
         return 0 if report["pass"] else 4
+
+    if args.cmd == "full-shadow-parity":
+        report = run_full_shadow_parity()
+        print(json.dumps(report, indent=2))
+        return 0 if report["pass"] else 5
 
     report = compare_runtime_roots(args.baseline, args.candidate)
     print(json.dumps(report, indent=2))
