@@ -1,6 +1,6 @@
 {
   "schema": "A1_LANE2_DIRECT_RUNTIME_REQUEST_V1",
-  "request_id": "L2_FIRST_GOVERNED_RUNTIME_20260913_DES2024_AALI",
+  "request_id": "L2_FIRST_GOVERNED_RUNTIME_20260913_DES2024_AALI_R2",
   "enabled": true,
   "authorization_phrase": "AUTHORIZE_LANE2_ALGORITHMIC_DISCOVERY",
   "scope_type": "EXACT_TICKER_DAY",
@@ -14,7 +14,7 @@
   "expected_source_row_last": 5100,
   "plan_path": "plans/lane2/runtime-certification-v1.json",
   "packets_per_shard": 1,
-  "purpose": "FIRST_GOVERNED_LANE2_RUNTIME_CERTIFICATION_ONLY",
+  "purpose": "FIRST_GOVERNED_LANE2_RUNTIME_CERTIFICATION_ONLY_RETRY_AFTER_NUMERIC_ADAPTER_FIX",
   "ai_semantic_labels_allowed": false,
   "formula_or_trading_logic_allowed": false,
   "canonical_raw_mutation_allowed": false,
