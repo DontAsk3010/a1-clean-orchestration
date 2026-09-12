@@ -43,19 +43,29 @@ def _load_plan(path: Path) -> DiscoveryPlan:
     return DiscoveryPlan.from_dict(obj)
 
 
+def _canonical_date(value: str) -> str:
+    try:
+        parsed = date.fromisoformat(value)
+    except ValueError as exc:
+        raise PatternDiscoveryContractError(f"EXACT_SCOPE_TRADING_DATE_INVALID:{value}") from exc
+    if parsed.isoformat() != value:
+        raise PatternDiscoveryContractError(f"EXACT_SCOPE_TRADING_DATE_NOT_CANONICAL:{value}")
+    return value
+
+
 def _normalize_scope(*, trading_date: str | None, ticker: str | None) -> dict[str, Any]:
     normalized_date = (trading_date or "").strip()
     normalized_ticker = (ticker or "").strip()
-    if bool(normalized_date) != bool(normalized_ticker):
-        raise PatternDiscoveryContractError("EXACT_SCOPE_REQUIRES_TRADING_DATE_AND_TICKER")
+    if not normalized_date and normalized_ticker:
+        raise PatternDiscoveryContractError("SCOPE_TICKER_REQUIRES_TRADING_DATE")
     if not normalized_date:
         return {"scope_type": "FULL_SOURCE"}
-    try:
-        parsed = date.fromisoformat(normalized_date)
-    except ValueError as exc:
-        raise PatternDiscoveryContractError(f"EXACT_SCOPE_TRADING_DATE_INVALID:{normalized_date}") from exc
-    if parsed.isoformat() != normalized_date:
-        raise PatternDiscoveryContractError(f"EXACT_SCOPE_TRADING_DATE_NOT_CANONICAL:{normalized_date}")
+    normalized_date = _canonical_date(normalized_date)
+    if not normalized_ticker:
+        return {
+            "scope_type": "EXACT_TRADING_DATE",
+            "trading_date": normalized_date,
+        }
     return {
         "scope_type": "EXACT_TICKER_DAY",
         "trading_date": normalized_date,
@@ -66,6 +76,17 @@ def _normalize_scope(*, trading_date: str | None, ticker: str | None) -> dict[st
 def _resolve_manifest_indices(reader: GovernedSourceReader, scope: dict[str, Any]) -> tuple[int, ...]:
     if scope["scope_type"] == "FULL_SOURCE":
         return tuple(range(len(reader.semantic_manifest_rows)))
+    if scope["scope_type"] == "EXACT_TRADING_DATE":
+        matches = tuple(
+            idx
+            for idx, row in enumerate(reader.semantic_manifest_rows)
+            if row.trading_date == scope["trading_date"]
+        )
+        if not matches:
+            raise PatternDiscoveryContractError(
+                f"EXACT_TRADING_DATE_SCOPE_EMPTY:DATE={scope['trading_date']}"
+            )
+        return matches
     matches = tuple(
         idx
         for idx, row in enumerate(reader.semantic_manifest_rows)
@@ -101,6 +122,8 @@ def _selected_ref(
 def _scope_token(scope: dict[str, Any]) -> str:
     if scope["scope_type"] == "FULL_SOURCE":
         return "FULL_SOURCE"
+    if scope["scope_type"] == "EXACT_TRADING_DATE":
+        return f"DATE_{_safe_token(scope['trading_date'])}"
     return (
         "TD_"
         f"{_safe_token(scope['trading_date'])}_"
@@ -489,7 +512,7 @@ def run_source_discovery(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Run governed independent algorithmic pattern discovery for one governed source or exact ticker-day scope."
+        description="Run governed independent algorithmic pattern discovery for a full source, full trading date, or exact ticker-day scope."
     )
     parser.add_argument("--source-name", required=True)
     parser.add_argument("--plan", required=True, type=Path)
