@@ -1,18 +1,23 @@
 name: Windows Governed Automation Activation
 
 on:
+  schedule:
+    # Historical/backfill control-plane polling only; not a live-trading clock.
+    # Minute 17 avoids concentrating work at the top of the hour.
+    - cron: '17 * * * *'
   workflow_dispatch:
     inputs:
       activation_mode:
-        description: 'VERIFY performs post-commit readback only; ACTIVATE_CANONICAL_IF_CHANGED authorizes one governed production cycle.'
+        description: 'WATCH_AND_ACTIVATE_IF_CHANGED is the production trigger path; VERIFY is readback-only; ACTIVATE_CANONICAL_IF_CHANGED forces one governed cycle.'
         required: true
-        default: VERIFY
+        default: WATCH_AND_ACTIVATE_IF_CHANGED
         type: choice
         options:
+          - WATCH_AND_ACTIVATE_IF_CHANGED
           - VERIFY
           - ACTIVATE_CANONICAL_IF_CHANGED
       authorization_phrase:
-        description: 'Required only for ACTIVATE_CANONICAL_IF_CHANGED.'
+        description: 'Required for manual canonical activation when a WATCH detects change or ACTIVATE_CANONICAL_IF_CHANGED is selected.'
         required: false
         default: ''
         type: string
@@ -26,24 +31,45 @@ concurrency:
 
 jobs:
   activate:
-    name: Post-commit readback and governed automation activation
+    name: Governed trigger watch and conditional automation activation
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 240
     env:
       A1_RAW_DIR: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
     steps:
-      - name: Require migration parity branch
+      - name: Resolve governed trigger policy and branch
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          if ('${{ github.ref_name }}' -ne 'migration/parity-v2') {
-            throw 'This workflow must be dispatched on migration/parity-v2.'
+          $eventName = '${{ github.event_name }}'
+          $refName = '${{ github.ref_name }}'
+          $requested = '${{ inputs.activation_mode }}'
+
+          if ($eventName -eq 'schedule') {
+            if ($refName -ne 'main') {
+              throw 'Scheduled governed automation is authorized only from the default main branch.'
+            }
+            $effective = 'WATCH_AND_ACTIVATE_IF_CHANGED'
+            $policy = 'HOURLY_LIGHTWEIGHT_WATCH'
           }
+          elseif ($eventName -eq 'workflow_dispatch') {
+            if ($refName -notin @('migration/parity-v2', 'main')) {
+              throw 'Manual governed automation must be dispatched on migration/parity-v2 during migration or main after promotion.'
+            }
+            $effective = $requested
+            $policy = 'MANUAL_GOVERNED'
+          }
+          else {
+            throw "Unsupported trigger event: $eventName"
+          }
+
+          "A1_EFFECTIVE_TRIGGER_MODE=$effective" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "A1_AUTOMATION_TRIGGER_POLICY=$policy" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Checkout permanent production-machine code
         uses: actions/checkout@v4
 
-      - name: Verify separate external Drive credential bindings exist
+      - name: Verify external Drive credential bindings exist
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
@@ -66,36 +92,81 @@ jobs:
           $ErrorActionPreference = 'Stop'
           py -3.11 -m pip install -e .
 
-      - name: Re-verify governed Drive separation
+      - name: Initialize activation decision
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:A1_EFFECTIVE_TRIGGER_MODE -eq 'WATCH_AND_ACTIVATE_IF_CHANGED') {
+            "A1_RUN_ACTIVATION=false" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "A1_ACTIVATION_MODE=ACTIVATE_CANONICAL_IF_CHANGED" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          }
+          elseif ($env:A1_EFFECTIVE_TRIGGER_MODE -eq 'VERIFY') {
+            "A1_RUN_ACTIVATION=true" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "A1_ACTIVATION_MODE=VERIFY" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          }
+          elseif ($env:A1_EFFECTIVE_TRIGGER_MODE -eq 'ACTIVATE_CANONICAL_IF_CHANGED') {
+            "A1_RUN_ACTIVATION=true" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "A1_ACTIVATION_MODE=ACTIVATE_CANONICAL_IF_CHANGED" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          }
+          else {
+            throw "Unsupported effective trigger mode: $env:A1_EFFECTIVE_TRIGGER_MODE"
+          }
+
+      - name: Run lightweight governed RAW/checkpoint watch
+        if: ${{ env.A1_EFFECTIVE_TRIGGER_MODE == 'WATCH_AND_ACTIVATE_IF_CHANGED' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $resultPath = Join-Path $env:RUNNER_TEMP 'a1-governed-trigger-watch.json'
+          py -3.11 -m a1clean.trigger_watch --result-file $resultPath
+          $watch = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json
+          if ($watch.pass -ne $true) {
+            throw 'Governed trigger watch did not PASS.'
+          }
+          $required = [bool]$watch.activation_required
+          "A1_RUN_ACTIVATION=$($required.ToString().ToLower())" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          if (-not $required) {
+            Write-Host 'NO MATERIAL RAW/SEMANTIC-CHECKPOINT CHANGE: heavy hash/data-plane/canonical path is skipped.'
+          }
+
+      - name: Resolve activation authorization
+        if: ${{ env.A1_RUN_ACTIVATION == 'true' && env.A1_ACTIVATION_MODE == 'ACTIVATE_CANONICAL_IF_CHANGED' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ('${{ github.event_name }}' -eq 'schedule') {
+            $authorization = 'AUTHORIZE_GOVERNED_AUTOMATION_ACTIVATION'
+          }
+          else {
+            $authorization = '${{ inputs.authorization_phrase }}'
+            if ($authorization -ne 'AUTHORIZE_GOVERNED_AUTOMATION_ACTIVATION') {
+              throw 'Manual canonical activation requires the exact governed automation activation authorization phrase.'
+            }
+          }
+          "A1_AUTOMATION_ACTIVATION_AUTHORIZATION=$authorization" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Re-verify governed Drive separation only when activation is admitted
+        if: ${{ env.A1_RUN_ACTIVATION == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           py -3.11 -m a1clean.cli drive-preflight
 
-      - name: Require exact activation authorization when canonical activation is requested
-        if: ${{ inputs.activation_mode == 'ACTIVATE_CANONICAL_IF_CHANGED' }}
+      - name: Run same permanent governed activation cycle only when admitted
+        if: ${{ env.A1_RUN_ACTIVATION == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          if ('${{ inputs.authorization_phrase }}' -ne 'AUTHORIZE_GOVERNED_AUTOMATION_ACTIVATION') {
-            throw 'ACTIVATE_CANONICAL_IF_CHANGED requires the exact governed automation activation authorization phrase.'
-          }
-
-      - name: Run post-commit readback and governed activation cycle
-        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
-        env:
-          A1_AUTOMATION_ACTIVATION_AUTHORIZATION: ${{ inputs.authorization_phrase }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          py -3.11 -m a1clean.automation_activation --mode '${{ inputs.activation_mode }}'
+          py -3.11 -m a1clean.automation_activation --mode $env:A1_ACTIVATION_MODE
 
       - name: Safety declaration
         if: always()
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           Write-Host 'THIS IS THE SAME PERMANENT A1 CLEAN PRODUCTION MACHINE, NOT A THROWAWAY TESTER.'
-          Write-Host 'The gate proves canonical baseline consumption and one governed activation cycle.'
+          Write-Host 'The hourly schedule, once present on main, is a lightweight metadata watch for governed historical/backfill RAW and semantic checkpoint continuity.'
+          Write-Host 'No-change watch runs do not hash the local corpus, do not run the heavy data-plane, and do not write canonical state.'
+          Write-Host 'Only a material watch change admits the existing exact hash/classification/reconciliation/canonical-promotion path.'
           Write-Host 'Canonical RAW is never written.'
-          Write-Host 'Source processing remains delta-only and dynamically discovered.'
           Write-Host 'Semantic research state remains independent from data-plane state and is not a live-trading dependency.'
-          Write-Host 'This workflow does not enable unattended scheduling, formula/model/signal logic, Telegram analytical logic, news AI, participant analytics, or live deployment.'
+          Write-Host 'This schedule is not the HPX/AmiBroker live-trading clock and does not create formula/model/signal/Telegram analytical logic, news AI, participant analytics, or live deployment.'
