@@ -1,0 +1,23 @@
+{
+  "plan_id": "L2_CORPUS_STRUCTURAL_STAGE1_UNINTERPRETED_V1",
+  "ruptures": [
+    {
+      "run_id": "stage1_reference_raw_close_pelt_l2_pen1",
+      "field": "RAW_CLOSE",
+      "algorithm": "Pelt",
+      "model": "l2",
+      "predict_kwargs": {
+        "pen": 1.0
+      },
+      "algorithm_kwargs": {}
+    }
+  ],
+  "stumpy": [
+    {
+      "run_id": "stage1_reference_raw_close_matrix_profile_w3",
+      "field": "RAW_CLOSE",
+      "window": 3
+    }
+  ],
+  "dtw": []
+}
