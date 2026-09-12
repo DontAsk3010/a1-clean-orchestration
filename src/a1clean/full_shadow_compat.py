@@ -5,6 +5,11 @@ import os
 from . import full_shadow as _base
 from .config import FROZEN_GENERATION_ID, FROZEN_IMPL_VERSION
 
+# Capture the unwrapped implementation once. The compatibility wrapper temporarily
+# monkey-patches _base._stable_source during the governed run; calling the live
+# attribute from inside the wrapper would recurse back into this function.
+_ORIGINAL_STABLE_SOURCE = _base._stable_source
+
 # One explicitly audited predecessor run is allowed to resume after this wrapper-only
 # reconciliation correction. This is deliberately narrow so arbitrary code revisions
 # cannot inherit a prior checkpoint.
@@ -21,7 +26,7 @@ def _stable_source_with_legacy_impl_fallback(obj: dict) -> dict:
     strict, and the full-shadow final gate still compares every candidate stable map
     against the governed GLOBAL manifest without this fallback.
     """
-    row = _base._stable_source(obj)
+    row = _ORIGINAL_STABLE_SOURCE(obj)
     if row.get("data_plane_impl_version") is None:
         row["data_plane_impl_version"] = FROZEN_IMPL_VERSION
     return row
