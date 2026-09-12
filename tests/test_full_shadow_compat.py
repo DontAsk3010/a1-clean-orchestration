@@ -4,6 +4,7 @@ import os
 
 import pytest
 
+from a1clean import full_shadow as full_shadow_base
 from a1clean.config import FROZEN_IMPL_VERSION
 from a1clean.full_shadow import CHECKPOINT_SCHEMA, FULL_SHADOW_GATE, _source_universe_fingerprint, _source_universe_rows
 from a1clean.full_shadow_compat import (
@@ -60,6 +61,18 @@ def test_non_null_impl_version_is_never_overwritten():
     baseline = _manifest("OTHER")
     normalized = _stable_source_with_legacy_impl_fallback(baseline)
     assert normalized["data_plane_impl_version"] == "OTHER"
+
+
+def test_fallback_does_not_recurse_when_base_symbol_is_temporarily_patched(monkeypatch):
+    baseline = _manifest(None)
+    monkeypatch.setattr(
+        full_shadow_base,
+        "_stable_source",
+        _stable_source_with_legacy_impl_fallback,
+    )
+    normalized = _stable_source_with_legacy_impl_fallback(baseline)
+    assert normalized["data_plane_impl_version"] == FROZEN_IMPL_VERSION
+    assert normalized["source_name"] == "a.csv"
 
 
 def _checkpoint(preflight, sha, folder, status="HOLD"):
