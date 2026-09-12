@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import datetime, timezone
+from typing import Any
 
 from .canonical_promotion import _staging_control_map
 from .config import (
@@ -27,22 +28,62 @@ from .source_parity import (
     _assert_folder,
     _baseline_runtime_children,
     _create_folder,
+    _download_json,
     _exact_named,
     _list_children,
 )
 
-POST_COMMIT_SCHEMA = "A1_POST_COMMIT_GOVERNED_READBACK_V1"
+POST_COMMIT_SCHEMA = "A1_POST_COMMIT_GOVERNED_READBACK_V2_MATERIAL_DELTA"
 POST_COMMIT_NAME = "A1_CLEAN_POST_COMMIT_GOVERNED_READBACK"
 POST_COMMIT_RESULT = "POST_COMMIT_READBACK_RESULT.json"
+
+# These fields describe the execution that produced a control artifact, not a
+# change in canonical market/source/semantic state. They are deliberately
+# excluded only from the *promotion decision*. The raw artifacts retain every
+# field and canonical promotion still uses exact hash/size reconciliation.
+_VOLATILE_CONTROL_KEYS = frozenset(
+    {
+        "created_at_utc",
+        "updated_at_utc",
+        "started_at_utc",
+        "finished_at_utc",
+        "refresh_id",
+        "delta_refresh_id",
+        "runtime_input_fingerprint",
+    }
+)
 
 
 def _stamp() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
-def _snapshot_fingerprint(payload: dict) -> str:
+def _snapshot_fingerprint(payload: Any) -> str:
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
+
+
+def _material_projection(value: Any) -> Any:
+    """Remove run-volatile metadata while preserving governed state semantics.
+
+    This prevents a source-watch/activation cycle from writing canonical controls
+    merely because a new refresh timestamp/id was generated. Source identity,
+    classification, semantic checkpoint provenance/watermarks, work items, holds,
+    source hashes and every other governed field remain part of the comparison.
+    """
+    if isinstance(value, dict):
+        return {
+            key: _material_projection(item)
+            for key, item in sorted(value.items())
+            if key not in _VOLATILE_CONTROL_KEYS
+        }
+    if isinstance(value, list):
+        return [_material_projection(item) for item in value]
+    return value
+
+
+def _material_fingerprint(payload: Any) -> str:
+    return _snapshot_fingerprint(_material_projection(payload))
 
 
 def _row(item: dict, *, target: str) -> dict:
@@ -75,6 +116,40 @@ def canonical_control_snapshot(reader_api) -> dict:
     return {**payload, "fingerprint": _snapshot_fingerprint(payload)}
 
 
+def _control_diff_row(
+    *,
+    name: str,
+    target: str,
+    canonical_api,
+    candidate_api,
+    canonical: dict,
+    candidate: dict,
+) -> dict:
+    raw_changed = (
+        canonical.get("md5Checksum") != candidate.get("md5Checksum")
+        or int(canonical.get("size", -1)) != int(candidate.get("size", -2))
+    )
+    canonical_payload = _download_json(canonical_api, str(canonical["id"]))
+    candidate_payload = _download_json(candidate_api, str(candidate["id"]))
+    canonical_material = _material_fingerprint(canonical_payload)
+    candidate_material = _material_fingerprint(candidate_payload)
+    material_changed = canonical_material != candidate_material
+    return {
+        "name": name,
+        "target": target,
+        # Backward-compatible field now means a governed/material change that
+        # warrants promotion, not a timestamp-only byte difference.
+        "changed": material_changed,
+        "material_changed": material_changed,
+        "raw_changed": raw_changed,
+        "canonical_md5": canonical.get("md5Checksum"),
+        "candidate_md5": candidate.get("md5Checksum"),
+        "canonical_material_fingerprint": canonical_material,
+        "candidate_material_fingerprint": candidate_material,
+        "volatile_only_difference": raw_changed and not material_changed,
+    }
+
+
 def compare_shadow_controls_to_canonical(*, reader_api, writer_api, shadow: dict) -> list[dict]:
     control_folder_id = str((shadow.get("control_bundle") or {}).get("folder_id") or "")
     if not control_folder_id:
@@ -87,36 +162,26 @@ def compare_shadow_controls_to_canonical(*, reader_api, writer_api, shadow: dict
 
     rows: list[dict] = []
     for name in DATA_PLANE_CONTROL_FILE_NAMES:
-        canonical = _exact_named(manifest_items, name)
-        candidate = staged[name]
-        changed = (
-            canonical.get("md5Checksum") != candidate.get("md5Checksum")
-            or int(canonical.get("size", -1)) != int(candidate.get("size", -2))
-        )
         rows.append(
-            {
-                "name": name,
-                "target": "DATA_PLANE",
-                "changed": changed,
-                "canonical_md5": canonical.get("md5Checksum"),
-                "candidate_md5": candidate.get("md5Checksum"),
-            }
+            _control_diff_row(
+                name=name,
+                target="DATA_PLANE",
+                canonical_api=reader_api,
+                candidate_api=writer_api,
+                canonical=_exact_named(manifest_items, name),
+                candidate=staged[name],
+            )
         )
     for name in SEMANTIC_CONTROL_FILE_NAMES:
-        canonical = _exact_named(semantic_items, name)
-        candidate = staged[name]
-        changed = (
-            canonical.get("md5Checksum") != candidate.get("md5Checksum")
-            or int(canonical.get("size", -1)) != int(candidate.get("size", -2))
-        )
         rows.append(
-            {
-                "name": name,
-                "target": "SEMANTIC_CONTROL",
-                "changed": changed,
-                "canonical_md5": canonical.get("md5Checksum"),
-                "candidate_md5": candidate.get("md5Checksum"),
-            }
+            _control_diff_row(
+                name=name,
+                target="SEMANTIC_CONTROL",
+                canonical_api=reader_api,
+                candidate_api=writer_api,
+                canonical=_exact_named(semantic_items, name),
+                candidate=staged[name],
+            )
         )
     return rows
 
@@ -162,7 +227,10 @@ def run_post_commit_readback() -> dict:
         (source_ops.get("purge_before_upsert") or [])
         or (source_ops.get("upsert_processed_sources") or [])
     )
-    pending_control_changes = [row for row in control_diffs if row["changed"]]
+    pending_control_changes = [row for row in control_diffs if row["material_changed"]]
+    volatile_only_control_differences = [
+        row for row in control_diffs if row["volatile_only_difference"]
+    ]
 
     evidence_folder_id = _create_folder(
         writer_api,
@@ -189,13 +257,14 @@ def run_post_commit_readback() -> dict:
         "semantic_backlog_state": shadow.get("semantic_backlog_state"),
         "pending_source_changes": pending_source_changes,
         "pending_control_changes": pending_control_changes,
+        "volatile_only_control_differences": volatile_only_control_differences,
         "pending_canonical_change": pending_source_changes or bool(pending_control_changes),
         "activation_candidate": True,
         "unattended_scheduling_authorized": False,
         "next_stage": "GOVERNED_AUTOMATION_ACTIVATION",
         "note": (
             "The permanent machine consumed the canonicalized baseline and completed its normal SHADOW path without mutating canonical state. "
-            "Any newer semantic checkpoint/control difference is ordinary follow-on delta state, not a Gate G regression."
+            "Promotion is requested only for material source/control state changes; refresh/timestamp-only byte drift remains audit evidence and does not cause a canonical write loop."
         ),
     }
     upload = upload_json_payload(
