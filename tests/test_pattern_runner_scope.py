@@ -62,6 +62,16 @@ def test_full_source_scope_preserves_all_manifest_indices():
     assert _resolve_manifest_indices(_reader(), scope) == (0, 1, 2)
 
 
+def test_exact_trading_date_scope_preserves_every_manifest_row_for_date():
+    scope = _normalize_scope(trading_date="2024-12-02", ticker=None)
+    assert scope == {"scope_type": "EXACT_TRADING_DATE", "trading_date": "2024-12-02"}
+    indices = _resolve_manifest_indices(_reader(), scope)
+    assert indices == (0, 1)
+    assert _selected_ref(_reader(), indices, 0)["ticker"] == "AALI"
+    assert _selected_ref(_reader(), indices, 1)["ticker"] == "ABBA"
+    assert _selected_ref(_reader(), indices, 2) is None
+
+
 def test_exact_ticker_day_scope_resolves_one_governed_manifest_row():
     scope = _normalize_scope(trading_date="2024-12-02", ticker="AALI")
     indices = _resolve_manifest_indices(_reader(), scope)
@@ -79,17 +89,22 @@ def test_exact_ticker_day_scope_resolves_one_governed_manifest_row():
 @pytest.mark.parametrize(
     ("trading_date", "ticker"),
     [
-        ("2024-12-02", None),
         (None, "AALI"),
         ("", "AALI"),
     ],
 )
-def test_exact_scope_requires_both_identity_fields(trading_date, ticker):
-    with pytest.raises(PatternDiscoveryContractError, match="EXACT_SCOPE_REQUIRES_TRADING_DATE_AND_TICKER"):
+def test_ticker_scope_requires_trading_date(trading_date, ticker):
+    with pytest.raises(PatternDiscoveryContractError, match="SCOPE_TICKER_REQUIRES_TRADING_DATE"):
         _normalize_scope(trading_date=trading_date, ticker=ticker)
 
 
-def test_exact_scope_fails_closed_when_manifest_identity_is_not_unique_or_missing():
+def test_exact_trading_date_scope_fails_closed_when_date_missing():
+    missing_date = _normalize_scope(trading_date="2024-12-04", ticker=None)
+    with pytest.raises(PatternDiscoveryContractError, match="EXACT_TRADING_DATE_SCOPE_EMPTY"):
+        _resolve_manifest_indices(_reader(), missing_date)
+
+
+def test_exact_ticker_day_scope_fails_closed_when_manifest_identity_is_not_unique_or_missing():
     reader = _reader()
     missing = _normalize_scope(trading_date="2024-12-04", ticker="AALI")
     with pytest.raises(PatternDiscoveryContractError, match="COUNT=0"):
