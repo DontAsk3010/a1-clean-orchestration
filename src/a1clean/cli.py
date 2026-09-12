@@ -4,6 +4,7 @@ import argparse
 import json
 
 from .config import DataPlaneConfig
+from .delta_machine import MACHINE_MODE_CANONICAL, MACHINE_MODE_SHADOW, run_governed_delta_machine
 from .drive_guardrails import run_drive_guardrail_preflight
 from .full_shadow_compat import run_full_shadow_parity
 from .google_drive import build_drive_api
@@ -33,6 +34,16 @@ def main(argv=None):
     sub.add_parser(
         "full-shadow-parity",
         help="Run restart-safe frozen V2 shadow parity across the complete dynamically discovered canonical RAW universe",
+    )
+    machine = sub.add_parser(
+        "governed-delta",
+        help="Run the permanent governed delta-state machine; Gate F uses the same engine under SHADOW commit policy",
+    )
+    machine.add_argument(
+        "--mode",
+        type=str.upper,
+        choices=[MACHINE_MODE_SHADOW, MACHINE_MODE_CANONICAL],
+        default=MACHINE_MODE_SHADOW,
     )
     q = sub.add_parser("parity", help="Compare baseline runtime with candidate staging runtime")
     q.add_argument("baseline")
@@ -81,6 +92,11 @@ def main(argv=None):
         report = run_full_shadow_parity()
         print(json.dumps(report, indent=2))
         return 0 if report["pass"] else 5
+
+    if args.cmd == "governed-delta":
+        report = run_governed_delta_machine(mode=args.mode)
+        print(json.dumps(report, indent=2))
+        return 0 if report.get("pass") else 6
 
     report = compare_runtime_roots(args.baseline, args.candidate)
     print(json.dumps(report, indent=2))
