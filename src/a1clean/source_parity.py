@@ -422,7 +422,7 @@ def run_source_scoped_parity(source_name: str) -> dict:
         market_items = _list_children(reader_api, baseline_folders["03_MARKET_DAY_INDEX"]["id"])
 
         stem = Path(source_name).stem
-        source_manifest_name = f"{source_name}__DATA_PLANE_MANIFEST.json"
+        source_manifest_name = f"{stem}__DATA_PLANE_MANIFEST.json"
         semantic_manifest_name = f"{stem}__SEMANTIC_BUNDLES_MANIFEST.json"
         market_index_name = f"{stem}__MARKET_DAY_INDEX.json"
         candidate_manifest_dir = run_root / "00_MANIFESTS"
