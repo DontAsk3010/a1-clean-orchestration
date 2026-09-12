@@ -1,0 +1,85 @@
+name: Windows Full Dynamic Corpus Shadow Parity
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-full-dynamic-corpus-shadow-parity
+  cancel-in-progress: false
+
+jobs:
+  full-shadow-parity:
+    name: Frozen V2 full dynamic corpus shadow parity
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 360
+    env:
+      A1_RAW_DIR: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
+    steps:
+      - name: Require migration parity branch
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ('${{ github.ref_name }}' -ne 'migration/parity-v2') {
+            throw 'This workflow must be dispatched on migration/parity-v2.'
+          }
+
+      - name: Checkout migration code
+        uses: actions/checkout@v4
+
+      - name: Verify separate external Drive credential bindings exist
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bindings = @(
+            @{ Name = 'A1_DRIVE_READER_CREDENTIALS'; Path = $env:A1_DRIVE_READER_CREDENTIALS },
+            @{ Name = 'A1_DRIVE_WRITER_CREDENTIALS'; Path = $env:A1_DRIVE_WRITER_CREDENTIALS }
+          )
+          foreach ($binding in $bindings) {
+            if ([string]::IsNullOrWhiteSpace($binding.Path)) {
+              throw "$($binding.Name) is not configured for the runner process."
+            }
+            if (-not (Test-Path -LiteralPath $binding.Path -PathType Leaf)) {
+              throw "$($binding.Name) points to a credential file that does not exist. Credential content/path is intentionally not printed."
+            }
+          }
+          Write-Host 'Drive reader credential binding: PRESENT'
+          Write-Host 'Drive writer credential binding: PRESENT'
+
+      - name: Install migration package
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e .
+
+      - name: Re-verify governed Drive access separation
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m a1clean.cli drive-preflight
+
+      - name: Reconcile complete dynamic canonical source universe
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m a1clean.cli source-preflight
+
+      - name: Run restart-safe full dynamic corpus shadow parity
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m a1clean.cli full-shadow-parity
+
+      - name: Safety declaration
+        if: always()
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          Write-Host 'FULL DYNAMIC CORPUS SHADOW PARITY GATE.'
+          Write-Host 'Canonical source membership is discovered dynamically from Drive at run time; there is no fixed source-count invariant.'
+          Write-Host 'Each canonical source is reproduced through the frozen V2 engine one source at a time using bounded ephemeral Windows scratch.'
+          Write-Host 'Source-boundary checkpoints and reconciliation evidence are persisted only under PARITY_STAGING for restart-safe resume.'
+          Write-Host 'Canonical RAW and governed CURRENT are never written by this workflow.'
+          Write-Host 'No sampling, filtering, behavior-label creation, formula, signal, threshold, selector, optimization, or Telegram analytical logic is introduced.'
+          Write-Host 'A full-shadow PASS does not itself authorize canonical automated delta; delta-state parity remains a separate later gate.'
