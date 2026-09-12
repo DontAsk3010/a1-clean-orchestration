@@ -30,8 +30,36 @@ def _finite_or_state(value: Any) -> dict[str, Any]:
     return {"value": number, "numeric_state": "FINITE"}
 
 
+def _not_applicable(*, run_id: str, tool: str, purpose: str, input_length: int, required_minimum_rows: int, **extra: Any) -> dict[str, Any]:
+    return {
+        "run_id": run_id,
+        "tool": tool,
+        "purpose": purpose,
+        **extra,
+        "input_length": input_length,
+        "status": "NOT_APPLICABLE_INSUFFICIENT_ROWS",
+        "required_minimum_rows": required_minimum_rows,
+        "actual_rows": input_length,
+        "interpretation": "UNASSIGNED_ALGORITHMIC_EVIDENCE_ONLY",
+    }
+
+
 def _run_ruptures(packet: ParsedTickerDayPacket, spec) -> dict[str, Any]:
     values = packet.numeric_series(spec.field)
+    minimum_rows = 2
+    if len(values) < minimum_rows:
+        return _not_applicable(
+            run_id=spec.run_id,
+            tool="RUPTURES",
+            purpose="CHANGE_POINT_REGIME_SEGMENTATION_EVIDENCE",
+            field=spec.field,
+            algorithm=spec.algorithm,
+            model=spec.model,
+            algorithm_kwargs=dict(spec.algorithm_kwargs),
+            predict_kwargs=dict(spec.predict_kwargs),
+            input_length=len(values),
+            required_minimum_rows=minimum_rows,
+        )
     breakpoints = [int(x) for x in segment(
         values,
         algorithm=spec.algorithm,
@@ -78,15 +106,23 @@ def _run_ruptures(packet: ParsedTickerDayPacket, spec) -> dict[str, Any]:
         "input_length": len(values),
         "breakpoints_end_exclusive": breakpoints,
         "segments": segments,
+        "status": "EXECUTED",
         "interpretation": "UNASSIGNED_ALGORITHMIC_EVIDENCE_ONLY",
     }
 
 
 def _run_stumpy(packet: ParsedTickerDayPacket, spec) -> dict[str, Any]:
     values = packet.numeric_series(spec.field)
-    if spec.window > len(values):
-        raise PatternDiscoveryContractError(
-            f"STUMPY_WINDOW_EXCEEDS_PACKET:{spec.run_id}:WINDOW={spec.window}:ROWS={len(values)}"
+    minimum_rows = spec.window * 2
+    if len(values) < minimum_rows:
+        return _not_applicable(
+            run_id=spec.run_id,
+            tool="STUMPY_MATRIX_PROFILE",
+            purpose="MOTIF_DISCORD_SUBSEQUENCE_EVIDENCE",
+            field=spec.field,
+            window=spec.window,
+            input_length=len(values),
+            required_minimum_rows=minimum_rows,
         )
     profile = matrix_profile(values, window=spec.window)
     expected_rows = len(values) - spec.window + 1
@@ -125,6 +161,7 @@ def _run_stumpy(packet: ParsedTickerDayPacket, spec) -> dict[str, Any]:
         "input_length": len(values),
         "profile_row_count": len(rows),
         "profile_rows": rows,
+        "status": "EXECUTED",
         "interpretation": "UNASSIGNED_ALGORITHMIC_EVIDENCE_ONLY",
     }
 
@@ -144,6 +181,7 @@ def _run_dtw(packet: ParsedTickerDayPacket, spec) -> dict[str, Any]:
         "right_length": len(right),
         "distance": result,
         "packet_range": packet.range_ref(0, packet.row_count - 1),
+        "status": "EXECUTED",
         "interpretation": "UNASSIGNED_ALGORITHMIC_EVIDENCE_ONLY",
     }
 
@@ -157,6 +195,11 @@ def run_discovery_plan(packet: ParsedTickerDayPacket, plan: DiscoveryPlan) -> di
     for spec in plan.dtw:
         runs.append(_run_dtw(packet, spec))
 
+    status_counts: dict[str, int] = {}
+    for run in runs:
+        status = str(run.get("status") or "UNKNOWN")
+        status_counts[status] = status_counts.get(status, 0) + 1
+
     return {
         "schema": "A1_ALGORITHMIC_PATTERN_DISCOVERY_PACKET_RESULT_V1",
         "lane_id": LANE_ID,
@@ -166,6 +209,7 @@ def run_discovery_plan(packet: ParsedTickerDayPacket, plan: DiscoveryPlan) -> di
         "plan_fingerprint": plan.sha256,
         "independence_assertions": dict(INDEPENDENCE_ASSERTIONS),
         "run_count": len(runs),
+        "run_status_counts": status_counts,
         "runs": runs,
         "reconciliation_status": "ALGORITHMIC_ONLY_NOT_YET_RECONCILED_WITH_AI",
     }
