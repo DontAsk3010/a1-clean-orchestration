@@ -8,6 +8,10 @@ def _md5(data: bytes) -> str:
     return hashlib.md5(data, usedforsecurity=False).hexdigest()
 
 
+def _sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
 def test_source_preflight_uses_drive_as_authority(tmp_path: Path):
     required = b"canonical-source"
     extra = b"local-extra"
@@ -20,6 +24,8 @@ def test_source_preflight_uses_drive_as_authority(tmp_path: Path):
             "name": "Raw Required.csv",
             "size": str(len(required)),
             "md5Checksum": _md5(required),
+            "modifiedTime": "2026-01-01T00:00:00.000Z",
+            "mimeType": "text/csv",
         }
     ]
 
@@ -28,6 +34,8 @@ def test_source_preflight_uses_drive_as_authority(tmp_path: Path):
     assert report["canonical_source_count"] == 1
     assert report["extra_local_files"] == ["Raw Extra.csv"]
     assert report["required_sources"][0]["status"] == "PASS_EXACT_MD5"
+    assert report["required_sources"][0]["local_sha256"] == _sha256(required)
+    assert report["required_sources"][0]["drive_modified_time"] == "2026-01-01T00:00:00.000Z"
 
 
 def test_source_preflight_holds_on_checksum_mismatch(tmp_path: Path):
