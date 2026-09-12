@@ -1,80 +1,84 @@
 # a1-clean-orchestration
 
-Governed migration of the proven A1 CLEAN/QHPX Colab data-plane to reusable Python + GitHub orchestration + a Windows self-hosted compute runner.
+Governed A1 CLEAN/QHPX automation and orchestration. The repository now contains the permanent delta-state machine derived from the proven frozen V2 data-plane. Gate F validates that same machine under a SHADOW commit policy; there is no separate throwaway test engine.
 
-Current branch goal: **parity first**. Nothing in this repository authorizes formula, score, threshold, selector, Telegram analytical logic, or behavior-methodology changes.
+Nothing in this repository authorizes formula, score, threshold, selector, optimization, Telegram analytical logic, or behavior-methodology changes.
 
-## Components
+## Permanent operating architecture
 
-- `src/a1clean/frozen_v2.py` — mechanical V2 parity anchor from the governed notebook.
-- `a1clean delta` — executes the frozen engine against the configured runtime root.
-- `a1clean parity BASELINE CANDIDATE` — compares governed baseline vs staging artifacts.
-- `a1clean drive-preflight` — validates governed Drive folder identity/access separation; proves the readonly reader cannot write and proves the writer can create/delete one tiny object in parity staging.
-- `a1clean source-preflight` — dynamically discovers the canonical Drive RAW universe and reconciles it against the local read-only RAW copy by exact name/size/checksum.
-- `a1clean source-parity --source-name ...` — one-source frozen-V2 Windows parity technical gate against the governed Drive baseline. It is not full-corpus parity evidence.
-- `checkpoint.py` — operational restart state.
-- `pattern_discovery/` — isolated Ruptures/STUMPY/DTW-tslearn wrappers with no project analytical defaults.
-- `.github/workflows/ci.yml` — lightweight GitHub-hosted tests only.
-- `.github/workflows/windows-runner-smoke.yml` — compute-endpoint smoke test only.
-- `.github/workflows/windows-drive-guardrail-preflight.yml` — manual-only Drive guardrail/source-identity preflight; it never runs automatically on PR/push.
-- `.github/workflows/windows-source-parity.yml` — manual-only one-source parity technical gate. It re-runs Drive/source preflights before frozen-V2 execution.
+- Google Drive canonical RAW controls source membership dynamically at every governed run.
+- Google Drive governed CURRENT is the persistent data-plane state/runtime authority.
+- Google Drive PARITY_STAGING stores Gate F checkpoints, processed delta artifacts, control bundles, results, and deployment plans while canonical commit remains locked.
+- GitHub is source control, audit trail, and orchestration/control plane.
+- Windows self-hosted runner is compute-only; local storage is bounded ephemeral scratch and is not canonical storage.
+- Frozen V2 remains the source processor. The automation layer classifies persistent source transitions and routes only required source deltas into that frozen processor.
 
-## Execution policy
+The source universe is never hard-coded to 17, 18, or any other count. Counts in logs/reports are observations only.
 
-The owner's Windows x64 laptop may be used as a **compute-only self-hosted runner** for parity and later governed corpus processing.
+## Permanent governed delta machine
 
-Google Drive remains the persistent evidence plane:
+Command:
 
-- canonical RAW: read-only;
-- governed baseline runtime: read-only;
-- parity staging/evidence: separate Google Drive folder;
-- manifests/checkpoints/reconciliation evidence: Google Drive.
+`a1clean governed-delta --mode SHADOW`
 
-The laptop must not become persistent project storage. No permanent full RAW mirror, permanent baseline mirror, or retained parity corpus is allowed locally. Executor-local files are limited to bounded ephemeral scratch required by Python/SQLite/source-scoped processing and must be disposable after governed Drive reconciliation/evidence commit.
+Core modules:
 
-## Dynamic source universe
+- `src/a1clean/delta_state.py` — deterministic persistent-state classifier for `VERIFIED_UNCHANGED`, `NEW`, `CHANGED`, `REPLACEMENT_SAME_CONTENT`, `REMOVED`, and fail-closed `HOLD` conditions.
+- `src/a1clean/delta_artifacts.py` — source-scoped frozen-V2 execution plus governed staging persistence.
+- `src/a1clean/delta_control.py` — rebuilds the governed control-state bundle from reused unchanged state plus exact processed-source manifests.
+- `src/a1clean/delta_machine.py` — restart-safe permanent orchestration machine, checkpoints, run identity, shadow commit result, and future canonical deployment plan.
+- `src/a1clean/source_preflight.py` — dynamic canonical source discovery and exact local identity verification. MD5 and SHA256 are computed in one sequential source read so classification does not require a second full-file hash pass.
 
-The governed RAW universe is discovered dynamically from the canonical Google Drive RAW folder at run time. It must never be hard-coded to a fixed source count. Any source count displayed in logs or reports is observational only.
+Production behavior:
 
-Canonical Drive controls membership. Local RAW files are read-only compute-side copies/cache. Missing local counterparts, duplicate canonical filenames, size mismatches, or checksum mismatches must HOLD rather than silently continue.
+- `VERIFIED_UNCHANGED` → reuse governed artifacts; do not re-run source bytes through frozen V2.
+- `NEW` → process full source losslessly through frozen V2.
+- `CHANGED` → invalidate/purge prior source-scoped derivative plan and rebuild the source through frozen V2.
+- `REPLACEMENT_SAME_CONTENT` → preserve explicit replacement provenance and generate the current source-scoped governed artifacts.
+- `REMOVED` → retain canonical RAW authority semantics while the deployment plan removes stale derivatives from active runtime evidence.
+- ambiguity, duplicate current content/name, source identity failure, generation/version mismatch, or incomplete dependency → HOLD.
 
-A source-scoped parity run deliberately selects one already-verified canonical source only as a **technical migration gate**. That selection is not sampling evidence, does not redefine the canonical universe, and cannot establish full-corpus parity.
+Source-boundary checkpoints are persisted in Drive. A matching rerun resumes from committed source boundaries rather than restarting completed delta work.
+
+## Gate E status
+
+Full dynamic corpus frozen-V2 shadow parity is PASS. The complete canonical universe discovered at that run was reproduced source-by-source with exact governed reconciliation, zero HOLD, and no sampling/filtering/behavior-label creation. The observed count from that run is historical evidence only and not an invariant.
+
+## Gate F status
+
+Gate F is the production-machine activation gate, not a test-engine project.
+
+Workflow:
+
+`Windows Governed Delta Machine`
+
+It is manual-only while Gate F is open, branch-guarded to `migration/parity-v2`, and runs the permanent machine in `SHADOW` mode. The workflow may write only to PARITY_STAGING. Canonical RAW and governed CURRENT remain read-only.
+
+If the canonical source state has not changed since the governed baseline, the machine classifies all sources `VERIFIED_UNCHANGED`, processes zero source bodies through frozen V2, and only builds the next control-state/deployment evidence. If a source is new or changed, only that required delta enters heavy source processing.
+
+The machine also emits a canonical deployment plan describing stale-source purge, processed-source upsert, runtime reconciliation, and control-state replacement order. Gate F records this plan but does not execute it. Canonical commit remains governance-locked until Gate F PASS and explicit owner authorization; activation is a deployment-policy change around the same machine, not an analytical rewrite.
 
 ## Governed Drive identities
 
-Current frozen migration bindings:
+- canonical RAW: `02_CURRENT_HISTORICAL_RAW_DATA_UJI` / `1gTyt7CzqlubcdZGjWV_lM9Iw8Zg4ib3e`
+- governed CURRENT: `UNIVERSAL_BEHAVIOR_DATA_PLANE_CURRENT` / `1SRN-WWkHJefLGLSN6_SktpVU0Ugjwqc-`
+- PARITY_STAGING: `UNIVERSAL_BEHAVIOR_DATA_PLANE_PARITY_STAGING` / `1WTb_lGBD6Tuwfcb-1WhsICjyJqzzBtwU`
 
-- canonical RAW folder: `02_CURRENT_HISTORICAL_RAW_DATA_UJI` / `1gTyt7CzqlubcdZGjWV_lM9Iw8Zg4ib3e`;
-- governed baseline runtime: `UNIVERSAL_BEHAVIOR_DATA_PLANE_CURRENT` / `1SRN-WWkHJefLGLSN6_SktpVU0Ugjwqc-`;
-- parity staging: `UNIVERSAL_BEHAVIOR_DATA_PLANE_PARITY_STAGING` / `1WTb_lGBD6Tuwfcb-1WhsICjyJqzzBtwU`.
+Credentials remain external to the repository and split by role:
 
-Drive credentials are external to the repository and split by role:
+- `A1_DRIVE_READER_CREDENTIALS` — Drive readonly channel for canonical RAW and governed CURRENT.
+- `A1_DRIVE_WRITER_CREDENTIALS` — write-capable channel restricted by the migration path to PARITY_STAGING while Gate F is open.
 
-- `A1_DRIVE_READER_CREDENTIALS` — reader credential used for canonical RAW and governed CURRENT through Drive readonly OAuth scope.
-- `A1_DRIVE_WRITER_CREDENTIALS` — writer credential used only for PARITY_STAGING through write-capable Drive scope.
+Never commit or paste credential contents, tokens, passwords, or API keys.
 
-Each credential file may be an `authorized_user` OAuth credential JSON or a service-account credential JSON. `A1_GOOGLE_APPLICATION_CREDENTIALS` remains a compatibility fallback only. Secrets must never be committed to GitHub or pasted into project documentation/chat.
+## Safety and governance
 
-Google Drive `capabilities` describe resource/ACL capability and can therefore show owner/editor rights even when the active OAuth token is readonly. The governed live guardrail does not treat those ACL flags as proof that the reader token can write. Effective separation is proven by a safe attempted create in `PARITY_STAGING`: the reader must be denied, while the writer must successfully create and immediately delete its tiny probe. No write probe is ever directed at canonical RAW or governed CURRENT.
-
-Because PARITY_STAGING is currently in My Drive, service-account-only staging writes are not assumed. The writer channel remains credential-agnostic and must pass the live guardrail before any parity evidence write is allowed.
-
-## Current governed baseline candidate
-
-The latest completed Colab refresh has been verified from Drive. `Raw Maret 03-31-2025.csv` was accepted as `NEW_PROCESSED`; all currently discovered canonical sources are `ACCESS_READY_FOR_AI`; latest holds are empty; changed/removed are zero; unresolved routing remains zero; and the delta semantic gate is `READY_FOR_AI_DELTA`.
-
-This is a data-plane baseline candidate for parity only. It is **not** a behavior-semantic research PASS: the notebook still reports semantic reader `NOT_RUN_BY_THIS_NOTEBOOK` and behavior-event-journey `NOT_EVALUATED_BY_THIS_NOTEBOOK`.
-
-## Current gate
-
-Windows runner connectivity is proven. The compute-only smoke workflow passes Windows/X64, Python 3.11+, and local RAW readability.
-
-The live Drive guardrail has PASS evidence: the readonly reader was denied a safe staging create with HTTP 403; the writer successfully created and deleted its tiny staging probe. The subsequent dynamic full source-identity reconciliation also PASSed: every source then discovered in canonical Drive matched the local read-only compute copy by exact name, size, and MD5, with no extra local files or duplicate canonical names. The observed source count from that run is evidence only and is never a fixed universe limit.
-
-The next migration gate is **source-scoped frozen-V2 parity**. `.github/workflows/windows-source-parity.yml` is manual-only and re-runs the live Drive guardrail plus the complete dynamic source-preflight before executing one selected canonical source. Candidate physical shards and semantic bundles are compared byte-for-byte by MD5 against the governed CURRENT baseline; stable source/global manifest fields, semantic bundle manifest, and market-day index are also reconciled. Only reconciliation evidence/manifests are persisted to PARITY_STAGING for this one-source technical gate, and local candidate/scratch is removed afterward.
-
-A source-scoped PASS does not equal full-corpus parity. Full dynamically discovered corpus shadow parity and delta-state parity remain required before PR #1 may be considered for merge or canonical automated delta may be enabled.
-
-## Safety
-
-Parity evidence/output must never target `UNIVERSAL_BEHAVIOR_DATA_PLANE_CURRENT`. Canonical RAW remains read-only. No formula, threshold, selector, signal, or behavior-reading methodology changes are authorized by execution migration. PR #1 must remain unmerged until the required parity gates PASS.
+- no fixed source-count invariant;
+- no canonical RAW deletion;
+- no canonical CURRENT write while Gate F is open;
+- no silent zero substitution or source promotion;
+- no sampling/filtering to claim equivalence;
+- no behavior labels created by the data-plane automation;
+- no analytical formula/signal logic in GitHub orchestration;
+- PR #1 remains draft/unmerged until the required production-machine gate passes;
+- semantic behavior reading remains a separate governed workstream and is not modified by this automation branch.
