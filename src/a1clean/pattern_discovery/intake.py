@@ -24,16 +24,24 @@ from .source_reader import GovernedSourceReader
 
 INTAKE_SCHEMA = "A1_LANE2_GOVERNED_AUTOMATIC_INTAKE_V1"
 INTAKE_STATE_NAME = "A1_LANE2_AUTOMATIC_INTAKE_STATE.json"
+
+# Kept only so an already-persisted L2I state can be migrated in place without deleting audit history.
 INTAKE_STATUS_BASELINE = "BASELINE_INITIALIZED_NO_RETROACTIVE_BACKLOG"
-INTAKE_STATUS_IDLE = "IDLE_NO_NEW_OR_CHANGED_GOVERNED_SOURCE"
-INTAKE_STATUS_WORK_PENDING = "WORK_PENDING"
-INTAKE_STATUS_RUNNING = "RUNNING"
-INTAKE_STATUS_COMPLETE = "AUTO_ELIGIBLE_WORK_COMPLETE"
+BASELINE_SOURCE = "BASELINE_PRESENT_NOT_AUTO_QUEUED"
+LEGACY_BASELINE_POLICY = "CURRENT_READY_UNIVERSE_AT_FIRST_ACTIVATION_IS_BASELINE_NOT_RETROACTIVELY_AUTO_QUEUED"
+
+INTAKE_STATUS_IDLE = "IDLE_ALL_CURRENT_GOVERNED_READY_SOURCES_COMPLETE"
+INTAKE_STATUS_WORK_PENDING = "WORK_PENDING_EXISTING_OR_NEW_GOVERNED_SOURCE"
+INTAKE_STATUS_RUNNING = "RUNNING_GOVERNED_SOURCE_BACKLOG"
+INTAKE_STATUS_COMPLETE = "CURRENT_GOVERNED_READY_UNIVERSE_CORPUS_COMPLETE"
 INTAKE_STATUS_HOLD = "HOLD"
 
-BASELINE_SOURCE = "BASELINE_PRESENT_NOT_AUTO_QUEUED"
+FULL_BACKLOG_POLICY = "ALL_CURRENT_AND_FUTURE_GOVERNED_READY_SOURCES_MUST_REACH_CORPUS_COMPLETE"
+SOURCE_ORDER_POLICY = "FIRST_GOVERNED_TRADING_DATE_THEN_LAST_GOVERNED_TRADING_DATE_NOT_FILENAME"
+
 PREEXISTING_COMPLETE = "CORPUS_COMPLETE_PREEXISTING"
 SOURCE_COMPLETE = "CORPUS_COMPLETE"
+SOURCE_QUEUED_EXISTING = "QUEUED_EXISTING_GOVERNED_SOURCE"
 SOURCE_QUEUED_NEW = "QUEUED_NEW_GOVERNED_SOURCE"
 SOURCE_QUEUED_CHANGED = "QUEUED_CHANGED_GOVERNED_IDENTITY"
 SOURCE_QUEUED_RESUME = "QUEUED_RESUME_INCOMPLETE"
@@ -91,11 +99,7 @@ def _same_content_generation(left: Mapping[str, Any], right: Mapping[str, Any]) 
 
 
 def discover_governed_ready_sources(reader_api) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Discover the dynamic governed-ready source universe from canonical CURRENT.
-
-    This is an intake/control-plane read only. It never mutates RAW/CURRENT and it does
-    not infer source membership from filenames or a fixed source count.
-    """
+    """Dynamically discover every governed source exposed by canonical CURRENT."""
     call_with_retry(
         lambda: _assert_folder(reader_api, FROZEN_CURRENT_FOLDER_DRIVE_ID, CANONICAL_CURRENT_FOLDER_NAME),
         operation="lane2.intake.assert_current_folder",
@@ -168,7 +172,7 @@ def discover_governed_ready_sources(reader_api) -> tuple[list[dict[str, Any]], l
     by_hash: dict[str, list[str]] = {}
     for row in ready:
         by_hash.setdefault(row["source_sha256"], []).append(row["source_name"])
-    duplicate_content = {sha: sorted(names) for sha, names in by_hash.items() if len(names) > 1}
+    duplicate_content = {sha: sorted(group) for sha, group in by_hash.items() if len(group) > 1}
     if duplicate_content:
         first_sha = sorted(duplicate_content)[0]
         raise PatternDiscoveryContractError(
@@ -223,16 +227,26 @@ def initialize_baseline_state(
     software_revision: str,
     completion_states: Mapping[str, Mapping[str, Any]],
 ) -> dict[str, Any]:
+    """Initialize the durable universe state.
+
+    The historical function name is retained for compatibility, but the old L2I
+    no-retroactive-baseline behavior is superseded. Every governed-ready source that
+    is not already verified CORPUS_COMPLETE is queued as existing backlog.
+    """
     now = _utc_now()
     sources: dict[str, Any] = {}
+    pending: list[str] = []
     for identity in ready_sources:
-        preexisting = completion_states.get(identity["source_name"])
+        source_name = identity["source_name"]
+        preexisting = completion_states.get(source_name)
         complete = bool(preexisting and _completion_matches_trigger(preexisting, identity))
-        sources[identity["source_name"]] = {
+        if not complete:
+            pending.append(source_name)
+        sources[source_name] = {
             "baseline_identity": dict(identity),
             "current_identity": dict(identity),
-            "status": PREEXISTING_COMPLETE if complete else BASELINE_SOURCE,
-            "auto_eligible": False,
+            "status": PREEXISTING_COMPLETE if complete else SOURCE_QUEUED_EXISTING,
+            "auto_eligible": not complete,
             "first_seen_utc": now,
             "last_seen_utc": now,
             "completed_source_identity": dict(preexisting.get("source_identity") or {}) if complete else None,
@@ -247,18 +261,21 @@ def initialize_baseline_state(
     return {
         "schema": INTAKE_SCHEMA,
         "lane_id": LANE_ID,
-        "status": INTAKE_STATUS_BASELINE,
+        "status": INTAKE_STATUS_WORK_PENDING if pending else INTAKE_STATUS_COMPLETE,
         "created_at_utc": now,
         "updated_at_utc": now,
         "software_revision": software_revision,
         "plan_id": plan.plan_id,
         "plan_fingerprint": plan.sha256,
         "packets_per_shard": packets_per_shard,
-        "baseline_policy": "CURRENT_READY_UNIVERSE_AT_FIRST_ACTIVATION_IS_BASELINE_NOT_RETROACTIVELY_AUTO_QUEUED",
+        "baseline_policy": FULL_BACKLOG_POLICY,
+        "supersedes_baseline_policy": LEGACY_BASELINE_POLICY,
+        "source_order_policy": SOURCE_ORDER_POLICY,
         "baseline_source_universe_fingerprint": fingerprint(ready_sources),
         "sources": sources,
         "not_ready_sources": not_ready_sources,
-        "pending_sources": [],
+        "pending_sources": sorted(pending),
+        "active_source": None,
         "hold": None,
     }
 
@@ -266,11 +283,18 @@ def initialize_baseline_state(
 def classify_current_universe(
     *, state: dict[str, Any], ready_sources: list[dict[str, Any]], not_ready_sources: list[dict[str, Any]]
 ) -> list[str]:
+    """Classify all current sources without silently exempting pre-activation backlog."""
     now = _utc_now()
     records = state.setdefault("sources", {})
     if not isinstance(records, dict):
         raise PatternDiscoveryContractError("AUTOMATIC_INTAKE_STATE_SOURCES_NOT_OBJECT")
     current = {row["source_name"]: row for row in ready_sources}
+
+    # Explicitly migrate the superseded L2I state in place; do not delete/recreate history.
+    if state.get("baseline_policy") == LEGACY_BASELINE_POLICY:
+        state["supersedes_baseline_policy"] = LEGACY_BASELINE_POLICY
+    state["baseline_policy"] = FULL_BACKLOG_POLICY
+    state["source_order_policy"] = SOURCE_ORDER_POLICY
 
     for source_name, record in records.items():
         if source_name not in current and isinstance(record, dict):
@@ -326,7 +350,18 @@ def classify_current_universe(
         prior_status = str(record.get("status") or "")
         record["last_seen_utc"] = now
         if _same_trigger_identity(prior_identity, identity):
-            if prior_status in {SOURCE_QUEUED_NEW, SOURCE_QUEUED_CHANGED, SOURCE_QUEUED_RESUME, SOURCE_RUNNING}:
+            if prior_status == BASELINE_SOURCE:
+                record["status"] = SOURCE_QUEUED_EXISTING
+                record["auto_eligible"] = True
+                record["policy_migrated_at_utc"] = now
+                pending.append(source_name)
+            elif prior_status in {
+                SOURCE_QUEUED_EXISTING,
+                SOURCE_QUEUED_NEW,
+                SOURCE_QUEUED_CHANGED,
+                SOURCE_QUEUED_RESUME,
+                SOURCE_RUNNING,
+            }:
                 record["status"] = SOURCE_QUEUED_RESUME
                 record["auto_eligible"] = True
                 pending.append(source_name)
@@ -335,8 +370,17 @@ def classify_current_universe(
                 record["auto_eligible"] = True
                 record["reappeared_at_utc"] = now
                 pending.append(source_name)
-            else:
+            elif prior_status in {SOURCE_COMPLETE, PREEXISTING_COMPLETE, SOURCE_REPLACEMENT_SAME_CONTENT, SOURCE_HOLD}:
                 record["auto_eligible"] = False
+            else:
+                # Unknown unfinished legacy state must not silently disappear from research scope.
+                completed = record.get("completed_source_identity")
+                if completed:
+                    record["auto_eligible"] = False
+                else:
+                    record["status"] = SOURCE_QUEUED_EXISTING
+                    record["auto_eligible"] = True
+                    pending.append(source_name)
             continue
 
         if isinstance(prior_identity, dict) and _same_content_generation(prior_identity, identity):
@@ -358,7 +402,7 @@ def classify_current_universe(
     state["not_ready_sources"] = not_ready_sources
     state["pending_sources"] = sorted(set(pending))
     state["updated_at_utc"] = now
-    state["status"] = INTAKE_STATUS_WORK_PENDING if pending else INTAKE_STATUS_IDLE
+    state["status"] = INTAKE_STATUS_WORK_PENDING if pending else INTAKE_STATUS_COMPLETE
     state["hold"] = None
     return state["pending_sources"]
 
@@ -372,6 +416,65 @@ def _validate_state_contract(state: Mapping[str, Any], plan: DiscoveryPlan, pack
         raise PatternDiscoveryContractError("AUTOMATIC_INTAKE_STATE_SHARD_POLICY_MISMATCH")
 
 
+def _validate_reader_identity(reader: GovernedSourceReader, trigger_identity: Mapping[str, Any]) -> dict[str, Any]:
+    identity = reader.identity.as_dict()
+    source_name = str(identity.get("source_name") or "")
+    for key in ("source_name", "source_drive_id", "source_sha256", "generation_id", "data_plane_manifest_file_id"):
+        if str(identity.get(key) or "") != str(trigger_identity.get(key) or ""):
+            raise PatternDiscoveryContractError(
+                f"AUTOMATIC_INTAKE_SOURCE_IDENTITY_CHANGED_DURING_ADMISSION:{source_name}:{key}"
+            )
+    return identity
+
+
+def order_source_queue(
+    pending_sources: list[str], coverage_by_source: Mapping[str, Mapping[str, Any]]
+) -> list[str]:
+    """Order source envelopes by governed semantic-manifest chronology, never filename chronology."""
+    missing = [name for name in pending_sources if name not in coverage_by_source]
+    if missing:
+        raise PatternDiscoveryContractError(
+            f"AUTOMATIC_INTAKE_SOURCE_COVERAGE_MISSING:{','.join(sorted(missing))}"
+        )
+    return sorted(
+        set(pending_sources),
+        key=lambda name: (
+            str(coverage_by_source[name]["first_trading_date"]),
+            str(coverage_by_source[name]["last_trading_date"]),
+            str(name),
+            str(coverage_by_source[name].get("source_drive_id") or ""),
+        ),
+    )
+
+
+def _ordered_pending_sources(
+    *,
+    pending_sources: list[str],
+    current: Mapping[str, Mapping[str, Any]],
+    state: dict[str, Any],
+) -> list[str]:
+    coverage_by_source: dict[str, dict[str, Any]] = {}
+    for source_name in pending_sources:
+        trigger = current[source_name]
+        reader = GovernedSourceReader(build_drive_api(read_write=False), source_name=source_name)
+        identity = _validate_reader_identity(reader, trigger)
+        scopes = build_trading_date_scopes(reader.semantic_manifest_rows)
+        coverage = {
+            "source_drive_id": identity["source_drive_id"],
+            "first_trading_date": scopes[0].trading_date,
+            "last_trading_date": scopes[-1].trading_date,
+            "trading_date_count": len(scopes),
+            "ticker_day_count": identity["ticker_day_count"],
+            "source_data_rows": identity["source_data_rows"],
+        }
+        coverage_by_source[source_name] = coverage
+        state["sources"][source_name]["governed_coverage"] = coverage
+    ordered = order_source_queue(pending_sources, coverage_by_source)
+    state["pending_sources"] = ordered
+    state["source_order_policy"] = SOURCE_ORDER_POLICY
+    return ordered
+
+
 def _run_one_source(
     *,
     source_name: str,
@@ -383,12 +486,7 @@ def _run_one_source(
     store: Lane2DriveStore,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     reader = GovernedSourceReader(build_drive_api(read_write=False), source_name=source_name)
-    identity = reader.identity.as_dict()
-    for key in ("source_name", "source_drive_id", "source_sha256", "generation_id", "data_plane_manifest_file_id"):
-        if str(identity.get(key) or "") != str(trigger_identity.get(key) or ""):
-            raise PatternDiscoveryContractError(
-                f"AUTOMATIC_INTAKE_SOURCE_IDENTITY_CHANGED_DURING_ADMISSION:{source_name}:{key}"
-            )
+    identity = _validate_reader_identity(reader, trigger_identity)
     scopes = build_trading_date_scopes(reader.semantic_manifest_rows)
     first_scope = scopes[0]
     first_proof = find_verified_pass_checkpoint(
@@ -442,6 +540,7 @@ def _run_one_source(
     return identity, {
         **result,
         "first_trading_date": first_scope.trading_date,
+        "last_trading_date": scopes[-1].trading_date,
         "first_date_reused_existing_verified_pass": reused_first_pass,
     }
 
@@ -452,8 +551,11 @@ def run_automatic_lane2_intake(
     expected_plan_fingerprint: str,
     packets_per_shard: int,
     software_revision: str,
-    bootstrap_existing_as_baseline: bool,
+    bootstrap_existing_as_baseline: bool = False,
 ) -> dict[str, Any]:
+    # bootstrap_existing_as_baseline is intentionally ignored. It is retained only so an
+    # older workflow invocation cannot resurrect the superseded no-retroactive policy.
+    _ = bootstrap_existing_as_baseline
     if packets_per_shard <= 0:
         raise PatternDiscoveryContractError("AUTOMATIC_INTAKE_PACKETS_PER_SHARD_MUST_BE_POSITIVE")
     if not software_revision or software_revision == "LOCAL_UNVERSIONED":
@@ -470,10 +572,6 @@ def run_automatic_lane2_intake(
     state = store.read_json_optional(store.control_folder_id, INTAKE_STATE_NAME)
 
     if state is None:
-        if not bootstrap_existing_as_baseline:
-            raise PatternDiscoveryContractError(
-                "AUTOMATIC_INTAKE_BASELINE_REQUIRED_BEFORE_UNATTENDED_PROCESSING"
-            )
         state = initialize_baseline_state(
             ready_sources=ready_sources,
             not_ready_sources=not_ready_sources,
@@ -482,25 +580,23 @@ def run_automatic_lane2_intake(
             software_revision=software_revision,
             completion_states=_preexisting_complete_states(store, plan),
         )
-        upload = store.upsert_json(folder_id=store.control_folder_id, name=INTAKE_STATE_NAME, obj=state)
-        return {
-            "schema": INTAKE_SCHEMA,
-            "lane_id": LANE_ID,
-            "pass": True,
-            "status": INTAKE_STATUS_BASELINE,
-            "run_required": False,
-            "baseline_ready_source_count": len(ready_sources),
-            "not_ready_source_count": len(not_ready_sources),
-            "state_file": upload,
-        }
+        store.upsert_json(folder_id=store.control_folder_id, name=INTAKE_STATE_NAME, obj=state)
+    else:
+        _validate_state_contract(state, plan, packets_per_shard)
 
-    _validate_state_contract(state, plan, packets_per_shard)
     pending = classify_current_universe(
         state=state,
         ready_sources=ready_sources,
         not_ready_sources=not_ready_sources,
     )
     state["software_revision"] = software_revision
+    current = {row["source_name"]: row for row in ready_sources}
+    if pending:
+        pending = _ordered_pending_sources(
+            pending_sources=pending,
+            current=current,
+            state=state,
+        )
     store.upsert_json(folder_id=store.control_folder_id, name=INTAKE_STATE_NAME, obj=state)
 
     if not pending:
@@ -513,10 +609,11 @@ def run_automatic_lane2_intake(
             "ready_source_count": len(ready_sources),
             "not_ready_source_count": len(not_ready_sources),
             "pending_sources": [],
+            "policy": FULL_BACKLOG_POLICY,
         }
 
-    current = {row["source_name"]: row for row in ready_sources}
     active_source: str | None = None
+    processed: list[str] = []
     try:
         state["status"] = INTAKE_STATUS_RUNNING
         state["updated_at_utc"] = _utc_now()
@@ -526,7 +623,8 @@ def run_automatic_lane2_intake(
             record = state["sources"][source_name]
             record["status"] = SOURCE_RUNNING
             record["auto_eligible"] = True
-            record["started_at_utc"] = _utc_now()
+            record["started_at_utc"] = record.get("started_at_utc") or _utc_now()
+            record["last_resume_at_utc"] = _utc_now()
             record["hold"] = None
             state["active_source"] = source_name
             state["updated_at_utc"] = _utc_now()
@@ -547,6 +645,7 @@ def run_automatic_lane2_intake(
             record["last_result"] = result
             record["completed_at_utc"] = _utc_now()
             record["hold"] = None
+            processed.append(source_name)
             state["pending_sources"] = [name for name in state.get("pending_sources", []) if name != source_name]
             state["active_source"] = None
             state["updated_at_utc"] = _utc_now()
@@ -579,10 +678,11 @@ def run_automatic_lane2_intake(
         "pass": True,
         "status": INTAKE_STATUS_COMPLETE,
         "run_required": True,
-        "processed_sources": pending,
+        "processed_sources": processed,
         "ready_source_count": len(ready_sources),
         "not_ready_source_count": len(not_ready_sources),
         "state_file": upload,
+        "policy": FULL_BACKLOG_POLICY,
     }
 
 
@@ -592,7 +692,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--plan-fingerprint", required=True)
     parser.add_argument("--packets-per-shard", required=True, type=int)
     parser.add_argument("--software-revision", required=True)
-    parser.add_argument("--bootstrap-existing-as-baseline", action="store_true")
+    parser.add_argument(
+        "--bootstrap-existing-as-baseline",
+        action="store_true",
+        help="Deprecated compatibility flag; existing governed RAW is now mandatory backlog, never exempt baseline.",
+    )
     args = parser.parse_args(argv)
     result = run_automatic_lane2_intake(
         plan_path=args.plan,
