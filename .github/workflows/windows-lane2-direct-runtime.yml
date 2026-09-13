@@ -8,7 +8,7 @@ on:
       - lane2-runtime-requests/current.json
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: a1-windows-lane2-direct-runtime
@@ -172,38 +172,130 @@ jobs:
                   )
           '@ | py -3.11 -
 
-      - name: Run same durable Lane 2 machine / governed PASS-chain controller
+      - name: Run same durable Lane 2 machine with governed self-healing
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          A1_L2_SELF_HEAL_MODEL: gpt-5.6-luna
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          if ($env:A1_L2_EXECUTION_MODE -eq 'AUTO_CONTINUE_AFTER_VERIFIED_PASS') {
-            $cliArgs = @(
-              'pattern-discovery-auto-continue',
-              '--source-name', $env:A1_L2_SOURCE_NAME,
-              '--source-drive-id', $env:A1_L2_EXPECTED_SOURCE_DRIVE_ID,
-              '--source-sha256', $env:A1_L2_EXPECTED_SOURCE_SHA256,
-              '--plan', $env:A1_L2_PLAN_PATH,
-              '--plan-fingerprint', $env:A1_L2_PLAN_FINGERPRINT,
-              '--packets-per-shard', $env:A1_L2_PACKETS_PER_SHARD,
-              '--anchor-passed-date', $env:A1_L2_ANCHOR_PASSED_DATE,
-              '--software-revision', '${{ github.sha }}'
-            )
-          }
-          else {
-            $cliArgs = @(
+          $maxRecoveryCycles = 3
+          $recoveryCycle = 0
+          $softwareRevision = '${{ github.sha }}'
+          $allowedRepairPaths = @(
+            'src/a1clean/google_drive.py',
+            'src/a1clean/pattern_discovery/drive_store.py',
+            'src/a1clean/pattern_discovery/resilience.py',
+            'src/a1clean/pattern_discovery/auto_continue.py'
+          )
+
+          function Get-Lane2CliArgs([string] $revision) {
+            if ($env:A1_L2_EXECUTION_MODE -eq 'AUTO_CONTINUE_AFTER_VERIFIED_PASS') {
+              return @(
+                'pattern-discovery-auto-continue',
+                '--source-name', $env:A1_L2_SOURCE_NAME,
+                '--source-drive-id', $env:A1_L2_EXPECTED_SOURCE_DRIVE_ID,
+                '--source-sha256', $env:A1_L2_EXPECTED_SOURCE_SHA256,
+                '--plan', $env:A1_L2_PLAN_PATH,
+                '--plan-fingerprint', $env:A1_L2_PLAN_FINGERPRINT,
+                '--packets-per-shard', $env:A1_L2_PACKETS_PER_SHARD,
+                '--anchor-passed-date', $env:A1_L2_ANCHOR_PASSED_DATE,
+                '--software-revision', $revision
+              )
+            }
+            $args = @(
               'pattern-discovery-source',
               '--source-name', $env:A1_L2_SOURCE_NAME,
               '--plan', $env:A1_L2_PLAN_PATH,
               '--trading-date', $env:A1_L2_TRADING_DATE,
               '--packets-per-shard', $env:A1_L2_PACKETS_PER_SHARD,
-              '--software-revision', '${{ github.sha }}'
+              '--software-revision', $revision
             )
             if ($env:A1_L2_SCOPE_TYPE -eq 'EXACT_TICKER_DAY') {
-              $cliArgs += @('--ticker', $env:A1_L2_TICKER)
+              $args += @('--ticker', $env:A1_L2_TICKER)
             }
+            return $args
           }
-          & py -3.11 -m a1clean.cli @cliArgs
-          if ($LASTEXITCODE -ne 0) { throw "Lane 2 durable CLI exited with code $LASTEXITCODE" }
+
+          while ($true) {
+            $cliArgs = Get-Lane2CliArgs $softwareRevision
+            $logPath = Join-Path $env:RUNNER_TEMP ("lane2-runtime-cycle-{0}.log" -f $recoveryCycle)
+            Write-Host "LANE2_RUNTIME_CYCLE=$recoveryCycle SOFTWARE_REVISION=$softwareRevision"
+            & py -3.11 -m a1clean.cli @cliArgs *>&1 | Tee-Object -FilePath $logPath
+            $runtimeExit = $LASTEXITCODE
+            if ($runtimeExit -eq 0) {
+              Write-Host "LANE2_SELF_HEAL_RUNTIME_PASS cycle=$recoveryCycle"
+              break
+            }
+
+            if ($recoveryCycle -ge $maxRecoveryCycles) {
+              throw "LANE2_SELF_HEAL_EXHAUSTED after $recoveryCycle recovery cycles; last runtime exit=$runtimeExit"
+            }
+            if ([string]::IsNullOrWhiteSpace($env:OPENAI_API_KEY)) {
+              throw 'OPENAI_API_KEY is missing; governed GPT self-healing cannot diagnose a persistent runtime failure.'
+            }
+
+            $repairResult = Join-Path $env:RUNNER_TEMP ("lane2-self-heal-{0}.json" -f $recoveryCycle)
+            & py -3.11 -m a1clean.pattern_discovery.self_heal `
+              --failure-log $logPath `
+              --repo-root . `
+              --result $repairResult
+            $healExit = $LASTEXITCODE
+            if (Test-Path -LiteralPath $repairResult) {
+              Get-Content -LiteralPath $repairResult -Raw -Encoding UTF8 | Write-Host
+            }
+
+            if ($healExit -eq 20) {
+              throw 'LANE2_SELF_HEAL_HARD_HOLD: repair would cross a governed safety boundary.'
+            }
+            if ($healExit -eq 10) {
+              $recoveryCycle += 1
+              Start-Sleep -Seconds ([Math]::Min(60, 10 * [Math]::Pow(2, $recoveryCycle - 1)))
+              continue
+            }
+            if ($healExit -ne 0) {
+              throw "LANE2_SELF_HEAL_AGENT_FAILED exit=$healExit"
+            }
+
+            $changed = @(git diff --name-only)
+            if (-not $changed) {
+              throw 'LANE2_SELF_HEAL_PATCH_REPORTED_BUT_NO_FILES_CHANGED'
+            }
+            foreach ($path in $changed) {
+              if ($allowedRepairPaths -notcontains $path) {
+                git reset --hard HEAD
+                throw "LANE2_SELF_HEAL_UNAUTHORIZED_PATH:$path"
+              }
+            }
+
+            py -3.11 -m compileall -q src
+            if ($LASTEXITCODE -ne 0) {
+              git reset --hard HEAD
+              throw 'LANE2_SELF_HEAL_COMPILE_FAILED'
+            }
+            py -3.11 -m pytest -q
+            if ($LASTEXITCODE -ne 0) {
+              git reset --hard HEAD
+              throw 'LANE2_SELF_HEAL_TESTS_FAILED'
+            }
+
+            git config user.name 'a1-clean-self-heal'
+            git config user.email 'a1-clean-self-heal@users.noreply.github.com'
+            git add -- $allowedRepairPaths
+            git commit -m ("Self-heal Lane 2 operational failure cycle {0}" -f ($recoveryCycle + 1))
+            if ($LASTEXITCODE -ne 0) {
+              git reset --hard HEAD
+              throw 'LANE2_SELF_HEAL_COMMIT_FAILED'
+            }
+            $repairCommit = (git rev-parse HEAD).Trim()
+            git push origin HEAD:lane2/algorithmic-pattern-discovery-v1
+            if ($LASTEXITCODE -ne 0) {
+              throw 'LANE2_SELF_HEAL_PUSH_FAILED'
+            }
+            Write-Host "LANE2_SELF_HEAL_PATCH_COMMITTED=$repairCommit"
+            Write-Host 'The original analytical run identity is intentionally retained for checkpoint resume; the operational repair commit is separately durable in Git history.'
+            $recoveryCycle += 1
+          }
 
       - name: Safety declaration
         if: always()
@@ -212,7 +304,10 @@ jobs:
           Write-Host 'DIRECT GOVERNED LANE 2 DEVELOPMENT-BRANCH RUNTIME PATH.'
           Write-Host 'No cron/time-based Lane 2 schedule and no default-main registration are introduced.'
           Write-Host 'AUTO continuation is state-driven only: a next chronological manifest date may open only after persisted full PASS/readback of the prior date.'
-          Write-Host 'HOLD/FAIL/PARTIAL stops the chain on the same date. Existing verified PASS dates are reused, not recomputed.'
+          Write-Host 'Transient Drive/HTTP failures retry automatically. Persistent operational failures may invoke the governed GPT repair agent.'
+          Write-Host 'GPT repair is allowlisted to operational files and must pass compile + full pytest before automatic resume.'
+          Write-Host 'Governed identity/PASS-gate mismatches are HARD HOLD and are never auto-patched.'
+          Write-Host 'Existing verified PASS dates and committed shards are reused; recovery resumes from checkpoint rather than restarting the corpus.'
           Write-Host 'No date+1 calendar guessing: next date comes from governed semantic-manifest chronology.'
           Write-Host 'No main-branch mutation, no Lane 2 merge, no AI semantic labels, no formula/trading logic.'
           Write-Host 'Canonical RAW/CURRENT remain read-only; writes are restricted to dedicated Lane 2 evidence/control/audit homes.'
