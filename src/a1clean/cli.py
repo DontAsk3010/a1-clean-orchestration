@@ -12,6 +12,7 @@ from .full_shadow_compat import run_full_shadow_parity
 from .google_drive import build_drive_api
 from .frozen_v2 import run_delta
 from .parity import compare_runtime_roots
+from .pattern_discovery.auto_continue import run_governed_auto_continuation
 from .pattern_discovery.runner import run_source_discovery
 from .source_parity import run_source_scoped_parity
 from .source_preflight import run_source_preflight
@@ -50,7 +51,7 @@ def main(argv=None):
     )
     lane2 = sub.add_parser(
         "pattern-discovery-source",
-        help="Run the independent governed algorithmic pattern-discovery machine for one governed source or exact ticker-day scope using an explicit discovery plan",
+        help="Run the independent governed algorithmic pattern-discovery machine for one governed source, full trading date, or exact ticker-day scope using an explicit discovery plan",
     )
     lane2.add_argument("--source-name", required=True)
     lane2.add_argument("--plan", required=True, type=Path)
@@ -58,6 +59,18 @@ def main(argv=None):
     lane2.add_argument("--trading-date")
     lane2.add_argument("--ticker")
     lane2.add_argument("--software-revision", default=os.environ.get("GITHUB_SHA", "LOCAL_UNVERSIONED"))
+    lane2_auto = sub.add_parser(
+        "pattern-discovery-auto-continue",
+        help="Continue Lane 2 chronologically from one already verified PASS date; each next date opens only after full persisted PASS/readback of the prior date",
+    )
+    lane2_auto.add_argument("--source-name", required=True)
+    lane2_auto.add_argument("--source-drive-id", required=True)
+    lane2_auto.add_argument("--source-sha256", required=True)
+    lane2_auto.add_argument("--plan", required=True, type=Path)
+    lane2_auto.add_argument("--plan-fingerprint", required=True)
+    lane2_auto.add_argument("--packets-per-shard", required=True, type=int)
+    lane2_auto.add_argument("--anchor-passed-date", required=True)
+    lane2_auto.add_argument("--software-revision", default=os.environ.get("GITHUB_SHA", "LOCAL_UNVERSIONED"))
     q = sub.add_parser("parity", help="Compare baseline runtime with candidate staging runtime")
     q.add_argument("baseline")
     q.add_argument("candidate")
@@ -122,6 +135,20 @@ def main(argv=None):
         )
         print(json.dumps(report, indent=2))
         return 0 if report.get("pass") else 7
+
+    if args.cmd == "pattern-discovery-auto-continue":
+        report = run_governed_auto_continuation(
+            source_name=args.source_name,
+            expected_source_drive_id=args.source_drive_id,
+            expected_source_sha256=args.source_sha256,
+            plan_path=args.plan,
+            expected_plan_fingerprint=args.plan_fingerprint,
+            packets_per_shard=args.packets_per_shard,
+            software_revision=args.software_revision,
+            anchor_passed_date=args.anchor_passed_date,
+        )
+        print(json.dumps(report, indent=2))
+        return 0 if report.get("pass") else 8
 
     report = compare_runtime_roots(args.baseline, args.candidate)
     print(json.dumps(report, indent=2))
