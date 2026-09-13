@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   automatic-intake:
-    name: Governed automatic Lane 2 intake / new-or-changed source only
+    name: Governed Lane 2 full existing-and-future RAW backlog drain
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 720
@@ -56,7 +56,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           py -3.11 -m pip install -e '.[pattern]'
 
-      - name: Run automatic intake with bounded governed self-healing
+      - name: Run full governed RAW backlog with bounded self-healing
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           A1_L2_SELF_HEAL_MODEL: gpt-5.6-luna
@@ -79,16 +79,15 @@ jobs:
 
           while ($true) {
             $logPath = Join-Path $env:RUNNER_TEMP ("lane2-automatic-intake-cycle-{0}.log" -f $recoveryCycle)
-            Write-Host "LANE2_AUTOMATIC_INTAKE_CYCLE=$recoveryCycle SOFTWARE_REVISION=$softwareRevision"
+            Write-Host "LANE2_FULL_RAW_BACKLOG_CYCLE=$recoveryCycle SOFTWARE_REVISION=$softwareRevision"
             & py -3.11 -m a1clean.pattern_discovery.intake `
               --plan 'plans/lane2/corpus-structural-stage1-v1.json' `
               --plan-fingerprint 'ec06e5c6bbf856daafe10914e84a600b4b8c6460563d5f9a02db2f47791f63e1' `
               --packets-per-shard 50 `
-              --software-revision $softwareRevision `
-              --bootstrap-existing-as-baseline *>&1 | Tee-Object -FilePath $logPath
+              --software-revision $softwareRevision *>&1 | Tee-Object -FilePath $logPath
             $runtimeExit = $LASTEXITCODE
             if ($runtimeExit -eq 0) {
-              Write-Host "LANE2_AUTOMATIC_INTAKE_PASS cycle=$recoveryCycle"
+              Write-Host "LANE2_FULL_RAW_BACKLOG_PASS cycle=$recoveryCycle"
               break
             }
 
@@ -165,12 +164,13 @@ jobs:
         if: always()
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
-          Write-Host 'AUTOMATIC INTAKE IS EVENT-DRIVEN FROM THE EXISTING PRODUCTION WATCH; IT HAS NO INDEPENDENT LANE 2 CRON.'
-          Write-Host 'First activation freezes the already-present governed-ready source universe as baseline; it does not retroactively mass-process old sources.'
-          Write-Host 'After baseline, only NEW or materially CHANGED governed source identities are auto-queued. Unchanged baseline sources and CORPUS_COMPLETE sources are NOOP.'
-          Write-Host 'A new source must already be ACCESS_READY_FOR_AI and pass the existing no-sampling/no-filter/no-behavior-label integrity gates.'
-          Write-Host 'Within an admitted source, the first governed manifest date is processed once, then the existing PASS-chain opens later dates only after persisted PASS/readback.'
+          Write-Host 'ALL CURRENT AND FUTURE GOVERNED-READY RAW SOURCES ARE REQUIRED LANE 2 RESEARCH SCOPE; NO PRE-ACTIVATION SOURCE IS EXEMPTED AS BASELINE.'
+          Write-Host 'Existing verified CORPUS_COMPLETE sources and date PASS checkpoints are reused and never recomputed merely to drain backlog.'
+          Write-Host 'Source-envelope order comes from first/last governed semantic-manifest trading dates, never filename month spelling.'
+          Write-Host 'One source is driven to CORPUS_COMPLETE before the controller advances to the next governed source.'
+          Write-Host 'After current backlog is empty, a NEW or materially CHANGED governed source automatically enters the same queue.'
+          Write-Host 'A source must be ACCESS_READY_FOR_AI and pass no-sampling/no-filter/no-behavior-label/all-fields-preserved gates.'
           Write-Host 'Interrupted work resumes from durable source/date/shard checkpoints; accepted PASS work is reused.'
           Write-Host 'Transient infrastructure errors use bounded retry; persistent plumbing errors may use the token-bounded GPT repair agent.'
           Write-Host 'Identity, plan, duplicate-content, sampling, PASS-gate, RAW, methodology, formula/trading/Telegram and authority boundary failures are HARD HOLD.'
-          Write-Host 'Canonical RAW/CURRENT remain read-only to Lane 2. Lane 2 analytical code remains on its independent branch and is not merged into main.'
+          Write-Host 'Canonical RAW/CURRENT remain read-only to Lane 2. Lane 2 analytical code remains on its independent branch.'
