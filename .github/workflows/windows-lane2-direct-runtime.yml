@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   direct-runtime:
-    name: Direct governed Lane 2 bounded-scope runtime
+    name: Direct governed Lane 2 runtime / PASS-chain continuation
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 720
     steps:
@@ -37,39 +37,63 @@ jobs:
             throw "Governed runtime request missing: $path"
           }
           $req = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
-          if ($req.schema -ne 'A1_LANE2_DIRECT_RUNTIME_REQUEST_V1') { throw 'Unsupported Lane 2 direct-runtime request schema.' }
           if ($req.enabled -ne $true) { throw 'Lane 2 direct-runtime request is not enabled.' }
-          if ($req.authorization_phrase -ne 'AUTHORIZE_LANE2_ALGORITHMIC_DISCOVERY') { throw 'Exact Lane 2 authorization phrase is required.' }
-          if ($req.scope_type -notin @('EXACT_TICKER_DAY', 'EXACT_TRADING_DATE')) {
-            throw 'Direct Lane 2 runtime permits only bounded EXACT_TICKER_DAY or EXACT_TRADING_DATE scopes.'
-          }
           if ([string]::IsNullOrWhiteSpace($req.source_name)) { throw 'source_name is required.' }
           if ([string]::IsNullOrWhiteSpace($req.source_drive_id)) { throw 'source_drive_id is required.' }
           if ([string]::IsNullOrWhiteSpace($req.source_sha256)) { throw 'source_sha256 is required.' }
-          if ([string]::IsNullOrWhiteSpace($req.trading_date)) { throw 'trading_date is required.' }
           if ([string]::IsNullOrWhiteSpace($req.plan_path)) { throw 'plan_path is required.' }
-          if ($req.scope_type -eq 'EXACT_TICKER_DAY' -and [string]::IsNullOrWhiteSpace($req.ticker)) {
-            throw 'ticker is required for EXACT_TICKER_DAY.'
-          }
-          if ($req.scope_type -eq 'EXACT_TRADING_DATE' -and -not [string]::IsNullOrWhiteSpace($req.ticker)) {
-            throw 'ticker must be empty for EXACT_TRADING_DATE so the complete governed date is retained.'
-          }
+          if ([string]::IsNullOrWhiteSpace($req.plan_fingerprint)) { throw 'plan_fingerprint is required.' }
           $pps = [int]$req.packets_per_shard
           if ($pps -le 0) { throw 'packets_per_shard must be positive.' }
-          $expectedPackets = [int]$req.expected_manifest_packet_count
-          $expectedRows = [int]$req.expected_source_row_count
-          if ($expectedPackets -le 0) { throw 'expected_manifest_packet_count must be positive.' }
-          if ($expectedRows -le 0) { throw 'expected_source_row_count must be positive.' }
-          "A1_L2_SCOPE_TYPE=$($req.scope_type)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          if ($req.schema -eq 'A1_LANE2_DIRECT_RUNTIME_REQUEST_V1') {
+            if ($req.authorization_phrase -ne 'AUTHORIZE_LANE2_ALGORITHMIC_DISCOVERY') {
+              throw 'Exact Lane 2 bounded-runtime authorization phrase is required.'
+            }
+            if ($req.scope_type -notin @('EXACT_TICKER_DAY', 'EXACT_TRADING_DATE')) {
+              throw 'V1 direct Lane 2 runtime permits only bounded EXACT_TICKER_DAY or EXACT_TRADING_DATE scopes.'
+            }
+            if ([string]::IsNullOrWhiteSpace($req.trading_date)) { throw 'trading_date is required.' }
+            if ($req.scope_type -eq 'EXACT_TICKER_DAY' -and [string]::IsNullOrWhiteSpace($req.ticker)) {
+              throw 'ticker is required for EXACT_TICKER_DAY.'
+            }
+            if ($req.scope_type -eq 'EXACT_TRADING_DATE' -and -not [string]::IsNullOrWhiteSpace($req.ticker)) {
+              throw 'ticker must be empty for EXACT_TRADING_DATE so the complete governed date is retained.'
+            }
+            $expectedPackets = [int]$req.expected_manifest_packet_count
+            $expectedRows = [int]$req.expected_source_row_count
+            if ($expectedPackets -le 0) { throw 'expected_manifest_packet_count must be positive.' }
+            if ($expectedRows -le 0) { throw 'expected_source_row_count must be positive.' }
+            "A1_L2_EXECUTION_MODE=BOUNDED_SINGLE_SCOPE" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "A1_L2_SCOPE_TYPE=$($req.scope_type)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "A1_L2_TRADING_DATE=$($req.trading_date)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "A1_L2_TICKER=$($req.ticker)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "A1_L2_EXPECTED_PACKET_COUNT=$expectedPackets" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "A1_L2_EXPECTED_SOURCE_ROW_COUNT=$expectedRows" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          }
+          elseif ($req.schema -eq 'A1_LANE2_DIRECT_RUNTIME_REQUEST_V2') {
+            if ($req.execution_mode -ne 'AUTO_CONTINUE_AFTER_VERIFIED_PASS') {
+              throw 'V2 is restricted to AUTO_CONTINUE_AFTER_VERIFIED_PASS.'
+            }
+            if ($req.authorization_phrase -ne 'AUTHORIZE_LANE2_GOVERNED_AUTO_CONTINUATION') {
+              throw 'Exact Lane 2 governed auto-continuation authorization phrase is required.'
+            }
+            if ([string]::IsNullOrWhiteSpace($req.anchor_passed_date)) {
+              throw 'anchor_passed_date is required for governed auto-continuation.'
+            }
+            "A1_L2_EXECUTION_MODE=AUTO_CONTINUE_AFTER_VERIFIED_PASS" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "A1_L2_ANCHOR_PASSED_DATE=$($req.anchor_passed_date)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          }
+          else {
+            throw "Unsupported Lane 2 direct-runtime request schema: $($req.schema)"
+          }
+
           "A1_L2_SOURCE_NAME=$($req.source_name)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "A1_L2_EXPECTED_SOURCE_DRIVE_ID=$($req.source_drive_id)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "A1_L2_EXPECTED_SOURCE_SHA256=$($req.source_sha256)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "A1_L2_TRADING_DATE=$($req.trading_date)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "A1_L2_TICKER=$($req.ticker)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "A1_L2_PLAN_PATH=$($req.plan_path)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "A1_L2_PLAN_FINGERPRINT=$($req.plan_fingerprint)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "A1_L2_PACKETS_PER_SHARD=$pps" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "A1_L2_EXPECTED_PACKET_COUNT=$expectedPackets" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "A1_L2_EXPECTED_SOURCE_ROW_COUNT=$expectedRows" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "A1_L2_REQUEST_ID=$($req.request_id)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Verify external Drive credential bindings exist
@@ -91,13 +115,16 @@ jobs:
           $ErrorActionPreference = 'Stop'
           py -3.11 -m pip install -e '.[pattern]'
 
-      - name: Verify exact governed source and bounded scope before analysis
+      - name: Verify governed source, plan, and requested admission scope
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           @'
           import os
+          from pathlib import Path
           from a1clean.google_drive import build_drive_api
+          from a1clean.pattern_discovery.auto_continue import build_trading_date_scopes, next_trading_date_scope
+          from a1clean.pattern_discovery.runner import _load_plan
           from a1clean.pattern_discovery.source_reader import GovernedSourceReader
 
           reader = GovernedSourceReader(build_drive_api(read_write=False), source_name=os.environ['A1_L2_SOURCE_NAME'])
@@ -106,64 +133,74 @@ jobs:
               raise SystemExit(f"SOURCE_DRIVE_ID_MISMATCH:{ident.source_drive_id}")
           if ident.source_sha256 != os.environ['A1_L2_EXPECTED_SOURCE_SHA256']:
               raise SystemExit(f"SOURCE_SHA256_MISMATCH:{ident.source_sha256}")
+          plan = _load_plan(Path(os.environ['A1_L2_PLAN_PATH']))
+          if plan.sha256 != os.environ['A1_L2_PLAN_FINGERPRINT']:
+              raise SystemExit(f"PLAN_FINGERPRINT_MISMATCH:{plan.sha256}")
 
-          trading_date = os.environ['A1_L2_TRADING_DATE']
-          scope_type = os.environ['A1_L2_SCOPE_TYPE']
-          ticker = os.environ.get('A1_L2_TICKER', '').strip()
-          matches = [r for r in reader.semantic_manifest_rows if r.trading_date == trading_date]
-          if scope_type == 'EXACT_TICKER_DAY':
-              matches = [r for r in matches if r.ticker == ticker]
-              if len(matches) != 1:
-                  raise SystemExit(f"EXACT_TICKER_DAY_SCOPE_CARDINALITY:{len(matches)}")
-          elif not matches:
-              raise SystemExit(f"EXACT_TRADING_DATE_SCOPE_EMPTY:{trading_date}")
-
-          expected_packets = int(os.environ['A1_L2_EXPECTED_PACKET_COUNT'])
-          expected_rows = int(os.environ['A1_L2_EXPECTED_SOURCE_ROW_COUNT'])
-          actual_rows = sum(r.data_row_count for r in matches)
-          if len(matches) != expected_packets:
-              raise SystemExit(f"SCOPE_PACKET_COUNT_MISMATCH:EXPECTED={expected_packets}:ACTUAL={len(matches)}")
-          if actual_rows != expected_rows:
-              raise SystemExit(f"SCOPE_SOURCE_ROW_COUNT_MISMATCH:EXPECTED={expected_rows}:ACTUAL={actual_rows}")
-
-          first = matches[0]
-          last = matches[-1]
-          print('GOVERNED_SOURCE_AND_SCOPE_IDENTITY_PASS')
-          print(f"SCOPE_TYPE={scope_type}")
-          print(f"SOURCE={ident.source_name}")
-          print(f"SOURCE_DRIVE_ID={ident.source_drive_id}")
-          print(f"SOURCE_SHA256={ident.source_sha256}")
-          print(f"TRADING_DATE={trading_date}")
-          print(f"PACKET_COUNT={len(matches)}")
-          print(f"SOURCE_ROW_COUNT={actual_rows}")
-          print(f"FIRST_TICKER={first.ticker}")
-          print(f"FIRST_SOURCE_ROW={first.source_row_first}")
-          print(f"LAST_TICKER={last.ticker}")
-          print(f"LAST_SOURCE_ROW={last.source_row_last}")
+          mode = os.environ['A1_L2_EXECUTION_MODE']
+          if mode == 'BOUNDED_SINGLE_SCOPE':
+              trading_date = os.environ['A1_L2_TRADING_DATE']
+              scope_type = os.environ['A1_L2_SCOPE_TYPE']
+              ticker = os.environ.get('A1_L2_TICKER', '').strip()
+              matches = [r for r in reader.semantic_manifest_rows if r.trading_date == trading_date]
+              if scope_type == 'EXACT_TICKER_DAY':
+                  matches = [r for r in matches if r.ticker == ticker]
+                  if len(matches) != 1:
+                      raise SystemExit(f"EXACT_TICKER_DAY_SCOPE_CARDINALITY:{len(matches)}")
+              elif not matches:
+                  raise SystemExit(f"EXACT_TRADING_DATE_SCOPE_EMPTY:{trading_date}")
+              expected_packets = int(os.environ['A1_L2_EXPECTED_PACKET_COUNT'])
+              expected_rows = int(os.environ['A1_L2_EXPECTED_SOURCE_ROW_COUNT'])
+              actual_rows = sum(r.data_row_count for r in matches)
+              if len(matches) != expected_packets:
+                  raise SystemExit(f"SCOPE_PACKET_COUNT_MISMATCH:EXPECTED={expected_packets}:ACTUAL={len(matches)}")
+              if actual_rows != expected_rows:
+                  raise SystemExit(f"SCOPE_SOURCE_ROW_COUNT_MISMATCH:EXPECTED={expected_rows}:ACTUAL={actual_rows}")
+              print(f"BOUNDED_SCOPE_IDENTITY_PASS:DATE={trading_date}:PACKETS={len(matches)}:ROWS={actual_rows}")
+          else:
+              scopes = build_trading_date_scopes(reader.semantic_manifest_rows)
+              anchor = os.environ['A1_L2_ANCHOR_PASSED_DATE']
+              following = next_trading_date_scope(scopes, after_date=anchor)
+              print(f"AUTO_CONTINUATION_ADMISSION_IDENTITY_PASS:ANCHOR={anchor}")
+              if following is None:
+                  print('AUTO_CONTINUATION_NEXT=CORPUS_COMPLETE')
+              else:
+                  print(
+                      f"AUTO_CONTINUATION_NEXT_FROM_MANIFEST={following.trading_date}:"
+                      f"PACKETS={following.packet_count}:ROWS={following.source_row_count}:"
+                      f"MANIFEST={following.manifest_index_first}-{following.manifest_index_last}"
+                  )
           '@ | py -3.11 -
 
-      - name: Verify explicit governed plan exists
+      - name: Run same durable Lane 2 machine / governed PASS-chain controller
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          if (-not (Test-Path -LiteralPath $env:A1_L2_PLAN_PATH -PathType Leaf)) {
-            throw "Governed discovery plan not found: $env:A1_L2_PLAN_PATH"
+          if ($env:A1_L2_EXECUTION_MODE -eq 'AUTO_CONTINUE_AFTER_VERIFIED_PASS') {
+            $cliArgs = @(
+              'pattern-discovery-auto-continue',
+              '--source-name', $env:A1_L2_SOURCE_NAME,
+              '--source-drive-id', $env:A1_L2_EXPECTED_SOURCE_DRIVE_ID,
+              '--source-sha256', $env:A1_L2_EXPECTED_SOURCE_SHA256,
+              '--plan', $env:A1_L2_PLAN_PATH,
+              '--plan-fingerprint', $env:A1_L2_PLAN_FINGERPRINT,
+              '--packets-per-shard', $env:A1_L2_PACKETS_PER_SHARD,
+              '--anchor-passed-date', $env:A1_L2_ANCHOR_PASSED_DATE,
+              '--software-revision', '${{ github.sha }}'
+            )
           }
-
-      - name: Run same durable Lane 2 machine directly
-        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $cliArgs = @(
-            'pattern-discovery-source',
-            '--source-name', $env:A1_L2_SOURCE_NAME,
-            '--plan', $env:A1_L2_PLAN_PATH,
-            '--trading-date', $env:A1_L2_TRADING_DATE,
-            '--packets-per-shard', $env:A1_L2_PACKETS_PER_SHARD,
-            '--software-revision', '${{ github.sha }}'
-          )
-          if ($env:A1_L2_SCOPE_TYPE -eq 'EXACT_TICKER_DAY') {
-            $cliArgs += @('--ticker', $env:A1_L2_TICKER)
+          else {
+            $cliArgs = @(
+              'pattern-discovery-source',
+              '--source-name', $env:A1_L2_SOURCE_NAME,
+              '--plan', $env:A1_L2_PLAN_PATH,
+              '--trading-date', $env:A1_L2_TRADING_DATE,
+              '--packets-per-shard', $env:A1_L2_PACKETS_PER_SHARD,
+              '--software-revision', '${{ github.sha }}'
+            )
+            if ($env:A1_L2_SCOPE_TYPE -eq 'EXACT_TICKER_DAY') {
+              $cliArgs += @('--ticker', $env:A1_L2_TICKER)
+            }
           }
           & py -3.11 -m a1clean.cli @cliArgs
           if ($LASTEXITCODE -ne 0) { throw "Lane 2 durable CLI exited with code $LASTEXITCODE" }
@@ -172,8 +209,10 @@ jobs:
         if: always()
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
-          Write-Host 'DIRECT GOVERNED LANE 2 BOUNDED-SCOPE RUNTIME PATH.'
-          Write-Host 'Triggered only by an explicit versioned request file on the Lane 2 development branch.'
-          Write-Host 'No schedule, no main-branch mutation, no merge, no AI semantic labels, no formula/trading logic.'
-          Write-Host 'EXACT_TRADING_DATE means complete governed manifest coverage for that date; it is a technical partition, not sampling.'
+          Write-Host 'DIRECT GOVERNED LANE 2 DEVELOPMENT-BRANCH RUNTIME PATH.'
+          Write-Host 'No cron/time-based Lane 2 schedule and no default-main registration are introduced.'
+          Write-Host 'AUTO continuation is state-driven only: a next chronological manifest date may open only after persisted full PASS/readback of the prior date.'
+          Write-Host 'HOLD/FAIL/PARTIAL stops the chain on the same date. Existing verified PASS dates are reused, not recomputed.'
+          Write-Host 'No date+1 calendar guessing: next date comes from governed semantic-manifest chronology.'
+          Write-Host 'No main-branch mutation, no Lane 2 merge, no AI semantic labels, no formula/trading logic.'
           Write-Host 'Canonical RAW/CURRENT remain read-only; writes are restricted to dedicated Lane 2 evidence/control/audit homes.'
