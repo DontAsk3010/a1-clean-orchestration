@@ -9,7 +9,7 @@ from a1clean.pattern_discovery.auto_continue import (
     next_trading_date_scope,
     validate_complete_pass_checkpoint,
 )
-from a1clean.pattern_discovery.contracts import PatternDiscoveryContractError
+from a1clean.pattern_discovery.contracts import LANE_ID, PatternDiscoveryContractError
 from a1clean.pattern_discovery.runner import CHECKPOINT_SCHEMA
 
 
@@ -89,7 +89,7 @@ def test_complete_pass_gate_requires_full_packets_rows_and_no_hold():
     scope = build_trading_date_scopes(_rows())[1]
     checkpoint = {
         "schema": CHECKPOINT_SCHEMA,
-        "lane_id": "ALGORITHMIC_PATTERN_DISCOVERY",
+        "lane_id": LANE_ID,
         "status": "PASS",
         "source_identity": reader.identity.as_dict(),
         "plan_id": plan.plan_id,
@@ -117,7 +117,7 @@ def test_hold_or_partial_checkpoint_cannot_open_next_date():
     scope = build_trading_date_scopes(_rows())[1]
     checkpoint = {
         "schema": CHECKPOINT_SCHEMA,
-        "lane_id": "ALGORITHMIC_PATTERN_DISCOVERY",
+        "lane_id": LANE_ID,
         "status": "HOLD",
         "source_identity": reader.identity.as_dict(),
         "plan_id": plan.plan_id,
