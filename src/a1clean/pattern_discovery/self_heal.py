@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import re
+import time
 import urllib.error
 import urllib.request
 from typing import Any
@@ -48,6 +49,8 @@ FORBIDDEN_ANALYTICAL_TERMS = (
 
 SELF_HEAL_CACHE_SCHEMA = "A1_LANE2_SELF_HEAL_CALL_CACHE_V1"
 MAX_MODEL_CALLS_PER_WORKFLOW = 2
+MODEL_TRANSPORT_MAX_ATTEMPTS = 3
+MODEL_RETRYABLE_HTTP = frozenset({408, 429, 500, 502, 503, 504})
 
 
 def redact_secrets(text: str) -> str:
@@ -75,7 +78,7 @@ def failure_fingerprint(log_text: str) -> str:
     terminal = lines[-40:]
     normalized: list[str] = []
     for line in terminal:
-        if "LANE2_TRANSIENT_RETRY" in line:
+        if "LANE2_TRANSIENT_RETRY" in line or "LANE2_SELF_HEAL_MODEL_TRANSPORT_RETRY" in line:
             continue
         line = re.sub(
             r"\b\d{4}-\d{2}-\d{2}[T ][0-9:.+-]+(?:Z|[+-]\d{2}:?\d{2})?\b",
@@ -151,6 +154,10 @@ def _source_context(repo_root: Path) -> dict[str, str]:
     return out
 
 
+def _model_retry_delay(attempt: int) -> float:
+    return float(min(15, 2 ** max(0, attempt - 1)))
+
+
 def _call_repair_model(*, log_text: str, sources: dict[str, str]) -> dict[str, Any]:
     api_key = os.environ.get("OPENAI_API_KEY", "").strip()
     if not api_key:
@@ -224,12 +231,35 @@ def _call_repair_model(*, log_text: str, sources: dict[str, str]) -> dict[str, A
         },
         method="POST",
     )
-    try:
-        with urllib.request.urlopen(request, timeout=120) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")[:2000]
-        raise RuntimeError(f"OPENAI_REPAIR_HTTP_{exc.code}:{detail}") from exc
+
+    payload: dict[str, Any] | None = None
+    last_error: BaseException | None = None
+    for attempt in range(1, MODEL_TRANSPORT_MAX_ATTEMPTS + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=120) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+            break
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="replace")[:2000]
+            last_error = RuntimeError(f"OPENAI_REPAIR_HTTP_{exc.code}:{detail}")
+            retryable = exc.code in MODEL_RETRYABLE_HTTP
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            last_error = RuntimeError(f"OPENAI_REPAIR_TRANSPORT:{type(exc).__name__}:{exc}")
+            retryable = True
+        if not retryable or attempt >= MODEL_TRANSPORT_MAX_ATTEMPTS:
+            assert last_error is not None
+            raise last_error
+        delay = _model_retry_delay(attempt)
+        print(
+            "LANE2_SELF_HEAL_MODEL_TRANSPORT_RETRY "
+            f"attempt={attempt}/{MODEL_TRANSPORT_MAX_ATTEMPTS} delay_seconds={delay:g}"
+        )
+        time.sleep(delay)
+
+    if payload is None:
+        if last_error is not None:
+            raise last_error
+        raise RuntimeError("OPENAI_REPAIR_NO_RESPONSE")
     text = _response_text(payload)
     if not text:
         raise RuntimeError("OPENAI_REPAIR_EMPTY_OUTPUT")
@@ -262,8 +292,25 @@ def decide_repair(repo_root: Path, log_text: str) -> dict[str, Any]:
             "files": [],
         }
 
-    decision = _call_repair_model(log_text=log_text, sources=_source_context(repo_root))
+    # Reserve the logical model-call budget before transport begins. If the process dies after
+    # submitting a request, the same failure fingerprint cannot silently spend tokens again.
     cache["model_calls"] = int(cache.get("model_calls") or 0) + 1
+    cache["fingerprints"][fingerprint] = {
+        "action": "MODEL_CALL_RESERVED",
+        "summary": "MODEL_CALL_RESERVED_BEFORE_TRANSPORT",
+    }
+    _save_call_cache(repo_root, cache)
+
+    try:
+        decision = _call_repair_model(log_text=log_text, sources=_source_context(repo_root))
+    except Exception as exc:
+        cache["fingerprints"][fingerprint] = {
+            "action": "MODEL_CALL_FAILED",
+            "summary": redact_secrets(str(exc))[:1000],
+        }
+        _save_call_cache(repo_root, cache)
+        raise
+
     cache["fingerprints"][fingerprint] = {
         "action": decision.get("action"),
         "summary": decision.get("summary"),
