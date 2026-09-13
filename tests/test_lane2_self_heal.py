@@ -49,6 +49,23 @@ def test_identical_persistent_failure_calls_model_only_once(tmp_path: Path, monk
     assert len(calls) == 1
 
 
+def test_failed_model_transport_is_reserved_and_not_called_again(tmp_path: Path, monkeypatch):
+    calls = []
+
+    def fake_call(*, log_text, sources):
+        calls.append((log_text, sources))
+        raise RuntimeError("OPENAI_REPAIR_TRANSPORT:TimeoutError")
+
+    monkeypatch.setattr(self_heal, "_call_repair_model", fake_call)
+    with pytest.raises(RuntimeError, match="OPENAI_REPAIR_TRANSPORT"):
+        decide_repair(tmp_path, "RuntimeError: one persistent plumbing failure")
+
+    second = decide_repair(tmp_path, "RuntimeError: one persistent plumbing failure")
+    assert second["action"] == "HARD_HOLD"
+    assert "REPEATED_IDENTICAL_FAILURE_NO_SECOND_MODEL_CALL:MODEL_CALL_FAILED" in second["summary"]
+    assert len(calls) == 1
+
+
 def test_model_call_budget_is_two_unique_failures(tmp_path: Path, monkeypatch):
     calls = []
 
