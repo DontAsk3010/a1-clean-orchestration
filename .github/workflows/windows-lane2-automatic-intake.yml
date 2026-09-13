@@ -62,7 +62,10 @@ jobs:
           A1_L2_SELF_HEAL_MODEL: gpt-5.6-luna
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
-          $ErrorActionPreference = 'Stop'
+          # Native Python tools legitimately write warnings/diagnostics to stderr. On Windows PowerShell 5.1,
+          # stderr can be surfaced as NativeCommandError. Recovery MUST be decided by the native exit code,
+          # not by the mere existence of stderr text, otherwise warnings can kill the shell before self-heal.
+          $ErrorActionPreference = 'Continue'
           $maxRecoveryCycles = 3
           $recoveryCycle = 0
           $softwareRevision = (git rev-parse HEAD).Trim()
@@ -80,16 +83,30 @@ jobs:
           while ($true) {
             $logPath = Join-Path $env:RUNNER_TEMP ("lane2-automatic-intake-cycle-{0}.log" -f $recoveryCycle)
             Write-Host "LANE2_FULL_RAW_BACKLOG_CYCLE=$recoveryCycle SOFTWARE_REVISION=$softwareRevision"
-            & py -3.11 -m a1clean.pattern_discovery.intake `
-              --plan 'plans/lane2/corpus-structural-stage1-v1.json' `
-              --plan-fingerprint 'ec06e5c6bbf856daafe10914e84a600b4b8c6460563d5f9a02db2f47791f63e1' `
-              --packets-per-shard 50 `
-              --software-revision $softwareRevision *>&1 | Tee-Object -FilePath $logPath
-            $runtimeExit = $LASTEXITCODE
+
+            try {
+              & py -3.11 -m a1clean.pattern_discovery.intake `
+                --plan 'plans/lane2/corpus-structural-stage1-v1.json' `
+                --plan-fingerprint 'ec06e5c6bbf856daafe10914e84a600b4b8c6460563d5f9a02db2f47791f63e1' `
+                --packets-per-shard 50 `
+                --software-revision $softwareRevision *>&1 | Tee-Object -FilePath $logPath -ErrorAction Stop
+              $runtimeExit = $LASTEXITCODE
+            }
+            catch {
+              $shellFailure = ($_ | Out-String).Trim()
+              $shellFailure | Out-File -LiteralPath $logPath -Append -Encoding UTF8
+              Write-Host "LANE2_RUNTIME_WRAPPER_EXCEPTION_CAPTURED=$shellFailure"
+              $runtimeExit = 70
+            }
+
             if ($runtimeExit -eq 0) {
               Write-Host "LANE2_FULL_RAW_BACKLOG_PASS cycle=$recoveryCycle"
+              Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "Lane 2 backlog runtime: PASS/recovered automatically at cycle $recoveryCycle."
               break
             }
+
+            Write-Host "::warning title=Lane 2 automatic recovery::Runtime exited $runtimeExit at recovery cycle $recoveryCycle. Captured log is being routed to bounded self-healing."
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "Lane 2 runtime exit $runtimeExit at cycle $recoveryCycle; automatic recovery engaged."
 
             if ($recoveryCycle -ge $maxRecoveryCycles) {
               throw "LANE2_AUTOMATIC_INTAKE_SELF_HEAL_EXHAUSTED after $recoveryCycle recovery cycles; last runtime exit=$runtimeExit"
@@ -99,13 +116,23 @@ jobs:
             }
 
             $repairResult = Join-Path $env:RUNNER_TEMP ("lane2-automatic-intake-self-heal-{0}.json" -f $recoveryCycle)
-            & py -3.11 -m a1clean.pattern_discovery.self_heal_intake `
-              --failure-log $logPath `
-              --repo-root . `
-              --result $repairResult
-            $healExit = $LASTEXITCODE
+            $repairLog = Join-Path $env:RUNNER_TEMP ("lane2-automatic-intake-self-heal-{0}.log" -f $recoveryCycle)
+            try {
+              & py -3.11 -m a1clean.pattern_discovery.self_heal_intake `
+                --failure-log $logPath `
+                --repo-root . `
+                --result $repairResult *>&1 | Tee-Object -FilePath $repairLog -ErrorAction Stop
+              $healExit = $LASTEXITCODE
+            }
+            catch {
+              $healShellFailure = ($_ | Out-String).Trim()
+              $healShellFailure | Out-File -LiteralPath $repairLog -Append -Encoding UTF8
+              Write-Host "LANE2_SELF_HEAL_WRAPPER_EXCEPTION_CAPTURED=$healShellFailure"
+              $healExit = 70
+            }
+
             if (Test-Path -LiteralPath $repairResult) {
-              Get-Content -LiteralPath $repairResult -Raw -Encoding UTF8 | Write-Host
+              Get-Content -LiteralPath $repairResult -Raw -Encoding UTF8 -ErrorAction Stop | Write-Host
             }
 
             if ($healExit -eq 20) {
@@ -132,19 +159,24 @@ jobs:
             }
 
             py -3.11 -m compileall -q src
-            if ($LASTEXITCODE -ne 0) {
+            $compileExit = $LASTEXITCODE
+            if ($compileExit -ne 0) {
               git reset --hard HEAD
-              throw 'LANE2_AUTOMATIC_INTAKE_SELF_HEAL_COMPILE_FAILED'
+              throw "LANE2_AUTOMATIC_INTAKE_SELF_HEAL_COMPILE_FAILED exit=$compileExit"
             }
             py -3.11 -m pytest -q
-            if ($LASTEXITCODE -ne 0) {
+            $testExit = $LASTEXITCODE
+            if ($testExit -ne 0) {
               git reset --hard HEAD
-              throw 'LANE2_AUTOMATIC_INTAKE_SELF_HEAL_TESTS_FAILED'
+              throw "LANE2_AUTOMATIC_INTAKE_SELF_HEAL_TESTS_FAILED exit=$testExit"
             }
 
             git config user.name 'a1-clean-self-heal'
+            if ($LASTEXITCODE -ne 0) { throw 'LANE2_AUTOMATIC_INTAKE_GIT_CONFIG_NAME_FAILED' }
             git config user.email 'a1-clean-self-heal@users.noreply.github.com'
+            if ($LASTEXITCODE -ne 0) { throw 'LANE2_AUTOMATIC_INTAKE_GIT_CONFIG_EMAIL_FAILED' }
             git add -- $allowedRepairPaths
+            if ($LASTEXITCODE -ne 0) { throw 'LANE2_AUTOMATIC_INTAKE_SELF_HEAL_GIT_ADD_FAILED' }
             git commit -m ("Self-heal Lane 2 automatic intake cycle {0}" -f ($recoveryCycle + 1))
             if ($LASTEXITCODE -ne 0) {
               git reset --hard HEAD
@@ -160,6 +192,22 @@ jobs:
             $recoveryCycle += 1
           }
 
+      - name: Publish automatic recovery status
+        if: always()
+        env:
+          LANE2_JOB_STATUS: ${{ job.status }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $runUrl = "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ""
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "### A1 CLEAN Lane 2 automatic intake status"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Job status: $env:LANE2_JOB_STATUS"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Run: $runUrl"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Durable progress is in Drive checkpoints; a failed shell/run must never imply accepted work is discarded."
+          if ($env:LANE2_JOB_STATUS -ne 'success') {
+            Write-Host "::error title=Lane 2 automatic intake stopped::Automatic recovery could not safely close this run. Inspect the runtime/self-heal log and durable checkpoint; accepted work remains preserved."
+          }
+
       - name: Safety declaration
         if: always()
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
@@ -171,6 +219,7 @@ jobs:
           Write-Host 'After current backlog is empty, a NEW or materially CHANGED governed source automatically enters the same queue.'
           Write-Host 'A source must be ACCESS_READY_FOR_AI and pass no-sampling/no-filter/no-behavior-label/all-fields-preserved gates.'
           Write-Host 'Interrupted work resumes from durable source/date/shard checkpoints; accepted PASS work is reused.'
+          Write-Host 'Native stderr warnings are observational; native exit codes determine runtime failure and recovery routing.'
           Write-Host 'Transient infrastructure errors use bounded retry; persistent plumbing errors may use the token-bounded GPT repair agent.'
           Write-Host 'Identity, plan, duplicate-content, sampling, PASS-gate, RAW, methodology, formula/trading/Telegram and authority boundary failures are HARD HOLD.'
           Write-Host 'Canonical RAW/CURRENT remain read-only to Lane 2. Lane 2 analytical code remains on its independent branch.'
