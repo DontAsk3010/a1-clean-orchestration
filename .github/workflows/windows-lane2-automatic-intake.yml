@@ -1,0 +1,176 @@
+name: Windows Lane 2 Automatic Governed Intake
+
+on:
+  workflow_run:
+    workflows:
+      - Windows Governed Automation Activation
+    types:
+      - completed
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/windows-lane2-automatic-intake.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: a1-windows-lane2-direct-runtime
+  cancel-in-progress: false
+
+jobs:
+  automatic-intake:
+    name: Governed automatic Lane 2 intake / new-or-changed source only
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout current Lane 2 implementation branch
+        uses: actions/checkout@v4
+        with:
+          ref: lane2/algorithmic-pattern-discovery-v1
+          fetch-depth: 0
+
+      - name: Verify external Drive credential bindings exist
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bindings = @(
+            @{ Name = 'A1_DRIVE_READER_CREDENTIALS'; Path = $env:A1_DRIVE_READER_CREDENTIALS },
+            @{ Name = 'A1_DRIVE_WRITER_CREDENTIALS'; Path = $env:A1_DRIVE_WRITER_CREDENTIALS }
+          )
+          foreach ($binding in $bindings) {
+            if ([string]::IsNullOrWhiteSpace($binding.Path)) {
+              throw "$($binding.Name) is not configured for the runner process."
+            }
+            if (-not (Test-Path -LiteralPath $binding.Path -PathType Leaf)) {
+              throw "$($binding.Name) points to a credential file that does not exist."
+            }
+          }
+
+      - name: Install governed Lane 2 machine and pattern dependencies
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[pattern]'
+
+      - name: Run automatic intake with bounded governed self-healing
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          A1_L2_SELF_HEAL_MODEL: gpt-5.6-luna
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $maxRecoveryCycles = 3
+          $recoveryCycle = 0
+          $softwareRevision = (git rev-parse HEAD).Trim()
+          if ([string]::IsNullOrWhiteSpace($softwareRevision)) {
+            throw 'Lane 2 software revision could not be resolved.'
+          }
+          $allowedRepairPaths = @(
+            'src/a1clean/google_drive.py',
+            'src/a1clean/pattern_discovery/drive_store.py',
+            'src/a1clean/pattern_discovery/resilience.py',
+            'src/a1clean/pattern_discovery/auto_continue.py',
+            'src/a1clean/pattern_discovery/intake.py'
+          )
+
+          while ($true) {
+            $logPath = Join-Path $env:RUNNER_TEMP ("lane2-automatic-intake-cycle-{0}.log" -f $recoveryCycle)
+            Write-Host "LANE2_AUTOMATIC_INTAKE_CYCLE=$recoveryCycle SOFTWARE_REVISION=$softwareRevision"
+            & py -3.11 -m a1clean.pattern_discovery.intake `
+              --plan 'plans/lane2/corpus-structural-stage1-v1.json' `
+              --plan-fingerprint 'ec06e5c6bbf856daafe10914e84a600b4b8c6460563d5f9a02db2f47791f63e1' `
+              --packets-per-shard 50 `
+              --software-revision $softwareRevision `
+              --bootstrap-existing-as-baseline *>&1 | Tee-Object -FilePath $logPath
+            $runtimeExit = $LASTEXITCODE
+            if ($runtimeExit -eq 0) {
+              Write-Host "LANE2_AUTOMATIC_INTAKE_PASS cycle=$recoveryCycle"
+              break
+            }
+
+            if ($recoveryCycle -ge $maxRecoveryCycles) {
+              throw "LANE2_AUTOMATIC_INTAKE_SELF_HEAL_EXHAUSTED after $recoveryCycle recovery cycles; last runtime exit=$runtimeExit"
+            }
+            if ([string]::IsNullOrWhiteSpace($env:OPENAI_API_KEY)) {
+              throw 'OPENAI_API_KEY is missing; governed GPT self-healing cannot diagnose a persistent operational intake failure.'
+            }
+
+            $repairResult = Join-Path $env:RUNNER_TEMP ("lane2-automatic-intake-self-heal-{0}.json" -f $recoveryCycle)
+            & py -3.11 -m a1clean.pattern_discovery.self_heal_intake `
+              --failure-log $logPath `
+              --repo-root . `
+              --result $repairResult
+            $healExit = $LASTEXITCODE
+            if (Test-Path -LiteralPath $repairResult) {
+              Get-Content -LiteralPath $repairResult -Raw -Encoding UTF8 | Write-Host
+            }
+
+            if ($healExit -eq 20) {
+              throw 'LANE2_AUTOMATIC_INTAKE_HARD_HOLD: governed identity/intake invariant cannot be auto-patched.'
+            }
+            if ($healExit -eq 10) {
+              $recoveryCycle += 1
+              Start-Sleep -Seconds ([Math]::Min(60, 10 * [Math]::Pow(2, $recoveryCycle - 1)))
+              continue
+            }
+            if ($healExit -ne 0) {
+              throw "LANE2_AUTOMATIC_INTAKE_SELF_HEAL_AGENT_FAILED exit=$healExit"
+            }
+
+            $changed = @(git diff --name-only)
+            if (-not $changed) {
+              throw 'LANE2_AUTOMATIC_INTAKE_PATCH_REPORTED_BUT_NO_FILES_CHANGED'
+            }
+            foreach ($path in $changed) {
+              if ($allowedRepairPaths -notcontains $path) {
+                git reset --hard HEAD
+                throw "LANE2_AUTOMATIC_INTAKE_UNAUTHORIZED_REPAIR_PATH:$path"
+              }
+            }
+
+            py -3.11 -m compileall -q src
+            if ($LASTEXITCODE -ne 0) {
+              git reset --hard HEAD
+              throw 'LANE2_AUTOMATIC_INTAKE_SELF_HEAL_COMPILE_FAILED'
+            }
+            py -3.11 -m pytest -q
+            if ($LASTEXITCODE -ne 0) {
+              git reset --hard HEAD
+              throw 'LANE2_AUTOMATIC_INTAKE_SELF_HEAL_TESTS_FAILED'
+            }
+
+            git config user.name 'a1-clean-self-heal'
+            git config user.email 'a1-clean-self-heal@users.noreply.github.com'
+            git add -- $allowedRepairPaths
+            git commit -m ("Self-heal Lane 2 automatic intake cycle {0}" -f ($recoveryCycle + 1))
+            if ($LASTEXITCODE -ne 0) {
+              git reset --hard HEAD
+              throw 'LANE2_AUTOMATIC_INTAKE_SELF_HEAL_COMMIT_FAILED'
+            }
+            $repairCommit = (git rev-parse HEAD).Trim()
+            git push origin HEAD:lane2/algorithmic-pattern-discovery-v1
+            if ($LASTEXITCODE -ne 0) {
+              throw 'LANE2_AUTOMATIC_INTAKE_SELF_HEAL_PUSH_FAILED'
+            }
+            Write-Host "LANE2_AUTOMATIC_INTAKE_SELF_HEAL_PATCH_COMMITTED=$repairCommit"
+            Write-Host 'Original analytical software revision is retained inside this runtime for checkpoint-resume compatibility; repair commit is separately durable.'
+            $recoveryCycle += 1
+          }
+
+      - name: Safety declaration
+        if: always()
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          Write-Host 'AUTOMATIC INTAKE IS EVENT-DRIVEN FROM THE EXISTING PRODUCTION WATCH; IT HAS NO INDEPENDENT LANE 2 CRON.'
+          Write-Host 'First activation freezes the already-present governed-ready source universe as baseline; it does not retroactively mass-process old sources.'
+          Write-Host 'After baseline, only NEW or materially CHANGED governed source identities are auto-queued. Unchanged baseline sources and CORPUS_COMPLETE sources are NOOP.'
+          Write-Host 'A new source must already be ACCESS_READY_FOR_AI and pass the existing no-sampling/no-filter/no-behavior-label integrity gates.'
+          Write-Host 'Within an admitted source, the first governed manifest date is processed once, then the existing PASS-chain opens later dates only after persisted PASS/readback.'
+          Write-Host 'Interrupted work resumes from durable source/date/shard checkpoints; accepted PASS work is reused.'
+          Write-Host 'Transient infrastructure errors use bounded retry; persistent plumbing errors may use the token-bounded GPT repair agent.'
+          Write-Host 'Identity, plan, duplicate-content, sampling, PASS-gate, RAW, methodology, formula/trading/Telegram and authority boundary failures are HARD HOLD.'
+          Write-Host 'Canonical RAW/CURRENT remain read-only to Lane 2. Lane 2 analytical code remains on its independent branch and is not merged into main.'
