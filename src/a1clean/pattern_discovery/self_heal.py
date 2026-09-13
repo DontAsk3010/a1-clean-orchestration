@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -45,6 +46,9 @@ FORBIDDEN_ANALYTICAL_TERMS = (
     "tp-2",
 )
 
+SELF_HEAL_CACHE_SCHEMA = "A1_LANE2_SELF_HEAL_CALL_CACHE_V1"
+MAX_MODEL_CALLS_PER_WORKFLOW = 2
+
 
 def redact_secrets(text: str) -> str:
     text = re.sub(r"sk-[A-Za-z0-9_-]{12,}", "[REDACTED_OPENAI_KEY]", text)
@@ -58,6 +62,73 @@ def hard_hold_reason(log_text: str) -> str | None:
         if marker in upper:
             return f"GOVERNED_IDENTITY_OR_PASS_GATE:{marker}"
     return None
+
+
+def failure_fingerprint(log_text: str) -> str:
+    """Create a stable signature for the terminal failure, excluding retry noise.
+
+    This prevents repeated model calls for the same persistent failure while still allowing
+    one later model call if a repair exposes a genuinely different operational defect.
+    """
+    cleaned = redact_secrets(log_text)
+    lines = [line.strip() for line in cleaned.splitlines() if line.strip()]
+    terminal = lines[-40:]
+    normalized: list[str] = []
+    for line in terminal:
+        if "LANE2_TRANSIENT_RETRY" in line:
+            continue
+        line = re.sub(
+            r"\b\d{4}-\d{2}-\d{2}[T ][0-9:.+-]+(?:Z|[+-]\d{2}:?\d{2})?\b",
+            "<TIMESTAMP>",
+            line,
+        )
+        line = re.sub(r"\battempt=\d+/\d+\b", "attempt=<N>", line)
+        line = re.sub(r"\bdelay_seconds=\d+(?:\.\d+)?\b", "delay_seconds=<N>", line)
+        normalized.append(line)
+    signature_text = "\n".join(normalized[-20:]) or "EMPTY_FAILURE_LOG"
+    return hashlib.sha256(signature_text.encode("utf-8")).hexdigest()
+
+
+def _cache_path(repo_root: Path) -> Path:
+    git_dir = repo_root / ".git"
+    base = git_dir if git_dir.is_dir() else repo_root
+    return base / "a1clean-lane2-self-heal-call-cache.json"
+
+
+def _load_call_cache(repo_root: Path) -> dict[str, Any]:
+    path = _cache_path(repo_root)
+    if not path.is_file():
+        return {
+            "schema": SELF_HEAL_CACHE_SCHEMA,
+            "model_calls": 0,
+            "fingerprints": {},
+        }
+    try:
+        obj = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {
+            "schema": SELF_HEAL_CACHE_SCHEMA,
+            "model_calls": 0,
+            "fingerprints": {},
+        }
+    if not isinstance(obj, dict) or obj.get("schema") != SELF_HEAL_CACHE_SCHEMA:
+        return {
+            "schema": SELF_HEAL_CACHE_SCHEMA,
+            "model_calls": 0,
+            "fingerprints": {},
+        }
+    if not isinstance(obj.get("fingerprints"), dict):
+        obj["fingerprints"] = {}
+    try:
+        obj["model_calls"] = max(0, int(obj.get("model_calls") or 0))
+    except (TypeError, ValueError):
+        obj["model_calls"] = 0
+    return obj
+
+
+def _save_call_cache(repo_root: Path, cache: dict[str, Any]) -> None:
+    path = _cache_path(repo_root)
+    path.write_text(json.dumps(cache, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def _response_text(payload: dict[str, Any]) -> str:
@@ -168,6 +239,39 @@ def _call_repair_model(*, log_text: str, sources: dict[str, str]) -> dict[str, A
     return result
 
 
+def decide_repair(repo_root: Path, log_text: str) -> dict[str, Any]:
+    local_hold = hard_hold_reason(log_text)
+    if local_hold:
+        return {"action": "HARD_HOLD", "summary": local_hold, "files": []}
+
+    fingerprint = failure_fingerprint(log_text)
+    cache = _load_call_cache(repo_root)
+    prior = cache["fingerprints"].get(fingerprint)
+    if isinstance(prior, dict):
+        prior_action = str(prior.get("action") or "UNKNOWN")
+        return {
+            "action": "HARD_HOLD",
+            "summary": f"REPEATED_IDENTICAL_FAILURE_NO_SECOND_MODEL_CALL:{prior_action}:{fingerprint[:16]}",
+            "files": [],
+        }
+
+    if int(cache.get("model_calls") or 0) >= MAX_MODEL_CALLS_PER_WORKFLOW:
+        return {
+            "action": "HARD_HOLD",
+            "summary": f"SELF_HEAL_MODEL_CALL_BUDGET_EXHAUSTED:{MAX_MODEL_CALLS_PER_WORKFLOW}",
+            "files": [],
+        }
+
+    decision = _call_repair_model(log_text=log_text, sources=_source_context(repo_root))
+    cache["model_calls"] = int(cache.get("model_calls") or 0) + 1
+    cache["fingerprints"][fingerprint] = {
+        "action": decision.get("action"),
+        "summary": decision.get("summary"),
+    }
+    _save_call_cache(repo_root, cache)
+    return decision
+
+
 def _guard_replacement(*, path: str, old: str, new: str) -> None:
     if path not in ALLOWED_REPAIR_PATHS:
         raise RuntimeError(f"SELF_HEAL_PATH_NOT_ALLOWED:{path}")
@@ -240,11 +344,7 @@ def main(argv: list[str] | None = None) -> int:
 
     repo_root = args.repo_root.resolve()
     log_text = args.failure_log.read_text(encoding="utf-8", errors="replace")
-    local_hold = hard_hold_reason(log_text)
-    if local_hold:
-        decision = {"action": "HARD_HOLD", "summary": local_hold, "files": []}
-    else:
-        decision = _call_repair_model(log_text=log_text, sources=_source_context(repo_root))
+    decision = decide_repair(repo_root, log_text)
 
     exit_code = apply_repair_decision(repo_root, decision)
     args.result.write_text(
