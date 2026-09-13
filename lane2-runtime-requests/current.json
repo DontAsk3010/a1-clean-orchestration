@@ -1,6 +1,6 @@
 {
   "schema": "A1_LANE2_DIRECT_RUNTIME_REQUEST_V2",
-  "request_id": "L2_GOVERNED_SELF_HEALING_SUCCESSOR_20260913_AFTER_ACTIVE_CHAIN",
+  "request_id": "L2_GOVERNED_SELF_HEALING_TOKEN_BOUNDED_SUCCESSOR_20260913",
   "enabled": true,
   "execution_mode": "AUTO_CONTINUE_AFTER_VERIFIED_PASS",
   "authorization_phrase": "AUTHORIZE_LANE2_GOVERNED_AUTO_CONTINUATION",
@@ -17,6 +17,8 @@
   "hold_fail_partial_policy": "STOP_SAME_DATE_DO_NOT_ADVANCE",
   "interruption_policy": "RESUME_FROM_DURABLE_CHECKPOINT_SHARDS_DO_NOT_RESTART_ACCEPTED_WORK",
   "corpus_end_policy": "CORPUS_COMPLETE_STOP",
+  "self_heal_identical_failure_policy": "ONE_MODEL_CALL_THEN_HARD_HOLD_IF_IDENTICAL_FAILURE_REPEATS",
+  "self_heal_model_call_budget_per_workflow": 2,
   "time_based_schedule_allowed": false,
   "main_branch_mutation_allowed": false,
   "merge_to_main_allowed": false,
