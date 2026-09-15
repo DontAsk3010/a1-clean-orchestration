@@ -1,7 +1,7 @@
 {
   "schema": "A1_TELEGRAM_MG_MULTI_HYPOTHESIS_V8_REQUEST_V1",
   "enabled": true,
-  "run_revision": 5,
+  "run_revision": 6,
   "prior_days": 10,
   "execution": {
     "buy_fee_pct": 0.15,
