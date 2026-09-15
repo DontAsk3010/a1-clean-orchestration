@@ -49,7 +49,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           py -3.11 -m pip install -e '.[test]'
           if ($LASTEXITCODE -ne 0) { throw 'MG_V8_INSTALL_FAILED' }
-          py -3.11 -m py_compile src/a1clean/formula_research/telegram_mg_multihypothesis_v8.py src/a1clean/formula_research/telegram_mg_multihypothesis_v8b.py src/a1clean/formula_research/telegram_mg_multihypothesis_v8c.py src/a1clean/formula_research/telegram_mg_multihypothesis_v8d.py src/a1clean/formula_research/telegram_mg_multihypothesis_v8e.py
+          py -3.11 -m py_compile src/a1clean/formula_research/telegram_mg_multihypothesis_v8.py src/a1clean/formula_research/telegram_mg_multihypothesis_v8b.py src/a1clean/formula_research/telegram_mg_multihypothesis_v8c.py src/a1clean/formula_research/telegram_mg_multihypothesis_v8d.py src/a1clean/formula_research/telegram_mg_multihypothesis_v8e.py src/a1clean/formula_research/telegram_mg_multihypothesis_v8f.py
           if ($LASTEXITCODE -ne 0) { throw 'MG_V8_COMPILE_FAILED' }
           py -3.11 -m pytest -q
           if ($LASTEXITCODE -ne 0) { throw 'MG_V8_TESTS_FAILED' }
@@ -59,7 +59,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $req = $env:A1_MG_V8_REQUEST_JSON | ConvertFrom-Json
-          & py -3.11 -m a1clean.formula_research.telegram_mg_multihypothesis_v8e `
+          & py -3.11 -m a1clean.formula_research.telegram_mg_multihypothesis_v8f `
             --output 'telegram-mg-multihypothesis-v8-result.json' `
             --prior-days ([string][int]$req.prior_days) `
             --buy-fee-pct ([string][double]$req.execution.buy_fee_pct) `
