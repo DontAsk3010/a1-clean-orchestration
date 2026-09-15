@@ -148,6 +148,7 @@ def build_report(*, source_names: Sequence[str], params: CandidateParams, prior_
             mg_rows = evaluate_mg_packet(bars, params)
             base_rows = evaluate_intraday_candidates(bars, params)
             state_rows: list[dict[str, bool]] = []
+            first_seen: set[str] = set()
             for i, (mg, base) in enumerate(zip(mg_rows, base_rows, strict=True)):
                 context = None
                 if len(prior_dates) == prior_window:
@@ -163,8 +164,9 @@ def build_report(*, source_names: Sequence[str], params: CandidateParams, prior_
                 recent = state_rows[max(0, i - 5):i]
                 formulas = _derived(states, recent)
                 for formula_id, matched in formulas.items():
-                    if not matched:
+                    if not matched or formula_id in first_seen:
                         continue
+                    first_seen.add(formula_id)
                     outcome = _evaluate_trade(
                         bars=bars,
                         signal_index=i,
@@ -239,6 +241,7 @@ def build_report(*, source_names: Sequence[str], params: CandidateParams, prior_
         "research_ranking": ranking,
         "samples": samples,
         "packet_counts": packet_counts,
+        "first_causal_appearance_only_per_ticker_day_formula": True,
         "future_data_used_for_formula_state": False,
         "future_data_used_for_research_outcome_only": True,
         "signal_entry_separation": "SIGNAL_AT_PUBLICATION_SLOT__ENTRY_NEXT_ELIGIBLE_BAR_OPEN_PLUS_CAUSAL_OBSERVED_STEP_PROXY",
