@@ -2,28 +2,53 @@
 
 This branch is the independent Claude Code research lane for **Telegram A / EARLY_POTENTIAL / 👀 MULAI GENIT (MG)**.
 
-## Core instruction
+## STOP: READ THE GOVERNING MASTER AUTHORITY FIRST
 
-Do not begin by inventing a formula or by polishing GPT's latest formula. First read the repository, prior research code, requests, workflow history, logs, artifacts, and existing results. The goal is to independently discover causal market-behavior formulas from the richest available governed historical data, then validate them without hindsight.
+Do **not** begin formula work from this repository alone. Before changing code, running a new methodology, or proposing a formula, read the governing Google Drive authority in this order and treat later/current authority as overriding older material where they conflict:
 
-The user's required working style is **practice first**: inspect and process the data, run tests/replays, record empirical findings, and only then explain conclusions. Do not replace execution with theory.
+1. **ACTIVE MASTER / START HERE** — `00_START_HERE_NEW_CHAT_A1_CLEAN_MASTER_HANDOFF_20260905`
+   - https://docs.google.com/document/d/1FVWKgoeWU9MsnOd3i8HOpprg36XrxgKInf6BQU6QTKQ/edit
+2. **CURRENT EXECUTION / STATUS AUTHORITY** — current A1 CLEAN execution update
+   - https://docs.google.com/document/d/1AdtN9N7oIYwsHr_7-R6UzBREx9DJd4s291iZJou6GZU/edit
+3. **PEKERJAAN MEMBACA PERILAKU PASAR HANDBOOK**
+   - https://docs.google.com/document/d/1vDoz8E7nGVlYPl2SBneA2tCAiNNAL77nLgPPZzFlbaI/edit
+4. **STABLE HANDOFF / transition authority**
+   - https://docs.google.com/document/d/1WI79YymkVcOJTRDhLwSiAESkLWFakwL9pe0oj6q1kug/edit
+5. **Telegram active sub-sub master**
+   - https://docs.google.com/document/d/1qmnjMH4q-8USALhndTz2CAGaGihD7Orhk9lcm-5HqbM/edit
+6. **Telegram decision book**
+   - https://docs.google.com/document/d/1y7EKL31i2MCe61ay32CWrVxi-fOG8wf1XXRmgfEG1z8/edit
+7. **Formula VNext authority**
+   - https://docs.google.com/document/d/1jpL6rPU5us0z18Gw8MxNQfbxKNdmZxVJe4vA71f7TyA/edit
+8. **Colab / RAW evidence to formula execution contract**
+   - https://docs.google.com/document/d/1tcMSzgHxY7vCYblC6TdnBW7AsGJkKjt3LpDZM4xug9E/edit
+
+Also inspect the preserved historical master handbook/evidence exports where useful, including the Drive item titled `004_MASTER_HANDBOOK__1jOljRtBUj_-5En5xkBJJUcgS3pAE8hhGRVXa7DV2Vd8.txt`. Historical/exported handbook material does **not** override the ACTIVE MASTER or CURRENT authority above.
+
+If Drive access is unavailable, record the authority as `UNAVAILABLE` and do **not** invent, reinterpret, or promote methodology that depends on unread authority. Repo-only technical work may continue only where it does not conflict with governing rules.
+
+## Core working instruction
+
+Do not begin by inventing a formula or polishing GPT's latest formula. First read authority, repository research history, workflow logs, artifacts, replay outputs, and existing failures. Then inspect/process data, run experiments, record empirical findings, and only afterward explain conclusions. **Practice first; theory is not a substitute for execution.**
 
 ## Non-negotiable project rules
 
-1. Full-universe: include all eligible IDX ticker-days available in governed sources; never cherry-pick winners only.
-2. Causal runtime state only. Future bars/outcomes may be used only as research labels/teacher variables, never as formula inputs.
-3. Missing/unproven data is UNKNOWN/UNAVAILABLE, never silently zero.
-4. Preserve exact chronology and source-supported timestamps. Do not backdate a signal after seeing the outcome.
-5. Formula research may use multiple independent families. Do not force all winner behavior into one formula.
-6. Do not rescue a structurally weak formula by repeatedly loosening thresholds.
-7. A formula must be validated on different periods without retuning. March 2025 is untouched OOS unless the authority explicitly changes.
-8. Do not modify or delete GPT research files as part of Claude discovery. Add Claude-owned files with `claude_` naming or under `research/claude-mg-discovery/`.
-9. No live/canonical promotion. Everything in this lane remains RESEARCH_ONLY until separately governed and authorized.
-10. Do not claim that bars identify a specific 'bandar'. Use measurable terms: positioning, accumulation-like behavior, absorption, volume/value expansion, flow, price acceptance, ignition, crowd/demand expansion, failure/distribution-like behavior.
+- Full-universe: include all eligible IDX ticker-days available in governed sources; never cherry-pick winners only.
+- Preserve chronology. Do not open/use a future bar/date as runtime information.
+- Future bars/outcomes may be used only as research labels/teacher variables, never as executable formula inputs.
+- Missing/unproven data is `UNKNOWN/UNAVAILABLE`, never silently zero.
+- Exact source-supported event start/end times must be retained; no hindsight backdating.
+- Multiple independent MG formula families are allowed and expected. Do not force all winner behavior into one formula.
+- Do not rescue a structurally weak formula by repeatedly loosening thresholds.
+- Discovery thresholds/cut-points must be learned only from discovery data, frozen, then replayed unchanged on validation periods.
+- March 2025 remains untouched OOS unless governing authority explicitly changes.
+- No live/canonical promotion from this branch. Everything remains `RESEARCH_ONLY` until separately governed and authorized.
+- Do not claim bars identify a specific “bandar”. Use measurable terms such as positioning, accumulation-like behavior, absorption, volume/value expansion, flow, price acceptance, ignition, crowd/demand expansion, failure/distribution-like behavior.
+- Do not modify/delete GPT research as part of Claude discovery. Claude-owned work belongs under this branch, `research/claude-mg-discovery/`, `src/a1clean/formula_research/claude_*.py`, or `.github/workflows/claude-*`.
 
-## What to read BEFORE changing code
+## Repo material that must be read before new formula work
 
-Read these repo-native materials completely:
+Read completely where present:
 
 - `README.md`
 - `docs/architecture.md`
@@ -41,172 +66,84 @@ Read these repo-native materials completely:
 - `src/a1clean/formula_research/telegram_mg_multihypothesis_v8b.py`
 - `src/a1clean/formula_research/telegram_mg_multihypothesis_v8c.py`
 - `src/a1clean/formula_research/outcome_path_quality.py`
-- `formula-packs/`
-- `formula-research/`
-- `plans/`
-- all MG request directories (`mg-*`, `telegram-mg-*`) and relevant `.github/workflows/` files.
+- `formula-packs/`, `formula-research/`, `plans/`
+- all `mg-*` / `telegram-mg-*` request directories and relevant `.github/workflows/` files
+- git history for those paths
 
-Then inspect the **git history** for those paths. Earlier failed approaches are evidence; do not erase them mentally.
+Earlier failed approaches are evidence. Do not erase them mentally.
 
-## Actions / artifact history that must be reviewed
+## Actions/artifact history to review
 
-Inspect GitHub Actions runs, job logs, and downloadable artifacts for MG research. At minimum review these known run IDs where available:
+Inspect workflow runs, logs, and artifact JSONs, not only workflow summaries. At minimum review when available:
 
-- `35006408023` — corrected V4 first-trigger replay authority.
-- `34999944377` — V5 full-universe outcome-first discovery.
-- `35013142224` — December 5-minute Telegram snapshot replay.
-- `35030436199` — V8D multi-hypothesis full-corpus run/current lineage; inspect its final status/log/artifact rather than assuming success.
+- `35006408023` — corrected V4 first-trigger replay
+- `34999944377` — V5 full-universe outcome-first discovery
+- `35013142224` — December 5-minute Telegram snapshot replay
+- `35030436199` — V8D multi-hypothesis full-corpus lineage; inspect final status/log/artifact rather than assuming success
 
-Also enumerate other workflows/runs whose names contain `MG`, `Telegram MG`, `trajectory`, `high-conviction`, `multihypothesis`, `frozen candidate`, or `formula research`. Read the artifact JSONs, not only workflow summaries.
+Enumerate other runs containing `MG`, `Telegram MG`, `trajectory`, `high-conviction`, `multihypothesis`, `frozen candidate`, or `formula research`.
 
-If an artifact or connected Drive source is inaccessible, record it explicitly as `UNAVAILABLE` and continue with what is verifiably accessible. Do not infer missing results.
+## Governed data semantics
 
-## Data semantics to preserve
+Current research uses OHLC, Volume, `RAW_Aux2` / physical Aux2 as `TRADE_VALUE_1M`, and `RAW_OpenInterest` / physical OpenInterest as `NBSS_VALUE_1M` in this dataset context. It is not futures open interest. HAKA/HAKI-like derived flow values are estimates, not true L1 order-book observations. Historical execution proxies must not be described as exact HAKA fills without actual L1 ask/queue data.
 
-Current governed RAW mapping used by the research code includes:
+## Production intent to preserve
 
-- OHLC
-- Volume
-- `RAW_Aux2` / physical Aux2 = `TRADE_VALUE_1M`
-- `RAW_OpenInterest` / physical OpenInterest = `NBSS_VALUE_1M` in this dataset context; it is not futures open interest.
-- Derived HAKA/HAKI-like flow estimates, where used, are estimates from value/NBSS semantics and are not true L1 bid/ask/order-book observations.
-
-Research execution proxies are historical approximations. Never describe them as proven exact HAKA fills unless true L1 ask/queue data is present.
-
-## Actual MG live/publication intent
-
-The eventual production architecture is:
+Production architecture remains:
 
 `HPX/AmiBroker universal IDX scan -> canonical current market state -> multiple fixed formula families -> Telegram presentation`.
 
-AmiBroker/universal engine scans the whole eligible universe once. Formula families do not perform independent market scans; they consume the same current state.
+The universal engine scans the whole universe once. Formula families consume that shared current state; they do not independently scan the market.
 
-MG publication contract:
+MG publication intent: starts 09:00 WIB, every valid 5-minute publication slot, public live columns `CODE | PRICE | CHG% | TP-1 | TP-2`, TP-1/TP-2 dynamic per snapshot. A ticker that still satisfies criteria at the next snapshot must appear again; if it ceases to qualify it disappears and may reappear later.
 
-- starts 09:00 WIB;
-- every valid 5-minute publication slot;
-- public live columns remain `CODE | PRICE | CHG% | TP-1 | TP-2`;
-- TP-1/TP-2 are dynamic per snapshot;
-- if a ticker still satisfies the applicable MG criteria at the next 5-minute snapshot, it MUST appear again; repeated appearances are expected, not duplicates;
-- if it ceases to qualify, it disappears; it may reappear if it qualifies again later;
-- replay-only reports may add TP hit time / P&L / path-quality columns, but those are outcome analysis, not the live signal contract.
+## Main independent research question
 
-## Main research question
+Use the richest available governed full-universe data to discover **many causal precursor -> ignition families**, not one guessed formula.
 
-Use the full governed data to discover **multiple causal precursor -> ignition families**, not one guessed formula.
+Test many multi-day precursor archetypes in parallel, including but not limited to:
 
-The user explicitly wants systematic testing of many hypotheses including, but not limited to:
+- sideways/base for 2/3/5/8/10 days before expansion
+- volatility/range compression
+- rise -> deep pullback -> multi-day base -> renewed move
+- decline/shakeout -> stabilization -> base -> ignition
+- abnormal Volume while price remains contained
+- abnormal Trade Value while price makes little progress
+- high effort / low price progress as possible absorption-like positioning
+- NBSS/flow build-up/change while price remains contained
+- repeated close-location/acceptance inside a range
+- progressive higher lows / tightening structure
+- prior-high/reclaim proximity
+- quiet period -> activity wake
+- any other recurring precursor the data reveals
 
-### Multi-day precursor hypotheses
+At every valid 5-minute snapshot also test causal ignition dimensions such as relative Volume/Value wake and acceleration, range expansion, price-path acceleration, high acceptance, fresh/reclaimed/renewed highs, flow expansion/continuation when available, price progress versus effort, pullback/reclaim/reacceleration, early-vs-late distinction, and failure patterns such as activity without progress, rejection, stale high, late chase, or one-bar spike.
 
-- sideways/base for 2/3/5/8/10 days before expansion;
-- volatility/range compression before expansion;
-- rise -> deep pullback -> multi-day base -> renewed move;
-- decline/shakeout -> stabilization -> base -> ignition;
-- abnormal volume while price remains contained;
-- abnormal trade value while price makes little progress;
-- high effort / low price progress as possible absorption-like positioning;
-- NBSS/flow build-up or change while price remains relatively contained;
-- repeated close-location/acceptance behavior inside a range;
-- progressive higher lows or tightening structure;
-- prior high/reclaim proximity;
-- quiet period followed by activity wake;
-- any other recurring precursor the data reveals. Do not limit discovery to this list.
+Do **not** collapse rich continuous data into a tiny boolean marker set too early. Analyze continuous ratios/distributions first, then derive signatures only after empirical separation is understood.
 
-### Intraday ignition hypotheses
+Compare strong winners against **near-twin failures** that looked similar before/at ignition but failed afterward. The formula should represent causal differences visible before the outcome.
 
-At every valid 5-minute snapshot test causal features such as:
+## Required breadth and validation
 
-- relative Volume wake and acceleration;
-- relative Trade Value wake and acceleration;
-- range expansion;
-- price-path acceleration;
-- price acceptance near high;
-- fresh high / reclaim / renewed high;
-- flow expansion/continuation when availability is proven;
-- response efficiency: price progress relative to effort/value;
-- pullback/reclaim/reacceleration;
-- early-session vs late-lift distinction;
-- failure markers: large activity without price progress, rejection, stale high, distribution-like response, late chase, one-bar spike, etc.
+Do not mutate one formula repeatedly until it fits. Maintain many independent hypotheses and combinations. A candidate family should normally include at least one multi-day precursor, one current-day ignition condition, and optional anti-failure conditions.
 
-## Critical methodology
+For every candidate and for useful unions/intersections report at minimum signal count, unique ticker-days/dates, positive net MFE rate, Q10/Q25/median/Q75/Q90 net MFE, MAE/pre-peak MAE, time to first positive net outcome, time to peak, reward/adverse, TP1/TP2 hit rate and timing where targets exist, EOD retention, profitable-opportunity coverage/recall, missed winners, false positives, unconditional baseline, and discovery-vs-validation results separately.
 
-Do **not** choose arbitrary thresholds such as `volume > 2x` because they sound plausible. Generate continuous features, learn candidate cut points/quantiles only from the discovery block, freeze them, and replay the unchanged formula on validation blocks.
+A formula around 55–59% positive rate with negative Q25 is not a high-quality MG answer merely because it beats a ~50% baseline.
 
-Do not collapse rich continuous data into a tiny set of booleans too early. Preserve and analyze continuous ratios/distributions first; booleans/signatures may be created only after the empirical separation is understood.
+## Claude-owned output
 
-Compare each strong winner path with **near-twin failures**: cases that looked similar before/at ignition but failed afterward. The useful formula is the causal difference visible before the outcome, not the description of the winner after the fact.
+Write:
 
-## Required experimental breadth
+- `research/claude-mg-discovery/RESEARCH_LEDGER.md` — append-only chronological experiment ledger, including failures
+- `research/claude-mg-discovery/RESEARCH_AUDIT.md` — prior-work audit, data gaps, winner archetypes, matched failures, planned experiments, executed results, survivors
+- `research/claude-mg-discovery/HYPOTHESIS_REGISTRY.json` — machine-readable hypothesis registry
+- `research/claude-mg-discovery/results/` — result JSONs/summaries
+- `src/a1clean/formula_research/claude_*.py` — Claude-owned research code
+- `.github/workflows/claude-*` — Claude-owned workflows
 
-Run many independent hypotheses and combinations in parallel. A candidate family should normally contain at least:
-
-- one multi-day precursor condition;
-- one current-day/intraday ignition condition;
-- optional anti-failure condition(s).
-
-Do not repeatedly mutate one formula until it fits. Keep a registry of hypotheses including failures, support, precision, coverage/recall, and validation performance.
-
-## Outcome / validation measurements
-
-For each candidate and for the union/intersection of useful families report at minimum:
-
-- signal/event count;
-- unique ticker-days and unique dates;
-- positive net MFE rate;
-- Q10 / Q25 / median / Q75 / Q90 net MFE;
-- MAE and pre-peak MAE;
-- time/number of bars to first positive net outcome;
-- time to peak;
-- reward-to-adverse ratio;
-- TP-1 hit rate and first hit time when replay target exists;
-- TP-2 hit rate and first hit time when replay target exists;
-- same-day EOD retention where relevant;
-- profitable opportunity coverage / recall;
-- missed winners;
-- false positives;
-- comparison with unconditional/full-universe baseline;
-- discovery vs each untouched validation period separately.
-
-A candidate that only produces ~55% positive rate with negative Q25 is not considered a high-quality MG answer merely because it beats a ~50% baseline slightly.
-
-## Independent Claude lane output
-
-Do not simply copy or tweak the GPT result. Create an independent research trail.
-
-Write outputs under:
-
-- `research/claude-mg-discovery/RESEARCH_LEDGER.md` — append-only chronological experiments, including failures.
-- `research/claude-mg-discovery/HYPOTHESIS_REGISTRY.json` — machine-readable hypothesis registry.
-- `research/claude-mg-discovery/results/` — result JSONs/summaries.
-- `src/a1clean/formula_research/claude_*.py` — Claude-owned research code if code is required.
-- `.github/workflows/claude-*` — Claude-owned workflows if execution is required.
-
-Every result must record source identity, commit SHA, workflow/run ID when applicable, formula/signature, discovery period, validation period, support, metrics, and whether future data was used only as a label.
-
-## First deliverable
-
-Before proposing a final formula, produce `research/claude-mg-discovery/RESEARCH_AUDIT.md` containing:
-
-1. What prior GPT/repo research actually tested.
-2. Which approaches failed and why, based on artifacts/results rather than opinion.
-3. What rich data dimensions were underused.
-4. A data-backed map of winner precursor archetypes found across the corpus.
-5. A matched map of near-twin failures.
-6. The set of independent experiments Claude will run.
-7. Results of those experiments and surviving candidates.
-
-Only after this audit and validation should Claude propose a candidate formula pack.
+Every result must record source identity, commit SHA, workflow/run ID, formula/signature, discovery period, validation period, support, metrics, and whether future data was label-only.
 
 ## Collaboration rule with GPT lane
 
-Treat GPT and Claude as independent researchers using the same governed evidence. Do not optimize toward agreement. Later, compare:
-
-- Claude-only candidates;
-- GPT-only candidates;
-- union of families;
-- intersection / consensus conditions;
-- which system captures profitable opportunities the other misses;
-- which apparent edges fail out of sample.
-
-The data decides. Agreement between models is not itself validation.
+Claude and GPT are independent researchers using the same governed evidence. Do not optimize toward agreement. Later compare Claude-only candidates, GPT-only candidates, union, intersection/consensus conditions, missed profitable opportunities, false positives, and OOS failures. **The data decides; agreement between models is not validation.**
