@@ -33,10 +33,9 @@ jobs:
           if ($req.schema -ne 'A1_MG_FROZEN_REPLAY_REQUEST_V1') { throw 'Unsupported request schema.' }
           if ($req.enabled -ne $true) { throw 'Request disabled.' }
           if ($req.authorization_phrase -ne 'AUTHORIZE_MG_FROZEN_CANDIDATE_REPLAY') { throw 'Authorization phrase required.' }
-          if (-not (Test-Path -LiteralPath $req.pack_path -PathType Leaf)) { throw 'Frozen pack missing.' }
           if ($req.source_names -contains 'Raw Maret 03-31-2025.csv') { throw 'March OOS remains untouched.' }
-          $json = $req | ConvertTo-Json -Compress -Depth 20
-          "A1_MG_FROZEN_REPLAY_REQUEST_JSON=$json" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          if ([string]::IsNullOrWhiteSpace([string]$req.target_date)) { throw 'Target date required.' }
+          if (-not $req.target_snapshots) { throw 'Target snapshots required.' }
 
       - name: Verify Drive bindings
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
@@ -61,30 +60,13 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          $req = $env:A1_MG_FROZEN_REPLAY_REQUEST_JSON | ConvertFrom-Json
-          $argsList = @(
-            '-3.11','-m','a1clean.formula_research.mg_telegram_snapshot_outcome_replay',
-            '--pack',[string]$req.pack_path,
-            '--output','mg-telegram-snapshot-outcome-replay-result.json',
-            '--prior-window',[string][int]$req.prior_window,
-            '--buy-fee-pct',[string][double]$req.execution.buy_fee_pct,
-            '--sell-fee-pct',[string][double]$req.execution.sell_fee_pct,
-            '--effort-lookback',[string][int]$req.params.effort_lookback,
-            '--progress-lookback',[string][int]$req.params.progress_lookback,
-            '--high-lookback',[string][int]$req.params.high_lookback,
-            '--recovery-lookback',[string][int]$req.params.recovery_lookback,
-            '--low-stabilization-bars',[string][int]$req.params.low_stabilization_bars,
-            '--early-checkpoint-bar',[string][int]$req.params.early_checkpoint_bar,
-            '--late-lift-min-bar',[string][int]$req.params.late_lift_min_bar
-          )
-          foreach ($source in $req.source_names) { $argsList += @('--source-name',[string]$source) }
-          & py @argsList
-          if ($LASTEXITCODE -ne 0) { throw "MG_TELEGRAM_SNAPSHOT_OUTCOME_REPLAY_FAILED:$LASTEXITCODE" }
+          & py -3.11 -m a1clean.formula_research.mg_telegram_targeted_snapshot_outcomes --request 'mg-frozen-replay-requests/current.json' --output 'mg-telegram-targeted-snapshot-outcomes.json'
+          if ($LASTEXITCODE -ne 0) { throw "MG_TARGETED_SNAPSHOT_OUTCOME_REPLAY_FAILED:$LASTEXITCODE" }
 
       - name: Upload replay artifact
         uses: actions/upload-artifact@v4
         with:
           name: mg-frozen-candidate-replay-${{ github.run_id }}
-          path: mg-telegram-snapshot-outcome-replay-result.json
+          path: mg-telegram-targeted-snapshot-outcomes.json
           if-no-files-found: error
           retention-days: 30
