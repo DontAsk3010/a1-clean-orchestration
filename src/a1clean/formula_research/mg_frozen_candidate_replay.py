@@ -8,12 +8,14 @@ from typing import Any, Mapping, Sequence
 
 from ..google_drive import build_drive_api
 from ..pattern_discovery.source_reader import GovernedSourceReader
+from .comparable_context_cache import build_history_context_series
 from .formula_replay import packet_to_formula_bars
 from .handbook_candidates import CandidateParams, evaluate_intraday_candidates
-from .telegram_mg_behavior_topology_v2 import _is_true, _num, _pullback_reaccel_features
+from .telegram_mg_behavior_topology_v2 import _is_true, _num, _pullback_reaccel_features, _topology_states
+from .telegram_mg_multiday_context_study import DayRecord
 from .telegram_mg_outcome_first_discovery_v5 import _metric, _outcome_at, _scan_source
 from .telegram_mg_replay import evaluate_mg_packet
-from .telegram_mg_sequence_discovery_v4 import sequence_markers
+from .telegram_mg_sequence_discovery_v4 import _snapshot, sequence_markers
 
 
 REPORT_CAPITAL_PER_PICK_RP = 5_000_000.0
@@ -93,7 +95,9 @@ def _fast_snapshot(*, mg: Mapping[str, Any], base: Mapping[str, Any], pr: Mappin
     }
 
 
-def _can_fast_path(candidate_parts: Mapping[str, tuple[str, ...]]) -> bool:
+def _can_fast_path(candidate_parts: Mapping[str, tuple[str, ...]], parent_gate: Mapping[str, Any] | None) -> bool:
+    if parent_gate:
+        return False
     used = {m for parts in candidate_parts.values() for m in parts}
     return bool(used) and used.issubset(FAST_BRIDGE_MARKERS)
 
@@ -133,11 +137,8 @@ def _scan_fast_bridge(
                         seen_formula.add(fid)
                         outcome = _outcome_at(bars, i, buy_fee_pct, sell_fee_pct)
                         matched[fid].append({
-                            **outcome,
-                            "source": source_name,
-                            "trading_date": date,
-                            "ticker": ticker,
-                            "timestamp": mg.get("timestamp"),
+                            **outcome, "source": source_name, "trading_date": date,
+                            "ticker": ticker, "timestamp": mg.get("timestamp"),
                             "signal_price": _num(bars[i].get("close")),
                         })
                 publication_snapshots.append(snap)
@@ -145,11 +146,103 @@ def _scan_fast_bridge(
     return matched, packet_counts
 
 
+def _scan_first_parent_bridge(
+    *, source_names: Sequence[str], candidate_parts: Mapping[str, tuple[str, ...]],
+    params: CandidateParams, prior_window: int, buy_fee_pct: float, sell_fee_pct: float,
+    parent_gate: Mapping[str, Any],
+) -> tuple[dict[str, list[dict[str, Any]]], dict[str, int]]:
+    required_states = tuple(str(x) for x in parent_gate.get("required_current_states") or ())
+    if required_states != (
+        "J05_FLOW_RESILIENT_CONTINUATION", "J06_EARLY_STRENGTH_RETAINED"
+    ):
+        raise ValueError("UNSUPPORTED_PARENT_GATE")
+    if parent_gate.get("evaluate_signature_only_at_first_parent_match_per_ticker_day") is not True:
+        raise ValueError("FIRST_PARENT_MATCH_REQUIRED")
+
+    matched: dict[str, list[dict[str, Any]]] = {fid: [] for fid in candidate_parts}
+    packet_counts: dict[str, int] = {}
+    history: dict[str, dict[str, DayRecord]] = defaultdict(dict)
+    completed_dates: list[str] = []
+    seen_dates: set[str] = set()
+    current_date: str | None = None
+
+    def close_date(d: str | None) -> None:
+        if d is None or d in seen_dates:
+            return
+        completed_dates.append(d)
+        seen_dates.add(d)
+        keep = set(completed_dates[-(prior_window + 2):])
+        for ticker in list(history):
+            history[ticker] = {k: v for k, v in history[ticker].items() if k in keep}
+            if not history[ticker]:
+                del history[ticker]
+
+    for source_name in source_names:
+        api = build_drive_api(read_write=False)
+        reader = GovernedSourceReader(api, source_name=source_name)
+        pc = 0
+        for _manifest_row, packet in reader.iter_packets():
+            pc += 1
+            date = str(packet.identity.trading_date)
+            if current_date is None:
+                current_date = date
+            elif date != current_date:
+                close_date(current_date)
+                current_date = date
+            all_bars, _ = packet_to_formula_bars(packet)
+            bars = [b for b in all_bars if b.get("session_eligible")]
+            if not bars:
+                continue
+            ticker = str(packet.identity.ticker)
+            prior_dates = completed_dates[-prior_window:] if len(completed_dates) >= prior_window else []
+            if len(prior_dates) == prior_window:
+                context_series = build_history_context_series(
+                    bars=bars, history_by_date=history.get(ticker, {}), prior_dates=prior_dates
+                )
+            else:
+                context_series = [None] * len(bars)
+
+            mg_rows = evaluate_mg_packet(bars, params)
+            base_rows = evaluate_intraday_candidates(bars, params)
+            publication_snapshots: list[dict[str, bool]] = []
+            parent_seen = False
+            for i, (mg, base) in enumerate(zip(mg_rows, base_rows, strict=True)):
+                states, evidence = _topology_states(
+                    bars=bars, index=i, mg=mg, base=base,
+                    context=context_series[i], params=params,
+                )
+                if not mg.get("publication_slot"):
+                    continue
+                snap = _snapshot(mg=mg, base=base, evidence=evidence)
+                parent_match = all(bool(states.get(s)) for s in required_states)
+                if parent_match and not parent_seen:
+                    parent_seen = True
+                    markers = set(sequence_markers(snap, publication_snapshots))
+                    for fid, required in candidate_parts.items():
+                        if all(marker in markers for marker in required):
+                            outcome = _outcome_at(bars, i, buy_fee_pct, sell_fee_pct)
+                            matched[fid].append({
+                                **outcome, "source": source_name, "trading_date": date,
+                                "ticker": ticker, "timestamp": mg.get("timestamp"),
+                                "signal_price": _num(bars[i].get("close")),
+                            })
+                publication_snapshots.append(snap)
+            history.setdefault(ticker, {})[date] = DayRecord(
+                trading_date=date, bars=tuple(dict(b) for b in bars)
+            )
+        packet_counts[source_name] = pc
+    close_date(current_date)
+    return matched, packet_counts
+
+
 def replay_pack(
     pack: Mapping[str, Any], *, source_names: Sequence[str], params: CandidateParams,
     prior_window: int, buy_fee_pct: float, sell_fee_pct: float,
 ) -> dict[str, Any]:
-    if pack.get("schema") != "A1_TELEGRAM_MG_FROZEN_CANDIDATE_PACK_V1":
+    if pack.get("schema") not in {
+        "A1_TELEGRAM_MG_FROZEN_CANDIDATE_PACK_V1",
+        "A1_TELEGRAM_MG_FROZEN_CANDIDATE_PACK_V2",
+    }:
         raise ValueError("UNSUPPORTED_FROZEN_PACK_SCHEMA")
     if pack.get("future_data_in_executable_formula") is not False:
         raise ValueError("FROZEN_PACK_FUTURE_LEAKAGE")
@@ -166,18 +259,27 @@ def replay_pack(
             raise ValueError("FORBIDDEN_MARKER_REPLAY_NOT_IMPLEMENTED")
         candidate_parts[formula_id] = required
 
-    fast_path = _can_fast_path(candidate_parts)
-    if fast_path:
+    parent_gate = pack.get("parent_gate") if isinstance(pack.get("parent_gate"), Mapping) else None
+    if parent_gate:
+        matched, packet_counts = _scan_first_parent_bridge(
+            source_names=source_names, candidate_parts=candidate_parts, params=params,
+            prior_window=prior_window, buy_fee_pct=buy_fee_pct, sell_fee_pct=sell_fee_pct,
+            parent_gate=parent_gate,
+        )
+        implementation = "FIRST_K06_PARENT_GATE_EXACT_V4"
+    elif _can_fast_path(candidate_parts, parent_gate):
         matched, packet_counts = _scan_fast_bridge(
             source_names=source_names, candidate_parts=candidate_parts, params=params,
             buy_fee_pct=buy_fee_pct, sell_fee_pct=sell_fee_pct,
         )
+        implementation = "TARGETED_FAST_BRIDGE"
     else:
         matched, _, packet_counts = _scan_source(
             source_names=source_names, params=params, prior_window=prior_window,
             buy_fee_pct=buy_fee_pct, sell_fee_pct=sell_fee_pct,
             candidate_parts=candidate_parts,
         )
+        implementation = "GENERIC_V5_SCANNER"
 
     by_formula_period: dict[str, dict[str, list[dict[str, Any]]]] = {
         fid: {s: [] for s in source_names} for fid in candidate_parts
@@ -207,9 +309,10 @@ def replay_pack(
         str(r.get("ticker")), str(r.get("formula_id"))
     ))
     return {
-        "schema": "A1_TELEGRAM_MG_FROZEN_CANDIDATE_REPLAY_V3",
+        "schema": "A1_TELEGRAM_MG_FROZEN_CANDIDATE_REPLAY_V4",
         "status": "RESEARCH_REPLAY_NOT_CANONICAL",
-        "implementation": "TARGETED_FAST_BRIDGE" if fast_path else "GENERIC_V5_SCANNER",
+        "implementation": implementation,
+        "parent_gate": parent_gate,
         "source_names": list(source_names),
         "formula_count": len(formulas),
         "formulas": formulas,
@@ -242,10 +345,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     p.add_argument("--late-lift-min-bar", type=int, required=True)
     a = p.parse_args(argv)
     params = CandidateParams(
-        effort_lookback=a.effort_lookback,
-        progress_lookback=a.progress_lookback,
-        high_lookback=a.high_lookback,
-        recovery_lookback=a.recovery_lookback,
+        effort_lookback=a.effort_lookback, progress_lookback=a.progress_lookback,
+        high_lookback=a.high_lookback, recovery_lookback=a.recovery_lookback,
         low_stabilization_bars=a.low_stabilization_bars,
         early_checkpoint_bar=a.early_checkpoint_bar,
         late_lift_min_bar=a.late_lift_min_bar,
