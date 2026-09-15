@@ -1,0 +1,20 @@
+{
+  "schema": "A1_TELEGRAM_MG_FAILURE_STUDY_REQUEST_V1",
+  "request_id": "TELEGRAM_MG_FAILURE_STUDY_2024-12-03_MGB_20260915_01",
+  "enabled": true,
+  "authorization_phrase": "AUTHORIZE_TELEGRAM_MG_FAILURE_STUDY",
+  "source_name": "Raw Des 02-31-2024.csv",
+  "trading_date": "2024-12-03",
+  "variant": "MG_B_PATH_VALUE",
+  "drive_output_folder_id": "1uQKSZD8KbOZ2j3moyZiH1EuJPlEhEAuC",
+  "params": {
+    "effort_lookback": 5,
+    "progress_lookback": 5,
+    "high_lookback": 5,
+    "recovery_lookback": 10,
+    "low_stabilization_bars": 3,
+    "early_checkpoint_bar": 30,
+    "late_lift_min_bar": 180
+  },
+  "purpose": "Explain same-day MG success/failure from causal alert-time features and classify whether same-day NO_TP candidates instead continue on the next governed trading date. H+1 is evaluation-only and is not allowed to alter the H signal state."
+}
