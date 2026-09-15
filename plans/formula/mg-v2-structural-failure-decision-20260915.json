@@ -1,0 +1,35 @@
+{
+  "decision_id": "MG_V2_STRUCTURAL_FAILURE_REPLACE_20260915",
+  "status": "PRESERVED_NEGATIVE_EVIDENCE",
+  "source_run": {
+    "workflow": "Windows Telegram MG Behavior Topology V2",
+    "run_id": 34968184620,
+    "software_revision": "012018b3a3d4df9638a8abd1f398afe63cf64b3a",
+    "github_artifact_id": 10397906449,
+    "github_artifact_digest": "sha256:6aedf490322264102d6d225838030c35de6f6914849d8bf221a5c6f0b1f5da8a",
+    "drive_artifact_id": "1NTe1jqUqfMXNsdLE_0FqrIWZ63Tx82Ou",
+    "drive_sha256": "3a81c6abda15da1843315a103268546805c834da765b3a9a98bc29fff1bb8bf2"
+  },
+  "development_periods": [
+    "Raw Des 02-31-2024.csv",
+    "Raw Jan 01-31-2025.csv",
+    "Raw Feb 03-28-2025.csv"
+  ],
+  "untouched_oos": "Raw Maret 03-31-2025.csv",
+  "results": {
+    "J01_WAKE_RESPONSE_RETENTION": {"candidates": 4717, "qualified": 0, "training_examples": 4699},
+    "J02_RECOVERY_RECLAIM": {"candidates": 1536, "qualified": 0, "training_examples": 1521},
+    "J03_COMPRESSION_EXPANSION": {"candidates": 2266, "qualified": 0, "training_examples": 2264},
+    "J04_PULLBACK_REACCELERATION": {"candidates": 9057, "qualified": 0, "training_examples": 9009},
+    "J05_FLOW_RESILIENT_CONTINUATION": {"candidates": 6503, "qualified": 0, "training_examples": 6464},
+    "J06_EARLY_STRENGTH_RETAINED": {"candidates": 2254, "qualified": 0, "training_examples": 2250}
+  },
+  "interpretation": "All six broad behavior topologies produced zero candidates surviving the conservative prior-only profit-room gate across the development corpus. This is treated as structural failure of the tested component combinations, not as permission to rescue the result by repeatedly moving numeric thresholds.",
+  "decision": "DO_NOT_PROMOTE_OR_THRESHOLD_RESCUE_V2. PRESERVE_AS_FAILED_EVIDENCE. REPLACE_WITH_TRANSITION_AND_CONSENSUS_STRUCTURES_IN_V3.",
+  "replacement": {
+    "script": "src/a1clean/formula_research/telegram_mg_structural_discovery_v3.py",
+    "workflow": ".github/workflows/windows-telegram-mg-structural-discovery-v3.yml",
+    "request": "telegram-mg-structural-discovery-v3-requests/current.json",
+    "policy": "Measure raw post-signal executable reward distributions before re-applying a profit-room gate; compare across months and days; if structure remains weak, replace topology again rather than threshold-only tuning."
+  }
+}
