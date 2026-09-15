@@ -79,7 +79,9 @@ def packet_to_formula_bars(packet) -> tuple[list[dict[str, Any]], dict[str, str]
         trade_value = _num(row, mapping["trade_value"])
         is_index = _flag(row, mapping["symbol_is_index"])
         continuous = _flag(row, mapping["continuous_quotations"])
-        regular_clock = _flag(row, mapping["regular_session1"]) or _flag(row, mapping["regular_session2"])
+        regular_session1 = _flag(row, mapping["regular_session1"])
+        regular_session2 = _flag(row, mapping["regular_session2"])
+        regular_clock = regular_session1 or regular_session2
         ordinary_regular_stock = bool((not is_index) and continuous and regular_clock)
 
         # Current-clean retains physical zero.  For this candidate replay, non-zero
@@ -101,6 +103,8 @@ def packet_to_formula_bars(packet) -> tuple[list[dict[str, Any]], dict[str, str]
                 "flow_available": flow_available,
                 "mechanism_eligible": bool(ordinary_regular_stock and flow_available),
                 "session_eligible": ordinary_regular_stock,
+                "regular_session1": bool(regular_session1),
+                "regular_session2": bool(regular_session2),
                 "canonical_vwap": None,
                 "timestamp": ts.isoformat(sep=" "),
             }
@@ -222,53 +226,142 @@ def replay_source(
                     _record_event(metrics[formula_id], bars, i, horizons)
                 previous_true = is_true
 
-        highs = [float(bar["high"]) for bar in bars if bar["high"] is not None]
-        lows = [float(bar["low"]) for bar in bars if bar["low"] is not None]
-        closes = [float(bar["close"]) for bar in bars if bar["close"] is not None]
-        if highs and lows and closes:
-            ticker_sessions[packet.identity.ticker].append(
+        if bars:
+            ticker_sessions[str(packet.identity.ticker)].append(
                 {
-                    "trading_date": packet.identity.trading_date,
-                    "high": max(highs),
-                    "low": min(lows),
-                    "close": closes[-1],
-                    "activity": sum(float(bar["trade_value"] or 0.0) for bar in bars),
+                    "trading_date": str(packet.identity.trading_date),
+                    "bars": bars,
+                    "states": states,
                 }
             )
 
-    f06_counts = {
-        "F06A_PRICE_PROGRESS": {"TRUE": 0, "FALSE": 0, "UNKNOWN": 0},
-        "F06B_PRICE_ACTIVITY_PROGRESS": {"TRUE": 0, "FALSE": 0, "UNKNOWN": 0},
+    progressive_metrics: dict[str, dict[str, dict[str, float | int]]] = defaultdict(dict)
+    progressive_counts = {"TRUE": 0, "FALSE": 0, "UNKNOWN": 0}
+    progressive_outcomes = {
+        "TRUE": {"sessions": 0, "positive_close": 0, "sum_close_return": 0.0},
+        "FALSE": {"sessions": 0, "positive_close": 0, "sum_close_return": 0.0},
+        "UNKNOWN": {"sessions": 0, "positive_close": 0, "sum_close_return": 0.0},
     }
-    for sessions in ticker_sessions.values():
-        sessions.sort(key=lambda row: str(row["trading_date"]))
-        for row in evaluate_progressive_h2_h1(sessions):
-            for formula_id in f06_counts:
-                f06_counts[formula_id][row[formula_id]] += 1
+    for ticker, sessions in ticker_sessions.items():
+        sessions.sort(key=lambda row: row["trading_date"])
+        daily_inputs = []
+        for session in sessions:
+            bars = session["bars"]
+            states = session["states"]
+            closes = [float(bar["close"]) for bar in bars if bar.get("close") is not None]
+            highs = [float(bar["high"]) for bar in bars if bar.get("high") is not None]
+            lows = [float(bar["low"]) for bar in bars if bar.get("low") is not None]
+            daily_inputs.append(
+                {
+                    "trading_date": session["trading_date"],
+                    "open": closes[0] if closes else None,
+                    "high": max(highs) if highs else None,
+                    "low": min(lows) if lows else None,
+                    "close": closes[-1] if closes else None,
+                    "states": states,
+                }
+            )
+        progressive_rows = evaluate_progressive_h2_h1(daily_inputs, params)
+        for idx, state_row in enumerate(progressive_rows):
+            state = state_row["state"]
+            progressive_counts[state] += 1
+            bars = sessions[idx]["bars"]
+            if bars:
+                first_close = bars[0].get("close")
+                last_close = bars[-1].get("close")
+                if first_close not in (None, 0.0) and last_close is not None:
+                    ret = float(last_close) / float(first_close) - 1.0
+                    bucket = progressive_outcomes[state]
+                    bucket["sessions"] += 1
+                    bucket["positive_close"] += int(ret > 0)
+                    bucket["sum_close_return"] += ret
+
+    progressive_summary = {}
+    for state, raw in progressive_outcomes.items():
+        n = int(raw["sessions"])
+        progressive_summary[state] = {
+            "sessions": n,
+            "positive_close_rate": (float(raw["positive_close"]) / n) if n else None,
+            "mean_close_return": (float(raw["sum_close_return"]) / n) if n else None,
+        }
 
     return {
-        "schema": "A1_CANDIDATE_FORMULA_CAUSAL_REPLAY_RESULT_V1",
+        "schema": "A1_CANDIDATE_FORMULA_REPLAY_V1",
         "status": "RESEARCH_RESULT_NOT_CANONICAL",
         "source_identity": reader.identity.as_dict(),
-        "candidate_spec_id": "A1_HANDBOOK_DERIVED_CANDIDATE_FORMULAS_V1",
         "params": asdict(params),
-        "forward_horizons_regular_bars": [int(value) for value in horizons],
         "packet_count": packet_count,
         "raw_row_count": raw_row_count,
         "formula_regular_row_count": formula_row_count,
-        "field_mappings_observed": [json.loads(value) for value in sorted(field_mappings)],
-        "flow_availability_policy": "SOURCE_SCOPED_HISTORICAL_SEMANTICS_PLUS_ROW_NBSS_NONZERO_POPULATION_PROOF; PHYSICAL_ZERO_REMAINS_UNKNOWN_UNTIL_INDEPENDENT_AVAILABILITY_IS_BOUND",
-        "session_policy": "FORMULA_REPLAY_USES_ONLY_DATA_PLANE_REGULAR_SESSION1_OR_SESSION2_ROWS_FOR_ORDINARY_CONTINUOUS_NON_INDEX_STOCKS",
-        "canonical_vwap_policy": "NOT_SYNTHESIZED; VWAP_DEPENDENT_VARIANTS_REMAIN_UNKNOWN",
-        "intraday_state_counts": state_counts,
-        "intraday_event_forward_metrics": _finalize(metrics),
-        "multiday_context_state_counts": f06_counts,
-        "outcome_is_evaluation_only_not_formula_input": True,
-        "future_data_used_for_candidate_state": False,
+        "field_mappings": [json.loads(item) for item in sorted(field_mappings)],
+        "state_counts": state_counts,
+        "intraday_first_event_metrics": _finalize(metrics),
+        "progressive_state_counts": progressive_counts,
+        "progressive_same_day_outcomes": progressive_summary,
+        "future_data_used_for_intraday_state": False,
+        "future_data_used_only_for_evaluation": True,
         "winner_only_filter_used": False,
-        "failed_variants_preserved": True,
+        "all_eligible_source_packets_scanned": max_packets == 0,
+        "canonical_vwap_synthesized": False,
+        "final_or_canonical_claim": False,
     }
 
 
-def write_result(path: str | Path, result: Mapping[str, Any]) -> None:
-    Path(path).write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+def _parse_horizons(value: str) -> list[int]:
+    items = [int(item.strip()) for item in value.split(",") if item.strip()]
+    if not items or any(item < 1 for item in items):
+        raise argparse.ArgumentTypeError("horizons must be positive integers")
+    return items
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(prog="a1clean-candidate-formula-replay")
+    parser.add_argument("--source-name", required=True)
+    parser.add_argument("--request-id", required=True)
+    parser.add_argument("--software-revision", required=True)
+    parser.add_argument("--drive-output-folder-id", required=True)
+    parser.add_argument("--output", required=True)
+    parser.add_argument("--horizons", type=_parse_horizons, required=True)
+    parser.add_argument("--max-packets", type=int, default=0)
+    parser.add_argument("--effort-lookback", type=int, required=True)
+    parser.add_argument("--progress-lookback", type=int, required=True)
+    parser.add_argument("--high-lookback", type=int, required=True)
+    parser.add_argument("--recovery-lookback", type=int, required=True)
+    parser.add_argument("--low-stabilization-bars", type=int, required=True)
+    parser.add_argument("--early-checkpoint-bar", type=int, required=True)
+    parser.add_argument("--late-lift-min-bar", type=int, required=True)
+    args = parser.parse_args(argv)
+
+    params = CandidateParams(
+        effort_lookback=args.effort_lookback,
+        progress_lookback=args.progress_lookback,
+        high_lookback=args.high_lookback,
+        recovery_lookback=args.recovery_lookback,
+        low_stabilization_bars=args.low_stabilization_bars,
+        early_checkpoint_bar=args.early_checkpoint_bar,
+        late_lift_min_bar=args.late_lift_min_bar,
+    )
+    result = replay_source(
+        source_name=args.source_name,
+        params=params,
+        horizons=args.horizons,
+        max_packets=args.max_packets,
+    )
+    result = {**result, "request_id": args.request_id, "software_revision": args.software_revision}
+    Path(args.output).write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    writer = build_drive_api(read_write=True)
+    store = _FolderStore(writer, args.drive_output_folder_id)
+    safe_request = "".join(ch for ch in args.request_id if ch.isalnum() or ch in "-_")
+    if not safe_request:
+        raise SystemExit("REQUEST_ID_HAS_NO_SAFE_CHARACTERS")
+    uploaded = store.upsert_json(
+        name=f"CANDIDATE_FORMULA_REPLAY__{safe_request}.json",
+        obj=result,
+    )
+    print(json.dumps({"pass": True, "result": result, "drive_artifact": uploaded}, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
