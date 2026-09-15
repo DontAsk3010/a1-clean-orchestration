@@ -1,4 +1,4 @@
-name: Machine1 BBSS Evidence Extract
+name: Machine1 BBTN Evidence Extract
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  extract-bbss:
+  extract-bbtn:
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 30
     env:
@@ -18,23 +18,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Extract exact governed BBSS packet
+      - name: Extract exact governed BBTN packet
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           @'
-          import csv, hashlib, json, os, pathlib, sys
+          import csv, hashlib, json, os, pathlib
 
           raw = pathlib.Path(os.environ['RAW_FILE'])
           expected_md5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
           expected_sha256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
-          expected_rows = list(range(180813, 180851))
-
+          expected_rows = list(range(181719, 182046))
           if not raw.is_file():
               raise SystemExit(f'RAW_MISSING: {raw}')
 
-          md5 = hashlib.md5()
-          sha256 = hashlib.sha256()
+          md5 = hashlib.md5(); sha256 = hashlib.sha256()
           with raw.open('rb') as f:
               for chunk in iter(lambda: f.read(8 * 1024 * 1024), b''):
                   md5.update(chunk); sha256.update(chunk)
@@ -42,52 +40,35 @@ jobs:
           if got_md5 != expected_md5 or got_sha256 != expected_sha256:
               raise SystemExit(f'RAW_HASH_MISMATCH md5={got_md5} sha256={got_sha256}')
 
-          hits = []
+          hits=[]
           with raw.open('r', encoding='utf-8-sig', newline='') as f:
-              reader = csv.DictReader(f)
-              for source_row, row in enumerate(reader, start=1):
-                  if row.get('RAW_TICKER') == 'BBSS' and row.get('RAW_DATETIME_ISO','').startswith('2024-12-03'):
-                      hits.append((source_row, row))
-
-          rows = [n for n,_ in hits]
-          if len(hits) != 38:
-              raise SystemExit(f'BBSS_ROW_COUNT_MISMATCH count={len(hits)} rows={rows[:5]}..{rows[-5:] if rows else []}')
+              reader=csv.DictReader(f)
+              for source_row,row in enumerate(reader,start=1):
+                  if row.get('RAW_TICKER') == 'BBTN' and row.get('RAW_DATETIME_ISO','').startswith('2024-12-03'):
+                      hits.append((source_row,row))
+          rows=[n for n,_ in hits]
+          if len(hits) != 327:
+              raise SystemExit(f'BBTN_ROW_COUNT_MISMATCH count={len(hits)}')
           if rows != expected_rows:
-              raise SystemExit(f'BBSS_SOURCE_ROW_MISMATCH got={rows} expected={expected_rows}')
+              raise SystemExit(f'BBTN_SOURCE_ROW_MISMATCH first={rows[:5]} last={rows[-5:]}')
+          first_dt=hits[0][1]['RAW_DATETIME_ISO']; last_dt=hits[-1][1]['RAW_DATETIME_ISO']
+          if '08:59' not in first_dt or '16:14' not in last_dt:
+              raise SystemExit(f'BBTN_BOUNDARY_TIME_MISMATCH first={first_dt} last={last_dt}')
 
-          first_dt = hits[0][1]['RAW_DATETIME_ISO']
-          last_dt = hits[-1][1]['RAW_DATETIME_ISO']
-          if '09:00' not in first_dt or '16:03' not in last_dt:
-              raise SystemExit(f'BBSS_BOUNDARY_TIME_MISMATCH first={first_dt} last={last_dt}')
-
-          out = pathlib.Path('machine1_bbss_evidence')
-          out.mkdir(exist_ok=True)
-          packet = {
-              'source_name': raw.name,
-              'source_md5': got_md5,
-              'source_sha256': got_sha256,
-              'ticker': 'BBSS',
-              'trading_date': '2024-12-03',
-              'source_row_first': rows[0],
-              'source_row_last': rows[-1],
-              'data_rows': len(hits),
-              'first_datetime': first_dt,
-              'last_datetime': last_dt,
-              'header_fields': list(hits[0][1].keys()),
-              'rows': [{'source_row': n, **r} for n,r in hits],
-          }
-          (out/'BBSS_20241203_PACKET.json').write_text(json.dumps(packet, ensure_ascii=False, indent=2), encoding='utf-8')
-          with (out/'BBSS_20241203_ROWS.jsonl').open('w', encoding='utf-8', newline='\n') as w:
+          out=pathlib.Path('machine1_bbtn_evidence'); out.mkdir(exist_ok=True)
+          packet={'source_name':raw.name,'source_md5':got_md5,'source_sha256':got_sha256,'ticker':'BBTN','trading_date':'2024-12-03','source_row_first':rows[0],'source_row_last':rows[-1],'data_rows':len(hits),'first_datetime':first_dt,'last_datetime':last_dt,'header_fields':list(hits[0][1].keys()),'rows':[{'source_row':n,**r} for n,r in hits]}
+          (out/'BBTN_20241203_PACKET.json').write_text(json.dumps(packet,ensure_ascii=False,indent=2),encoding='utf-8')
+          with (out/'BBTN_20241203_ROWS.jsonl').open('w',encoding='utf-8',newline='\n') as w:
               for n,r in hits:
-                  w.write(json.dumps({'source_row': n, **r}, ensure_ascii=False, separators=(',',':'))+'\n')
-          print(f'BBSS_PACKET_PASS rows={len(hits)} source_rows={rows[0]}-{rows[-1]} first={first_dt} last={last_dt}')
-          '@ | Set-Content -LiteralPath extract_bbss.py -Encoding UTF8
-          py -3.11 extract_bbss.py
+                  w.write(json.dumps({'source_row':n,**r},ensure_ascii=False,separators=(',',':'))+'\n')
+          print(f'BBTN_PACKET_PASS rows={len(hits)} source_rows={rows[0]}-{rows[-1]} first={first_dt} last={last_dt}')
+          '@ | Set-Content -LiteralPath extract_bbtn.py -Encoding UTF8
+          py -3.11 extract_bbtn.py
 
-      - name: Upload BBSS evidence packet
+      - name: Upload BBTN evidence packet
         uses: actions/upload-artifact@v4
         with:
-          name: machine1-bbss-20241203-evidence
-          path: machine1_bbss_evidence/
+          name: machine1-bbtn-20241203-evidence
+          path: machine1_bbtn_evidence/
           if-no-files-found: error
           retention-days: 7
