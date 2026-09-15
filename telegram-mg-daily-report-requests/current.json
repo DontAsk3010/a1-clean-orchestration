@@ -1,0 +1,21 @@
+{
+  "schema": "A1_TELEGRAM_MG_DAILY_REPORT_REQUEST_V1",
+  "request_id": "TELEGRAM_MG_DAILY_2024-12-03_MGB_20260915_01",
+  "enabled": true,
+  "authorization_phrase": "AUTHORIZE_TELEGRAM_MG_DAILY_REPORT",
+  "source_name": "Raw Des 02-31-2024.csv",
+  "trading_date": "2024-12-03",
+  "variant": "MG_B_PATH_VALUE",
+  "drive_output_folder_id": "1uQKSZD8KbOZ2j3moyZiH1EuJPlEhEAuC",
+  "params": {
+    "effort_lookback": 5,
+    "progress_lookback": 5,
+    "high_lookback": 5,
+    "recovery_lookback": 10,
+    "low_stabilization_bars": 3,
+    "early_checkpoint_bar": 30,
+    "late_lift_min_bar": 180
+  },
+  "parameter_status": "FROZEN_FROM_DECEMBER_MG_RESEARCH_LEADER_FOR_REPORTING_ONLY",
+  "purpose": "Render the exact 5-minute Telegram-style tape for the current MG_B research candidate on 2024-12-03, including NEW/CONTINUE/DROP/RETURN lifecycle and CODE | PRICE | CHG% | TP-1 | TP-2 rows."
+}
