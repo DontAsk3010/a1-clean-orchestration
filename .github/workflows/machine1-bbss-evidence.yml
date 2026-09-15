@@ -24,35 +24,32 @@ jobs:
           $ErrorActionPreference = 'Stop'
           @'
           import csv, hashlib, json, os, pathlib
-
           raw = pathlib.Path(os.environ['RAW_FILE'])
           expected_md5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
           expected_sha256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
           specs = {
-              'BDKR': {'first':198964,'last':199217,'count':254,'first_time':'09:00:00','last_time':'16:08:00'},
-              'BDMN': {'first':196751,'last':196862,'count':112,'first_time':'09:00:00','last_time':'16:13:00'},
-              'BEBS': {'first':202341,'last':202353,'count':13,'first_time':'09:55:00','last_time':'16:14:00'},
-              'BEEF': {'first':203271,'last':203304,'count':34,'first_time':'09:00:00','last_time':'16:00:00'},
-              'BEER': {'first':202554,'last':202582,'count':29,'first_time':'09:00:00','last_time':'16:00:00'},
-              'BEKS': {'first':204816,'last':204829,'count':14,'first_time':'09:55:00','last_time':'16:14:00'},
-              'BELI': {'first':204990,'last':205014,'count':25,'first_time':'09:00:00','last_time':'15:49:00'},
-              'BELL': {'first':205722,'last':205763,'count':42,'first_time':'09:00:00','last_time':'16:01:00'},
-              'BESS': {'first':206640,'last':206695,'count':56,'first_time':'09:00:00','last_time':'16:00:00'},
-              'BEST': {'first':208575,'last':208656,'count':82,'first_time':'09:06:00','last_time':'16:12:00'},
-              'BFIN': {'first':212498,'last':212733,'count':236,'first_time':'09:00:00','last_time':'16:09:00'},
-              'BGTG': {'first':210413,'last':210509,'count':97,'first_time':'09:00:00','last_time':'16:04:00'},
-              'BHAT': {'first':211957,'last':211987,'count':31,'first_time':'09:00:00','last_time':'15:26:00'},
-              'BHIT': {'first':212189,'last':212198,'count':10,'first_time':'09:55:00','last_time':'16:12:00'},
-              'BIKE': {'first':217516,'last':217681,'count':166,'first_time':'09:00:00','last_time':'16:03:00'},
-              'BIMA': {'first':215805,'last':215905,'count':101,'first_time':'09:00:00','last_time':'16:07:00'},
-              'BINA': {'first':217210,'last':217215,'count':6,'first_time':'09:00:00','last_time':'16:00:00'},
-              'BINO': {'first':220756,'last':221035,'count':280,'first_time':'09:00:00','last_time':'16:14:00'},
-              'BIPI': {'first':223967,'last':224251,'count':285,'first_time':'09:00:00','last_time':'16:13:00'},
-              'BIPP': {'first':223642,'last':223643,'count':2,'first_time':'09:55:00','last_time':'10:55:00'},
+              'BIRD': {'first':228797,'last':228982,'count':186,'first_time':'09:00:00','last_time':'16:09:00'},
+              'BISI': {'first':227734,'last':227788,'count':55,'first_time':'09:00:00','last_time':'16:13:00'},
+              'BISNIS-27': {'first':236589,'last':236923,'count':335,'first_time':'09:00:00','last_time':'16:14:00'},
+              'BJBR': {'first':232691,'last':232853,'count':163,'first_time':'09:00:00','last_time':'16:09:00'},
+              'BJTM': {'first':242939,'last':243198,'count':260,'first_time':'09:00:00','last_time':'16:13:00'},
+              'BKDP': {'first':242368,'last':242370,'count':3,'first_time':'09:55:00','last_time':'16:00:00'},
+              'BKSL': {'first':242429,'last':242444,'count':16,'first_time':'09:55:00','last_time':'16:12:00'},
+              'BKSW': {'first':247673,'last':247914,'count':242,'first_time':'09:00:00','last_time':'16:08:00'},
+              'BLES': {'first':250097,'last':250287,'count':191,'first_time':'09:00:00','last_time':'16:14:00'},
+              'BLTA': {'first':249822,'last':249826,'count':5,'first_time':'09:55:00','last_time':'16:00:00'},
+              'BLTZ': {'first':249918,'last':249919,'count':2,'first_time':'09:55:00','last_time':'10:55:00'},
+              'BLUE': {'first':252871,'last':252905,'count':35,'first_time':'09:00:00','last_time':'16:04:00'},
+              'BMAS': {'first':252809,'last':252812,'count':4,'first_time':'09:55:00','last_time':'16:00:00'},
+              'BMBL': {'first':253228,'last':253333,'count':106,'first_time':'09:00:00','last_time':'16:00:00'},
+              'BMHS': {'first':254365,'last':254475,'count':111,'first_time':'09:00:00','last_time':'16:00:00'},
+              'BMRI': {'first':260520,'last':260852,'count':333,'first_time':'08:59:00','last_time':'16:14:00'},
+              'BMSR': {'first':255907,'last':255916,'count':10,'first_time':'09:00:00','last_time':'15:20:00'},
+              'BMTR': {'first':256473,'last':256721,'count':249,'first_time':'09:00:00','last_time':'16:14:00'},
+              'BNBA': {'first':266340,'last':266392,'count':53,'first_time':'09:08:00','last_time':'15:44:00'},
+              'BNBR': {'first':267052,'last':267058,'count':7,'first_time':'09:55:00','last_time':'16:08:00'},
           }
-          if not raw.is_file():
-              raise SystemExit(f'RAW_MISSING: {raw}')
-
+          if not raw.is_file(): raise SystemExit(f'RAW_MISSING: {raw}')
           md5=hashlib.md5(); sha256=hashlib.sha256()
           with raw.open('rb') as f:
               for chunk in iter(lambda: f.read(8*1024*1024), b''):
@@ -60,7 +57,6 @@ jobs:
           got_md5, got_sha256=md5.hexdigest(), sha256.hexdigest()
           if got_md5 != expected_md5 or got_sha256 != expected_sha256:
               raise SystemExit(f'RAW_HASH_MISMATCH md5={got_md5} sha256={got_sha256}')
-
           hits={k:[] for k in specs}
           with raw.open('r',encoding='utf-8-sig',newline='') as f:
               reader=csv.DictReader(f)
@@ -68,23 +64,18 @@ jobs:
                   t=row.get('RAW_TICKER')
                   if t in hits and row.get('RAW_DATETIME_ISO','').startswith('2024-12-03'):
                       hits[t].append((source_row,row))
-
           out=pathlib.Path('machine1_next_chunk_evidence'); out.mkdir(exist_ok=True)
           manifest=[]
           for ticker,s in specs.items():
               arr=hits[ticker]; rows=[n for n,_ in arr]
-              if len(arr)!=s['count']:
-                  raise SystemExit(f'{ticker}_ROW_COUNT_MISMATCH got={len(arr)} expected={s["count"]}')
-              if rows != list(range(s['first'],s['last']+1)):
-                  raise SystemExit(f'{ticker}_SOURCE_ROW_MISMATCH first={rows[:3]} last={rows[-3:]}')
+              if len(arr)!=s['count']: raise SystemExit(f'{ticker}_ROW_COUNT_MISMATCH got={len(arr)} expected={s["count"]}')
+              if rows != list(range(s['first'],s['last']+1)): raise SystemExit(f'{ticker}_SOURCE_ROW_MISMATCH first={rows[:3]} last={rows[-3:]}')
               first_dt=arr[0][1]['RAW_DATETIME_ISO']; last_dt=arr[-1][1]['RAW_DATETIME_ISO']
-              if s['first_time'] not in first_dt or s['last_time'] not in last_dt:
-                  raise SystemExit(f'{ticker}_BOUNDARY_TIME_MISMATCH first={first_dt} last={last_dt}')
+              if s['first_time'] not in first_dt or s['last_time'] not in last_dt: raise SystemExit(f'{ticker}_BOUNDARY_TIME_MISMATCH first={first_dt} last={last_dt}')
               packet={'source_name':raw.name,'source_md5':got_md5,'source_sha256':got_sha256,'ticker':ticker,'trading_date':'2024-12-03','source_row_first':rows[0],'source_row_last':rows[-1],'data_rows':len(arr),'first_datetime':first_dt,'last_datetime':last_dt,'header_fields':list(arr[0][1].keys()),'rows':[{'source_row':n,**r} for n,r in arr]}
               (out/f'{ticker}_20241203_PACKET.json').write_text(json.dumps(packet,ensure_ascii=False,indent=2),encoding='utf-8')
               with (out/f'{ticker}_20241203_ROWS.jsonl').open('w',encoding='utf-8',newline='\n') as w:
-                  for n,r in arr:
-                      w.write(json.dumps({'source_row':n,**r},ensure_ascii=False,separators=(',',':'))+'\n')
+                  for n,r in arr: w.write(json.dumps({'source_row':n,**r},ensure_ascii=False,separators=(',',':'))+'\n')
               manifest.append({k:packet[k] for k in ['ticker','trading_date','source_row_first','source_row_last','data_rows','first_datetime','last_datetime']})
               print(f'{ticker}_PACKET_PASS rows={len(arr)} source_rows={rows[0]}-{rows[-1]} first={first_dt} last={last_dt}')
           (out/'CHUNK_MANIFEST.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
