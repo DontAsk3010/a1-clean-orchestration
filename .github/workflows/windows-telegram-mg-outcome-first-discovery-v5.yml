@@ -1,0 +1,108 @@
+name: Windows Telegram MG Outcome First Discovery V5
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - telegram-mg-outcome-first-discovery-v5-requests/current.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-telegram-mg-outcome-first-discovery-v5
+  cancel-in-progress: true
+
+jobs:
+  study:
+    name: Mine full-universe outcome-labeled MG fingerprints and validate first causal matches
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact research revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate V5 request
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'telegram-mg-outcome-first-discovery-v5-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_TELEGRAM_MG_OUTCOME_FIRST_DISCOVERY_V5_REQUEST_V1') { throw 'Unsupported V5 request schema.' }
+          if ($req.enabled -ne $true) { throw 'V5 request not enabled.' }
+          if ($req.authorization_phrase -ne 'AUTHORIZE_TELEGRAM_MG_OUTCOME_FIRST_DISCOVERY_V5') { throw 'Exact V5 authorization phrase required.' }
+          if ($req.drive_output_folder_id -ne '1uQKSZD8KbOZ2j3moyZiH1EuJPlEhEAuC') { throw 'Unexpected Formula Research output folder.' }
+          if ($req.source_names.Count -lt 3) { throw 'V5 requires discovery plus two validation periods.' }
+          if ($req.source_names -contains 'Raw Maret 03-31-2025.csv') { throw 'March OOS must remain untouched.' }
+          $json = $req | ConvertTo-Json -Compress -Depth 20
+          "A1_MG_V5_REQUEST_JSON=$json" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify Drive credential bindings
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($path in @($env:A1_DRIVE_READER_CREDENTIALS, $env:A1_DRIVE_WRITER_CREDENTIALS)) {
+            if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'Drive credential binding missing.' }
+          }
+
+      - name: Install compile and test exact research code
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[test]'
+          if ($LASTEXITCODE -ne 0) { throw 'MG_V5_INSTALL_FAILED' }
+          py -3.11 -m compileall -q src tests
+          if ($LASTEXITCODE -ne 0) { throw 'MG_V5_COMPILE_FAILED' }
+          py -3.11 -m pytest -q
+          if ($LASTEXITCODE -ne 0) { throw 'MG_V5_TESTS_FAILED' }
+
+      - name: Run V5 full-universe outcome-first discovery
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = $env:A1_MG_V5_REQUEST_JSON | ConvertFrom-Json
+          $argsList = @(
+            '-3.11', '-m', 'a1clean.formula_research.telegram_mg_outcome_first_discovery_v5',
+            '--request-id', [string]$req.request_id,
+            '--software-revision', '${{ github.sha }}',
+            '--drive-output-folder-id', [string]$req.drive_output_folder_id,
+            '--output', 'telegram-mg-outcome-first-discovery-v5-result.json',
+            '--prior-window', [string][int]$req.prior_window,
+            '--buy-fee-pct', [string][double]$req.execution.buy_fee_pct,
+            '--sell-fee-pct', [string][double]$req.execution.sell_fee_pct,
+            '--discovery-min-support', [string][int]$req.discovery_min_support,
+            '--validation-min-support', [string][int]$req.validation_min_support,
+            '--max-signature-size', [string][int]$req.max_signature_size,
+            '--top-marker-limit', [string][int]$req.top_marker_limit,
+            '--top-signature-limit', [string][int]$req.top_signature_limit,
+            '--effort-lookback', [string][int]$req.params.effort_lookback,
+            '--progress-lookback', [string][int]$req.params.progress_lookback,
+            '--high-lookback', [string][int]$req.params.high_lookback,
+            '--recovery-lookback', [string][int]$req.params.recovery_lookback,
+            '--low-stabilization-bars', [string][int]$req.params.low_stabilization_bars,
+            '--early-checkpoint-bar', [string][int]$req.params.early_checkpoint_bar,
+            '--late-lift-min-bar', [string][int]$req.params.late_lift_min_bar
+          )
+          foreach ($source in $req.source_names) { $argsList += @('--source-name', [string]$source) }
+          & py @argsList
+          if ($LASTEXITCODE -ne 0) { throw "MG_V5_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Upload V5 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-mg-outcome-first-discovery-v5-${{ github.run_id }}
+          path: telegram-mg-outcome-first-discovery-v5-result.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Research declaration
+        if: always()
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          "### Telegram MG Outcome First Discovery V5" >> $env:GITHUB_STEP_SUMMARY
+          "- No failed parent formula is required for discovery." >> $env:GITHUB_STEP_SUMMARY
+          "- December future outcome is label-only; candidate state is causal." >> $env:GITHUB_STEP_SUMMARY
+          "- January and February test exact unchanged signatures at their first causal match." >> $env:GITHUB_STEP_SUMMARY
+          "- March remains untouched OOS and H+1 is excluded." >> $env:GITHUB_STEP_SUMMARY
