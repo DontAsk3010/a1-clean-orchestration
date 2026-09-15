@@ -17,5 +17,6 @@
     "late_lift_min_bar": 180
   },
   "parameter_status": "FROZEN_FROM_DECEMBER_MG_RESEARCH_LEADER_FOR_REPORTING_ONLY",
+  "trigger_serial": 1,
   "purpose": "Render the exact 5-minute Telegram-style tape for the current MG_B research candidate on 2024-12-03, including NEW/CONTINUE/DROP/RETURN lifecycle and CODE | PRICE | CHG% | TP-1 | TP-2 rows."
 }
