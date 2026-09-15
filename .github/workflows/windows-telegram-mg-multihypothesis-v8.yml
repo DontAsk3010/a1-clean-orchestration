@@ -49,7 +49,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           py -3.11 -m pip install -e '.[test]'
           if ($LASTEXITCODE -ne 0) { throw 'MG_V8_INSTALL_FAILED' }
-          py -3.11 -m py_compile src/a1clean/formula_research/telegram_mg_multihypothesis_v8.py
+          py -3.11 -m py_compile src/a1clean/formula_research/telegram_mg_multihypothesis_v8.py src/a1clean/formula_research/telegram_mg_multihypothesis_v8b.py
           if ($LASTEXITCODE -ne 0) { throw 'MG_V8_COMPILE_FAILED' }
           py -3.11 -m pytest -q
           if ($LASTEXITCODE -ne 0) { throw 'MG_V8_TESTS_FAILED' }
@@ -59,12 +59,13 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $req = $env:A1_MG_V8_REQUEST_JSON | ConvertFrom-Json
-          & py -3.11 -m a1clean.formula_research.telegram_mg_multihypothesis_v8 `
+          & py -3.11 -m a1clean.formula_research.telegram_mg_multihypothesis_v8b `
             --output 'telegram-mg-multihypothesis-v8-result.json' `
             --prior-days ([string][int]$req.prior_days) `
             --buy-fee-pct ([string][double]$req.execution.buy_fee_pct) `
             --sell-fee-pct ([string][double]$req.execution.sell_fee_pct) `
             --min-support ([string][int]$req.min_support) `
+            --min-unique-days ([string][int]$req.min_unique_days) `
             --top-each ([string][int]$req.top_each) `
             --top-formulas ([string][int]$req.top_formulas)
           if ($LASTEXITCODE -ne 0) { throw "MG_V8_RUNTIME_FAILED:$LASTEXITCODE" }
