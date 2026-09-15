@@ -1,0 +1,87 @@
+name: Windows AmiBroker APX Discovery
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - amibroker-apx-discovery-requests/current.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-amibroker-apx-discovery
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    name: Discover AmiBroker Analysis project templates read-only
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate discovery request
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'amibroker-apx-discovery-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_AMIBROKER_APX_DISCOVERY_REQUEST_V1') { throw 'Unsupported APX discovery schema.' }
+          if ($req.enabled -ne $true) { throw 'APX discovery not enabled.' }
+          if ($req.authorization_phrase -ne 'AUTHORIZE_READ_ONLY_AMIBROKER_APX_DISCOVERY') { throw 'Exact authorization phrase required.' }
+
+      - name: Discover APX and Analysis-related files
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $roots = @(
+            'C:\Program Files\AmiBroker',
+            'C:\ProgramData\AmiBroker',
+            "$env:USERPROFILE\Documents\AmiBroker",
+            "$env:USERPROFILE\Documents",
+            "$env:APPDATA\AmiBroker",
+            "$env:LOCALAPPDATA\AmiBroker"
+          ) | Select-Object -Unique
+          $items = @()
+          foreach ($root in $roots) {
+            if (-not (Test-Path -LiteralPath $root -PathType Container)) { continue }
+            Get-ChildItem -LiteralPath $root -Recurse -File -ErrorAction SilentlyContinue |
+              Where-Object { $_.Extension -in @('.apx','.afl') -or $_.Name -match 'analysis|exploration|backtest' } |
+              ForEach-Object {
+                $hash = $null
+                try { $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() } catch {}
+                $items += [ordered]@{
+                  path = $_.FullName
+                  extension = $_.Extension
+                  size = $_.Length
+                  sha256 = $hash
+                  last_write_utc = $_.LastWriteTimeUtc.ToString('o')
+                }
+              }
+          }
+          $repoApx = @(Get-ChildItem -Path . -Filter *.apx -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
+            [ordered]@{ path=$_.FullName; extension=$_.Extension; size=$_.Length; sha256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant(); last_write_utc=$_.LastWriteTimeUtc.ToString('o') }
+          })
+          $result = [ordered]@{
+            schema = 'A1_AMIBROKER_APX_DISCOVERY_RESULT_V1'
+            machine = $env:COMPUTERNAME
+            searched_roots = $roots
+            discovered_count = $items.Count
+            apx_count = @($items | Where-Object { $_.extension -eq '.apx' }).Count
+            discovered = $items
+            repo_apx = $repoApx
+          }
+          $result | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath 'amibroker-apx-discovery-result.json' -Encoding UTF8
+          Get-Content -LiteralPath 'amibroker-apx-discovery-result.json'
+
+      - name: Upload discovery artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: amibroker-apx-discovery-${{ github.run_id }}
+          path: amibroker-apx-discovery-result.json
+          if-no-files-found: error
+          retention-days: 30
