@@ -6,17 +6,53 @@
 //   OpenInt-> NBSS_VALUE_1M (NOT futures OI in validated historical source scope)
 //   HAKA=(TRADE_VALUE+NBSS)/2 ; HAKI=(TRADE_VALUE-NBSS)/2
 // Flow semantics are valid only when availability and ordinary continuous-stock mechanism are proven.
+// Clock baseline is copied from the governed BAB D capability probe ruleset 202504;
+// it is calendar-aware for Monday-Thursday versus Friday and is NOT a 09:00-15:45 cutoff.
 
 _SECTION_BEGIN("A1 Handbook Candidate Formula Lab V1");
 SetBarsRequired( sbrAll, sbrAll );
+
+function PriorRegularMax( X, Cond, N )
+{
+    R = ValueWhen( Cond, X, 2 );
+    for( K = 3; K <= N + 1; K++ )
+        R = Max( R, ValueWhen( Cond, X, K ) );
+    return R;
+}
+
+function PriorRegularMin( X, Cond, N )
+{
+    R = ValueWhen( Cond, X, 2 );
+    for( K = 3; K <= N + 1; K++ )
+        R = Min( R, ValueWhen( Cond, X, K ) );
+    return R;
+}
+
+function PriorRegularMean( X, Cond, N )
+{
+    S = 0;
+    for( K = 2; K <= N + 1; K++ )
+        S = S + ValueWhen( Cond, X, K );
+    return S / N;
+}
 
 // ---------- SOURCE / AVAILABILITY GUARD ----------
 TradeValue = Aux2;
 NbssValue  = OpenInt;
 FlowSourceAvailable = ParamToggle("FLOW source availability PROVEN", "NO|YES", 0 );
 OrdinaryContinuousStock = ParamToggle("Ordinary continuous stock mechanism", "NO|YES", 1 );
-Tn = TimeNum();
-RegularClock = Tn >= 90000 AND Tn < 155000;
+
+TN = TimeNum();
+DOW = DayOfWeek();
+IS_MON_THU = DOW >= 1 AND DOW <= 4;
+IS_FRI = DOW == 5;
+CLK_SESSION1 =
+    ( IS_MON_THU AND TN >= 90000 AND TN <= 120000 ) OR
+    ( IS_FRI     AND TN >= 90000 AND TN <= 113000 );
+CLK_SESSION2 =
+    ( IS_MON_THU AND TN >= 133000 AND TN <= 154959 ) OR
+    ( IS_FRI     AND TN >= 140000 AND TN <= 154959 );
+RegularClock = CLK_SESSION1 OR CLK_SESSION2;
 FlowEligible = FlowSourceAvailable AND OrdinaryContinuousStock AND RegularClock;
 
 HakaValue = IIf( FlowEligible, ( TradeValue + NbssValue ) / 2, Null );
@@ -28,47 +64,56 @@ SellEffort = FlowEligible AND HakiValue > HakaValue;
 EffortLB   = Param("F01 effort lookback", 5, 1, 60, 1 );
 ProgressLB = Param("F01 progress lookback", 5, 1, 60, 1 );
 HighLB     = Param("F03 high lookback", 5, 1, 120, 1 );
-RecoveryLB = Param("F05 recovery lookback", 5, 1, 120, 1 );
+RecoveryLB = Param("F05 recovery lookback", 10, 1, 120, 1 );
 LowStableBars = Param("F05 low stabilization bars", 3, 1, 60, 1 );
 EarlyCheckpointBar = Param("F04 early checkpoint bar", 30, 1, 180, 1 );
 LateLiftMinBar = Param("F04 late lift minimum bar", 180, 2, 300, 1 );
 
+// ---------- REGULAR-SESSION CAUSAL FRAME ----------
+NewCalendarDate = DateNum() != Ref( DateNum(), -1 );
+SessionStart = CLK_SESSION1 AND ( NewCalendarDate OR NOT Ref( CLK_SESSION1, -1 ) );
+RegularCum = Cum( RegularClock );
+SessionStartRegularCum = ValueWhen( SessionStart, RegularCum, 1 );
+SessionBar = IIf( RegularClock, RegularCum - SessionStartRegularCum, Null );
+SessionOpen = ValueWhen( SessionStart, O, 1 );
+PrevRegularH = ValueWhen( RegularClock, H, 2 );
+PrevRegularL = ValueWhen( RegularClock, L, 2 );
+PrevRegularC = ValueWhen( RegularClock, C, 2 );
+
 // ---------- F01 BUY-STALL ----------
 // Handbook meaning: buy effort enters but price/high fails to progress.
-F01A_BuyStallBasic = BuyEffort AND H <= Ref( H, -1 ) AND C <= Ref( C, -1 );
-PriorHighF01  = Ref( HHV( H, ProgressLB ), -1 );
-PriorCloseF01 = Ref( HHV( C, ProgressLB ), -1 );
-PriorEffort   = Ref( MA( TradeValue, EffortLB ), -1 );
-F01B_BuyStallStaleHighEffort = BuyEffort
+F01A_BuyStallBasic = RegularClock AND SessionBar >= 1
+    AND BuyEffort AND H <= PrevRegularH AND C <= PrevRegularC;
+PriorHighF01  = PriorRegularMax( H, RegularClock, ProgressLB );
+PriorCloseF01 = PriorRegularMax( C, RegularClock, ProgressLB );
+PriorEffort   = PriorRegularMean( TradeValue, RegularClock, EffortLB );
+EnoughF01 = RegularClock AND SessionBar >= Max( EffortLB, ProgressLB );
+F01B_BuyStallStaleHighEffort = EnoughF01 AND BuyEffort
     AND H <= PriorHighF01
     AND C <= PriorCloseF01
     AND TradeValue > PriorEffort;
 
 // ---------- F02 SELL-RESILIENCE ----------
 // Handbook meaning: sell effort appears but price does not suffer proportional damage.
-F02A_SellResilienceBasic = SellEffort AND C >= Ref( C, -1 ) AND L >= Ref( L, -1 );
+F02A_SellResilienceBasic = RegularClock AND SessionBar >= 1
+    AND SellEffort AND C >= PrevRegularC AND L >= PrevRegularL;
 // Strict canonical-VWAP variant is deliberately not synthesized here.
 // It stays unavailable until an exact validated canonical VWAP array is bound into AFL.
 F02B_SellResilienceAcceptanceRenewal = 0;
 F02B_Availability = 0;
 
 // ---------- F03 FRESH / STALE HIGH ----------
-PriorHighF03 = Ref( HHV( H, HighLB ), -1 );
-F03A_NewHighEvent = H > PriorHighF03;
+PriorHighF03 = PriorRegularMax( H, RegularClock, HighLB );
+F03A_NewHighEvent = RegularClock AND SessionBar >= HighLB AND H > PriorHighF03;
 HasNewHigh = Cum( F03A_NewHighEvent ) > 0;
-F03B_HighAgeBars = IIf( HasNewHigh, BarsSince( F03A_NewHighEvent ), Null );
+LastHighRegularCum = ValueWhen( F03A_NewHighEvent, RegularCum, 1 );
+F03B_HighAgeBars = IIf( RegularClock AND HasNewHigh, RegularCum - LastHighRegularCum, Null );
 
-// ---------- SESSION FRAME FOR F04/F05 ----------
-NewCalendarDate = DateNum() != Ref( DateNum(), -1 );
-SessionStart = RegularClock AND ( NewCalendarDate OR NOT Ref( RegularClock, -1 ) );
-SessionBar = BarsSince( SessionStart );
-SessionOpen = ValueWhen( SessionStart, O, 1 );
+// ---------- F04 EARLY STRENGTH VS LATE LIFT ----------
 EarlyMark = RegularClock AND SessionBar == EarlyCheckpointBar - 1;
 EarlyClose = ValueWhen( EarlyMark, C, 1 );
 EarlyReady = RegularClock AND SessionBar >= EarlyCheckpointBar - 1;
 EarlyEstablished = EarlyReady AND EarlyClose > SessionOpen;
-
-// ---------- F04 EARLY STRENGTH VS LATE LIFT ----------
 F04A_EarlyStrengthRetained = EarlyReady AND EarlyEstablished AND C >= EarlyClose;
 F04B_LateLift = RegularClock
     AND SessionBar >= LateLiftMinBar - 1
@@ -76,14 +121,17 @@ F04B_LateLift = RegularClock
     AND C > SessionOpen;
 
 // ---------- F05 RECOVERY RUNNER ----------
-PriorWeakness = RegularClock AND Ref( LLV( C, RecoveryLB ), -1 ) < SessionOpen;
-SessionLowToHere = LowestSince( SessionStart, L );
-SessionNewLow = RegularClock AND L < Ref( SessionLowToHere, -1 );
-BarsSinceSessionLow = BarsSince( SessionNewLow );
+PriorRegularWeakClose = PriorRegularMin( C, RegularClock, RecoveryLB );
+PriorWeakness = RegularClock AND SessionBar >= RecoveryLB AND PriorRegularWeakClose < SessionOpen;
+SessionLowToHere = LowestSince( SessionStart, IIf( RegularClock, L, 1e20 ) );
+SessionNewLow = RegularClock AND SessionBar >= 1 AND L < Ref( SessionLowToHere, -1 );
+LastLowRegularCum = ValueWhen( SessionNewLow, RegularCum, 1 );
+BarsSinceSessionLow = RegularCum - LastLowRegularCum;
 LowStabilized = RegularClock
+    AND Cum( SessionNewLow ) > 0
     AND BarsSinceSessionLow >= LowStableBars
     AND BarsSinceSessionLow <= SessionBar;
-ReclaimSessionOpen = Cross( C, SessionOpen );
+ReclaimSessionOpen = RegularClock AND PrevRegularC <= SessionOpen AND C > SessionOpen;
 RenewedHigh = F03A_NewHighEvent;
 F05A_SessionOpenRecovery = PriorWeakness AND LowStabilized AND ReclaimSessionOpen AND RenewedHigh;
 // VWAP-specific recovery stays unavailable until canonical VWAP is bound exactly.
@@ -92,6 +140,7 @@ F05B_Availability = 0;
 
 // ---------- F06 PROGRESSIVE H-2 -> H-1 PREPARATION ----------
 // TimeFrameGetPrice with NEGATIVE shift reads completed prior sessions only.
+// Exact final Python<->AFL parity for daily aggregation remains a separate promotion gate.
 H1High  = TimeFrameGetPrice( "H", inDaily, -1 );
 H1Low   = TimeFrameGetPrice( "L", inDaily, -1 );
 H1Close = TimeFrameGetPrice( "C", inDaily, -1 );
@@ -129,6 +178,8 @@ AddColumn( TradeValue, "TradeValue1m", 1.0 );
 AddColumn( NbssValue, "NBSS1m", 1.0 );
 AddColumn( HakaValue, "HAKA1m", 1.0 );
 AddColumn( HakiValue, "HAKI1m", 1.0 );
+AddColumn( RegularClock, "RegularClock", 1.0 );
+AddColumn( SessionBar, "RegularSessionBar", 1.0 );
 AddColumn( FlowEligible, "FlowEligible", 1.0 );
 AddColumn( F01A_BuyStallBasic, "F01A BuyStall", 1.0 );
 AddColumn( F01B_BuyStallStaleHighEffort, "F01B BuyStall+Stale", 1.0 );
