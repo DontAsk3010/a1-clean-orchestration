@@ -1,13 +1,21 @@
 {
-  "schema": "A1_TELEGRAM_MG_FROZEN_CANDIDATE_PACK_V1",
+  "schema": "A1_TELEGRAM_MG_FROZEN_CANDIDATE_PACK_V2",
   "status": "RESEARCH_CANDIDATE_NOT_CANONICAL",
   "source_schema": "A1_TELEGRAM_MG_SEQUENCE_DISCOVERY_V4",
   "source_request_id": "TELEGRAM_MG_SEQUENCE_DISCOVERY_V4_DEC_DISCOVERY_JAN_FEB_VALIDATION_20260915_01",
   "strict_only": false,
   "formula_count": 2,
-  "runtime_rule": "CAUSAL_MARKERS_ONLY__FIRST_MATCH_PER_TICKER_DAY",
+  "runtime_rule": "FIRST_K06_PARENT_MATCH_PER_TICKER_DAY__THEN_CAUSAL_SEQUENCE_SIGNATURE",
   "future_data_in_executable_formula": false,
   "promotion_to_live_allowed": false,
+  "parent_gate": {
+    "formula_id": "K06_EARLY_RETAINED_FLOW",
+    "required_current_states": [
+      "J05_FLOW_RESILIENT_CONTINUATION",
+      "J06_EARLY_STRENGTH_RETAINED"
+    ],
+    "evaluate_signature_only_at_first_parent_match_per_ticker_day": true
+  },
   "formulas": [
     {
       "spec": {
@@ -18,7 +26,7 @@
         "status": "RESEARCH_CANDIDATE_NOT_CANONICAL",
         "future_data_used_for_formula_state": false
       },
-      "afl_boolean_expression": "(S_HELD_FLOW AND S_PRIOR3_RECLAIM AND S_REGAIN_RENEWED_HIGH)"
+      "afl_boolean_expression": "S_FIRST_K06_PARENT AND S_HELD_FLOW AND S_PRIOR3_RECLAIM AND S_REGAIN_RENEWED_HIGH"
     },
     {
       "spec": {
@@ -29,7 +37,7 @@
         "status": "RESEARCH_CANDIDATE_NOT_CANONICAL",
         "future_data_used_for_formula_state": false
       },
-      "afl_boolean_expression": "(S_HELD_FLOW AND S_PRIOR3_RECLAIM AND S_REGAIN_FRESH)"
+      "afl_boolean_expression": "S_FIRST_K06_PARENT AND S_HELD_FLOW AND S_PRIOR3_RECLAIM AND S_REGAIN_FRESH"
     }
   ]
 }
