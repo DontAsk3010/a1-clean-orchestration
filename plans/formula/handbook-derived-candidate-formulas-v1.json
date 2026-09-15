@@ -1,0 +1,78 @@
+{
+  "spec_id": "A1_HANDBOOK_DERIVED_CANDIDATE_FORMULAS_V1",
+  "status": "ACTIVE_RESEARCH_CANDIDATES_NOT_CANONICAL",
+  "owner_authorized": true,
+  "source_basis": [
+    "BEHAVIOR_RESEARCH_TRANSLATION_FUTURE_FORMULA_HANDBOOK",
+    "NARRATIVE_TO_DETERMINISTIC_TRANSLATION_TEACHING_HANDBOOK",
+    "CURRENT_PHYSICAL_CANONICAL_FIELD_DICTIONARY",
+    "LATEST_OWNER_INSTRUCTION_2026-09-15"
+  ],
+  "source_semantics": {
+    "TRADE_VALUE_1M": "RAW_Aux2; IDR transaction value per eligible historical stock transaction bar",
+    "NBSS_VALUE_1M": "RAW_OpenInterest physical slot in validated historical source; signed one-minute transaction-value imbalance; availability guard mandatory",
+    "HAKA_VALUE_1M": "(TRADE_VALUE_1M + NBSS_VALUE_1M) / 2",
+    "HAKI_VALUE_1M": "(TRADE_VALUE_1M - NBSS_VALUE_1M) / 2",
+    "FLOW_MECHANISM_SCOPE": "eligible continuous regular stock transaction bars only; do not interpret unavailable/unproven zero as neutral"
+  },
+  "candidate_families": [
+    {
+      "formula_id": "F01_BUY_STALL",
+      "handbook_basis": "Aggressive-buy effort without corresponding price/high progress may indicate ineffective buying, maturity or supply absorption; positive NBSS/HAKA alone is insufficient.",
+      "causal_components": ["HAKA_GT_HAKI", "NO_CLOSE_ADVANCE", "NO_HIGH_RENEWAL", "OPTIONAL_VALUE_EFFORT_EXPANSION"],
+      "variants": ["F01A_BASIC_BAR_RELATION", "F01B_STALE_HIGH_PLUS_EFFORT_BASELINE"],
+      "unknown_rule": "UNKNOWN when NBSS/HAKA/HAKI availability or mechanism eligibility is not proven",
+      "final_thresholds": "NOT_LOCKED"
+    },
+    {
+      "formula_id": "F02_SELL_RESILIENCE",
+      "handbook_basis": "Sell pressure is constructive only as an effort-to-result relation: selling appears while proportional price damage/new-low development is absent; stronger variants may require acceptance/recovery and renewed highs.",
+      "causal_components": ["HAKI_GT_HAKA", "NO_CLOSE_DAMAGE", "NO_NEW_LOW", "OPTIONAL_CANONICAL_VWAP_ACCEPTANCE", "OPTIONAL_HIGH_RENEWAL"],
+      "variants": ["F02A_BASIC_BAR_RELATION", "F02B_CONSTRUCTIVE_WITH_ACCEPTANCE_AND_RENEWAL"],
+      "unknown_rule": "UNKNOWN when flow availability is unproven; strict acceptance variant is UNKNOWN when canonical VWAP input is unavailable",
+      "final_thresholds": "NOT_LOCKED"
+    },
+    {
+      "formula_id": "F03_FRESH_STALE_HIGH",
+      "handbook_basis": "High renewal/age is a behavior dimension: incremental fresh highs differ from a high that stopped developing earlier.",
+      "causal_components": ["NEW_HIGH_NOW", "BARS_SINCE_LAST_NEW_HIGH", "HIGH_RENEWAL_COUNT"],
+      "variants": ["F03A_NEW_HIGH_EVENT", "F03B_HIGH_AGE_MEASUREMENT"],
+      "unknown_rule": "UNKNOWN until enough prior observed bars exist for the selected causal lookback",
+      "final_thresholds": "NOT_LOCKED"
+    },
+    {
+      "formula_id": "F04_EARLY_STRENGTH_VS_LATE_LIFT",
+      "handbook_basis": "Strength established earlier and retained through pressure is different from a weak/flat path that only becomes strong through late lift/chase.",
+      "causal_components": ["SESSION_OPEN_RELATION", "EARLY_CHECKPOINT_RETURN", "CURRENT_RETENTION", "LATE_CROSS_ABOVE_SESSION_OPEN"],
+      "variants": ["F04A_EARLY_ESTABLISHED_AND_RETAINED", "F04B_LATE_LIFT_AFTER_WEAK_EARLY_STATE"],
+      "unknown_rule": "UNKNOWN before configured early checkpoint or when session identity is unavailable",
+      "final_thresholds": "NOT_LOCKED"
+    },
+    {
+      "formula_id": "F05_RECOVERY_RUNNER",
+      "handbook_basis": "Prior weakness/FAKE does not automatically imply failure; recovery can show low stabilization, reclaim/acceptance, renewed high development and activation.",
+      "causal_components": ["PRIOR_WEAKNESS", "LOW_STABILIZATION", "RECLAIM_SESSION_REFERENCE", "RENEWED_HIGH"],
+      "variants": ["F05A_SESSION_OPEN_RECOVERY", "F05B_CANONICAL_VWAP_RECOVERY_WHEN_VWAP_AVAILABLE"],
+      "unknown_rule": "VWAP-specific variant is UNKNOWN rather than substituted when canonical VWAP is unavailable",
+      "final_thresholds": "NOT_LOCKED"
+    },
+    {
+      "formula_id": "F06_PROGRESSIVE_H2_H1_PREPARATION",
+      "handbook_basis": "Runner/failure separation often becomes more visible around H-2 and strengthens into H-1; recurring sequence includes progressive improvement, H-1 activation/range expansion, renewed/fresh high development and pressure that fails to destroy acceptance.",
+      "causal_components": ["H1_CLOSE_GT_H2_CLOSE", "H1_HIGH_GT_H2_HIGH", "H1_RANGE_GT_H2_RANGE", "H1_ACTIVITY_GT_H2_ACTIVITY"],
+      "variants": ["F06A_PRICE_PROGRESS", "F06B_PRICE_PLUS_ACTIVITY_PROGRESS"],
+      "causal_clock": "Uses completed H-2 and H-1 only when applied to current H; never current-day future data.",
+      "unknown_rule": "UNKNOWN when either completed prior session is unavailable",
+      "final_thresholds": "NOT_LOCKED"
+    }
+  ],
+  "testing_contract": {
+    "preserve_all_variants": true,
+    "full_universe_where_architecture_requires": true,
+    "positive_failure_near_twin_control_required": true,
+    "prefix_invariance_required": true,
+    "python_afl_parity_required": true,
+    "oos_tuning_prohibited": true,
+    "promotion_rule": "No candidate becomes canonical solely because backtest profit or hit-rate is high."
+  }
+}
