@@ -1,0 +1,14 @@
+{
+  "schema": "A1_CURRENT_CLEAN_FORMULA_TRANSLATION_REQUEST_V1",
+  "request_id": "FORMULA_TRANSLATION_SMOKE_20260915_01",
+  "enabled": true,
+  "authorization_phrase": "AUTHORIZE_CURRENT_CLEAN_FORMULA_TRANSLATION_RESEARCH",
+  "evidence_folder_id": "1YB8FY--73iXjudngu8udT1hqgPwcP1Ea",
+  "output_folder_id": "1mvFHypa8opgHF6gFQrprs_I6KkJ9RCCQ",
+  "control_folder_id": "1yuTfP1741B_YAnwhH5gmXvR1mlyPKKsE",
+  "audit_folder_id": "1uQKSZD8KbOZ2j3moyZiH1EuJPlEhEAuC",
+  "max_manifests": 1,
+  "mode": "TRANSLATION_MEASUREMENT_ONLY",
+  "final_formula_allowed": false,
+  "semantic_reconciliation_required": true
+}
