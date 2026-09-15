@@ -22,13 +22,7 @@ FIELD_ALIASES = {
     "low": ("RAW_LOW", "RAW_Low", "Low", "LOW"),
     "close": ("RAW_CLOSE", "RAW_Close", "Close", "CLOSE"),
     "volume": ("RAW_VOLUME", "RAW_Volume", "Volume", "VOLUME"),
-    "trade_value": (
-        "RAW_AUX2_PHYSICAL",
-        "RAW_Aux2",
-        "RAW_AUX2",
-        "Aux2",
-        "AUX2",
-    ),
+    "trade_value": ("RAW_AUX2_PHYSICAL", "RAW_Aux2", "RAW_AUX2", "Aux2", "AUX2"),
     "nbss": (
         "RAW_OPENINT_PHYSICAL",
         "RAW_OPENINTEREST_PHYSICAL",
@@ -88,11 +82,10 @@ def packet_to_formula_bars(packet) -> tuple[list[dict[str, Any]], dict[str, str]
         regular_clock = _flag(row, mapping["regular_session1"]) or _flag(row, mapping["regular_session2"])
         ordinary_regular_stock = bool((not is_index) and continuous and regular_clock)
 
-        # Source-scoped historical semantics already establish OpenInt physical as
-        # NBSS for the validated source family.  At row level, a non-zero value
-        # proves a populated signed-flow observation.  Physical zero is kept
-        # UNKNOWN here unless a separate independent availability fact is later
-        # bound; it is never silently treated as neutral.
+        # Current-clean retains physical zero.  For this candidate replay, non-zero
+        # NBSS is positive evidence that a signed-flow observation is populated.
+        # Physical zero remains UNKNOWN until an independent availability fact is
+        # bound; zero is never silently converted into neutral flow.
         flow_available = bool(trade_value is not None and nbss is not None and nbss != 0.0)
 
         bars.append(
@@ -145,7 +138,6 @@ def _record_event(
         if end >= len(bars):
             continue
         evaluation = bars[index + 1 : end + 1]
-        # Never let a forward-horizon metric cross a ticker-day packet boundary.
         if any(str(bar.get("trading_date") or "") != event_date for bar in evaluation):
             continue
         forward_raw = bars[end].get("close")
@@ -205,17 +197,20 @@ def replay_source(
     }
     ticker_sessions: dict[str, list[dict[str, Any]]] = defaultdict(list)
     packet_count = 0
-    row_count = 0
+    raw_row_count = 0
+    formula_row_count = 0
     field_mappings: set[str] = set()
 
     for manifest_row, packet in reader.iter_packets():
         if max_packets and packet_count >= max_packets:
             break
-        bars, mapping = packet_to_formula_bars(packet)
+        all_bars, mapping = packet_to_formula_bars(packet)
         field_mappings.add(json.dumps(mapping, sort_keys=True))
+        bars = [bar for bar in all_bars if bar["session_eligible"]]
         states = evaluate_intraday_candidates(bars, params)
         packet_count += 1
-        row_count += len(bars)
+        raw_row_count += len(all_bars)
+        formula_row_count += len(bars)
 
         for formula_id in INTRADAY_FORMULAS:
             previous_true = False
@@ -227,10 +222,9 @@ def replay_source(
                     _record_event(metrics[formula_id], bars, i, horizons)
                 previous_true = is_true
 
-        eligible = [bar for bar in bars if bar["session_eligible"]]
-        highs = [float(bar["high"]) for bar in eligible if bar["high"] is not None]
-        lows = [float(bar["low"]) for bar in eligible if bar["low"] is not None]
-        closes = [float(bar["close"]) for bar in eligible if bar["close"] is not None]
+        highs = [float(bar["high"]) for bar in bars if bar["high"] is not None]
+        lows = [float(bar["low"]) for bar in bars if bar["low"] is not None]
+        closes = [float(bar["close"]) for bar in bars if bar["close"] is not None]
         if highs and lows and closes:
             ticker_sessions[packet.identity.ticker].append(
                 {
@@ -238,7 +232,7 @@ def replay_source(
                     "high": max(highs),
                     "low": min(lows),
                     "close": closes[-1],
-                    "activity": sum(float(bar["trade_value"] or 0.0) for bar in eligible),
+                    "activity": sum(float(bar["trade_value"] or 0.0) for bar in bars),
                 }
             )
 
@@ -258,12 +252,13 @@ def replay_source(
         "source_identity": reader.identity.as_dict(),
         "candidate_spec_id": "A1_HANDBOOK_DERIVED_CANDIDATE_FORMULAS_V1",
         "params": asdict(params),
-        "forward_horizons_bars": [int(value) for value in horizons],
+        "forward_horizons_regular_bars": [int(value) for value in horizons],
         "packet_count": packet_count,
-        "row_count": row_count,
+        "raw_row_count": raw_row_count,
+        "formula_regular_row_count": formula_row_count,
         "field_mappings_observed": [json.loads(value) for value in sorted(field_mappings)],
         "flow_availability_policy": "SOURCE_SCOPED_HISTORICAL_SEMANTICS_PLUS_ROW_NBSS_NONZERO_POPULATION_PROOF; PHYSICAL_ZERO_REMAINS_UNKNOWN_UNTIL_INDEPENDENT_AVAILABILITY_IS_BOUND",
-        "session_policy": "USE_DATA_PLANE_REGULAR_SESSION_FLAGS_AND_CONTINUOUS_STOCK_FLAG; NO_HARDCODED_MON_THU_CLOCK_ASSUMPTION",
+        "session_policy": "FORMULA_REPLAY_USES_ONLY_DATA_PLANE_REGULAR_SESSION1_OR_SESSION2_ROWS_FOR_ORDINARY_CONTINUOUS_NON_INDEX_STOCKS",
         "canonical_vwap_policy": "NOT_SYNTHESIZED; VWAP_DEPENDENT_VARIANTS_REMAIN_UNKNOWN",
         "intraday_state_counts": state_counts,
         "intraday_event_forward_metrics": _finalize(metrics),
