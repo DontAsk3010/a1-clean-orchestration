@@ -1,0 +1,105 @@
+name: Windows Telegram MG Trajectory Contrast V6
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - telegram-mg-trajectory-contrast-v6-requests/current.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-telegram-mg-trajectory-contrast-v6
+  cancel-in-progress: true
+
+jobs:
+  study:
+    name: Mine full-universe MG trajectory families with near-twin failure contrast
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact research revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate V6 request
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'telegram-mg-trajectory-contrast-v6-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_TELEGRAM_MG_TRAJECTORY_CONTRAST_V6_REQUEST_V1') { throw 'Unsupported V6 request schema.' }
+          if ($req.enabled -ne $true) { throw 'V6 request not enabled.' }
+          if ($req.authorization_phrase -ne 'AUTHORIZE_TELEGRAM_MG_TRAJECTORY_CONTRAST_V6') { throw 'Exact V6 authorization phrase required.' }
+          if ($req.source_names.Count -lt 3) { throw 'V6 requires discovery plus two validation periods.' }
+          if ($req.source_names -contains 'Raw Maret 03-31-2025.csv') { throw 'March 2025 OOS must remain untouched.' }
+          $json = $req | ConvertTo-Json -Compress -Depth 20
+          "A1_MG_V6_REQUEST_JSON=$json" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify Drive credential bindings
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:A1_DRIVE_READER_CREDENTIALS) -or -not (Test-Path -LiteralPath $env:A1_DRIVE_READER_CREDENTIALS -PathType Leaf)) { throw 'Drive reader credential binding missing.' }
+
+      - name: Install compile and test exact research code
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[test]'
+          if ($LASTEXITCODE -ne 0) { throw 'MG_V6_INSTALL_FAILED' }
+          py -3.11 -m compileall -q src tests
+          if ($LASTEXITCODE -ne 0) { throw 'MG_V6_COMPILE_FAILED' }
+          py -3.11 -m pytest -q
+          if ($LASTEXITCODE -ne 0) { throw 'MG_V6_TESTS_FAILED' }
+
+      - name: Run V6 full-universe trajectory contrast discovery
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = $env:A1_MG_V6_REQUEST_JSON | ConvertFrom-Json
+          $argsList = @(
+            '-3.11', '-m', 'a1clean.formula_research.telegram_mg_trajectory_contrast_v6',
+            '--request-id', [string]$req.request_id,
+            '--output', 'telegram-mg-trajectory-contrast-v6-result.json',
+            '--prior-window', [string][int]$req.prior_window,
+            '--buy-fee-pct', [string][double]$req.execution.buy_fee_pct,
+            '--sell-fee-pct', [string][double]$req.execution.sell_fee_pct,
+            '--min-support', [string][int]$req.min_support,
+            '--validation-min-support', [string][int]$req.validation_min_support,
+            '--max-required', [string][int]$req.max_required,
+            '--max-forbidden', [string][int]$req.max_forbidden,
+            '--top-positive-markers', [string][int]$req.top_positive_markers,
+            '--top-negative-markers', [string][int]$req.top_negative_markers,
+            '--top-signatures', [string][int]$req.top_signatures,
+            '--effort-lookback', [string][int]$req.params.effort_lookback,
+            '--progress-lookback', [string][int]$req.params.progress_lookback,
+            '--high-lookback', [string][int]$req.params.high_lookback,
+            '--recovery-lookback', [string][int]$req.params.recovery_lookback,
+            '--low-stabilization-bars', [string][int]$req.params.low_stabilization_bars,
+            '--early-checkpoint-bar', [string][int]$req.params.early_checkpoint_bar,
+            '--late-lift-min-bar', [string][int]$req.params.late_lift_min_bar
+          )
+          foreach ($source in $req.source_names) { $argsList += @('--source-name', [string]$source) }
+          & py @argsList
+          if ($LASTEXITCODE -ne 0) { throw "MG_V6_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Upload V6 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-mg-trajectory-contrast-v6-${{ github.run_id }}
+          path: telegram-mg-trajectory-contrast-v6-result.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Research declaration
+        if: always()
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          "### Telegram MG Trajectory Contrast V6" >> $env:GITHUB_STEP_SUMMARY
+          "- All eligible 5-minute causal publication states are inspected." >> $env:GITHUB_STEP_SUMMARY
+          "- Future outcome is used only to define discovery trajectory labels and post-signal validation metrics." >> $env:GITHUB_STEP_SUMMARY
+          "- Candidate formulas contain causal required/forbidden markers only." >> $env:GITHUB_STEP_SUMMARY
+          "- January and February validate unchanged signatures; March 2025 remains untouched OOS." >> $env:GITHUB_STEP_SUMMARY
