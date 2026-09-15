@@ -1,0 +1,8 @@
+{
+  "schema": "A1_FORMULA_RUN_CANCEL_REQUEST_V1",
+  "authorization_phrase": "CANCEL_EXACT_SUPERSEDED_FORMULA_RUN",
+  "run_id": 34978419868,
+  "reason": "SUPERSEDED_BY_VALIDATED_NEWER_RESEARCH_REVISION",
+  "replacement_run": 34979017154,
+  "replacement_revision": "a66706f8f8d9616693bb7d72f2b07550c10a32cd"
+}
