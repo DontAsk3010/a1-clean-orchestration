@@ -1,0 +1,34 @@
+{
+  "schema": "A1_TELEGRAM_MG_SEQUENCE_DISCOVERY_V4_REQUEST_V1",
+  "request_id": "TELEGRAM_MG_SEQUENCE_DISCOVERY_V4_DEC_DISCOVERY_JAN_FEB_VALIDATION_20260915_01",
+  "enabled": true,
+  "authorization_phrase": "AUTHORIZE_TELEGRAM_MG_SEQUENCE_DISCOVERY_V4",
+  "source_names": [
+    "Raw Des 02-31-2024.csv",
+    "Raw Jan 01-31-2025.csv",
+    "Raw Feb 03-28-2025.csv"
+  ],
+  "drive_output_folder_id": "1uQKSZD8KbOZ2j3moyZiH1EuJPlEhEAuC",
+  "parent_behavior": "K06_EARLY_RETAINED_FLOW",
+  "prior_window": 2,
+  "execution": {
+    "buy_fee_pct": 0.15,
+    "sell_fee_pct": 0.25
+  },
+  "discovery_min_support": 20,
+  "validation_min_support": 15,
+  "max_signature_size": 3,
+  "params": {
+    "effort_lookback": 5,
+    "progress_lookback": 5,
+    "high_lookback": 5,
+    "recovery_lookback": 10,
+    "low_stabilization_bars": 3,
+    "early_checkpoint_bar": 30,
+    "late_lift_min_bar": 180
+  },
+  "discovery_policy": "DECEMBER_ONLY_DISCOVERS_CAUSAL_BACKWARD_PUBLICATION_SEQUENCE_SIGNATURES_WITH_POSITIVE_NET_MFE_Q25;NO_PRICE_THRESHOLD_RESCUE",
+  "validation_policy": "JANUARY_AND_FEBRUARY_TEST_EXACT_UNCHANGED_SIGNATURES;EACH_REQUIRES_POSITIVE_NET_MFE_Q25_AND_MINIMUM_SUPPORT",
+  "oos_policy": "MARCH_2025_UNTOUCHED",
+  "objective": "FIND_A_CAUSAL_BEHAVIOR_SEQUENCE_SUBGROUP_THAT_SURVIVES_EXECUTION_COST_AND_REPEATS_ACROSS_UNSEEN_DEVELOPMENT_PERIODS"
+}
