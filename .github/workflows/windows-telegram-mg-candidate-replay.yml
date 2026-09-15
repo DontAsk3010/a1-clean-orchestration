@@ -1,0 +1,102 @@
+name: Windows Telegram MG Candidate Replay
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - telegram-mg-replay-requests/current.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-telegram-mg-candidate-replay
+  cancel-in-progress: false
+
+jobs:
+  replay:
+    name: Telegram Mulai Genit full-universe causal replay
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact formula research revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate MG replay request
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ('${{ github.ref_name }}' -ne 'formula/current-clean-research-v1') { throw 'MG candidate replay is branch-restricted.' }
+          $req = Get-Content -LiteralPath 'telegram-mg-replay-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_TELEGRAM_MG_CANDIDATE_REPLAY_REQUEST_V1') { throw 'Unsupported MG replay request schema.' }
+          if ($req.enabled -ne $true) { throw 'MG replay request not enabled.' }
+          if ($req.authorization_phrase -ne 'AUTHORIZE_TELEGRAM_MG_CANDIDATE_REPLAY') { throw 'Exact MG replay authorization phrase required.' }
+          if ([string]::IsNullOrWhiteSpace($req.source_name)) { throw 'source_name required.' }
+          if ($req.drive_output_folder_id -ne '1uQKSZD8KbOZ2j3moyZiH1EuJPlEhEAuC') { throw 'Unexpected Formula Research audit/output folder.' }
+          $json = $req | ConvertTo-Json -Compress -Depth 20
+          "A1_MG_REPLAY_REQUEST_JSON=$json" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify Drive credential bindings
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($path in @($env:A1_DRIVE_READER_CREDENTIALS, $env:A1_DRIVE_WRITER_CREDENTIALS)) {
+            if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'Drive credential binding missing.' }
+          }
+
+      - name: Install and test exact MG candidate code
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[test]'
+          if ($LASTEXITCODE -ne 0) { throw 'MG_REPLAY_INSTALL_FAILED' }
+          py -3.11 -m compileall -q src tests
+          if ($LASTEXITCODE -ne 0) { throw 'MG_REPLAY_COMPILE_FAILED' }
+          py -3.11 -m pytest -q
+          if ($LASTEXITCODE -ne 0) { throw 'MG_REPLAY_TESTS_FAILED' }
+
+      - name: Run full-universe causal MG replay
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = $env:A1_MG_REPLAY_REQUEST_JSON | ConvertFrom-Json
+          $horizons = ($req.horizons_bars -join ',')
+          py -3.11 -m a1clean.formula_research.telegram_mg_replay `
+            --source-name $req.source_name `
+            --request-id $req.request_id `
+            --software-revision '${{ github.sha }}' `
+            --drive-output-folder-id $req.drive_output_folder_id `
+            --output 'telegram-mg-candidate-replay-result.json' `
+            --horizons $horizons `
+            --max-packets ([int]$req.max_packets) `
+            --effort-lookback ([int]$req.params.effort_lookback) `
+            --progress-lookback ([int]$req.params.progress_lookback) `
+            --high-lookback ([int]$req.params.high_lookback) `
+            --recovery-lookback ([int]$req.params.recovery_lookback) `
+            --low-stabilization-bars ([int]$req.params.low_stabilization_bars) `
+            --early-checkpoint-bar ([int]$req.params.early_checkpoint_bar) `
+            --late-lift-min-bar ([int]$req.params.late_lift_min_bar)
+          if ($LASTEXITCODE -ne 0) { throw "MG_REPLAY_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Upload MG replay result artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-mg-candidate-replay-${{ github.run_id }}
+          path: telegram-mg-candidate-replay-result.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Research safety declaration
+        if: always()
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          "### Telegram MG candidate replay" >> $env:GITHUB_STEP_SUMMARY
+          "- EARLY_POTENTIAL / MULAI GENIT only; output contract CODE | PRICE | CHG% | TP-1 | TP-2." >> $env:GITHUB_STEP_SUMMARY
+          "- All candidate combinations are research-only, not final/canonical/live formulas." >> $env:GITHUB_STEP_SUMMARY
+          "- Full eligible source universe is scanned; no winner-only filter or ticker/date exception." >> $env:GITHUB_STEP_SUMMARY
+          "- Candidate states are causal; future bars are used only for evaluation." >> $env:GITHUB_STEP_SUMMARY
+          "- TP-1/TP-2 are dynamic structure/range research objectives, not fixed percentages." >> $env:GITHUB_STEP_SUMMARY
+          "- Failed/worse variants remain preserved." >> $env:GITHUB_STEP_SUMMARY
