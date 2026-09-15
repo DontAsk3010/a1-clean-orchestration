@@ -66,21 +66,26 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $req = $env:A1_MG_PRECISION_REQUEST_JSON | ConvertFrom-Json
-          py -3.11 -m a1clean.formula_research.telegram_mg_precision_study `
-            --source-name $req.source_name `
-            --request-id $req.request_id `
-            --software-revision '${{ github.sha }}' `
-            --drive-output-folder-id $req.drive_output_folder_id `
-            --output 'telegram-mg-precision-study-result.json' `
-            --mode $req.mode `
-            --selected-variant ([string]$req.selected_variant) `
-            --effort-lookback ([int]$req.params.effort_lookback) `
-            --progress-lookback ([int]$req.params.progress_lookback) `
-            --high-lookback ([int]$req.params.high_lookback) `
-            --recovery-lookback ([int]$req.params.recovery_lookback) `
-            --low-stabilization-bars ([int]$req.params.low_stabilization_bars) `
-            --early-checkpoint-bar ([int]$req.params.early_checkpoint_bar) `
-            --late-lift-min-bar ([int]$req.params.late_lift_min_bar)
+          $argsList = @(
+            '-3.11', '-m', 'a1clean.formula_research.telegram_mg_precision_study',
+            '--source-name', [string]$req.source_name,
+            '--request-id', [string]$req.request_id,
+            '--software-revision', '${{ github.sha }}',
+            '--drive-output-folder-id', [string]$req.drive_output_folder_id,
+            '--output', 'telegram-mg-precision-study-result.json',
+            '--mode', [string]$req.mode,
+            '--effort-lookback', [string][int]$req.params.effort_lookback,
+            '--progress-lookback', [string][int]$req.params.progress_lookback,
+            '--high-lookback', [string][int]$req.params.high_lookback,
+            '--recovery-lookback', [string][int]$req.params.recovery_lookback,
+            '--low-stabilization-bars', [string][int]$req.params.low_stabilization_bars,
+            '--early-checkpoint-bar', [string][int]$req.params.early_checkpoint_bar,
+            '--late-lift-min-bar', [string][int]$req.params.late_lift_min_bar
+          )
+          if (-not [string]::IsNullOrWhiteSpace([string]$req.selected_variant)) {
+            $argsList += @('--selected-variant', [string]$req.selected_variant)
+          }
+          & py @argsList
           if ($LASTEXITCODE -ne 0) { throw "MG_PRECISION_RUNTIME_FAILED:$LASTEXITCODE" }
 
       - name: Upload precision-study artifact
