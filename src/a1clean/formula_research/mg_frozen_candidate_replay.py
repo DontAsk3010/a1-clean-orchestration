@@ -2,11 +2,71 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from .handbook_candidates import CandidateParams
 from .telegram_mg_outcome_first_discovery_v5 import _metric, _scan_source
+
+
+REPORT_CAPITAL_PER_PICK_RP = 5_000_000.0
+
+
+def _selection_row(fid: str, row: Mapping[str, Any]) -> dict[str, Any]:
+    net_mfe = row.get("net_mfe_pct")
+    return {
+        "formula_id": fid,
+        "source": row.get("source"),
+        "trading_date": row.get("trading_date"),
+        "ticker": row.get("ticker"),
+        "signal_timestamp": row.get("timestamp"),
+        "signal_price": row.get("signal_price"),
+        "entry_proxy": row.get("entry_proxy"),
+        "step_proxy": row.get("step_proxy"),
+        "net_mfe_pct": net_mfe,
+        "max_profit_rp_at_5m": (
+            REPORT_CAPITAL_PER_PICK_RP * float(net_mfe) / 100.0
+            if net_mfe is not None else None
+        ),
+        "mae_pct": row.get("mae_pct"),
+        "eod_net_pct": row.get("eod_net_pct"),
+        "evaluable": bool(row.get("evaluable")),
+    }
+
+
+def _daily_union(selections: Sequence[Mapping[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    merged: dict[tuple[str, str, str, str], dict[str, Any]] = {}
+    for row in selections:
+        key = (
+            str(row.get("source")),
+            str(row.get("trading_date")),
+            str(row.get("ticker")),
+            str(row.get("signal_timestamp")),
+        )
+        if key not in merged:
+            merged[key] = {
+                "source": row.get("source"),
+                "trading_date": row.get("trading_date"),
+                "ticker": row.get("ticker"),
+                "signal_timestamp": row.get("signal_timestamp"),
+                "signal_price": row.get("signal_price"),
+                "entry_proxy": row.get("entry_proxy"),
+                "net_mfe_pct": row.get("net_mfe_pct"),
+                "max_profit_rp_at_5m": row.get("max_profit_rp_at_5m"),
+                "mae_pct": row.get("mae_pct"),
+                "eod_net_pct": row.get("eod_net_pct"),
+                "formula_ids": [],
+            }
+        merged[key]["formula_ids"].append(str(row.get("formula_id")))
+
+    for item in merged.values():
+        item["formula_ids"] = sorted(set(item["formula_ids"]))
+        grouped[str(item["trading_date"])].append(item)
+    for day in grouped:
+        grouped[day].sort(key=lambda r: (str(r.get("signal_timestamp")), str(r.get("ticker"))))
+    return dict(sorted(grouped.items()))
 
 
 def replay_pack(
@@ -27,9 +87,6 @@ def replay_pack(
         if not formula_id or not required:
             raise ValueError("INVALID_FROZEN_FORMULA")
         if forbidden:
-            # V5 scanner currently indexes positive marker membership. Forbidden
-            # states require an explicit scanner extension before replay rather
-            # than silently ignoring them.
             raise ValueError("FORBIDDEN_MARKER_REPLAY_NOT_IMPLEMENTED")
         candidate_parts[formula_id] = required
 
@@ -44,25 +101,48 @@ def replay_pack(
     by_formula_period: dict[str, dict[str, list[dict[str, Any]]]] = {
         fid: {s: [] for s in source_names} for fid in candidate_parts
     }
+    all_selections: list[dict[str, Any]] = []
     for fid, rows in matched.items():
         for row in rows:
             by_formula_period[fid][str(row["source"])].append(row)
+            all_selections.append(_selection_row(fid, row))
 
     formulas: dict[str, Any] = {}
     for fid in candidate_parts:
         period_metrics = {s: _metric(by_formula_period[fid][s]) for s in source_names}
+        formula_selections = [r for r in all_selections if r["formula_id"] == fid]
+        formula_selections.sort(
+            key=lambda r: (
+                str(r.get("trading_date")),
+                str(r.get("signal_timestamp")),
+                str(r.get("ticker")),
+            )
+        )
         formulas[fid] = {
             "required_markers": list(candidate_parts[fid]),
             "by_period": period_metrics,
             "total_evaluable": sum(int(m["evaluable_count"]) for m in period_metrics.values()),
+            "selections": formula_selections,
         }
 
+    all_selections.sort(
+        key=lambda r: (
+            str(r.get("trading_date")),
+            str(r.get("signal_timestamp")),
+            str(r.get("ticker")),
+            str(r.get("formula_id")),
+        )
+    )
     return {
-        "schema": "A1_TELEGRAM_MG_FROZEN_CANDIDATE_REPLAY_V1",
+        "schema": "A1_TELEGRAM_MG_FROZEN_CANDIDATE_REPLAY_V2",
         "status": "RESEARCH_REPLAY_NOT_CANONICAL",
         "source_names": list(source_names),
         "formula_count": len(formulas),
         "formulas": formulas,
+        "selections": all_selections,
+        "daily_union": _daily_union(all_selections),
+        "report_capital_per_pick_rp": REPORT_CAPITAL_PER_PICK_RP,
+        "profit_field_semantics": "MAX_NET_FAVORABLE_EXCURSION_AFTER_BUY_SELL_FEES_AND_STEP_PROXY__NOT_REALIZED_EXIT_PNL",
         "packet_counts": packet_counts,
         "first_causal_match_per_ticker_day": True,
         "future_data_used_for_formula_state": False,
@@ -107,7 +187,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         sell_fee_pct=a.sell_fee_pct,
     )
     Path(a.output).write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(json.dumps({"pass": True, "formula_count": report["formula_count"]}, indent=2))
+    print(json.dumps({
+        "pass": True,
+        "formula_count": report["formula_count"],
+        "selection_count": len(report["selections"]),
+        "trading_day_count": len(report["daily_union"]),
+    }, indent=2))
     return 0
 
 
