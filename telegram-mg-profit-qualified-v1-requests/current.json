@@ -1,0 +1,31 @@
+{
+  "schema": "A1_TELEGRAM_MG_PROFIT_QUALIFIED_REQUEST_V1",
+  "request_id": "MG_PROFIT_QUALIFIED_20250102_FULL_IDX_20260915_01",
+  "enabled": true,
+  "authorization_phrase": "AUTHORIZE_MG_PROFIT_QUALIFIED_FULL_UNIVERSE_PROOF",
+  "source_names": [
+    "Raw Des 02-31-2024.csv",
+    "Raw Jan 01-31-2025.csv"
+  ],
+  "trading_date": "2025-01-02",
+  "drive_output_folder_id": "1uQKSZD8KbOZ2j3moyZiH1EuJPlEhEAuC",
+  "execution": {
+    "capital_per_entry": 5000000,
+    "buy_fee_pct": 0.15,
+    "sell_fee_pct": 0.25
+  },
+  "targets": {
+    "tp1_quantile": 0.25,
+    "tp2_quantile": 0.50
+  },
+  "params": {
+    "effort_lookback": 5,
+    "progress_lookback": 5,
+    "high_lookback": 5,
+    "recovery_lookback": 10,
+    "low_stabilization_bars": 3,
+    "early_checkpoint_bar": 30,
+    "late_lift_min_bar": 180
+  },
+  "proof_policy": "FULL_IDX_TARGET_DATE__PRIOR_DATES_ONLY_TARGET_CALIBRATION__EXPLICIT_EXECUTION_PROXY__SAME_DAY_EXIT"
+}
