@@ -1,0 +1,101 @@
+name: Windows Current-Clean Formula Translation
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - formula-runtime-requests/current.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-formula-current-clean-translation
+  cancel-in-progress: false
+
+jobs:
+  translate:
+    name: Governed Lane 2 translation / formula research pre-semantic
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact formula research revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate governed formula translation request
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ('${{ github.ref_name }}' -ne 'formula/current-clean-research-v1') {
+            throw 'Formula translation runtime is restricted to formula/current-clean-research-v1.'
+          }
+          $path = 'formula-runtime-requests/current.json'
+          if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Request missing: $path" }
+          $req = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_CURRENT_CLEAN_FORMULA_TRANSLATION_REQUEST_V1') { throw 'Unsupported formula translation request schema.' }
+          if ($req.enabled -ne $true) { throw 'Formula translation request is not enabled.' }
+          if ($req.authorization_phrase -ne 'AUTHORIZE_CURRENT_CLEAN_FORMULA_TRANSLATION_RESEARCH') {
+            throw 'Exact formula translation authorization phrase is required.'
+          }
+          if ($req.evidence_folder_id -ne '1YB8FY--73iXjudngu8udT1hqgPwcP1Ea') { throw 'Unexpected Lane 2 evidence folder.' }
+          if ($req.output_folder_id -ne '1mvFHypa8opgHF6gFQrprs_I6KkJ9RCCQ') { throw 'Unexpected formula output folder.' }
+          if ($req.control_folder_id -ne '1yuTfP1741B_YAnwhH5gmXvR1mlyPKKsE') { throw 'Unexpected formula control folder.' }
+          if ($req.audit_folder_id -ne '1uQKSZD8KbOZ2j3moyZiH1EuJPlEhEAuC') { throw 'Unexpected formula audit folder.' }
+          $max = [int]$req.max_manifests
+          if ($max -lt 0) { throw 'max_manifests must be zero or positive.' }
+          "A1_FORMULA_EVIDENCE_FOLDER=$($req.evidence_folder_id)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "A1_FORMULA_OUTPUT_FOLDER=$($req.output_folder_id)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "A1_FORMULA_CONTROL_FOLDER=$($req.control_folder_id)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "A1_FORMULA_AUDIT_FOLDER=$($req.audit_folder_id)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "A1_FORMULA_MAX_MANIFESTS=$max" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "A1_FORMULA_REQUEST_ID=$($req.request_id)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify external Drive credential bindings exist
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bindings = @(
+            @{ Name = 'A1_DRIVE_READER_CREDENTIALS'; Path = $env:A1_DRIVE_READER_CREDENTIALS },
+            @{ Name = 'A1_DRIVE_WRITER_CREDENTIALS'; Path = $env:A1_DRIVE_WRITER_CREDENTIALS }
+          )
+          foreach ($binding in $bindings) {
+            if ([string]::IsNullOrWhiteSpace($binding.Path)) { throw "$($binding.Name) is not configured." }
+            if (-not (Test-Path -LiteralPath $binding.Path -PathType Leaf)) { throw "$($binding.Name) credential file does not exist." }
+          }
+
+      - name: Install and verify formula research code
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[test]'
+          if ($LASTEXITCODE -ne 0) { throw 'FORMULA_RESEARCH_INSTALL_FAILED' }
+          py -3.11 -m compileall -q src tests
+          if ($LASTEXITCODE -ne 0) { throw 'FORMULA_RESEARCH_COMPILE_FAILED' }
+          py -3.11 -m pytest -q
+          if ($LASTEXITCODE -ne 0) { throw 'FORMULA_RESEARCH_TESTS_FAILED' }
+
+      - name: Translate governed Lane 2 evidence
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m a1clean.formula_research.runtime `
+            --evidence-folder-id $env:A1_FORMULA_EVIDENCE_FOLDER `
+            --output-folder-id $env:A1_FORMULA_OUTPUT_FOLDER `
+            --control-folder-id $env:A1_FORMULA_CONTROL_FOLDER `
+            --audit-folder-id $env:A1_FORMULA_AUDIT_FOLDER `
+            --max-manifests $env:A1_FORMULA_MAX_MANIFESTS `
+            --software-revision '${{ github.sha }}'
+          if ($LASTEXITCODE -ne 0) { throw "FORMULA_TRANSLATION_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Safety declaration
+        if: always()
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          "### Formula research safety" >> $env:GITHUB_STEP_SUMMARY
+          "- Lane 2 Stage-1 evidence is read-only." >> $env:GITHUB_STEP_SUMMARY
+          "- Translation output is non-semantic structural measurement only." >> $env:GITHUB_STEP_SUMMARY
+          "- No BUY/SELL, TP/SL, ranking, threshold, Telegram activation, or final formula is created by this workflow." >> $env:GITHUB_STEP_SUMMARY
+          "- Semantic reconciliation remains mandatory before final formula construction." >> $env:GITHUB_STEP_SUMMARY
