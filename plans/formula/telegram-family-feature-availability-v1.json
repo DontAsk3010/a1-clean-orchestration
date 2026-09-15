@@ -1,0 +1,85 @@
+{
+  "spec_id": "A1_TELEGRAM_FAMILY_FEATURE_AVAILABILITY_V1",
+  "status": "RESEARCH_IMPLEMENTATION_MAP_NOT_CANONICAL",
+  "purpose": "Prevent conceptual family formulas from silently becoming executable before their required causal observables are actually implemented and source-proven.",
+  "currently_implemented_causal_observables": {
+    "UP_PATH": "telegram_mg_replay.evaluate_mg_packet",
+    "PERSISTENCE": "telegram_mg_replay.evaluate_mg_packet / MULTIBAR_PERSISTENCE",
+    "ACCEPTANCE": "telegram_mg_replay.evaluate_mg_packet / BAR_ACCEPTANCE",
+    "VALUE_EXPANSION": "telegram_mg_replay.evaluate_mg_packet",
+    "BUY_RESPONSE": "telegram_mg_replay.evaluate_mg_packet",
+    "SELL_RESILIENCE_BASIC": "handbook_candidates.F02A",
+    "CONSTRUCTIVE_FLOW": "BUY_RESPONSE OR SELL_RESILIENCE_BASIC",
+    "BUY_STALL_BASIC": "handbook_candidates.F01A",
+    "BUY_STALL_STALE_HIGH_EFFORT": "handbook_candidates.F01B",
+    "FRESH_HIGH": "handbook_candidates.F03A / telegram_mg_replay",
+    "HIGH_AGE_BARS": "handbook_candidates measurement",
+    "EARLY_STRENGTH_RETAINED": "handbook_candidates.F04A",
+    "LATE_LIFT": "handbook_candidates.F04B",
+    "SESSION_OPEN_RECOVERY": "handbook_candidates.F05A",
+    "H2_H1_PRICE_PROGRESS": "handbook_candidates.F06A",
+    "H2_H1_PRICE_ACTIVITY_PROGRESS": "handbook_candidates.F06B",
+    "ACTIVITY_WAKE": "telegram_mg_multiday_context_study._history_context",
+    "RANGE_WAKE": "telegram_mg_multiday_context_study._history_context",
+    "PATH_WAKE": "telegram_mg_multiday_context_study._history_context",
+    "HAD_PULLBACK": "telegram_mg_behavior_topology_v2._pullback_reaccel_features",
+    "RECLAIM_RECENT_CLOSES": "telegram_mg_behavior_topology_v2._pullback_reaccel_features",
+    "RENEWED_HIGH_AFTER_PULLBACK": "telegram_mg_behavior_topology_v2._pullback_reaccel_features",
+    "HAKA_HAKI_VALUE_1M": "handbook_candidates.derive_haka_haki where source availability/mechanism eligible"
+  },
+  "source_limits": {
+    "HISTORICAL_L1_BID_ASK": "UNAVAILABLE_NOT_PROVEN",
+    "HISTORICAL_QUEUE_DEPTH": "UNAVAILABLE_NOT_PROVEN",
+    "EXACT_HISTORICAL_FILL": "UNAVAILABLE_NOT_PROVEN",
+    "CANONICAL_VWAP": "OPTIONAL_UNAVAILABLE_IN_CURRENT_RAW_SCOPE_UNLESS_SEPARATELY_BOUND",
+    "ARA_BOUNDARY_REFERENCE": "NOT_YET_BOUND_AS_GOVERNED_CAUSAL_ARRAY_IN_CURRENT_FORMULA_RESEARCH_CODE",
+    "EXCHANGE_STATUS_MECHANISM_FLAGS_FOR_ARA": "NOT_YET_BOUND_FOR_FORMULA_RESEARCH",
+    "DEVELOPING_DAILY_CANONICAL_STATE": "PARTIALLY_AVAILABLE_THROUGH_MINUTE_AGGREGATION_CANDIDATES_BUT_NOT_YET_FULL_SWING_STATE_ENGINE"
+  },
+  "family_readiness": {
+    "MULAI_GENIT": {
+      "state": "IMPLEMENTABLE_RESEARCH_NOW",
+      "notes": "Multiple intraday behavior components and prior-comparable-state context exist; current task is structural discovery/validation, not missing basic observables."
+    },
+    "BUY_READY": {
+      "state": "PARTIAL_FEATURE_IMPLEMENTATION_REQUIRED",
+      "already_available": ["FRESH_HIGH", "ACCEPTANCE", "CONSTRUCTIVE_FLOW", "BUY_STALL", "PULLBACK", "RECLAIM_RECENT_CLOSES", "UP_PATH", "PERSISTENCE", "VALUE_EXPANSION"],
+      "must_build_before_full_replay": ["ENTRY_AREA_DEFINED", "INVALIDATION_DEFINED", "CONTROLLED_RISK_GEOMETRY", "SUPPORT_TEST_RESPONSE", "RELOAD_CONSOLIDATION_STATE", "SAME_DAY_EXECUTABLE_REWARD_ROOM"]
+    },
+    "ACCELERATION": {
+      "state": "PARTIAL_FEATURE_IMPLEMENTATION_REQUIRED",
+      "already_available": ["UP_PATH", "PERSISTENCE", "VALUE_EXPANSION", "FRESH_HIGH", "PULLBACK", "RECLAIM_RECENT_CLOSES", "CONSTRUCTIVE_FLOW"],
+      "must_build_before_full_replay": ["CAUSAL_PATH_SLOPE", "VELOCITY_CHANGE", "DIRECTIONAL_RANGE_EXPANSION_RATE", "FRESH_HIGH_RATE", "BLOW_OFF_CLIMAX_CONTROL", "RAPID_MEAN_REVERSION_CONTROL"]
+    },
+    "ARA_POTENTIAL": {
+      "state": "BLOCKED_ON_ARA_REFERENCE_BINDING_PLUS_ROUTE_FEATURES",
+      "already_available": ["PERSISTENCE", "FRESH_HIGH", "VALUE_EXPANSION", "CONSTRUCTIVE_FLOW", "RECLAIM_RECENT_CLOSES", "PULLBACK"],
+      "must_build_before_full_replay": ["GOVERNED_ARA_BOUNDARY", "DISTANCE_TO_ARA", "DISTANCE_COMPRESSION_RATE", "ROUTE_FEASIBILITY_BY_REMAINING_SESSION", "NEAR_BOUNDARY_REJECTION", "FALSE_PROXIMITY_CONTROL"]
+    },
+    "ARA_IMMINENT": {
+      "state": "BLOCKED_ON_ARA_REFERENCE_BINDING_PLUS_FINAL_ROUTE_FEATURES",
+      "already_available": ["PERSISTENCE", "FRESH_HIGH", "CONSTRUCTIVE_FLOW", "RECLAIM_RECENT_CLOSES"],
+      "must_build_before_full_replay": ["GOVERNED_ARA_BOUNDARY", "ARA_REACHED_STATE", "NEAR_BOUNDARY_STATE", "FINAL_PROGRESS_RATE", "REJECTION_ABSORPTION", "ARA_TOUCH_PERSISTENCE", "RELEASE_RISK"]
+    },
+    "SWING_BUY": {
+      "state": "PARTIAL_DEVELOPING_DAILY_ENGINE_REQUIRED",
+      "already_available": ["H2_H1_PRICE_PROGRESS", "H2_H1_PRICE_ACTIVITY_PROGRESS", "INTRADAY_RECLAIM_RECOVERY_BUILDING_BLOCKS"],
+      "must_build_before_full_replay": ["DEVELOPING_DAILY_OHLCV_AS_OF", "DAILY_BASE_STRUCTURE", "DEVELOPING_DAILY_BREAKOUT_RECLAIM", "SWING_ENTRY_WINDOW", "SWING_INVALIDATION", "REMAINING_SWING_ROOM"]
+    },
+    "MULTIBAGGER": {
+      "state": "LONG_HORIZON_STRUCTURAL_ENGINE_REQUIRED",
+      "must_build_before_full_replay": ["REFERENCE_BASIS", "MULTI_SESSION_FOUNDATION_BASE", "ACCUMULATION_EVIDENCE", "MULTI_STAGE_PROGRESS", "CORRECTION_SURVIVAL", "DRAWDOWN_CONTROL", "REMAINING_X2_PLUS_OUTCOME_DEFINITION"]
+    },
+    "PULLBACK": {
+      "state": "PRIMARY_SWING_JOURNEY_ENGINE_REQUIRED",
+      "already_available": ["INTRADAY_PULLBACK_RECLAIM_BUILDING_BLOCKS"],
+      "must_build_before_full_replay": ["VALID_PRIMARY_SWING_JOURNEY", "SWING_CONTROLLED_RETRACEMENT", "SWING_SUPPORT_REFERENCE", "STRUCTURAL_DAMAGE", "DISTRIBUTION_BREAKDOWN", "REENTRY_GEOMETRY"]
+    },
+    "OVERNIGHT": {
+      "state": "LATE_SESSION_PLUS_H1_OUTCOME_ENGINE_REQUIRED",
+      "already_available": ["INTRADAY_RETENTION", "REACCELERATION_BUILDING_BLOCKS", "PARTICIPATION_FLOW_BUILDING_BLOCKS"],
+      "must_build_before_full_replay": ["LATE_SESSION_DURABILITY", "DISTRIBUTION_INTO_CLOSE", "LATE_EXHAUSTION", "OVERNIGHT_RISK_MODEL", "H1_CAUSAL_OUTCOME_EVALUATION"]
+    }
+  },
+  "implementation_rule": "A family remains candidate-only until every mandatory input is either source-proven and causally computed or explicitly marked unavailable; unavailable inputs are never substituted with zero or inferred silently."
+}
