@@ -1,0 +1,51 @@
+{
+  "spec_id": "A1_TELEGRAM_EARLY_POTENTIAL_MULAI_GENIT_CANDIDATE_V1",
+  "status": "ACTIVE_RESEARCH_CANDIDATE_NOT_CANONICAL",
+  "owner_authorized": true,
+  "telegram_family": "EARLY_POTENTIAL",
+  "telegram_public_name": "MULAI GENIT",
+  "telegram_output_contract": "CODE | PRICE | CHG% | TP-1 | TP-2",
+  "purpose": "Detect an early constructive same-day opportunity whose behavior has begun to develop and still has meaningful room; entry-ready state is not required.",
+  "component_basis": [
+    "UP_PATH",
+    "MULTIBAR_PERSISTENCE",
+    "BAR_ACCEPTANCE",
+    "VALUE_EXPANSION",
+    "CONSTRUCTIVE_FLOW",
+    "BUY_RESPONSE",
+    "SELL_RESILIENCE",
+    "ANTI_BUY_STALL",
+    "FRESH_HIGH",
+    "EARLY_STRENGTH_RETAINED"
+  ],
+  "candidate_variants": {
+    "MG_A_PATH_PERSISTENCE": "UP_PATH + MULTIBAR_PERSISTENCE + BAR_ACCEPTANCE",
+    "MG_B_PATH_VALUE": "MG_A + VALUE_EXPANSION",
+    "MG_C_PATH_FLOW": "MG_A + CONSTRUCTIVE_FLOW + ANTI_BUY_STALL",
+    "MG_D_PATH_VALUE_FLOW": "MG_B + CONSTRUCTIVE_FLOW + ANTI_BUY_STALL",
+    "MG_E_FRESH_PROGRESS": "MG_D + FRESH_HIGH",
+    "MG_F_ABSORPTION_PATH": "MG_B + SELL_RESILIENCE + ANTI_BUY_STALL",
+    "MG_G_BUY_RESPONSE_PATH": "MG_B + BUY_RESPONSE + ANTI_BUY_STALL",
+    "MG_H_RETAINED_FLOW": "MG_D + EARLY_STRENGTH_RETAINED"
+  },
+  "dynamic_target_candidate": {
+    "basis": "CAUSAL_LOCAL_MEDIAN_BAR_RANGE_PLUS_OBSERVED_HIGH_STRUCTURE",
+    "TP1": "max(recent_observed_high, current_close + local_median_range_step)",
+    "TP2": "max(session_high_so_far, TP1) + local_median_range_step",
+    "fixed_percentage_used": false,
+    "status": "RESEARCH_PROXY_NOT_FINAL"
+  },
+  "publication_evaluation": "Evaluate both first-detectable episodes and Telegram-compatible 5-minute snapshots from 09:00 WIB onward; snapshot time is not backdated to first-detectable time.",
+  "testing_contract": {
+    "full_eligible_idx_universe": true,
+    "winner_only_filter": false,
+    "future_data_in_candidate_state": false,
+    "future_data_for_post_state_evaluation_only": true,
+    "failure_and_worse_variants_preserved": true,
+    "unknown_not_zero": true,
+    "no_ticker_or_date_exceptions": true,
+    "final_promotion_from_backtest_alone": false
+  },
+  "selection_rule": "Do not select by one headline hit-rate. Compare breadth, forward return, MFE, MAE, TP hit behavior, first-detectable episodes, 5-minute snapshot behavior, failure/lookalike behavior and stability before selecting a research leader.",
+  "final_promotion": "CLOSED_PENDING_ALL_MASTER_GATES_AND_EXPLICIT_OWNER_APPROVAL"
+}
