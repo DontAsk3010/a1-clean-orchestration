@@ -1,26 +1,31 @@
 {
   "schema": "A1_MG_FROZEN_REPLAY_REQUEST_V1",
-  "request_id": "MG_V4_EXACT_TELEGRAM_5MIN_OUTCOME_REPLAY_DEC2024_20260916_07",
+  "request_id": "MG_V4_TARGETED_TELEGRAM_OUTCOME_2024_12_04_20260916_08",
   "enabled": true,
   "authorization_phrase": "AUTHORIZE_MG_FROZEN_CANDIDATE_REPLAY",
   "pack_path": "formula-packs/MG_V4_BRIDGE_FROZEN_PACK.json",
-  "source_names": [
-    "Raw Des 02-31-2024.csv"
+  "source_names": ["Raw Des 02-31-2024.csv"],
+  "source_name": "Raw Des 02-31-2024.csv",
+  "target_date": "2024-12-04",
+  "base_artifact_run_id": 35013142224,
+  "execution": {"buy_fee_pct": 0.15, "sell_fee_pct": 0.25},
+  "observed_slots": [
+    "09:00","09:05","09:10","09:15","09:20","09:25","09:30","09:35","09:40","09:45","09:50","09:55",
+    "10:00","10:05","10:10","10:15","10:20","10:25","10:30","10:35","10:40","10:45","10:50","10:55",
+    "11:00","11:05","11:10","11:15","11:20","11:25","11:30","11:35","11:40","11:45","11:50","11:55",
+    "13:30","13:35","13:40","13:45","13:50","13:55","14:00","14:05","14:10","14:15","14:20","14:25","14:30","14:35","14:40","14:45","14:50","14:55",
+    "15:00","15:05","15:10","15:15","15:20","15:25","15:30","15:35","15:40","15:45"
   ],
-  "prior_window": 2,
-  "execution": {
-    "buy_fee_pct": 0.15,
-    "sell_fee_pct": 0.25
-  },
-  "params": {
-    "effort_lookback": 5,
-    "progress_lookback": 5,
-    "high_lookback": 5,
-    "recovery_lookback": 10,
-    "low_stabilization_bars": 3,
-    "early_checkpoint_bar": 30,
-    "late_lift_min_bar": 180
-  },
-  "report_policy": "EVERY_OBSERVED_5MIN_SLOT__EMPTY_SEPARATOR__REPEAT_TICKER_WHILE_CURRENT_CRITERIA_VALID__ADD_TP1_TP2_HIT_TIME_AND_NET_PL_OUTCOMES",
+  "target_snapshots": [
+    {"time":"09:40","rows":[{"ticker":"TNCA","price":210.0,"chg_pct":6.598984771573613,"tp1":217.0,"tp2":224.0,"formula_ids":["MG_RR_FLOW_FRESH_V4","MG_RR_FLOW_RENEW_V4"]}]},
+    {"time":"09:45","rows":[{"ticker":"BMRI","price":6400.0,"chg_pct":2.400000000000002,"tp1":6425.0,"tp2":6450.0,"formula_ids":["MG_RR_FLOW_FRESH_V4","MG_RR_FLOW_RENEW_V4"]}]},
+    {"time":"09:50","rows":[{"ticker":"TNCA","price":222.0,"chg_pct":12.690355329949243,"tp1":230.0,"tp2":238.0,"formula_ids":["MG_RR_FLOW_FRESH_V4","MG_RR_FLOW_RENEW_V4"]}]},
+    {"time":"09:55","rows":[{"ticker":"TNCA","price":238.0,"chg_pct":20.812182741116757,"tp1":248.0,"tp2":258.0,"formula_ids":["MG_RR_FLOW_FRESH_V4","MG_RR_FLOW_RENEW_V4"]}]},
+    {"time":"13:45","rows":[{"ticker":"TNCA","price":238.0,"chg_pct":20.812182741116757,"tp1":240.0,"tp2":246.0,"formula_ids":["MG_RR_FLOW_FRESH_V4","MG_RR_FLOW_RENEW_V4"]}]},
+    {"time":"13:50","rows":[{"ticker":"TNCA","price":244.0,"chg_pct":23.85786802030456,"tp1":246.0,"tp2":248.0,"formula_ids":["MG_RR_FLOW_FRESH_V4","MG_RR_FLOW_RENEW_V4"]}]},
+    {"time":"13:55","rows":[{"ticker":"CTRA","price":1105.0,"chg_pct":2.7906976744185963,"tp1":1110.0,"tp2":1120.0,"formula_ids":["MG_RR_FLOW_FRESH_V4","MG_RR_FLOW_RENEW_V4"]}]},
+    {"time":"14:25","rows":[{"ticker":"CTRA","price":1105.0,"chg_pct":2.7906976744185963,"tp1":1110.0,"tp2":1120.0,"formula_ids":["MG_RR_FLOW_FRESH_V4","MG_RR_FLOW_RENEW_V4"]}]}
+  ],
+  "report_policy": "FULL_OBSERVED_5MIN_SLOTS_WITH_EMPTY_SEPARATOR_AND_PERSISTENT_TICKERS_PLUS_TP_HIT_TIME_AND_NET_PL",
   "oos_policy": "MARCH_2025_UNTOUCHED"
 }
