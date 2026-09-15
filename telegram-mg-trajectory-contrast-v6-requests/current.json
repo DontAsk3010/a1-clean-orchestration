@@ -1,0 +1,34 @@
+{
+  "schema": "A1_TELEGRAM_MG_TRAJECTORY_CONTRAST_V6_REQUEST_V1",
+  "request_id": "TELEGRAM_MG_TRAJECTORY_CONTRAST_V6_DEC_DISCOVERY_JAN_FEB_VALIDATION_20260916_01",
+  "enabled": true,
+  "authorization_phrase": "AUTHORIZE_TELEGRAM_MG_TRAJECTORY_CONTRAST_V6",
+  "source_names": [
+    "Raw Des 02-31-2024.csv",
+    "Raw Jan 01-31-2025.csv",
+    "Raw Feb 03-28-2025.csv"
+  ],
+  "prior_window": 2,
+  "execution": {
+    "buy_fee_pct": 0.15,
+    "sell_fee_pct": 0.25
+  },
+  "min_support": 30,
+  "validation_min_support": 20,
+  "max_required": 3,
+  "max_forbidden": 1,
+  "top_positive_markers": 16,
+  "top_negative_markers": 10,
+  "top_signatures": 30,
+  "params": {
+    "effort_lookback": 5,
+    "progress_lookback": 5,
+    "high_lookback": 5,
+    "recovery_lookback": 10,
+    "low_stabilization_bars": 3,
+    "early_checkpoint_bar": 30,
+    "late_lift_min_bar": 180
+  },
+  "oos_policy": "MARCH_2025_UNTOUCHED",
+  "research_policy": "FULL_UNIVERSE_ALL_5MIN_CAUSAL_STATE__OUTCOME_LABEL_ONLY__NO_TICKER_DATE_EXCEPTION__NO_THRESHOLD_RESCUE"
+}
