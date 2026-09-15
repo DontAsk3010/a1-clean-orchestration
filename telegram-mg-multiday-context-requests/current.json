@@ -1,0 +1,32 @@
+{
+  "schema": "A1_TELEGRAM_MG_MULTIDAY_CONTEXT_REQUEST_V1",
+  "request_id": "TELEGRAM_MG_MULTIDAY_DEC2024_JAN2025_FEB2025_20260915_01",
+  "enabled": true,
+  "authorization_phrase": "AUTHORIZE_TELEGRAM_MG_MULTIDAY_CONTEXT_STUDY",
+  "source_names": [
+    "Raw Des 02-31-2024.csv",
+    "Raw Jan 01-31-2025.csv",
+    "Raw Feb 03-28-2025.csv"
+  ],
+  "drive_output_folder_id": "1uQKSZD8KbOZ2j3moyZiH1EuJPlEhEAuC",
+  "params": {
+    "effort_lookback": 5,
+    "progress_lookback": 5,
+    "high_lookback": 5,
+    "recovery_lookback": 10,
+    "low_stabilization_bars": 3,
+    "early_checkpoint_bar": 30,
+    "late_lift_min_bar": 180
+  },
+  "candidate_prior_windows": [2, 3, 5, 10],
+  "context_modes": [
+    "ACTIVITY_WAKE",
+    "ACTIVITY_RANGE_WAKE",
+    "ACTIVITY_PATH_WAKE",
+    "ACTIVITY_RANGE_PATH_WAKE"
+  ],
+  "base_intraday_gate": "MG_P5_STEP050_RET025_150",
+  "objective": "FIND_FEWER_CLEANER_EARLY_POTENTIAL_SIGNALS_THAT_REWARD_ON_H_BY_REQUIRING_NEW_MOTION_RELATIVE_TO_PRIOR_STATE",
+  "period_policy": "ROBUSTNESS_EXPLORATION_ACROSS_THREE_CHRONOLOGICAL_PERIODS_NOT_CLAIMED_AS_UNTOUCHED_OOS",
+  "h_plus_1_policy": "EXCLUDED_FROM_MG_QUALIFICATION"
+}
