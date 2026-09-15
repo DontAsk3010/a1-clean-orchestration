@@ -1,0 +1,28 @@
+{
+  "schema": "A1_TELEGRAM_MG_CLEAN_V2_REQUEST_V1",
+  "request_id": "TELEGRAM_MG_CLEAN_V2_DEV_DEC2024_JAN2025_FEB2025_20260915_01",
+  "enabled": true,
+  "authorization_phrase": "AUTHORIZE_TELEGRAM_MG_CLEAN_V2_STUDY",
+  "mode": "DEVELOPMENT_COMPARE_ALL",
+  "selected_profile": null,
+  "source_names": [
+    "Raw Des 02-31-2024.csv",
+    "Raw Jan 01-31-2025.csv",
+    "Raw Feb 03-28-2025.csv"
+  ],
+  "drive_output_folder_id": "1uQKSZD8KbOZ2j3moyZiH1EuJPlEhEAuC",
+  "params": {
+    "effort_lookback": 5,
+    "progress_lookback": 5,
+    "high_lookback": 5,
+    "recovery_lookback": 10,
+    "low_stabilization_bars": 3,
+    "early_checkpoint_bar": 30,
+    "late_lift_min_bar": 180
+  },
+  "base_intraday_gate": "MG_P5_STEP050_RET025_150",
+  "prior_window_trading_days": 2,
+  "objective": "FIND_FEWER_CLEANER_MG_SIGNALS_THAT_ARE_FRESH_RELATIVE_TO_PRIOR_STATE_STRONG_ON_H_AND_REWARD_ON_H",
+  "period_policy": "DEVELOPMENT_ONLY_DEC2024_JAN2025_FEB2025_THEN_FREEZE_ONE_PROFILE_BEFORE_MARCH2025",
+  "h_plus_1_policy": "EXCLUDED_FROM_MG_QUALIFICATION"
+}
