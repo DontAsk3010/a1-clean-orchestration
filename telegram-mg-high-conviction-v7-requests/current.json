@@ -1,6 +1,7 @@
 {
   "schema": "A1_TELEGRAM_MG_HIGH_CONVICTION_V7_REQUEST_V1",
-  "enabled": true,
+  "enabled": false,
+  "superseded_by": "A1_TELEGRAM_MG_MULTI_HYPOTHESIS_V8C_RESULT_V1",
   "source_names": [
     "Raw Des 02-31-2024.csv",
     "Raw Jan 01-31-2025.csv",
