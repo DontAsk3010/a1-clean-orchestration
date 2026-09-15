@@ -1,0 +1,107 @@
+name: Windows Telegram MG Sequence Discovery V4
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - telegram-mg-sequence-discovery-v4-requests/current.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-telegram-mg-sequence-discovery-v4
+  cancel-in-progress: true
+
+jobs:
+  study:
+    name: Discover and validate backward MG sequence signatures
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact research revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate V4 request
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'telegram-mg-sequence-discovery-v4-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_TELEGRAM_MG_SEQUENCE_DISCOVERY_V4_REQUEST_V1') { throw 'Unsupported V4 request schema.' }
+          if ($req.enabled -ne $true) { throw 'V4 request not enabled.' }
+          if ($req.authorization_phrase -ne 'AUTHORIZE_TELEGRAM_MG_SEQUENCE_DISCOVERY_V4') { throw 'Exact V4 authorization phrase required.' }
+          if ($req.drive_output_folder_id -ne '1uQKSZD8KbOZ2j3moyZiH1EuJPlEhEAuC') { throw 'Unexpected Formula Research output folder.' }
+          if ($req.source_names.Count -lt 3) { throw 'V4 requires discovery plus at least two validation periods.' }
+          if ($req.source_names -contains 'Raw Maret 03-31-2025.csv') { throw 'March OOS must remain untouched.' }
+          if ($req.parent_behavior -ne 'K06_EARLY_RETAINED_FLOW') { throw 'Unexpected V4 parent behavior.' }
+          $json = $req | ConvertTo-Json -Compress -Depth 20
+          "A1_MG_SEQUENCE_V4_REQUEST_JSON=$json" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify Drive credential bindings
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($path in @($env:A1_DRIVE_READER_CREDENTIALS, $env:A1_DRIVE_WRITER_CREDENTIALS)) {
+            if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'Drive credential binding missing.' }
+          }
+
+      - name: Install compile and test exact research code
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[test]'
+          if ($LASTEXITCODE -ne 0) { throw 'MG_SEQUENCE_V4_INSTALL_FAILED' }
+          py -3.11 -m compileall -q src tests
+          if ($LASTEXITCODE -ne 0) { throw 'MG_SEQUENCE_V4_COMPILE_FAILED' }
+          py -3.11 -m pytest -q
+          if ($LASTEXITCODE -ne 0) { throw 'MG_SEQUENCE_V4_TESTS_FAILED' }
+
+      - name: Run V4 sequence discovery and validation
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = $env:A1_MG_SEQUENCE_V4_REQUEST_JSON | ConvertFrom-Json
+          $argsList = @(
+            '-3.11', '-m', 'a1clean.formula_research.telegram_mg_sequence_discovery_v4',
+            '--request-id', [string]$req.request_id,
+            '--software-revision', '${{ github.sha }}',
+            '--drive-output-folder-id', [string]$req.drive_output_folder_id,
+            '--output', 'telegram-mg-sequence-discovery-v4-result.json',
+            '--prior-window', [string][int]$req.prior_window,
+            '--buy-fee-pct', [string][double]$req.execution.buy_fee_pct,
+            '--sell-fee-pct', [string][double]$req.execution.sell_fee_pct,
+            '--discovery-min-support', [string][int]$req.discovery_min_support,
+            '--validation-min-support', [string][int]$req.validation_min_support,
+            '--max-signature-size', [string][int]$req.max_signature_size,
+            '--effort-lookback', [string][int]$req.params.effort_lookback,
+            '--progress-lookback', [string][int]$req.params.progress_lookback,
+            '--high-lookback', [string][int]$req.params.high_lookback,
+            '--recovery-lookback', [string][int]$req.params.recovery_lookback,
+            '--low-stabilization-bars', [string][int]$req.params.low_stabilization_bars,
+            '--early-checkpoint-bar', [string][int]$req.params.early_checkpoint_bar,
+            '--late-lift-min-bar', [string][int]$req.params.late_lift_min_bar
+          )
+          foreach ($source in $req.source_names) { $argsList += @('--source-name', [string]$source) }
+          & py @argsList
+          if ($LASTEXITCODE -ne 0) { throw "MG_SEQUENCE_V4_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Upload V4 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-mg-sequence-discovery-v4-${{ github.run_id }}
+          path: telegram-mg-sequence-discovery-v4-result.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Research declaration
+        if: always()
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          "### Telegram MG Sequence Discovery V4" >> $env:GITHUB_STEP_SUMMARY
+          "- V3 K01-K09 remain failed broad-structure evidence." >> $env:GITHUB_STEP_SUMMARY
+          "- V4 partitions the best failed parent by causal backward publication sequence, not by rescuing a price threshold." >> $env:GITHUB_STEP_SUMMARY
+          "- December is discovery; January and February validate exact unchanged signatures." >> $env:GITHUB_STEP_SUMMARY
+          "- March 2025 remains untouched OOS; H+1 is excluded." >> $env:GITHUB_STEP_SUMMARY
