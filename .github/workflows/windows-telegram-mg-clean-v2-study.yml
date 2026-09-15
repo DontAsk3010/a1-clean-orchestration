@@ -1,0 +1,115 @@
+name: Windows Telegram MG Clean V2 Study
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - telegram-mg-clean-v2-requests/current.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-telegram-mg-clean-v2-study
+  cancel-in-progress: false
+
+jobs:
+  study:
+    name: Telegram MG clean V2 development or frozen validation
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact formula research revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate clean V2 request
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ('${{ github.ref_name }}' -ne 'formula/current-clean-research-v1') { throw 'MG clean V2 study is branch-restricted.' }
+          $req = Get-Content -LiteralPath 'telegram-mg-clean-v2-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_TELEGRAM_MG_CLEAN_V2_REQUEST_V1') { throw 'Unsupported MG clean V2 request schema.' }
+          if ($req.enabled -ne $true) { throw 'MG clean V2 request not enabled.' }
+          if ($req.authorization_phrase -ne 'AUTHORIZE_TELEGRAM_MG_CLEAN_V2_STUDY') { throw 'Exact clean V2 authorization phrase required.' }
+          if ($req.drive_output_folder_id -ne '1uQKSZD8KbOZ2j3moyZiH1EuJPlEhEAuC') { throw 'Unexpected Formula Research output folder.' }
+          if ($req.mode -eq 'DEVELOPMENT_COMPARE_ALL') {
+            if ($req.source_names.Count -lt 3) { throw 'Development requires at least three chronological source periods.' }
+            if (-not [string]::IsNullOrWhiteSpace([string]$req.selected_profile)) { throw 'Development may not preselect a profile.' }
+          } elseif ($req.mode -eq 'FROZEN_VALIDATION_ONE') {
+            if ($req.source_names.Count -ne 1) { throw 'Frozen validation requires exactly one untouched evaluation source.' }
+            if ([string]::IsNullOrWhiteSpace([string]$req.selected_profile)) { throw 'Frozen validation requires one selected profile.' }
+          } else {
+            throw 'Unsupported clean V2 mode.'
+          }
+          $json = $req | ConvertTo-Json -Compress -Depth 20
+          "A1_MG_CLEAN_V2_REQUEST_JSON=$json" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify Drive credential bindings
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($path in @($env:A1_DRIVE_READER_CREDENTIALS, $env:A1_DRIVE_WRITER_CREDENTIALS)) {
+            if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'Drive credential binding missing.' }
+          }
+
+      - name: Install and test exact MG clean V2 code
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[test]'
+          if ($LASTEXITCODE -ne 0) { throw 'MG_CLEAN_V2_INSTALL_FAILED' }
+          py -3.11 -m compileall -q src tests
+          if ($LASTEXITCODE -ne 0) { throw 'MG_CLEAN_V2_COMPILE_FAILED' }
+          py -3.11 -m pytest -q
+          if ($LASTEXITCODE -ne 0) { throw 'MG_CLEAN_V2_TESTS_FAILED' }
+
+      - name: Run clean V2 study
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = $env:A1_MG_CLEAN_V2_REQUEST_JSON | ConvertFrom-Json
+          $argsList = @(
+            '-3.11', '-m', 'a1clean.formula_research.telegram_mg_clean_v2_study',
+            '--request-id', [string]$req.request_id,
+            '--software-revision', '${{ github.sha }}',
+            '--drive-output-folder-id', [string]$req.drive_output_folder_id,
+            '--output', 'telegram-mg-clean-v2-study-result.json',
+            '--mode', [string]$req.mode,
+            '--effort-lookback', [string][int]$req.params.effort_lookback,
+            '--progress-lookback', [string][int]$req.params.progress_lookback,
+            '--high-lookback', [string][int]$req.params.high_lookback,
+            '--recovery-lookback', [string][int]$req.params.recovery_lookback,
+            '--low-stabilization-bars', [string][int]$req.params.low_stabilization_bars,
+            '--early-checkpoint-bar', [string][int]$req.params.early_checkpoint_bar,
+            '--late-lift-min-bar', [string][int]$req.params.late_lift_min_bar
+          )
+          if (-not [string]::IsNullOrWhiteSpace([string]$req.selected_profile)) {
+            $argsList += @('--selected-profile', [string]$req.selected_profile)
+          }
+          foreach ($source in $req.source_names) {
+            $argsList += @('--source-name', [string]$source)
+          }
+          & py @argsList
+          if ($LASTEXITCODE -ne 0) { throw "MG_CLEAN_V2_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Upload clean V2 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-mg-clean-v2-study-${{ github.run_id }}
+          path: telegram-mg-clean-v2-study-result.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Research safety declaration
+        if: always()
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          "### Telegram MG clean V2 study" >> $env:GITHUB_STEP_SUMMARY
+          "- P5 remains the causal intraday baseline; this workflow adds explicit prior-state strength and anti-extension gates." >> $env:GITHUB_STEP_SUMMARY
+          "- No weighted score is used." >> $env:GITHUB_STEP_SUMMARY
+          "- H+1 never qualifies MG; reward is same-day and begins after the publication bar." >> $env:GITHUB_STEP_SUMMARY
+          "- Development compares declared profiles only on development periods." >> $env:GITHUB_STEP_SUMMARY
+          "- Frozen validation accepts exactly one previously selected profile and does not retune it." >> $env:GITHUB_STEP_SUMMARY
