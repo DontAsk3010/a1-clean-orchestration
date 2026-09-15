@@ -1,0 +1,29 @@
+{
+  "schema": "A1_TELEGRAM_MG_STRUCTURAL_DISCOVERY_V3_REQUEST_V1",
+  "request_id": "TELEGRAM_MG_STRUCTURAL_DISCOVERY_V3_FAST_DEC2024_JAN2025_FEB2025_20260915_01",
+  "enabled": true,
+  "authorization_phrase": "AUTHORIZE_TELEGRAM_MG_STRUCTURAL_DISCOVERY_V3",
+  "source_names": [
+    "Raw Des 02-31-2024.csv",
+    "Raw Jan 01-31-2025.csv",
+    "Raw Feb 03-28-2025.csv"
+  ],
+  "drive_output_folder_id": "1uQKSZD8KbOZ2j3moyZiH1EuJPlEhEAuC",
+  "prior_window": 2,
+  "execution": {
+    "buy_fee_pct": 0.15,
+    "sell_fee_pct": 0.25
+  },
+  "params": {
+    "effort_lookback": 5,
+    "progress_lookback": 5,
+    "high_lookback": 5,
+    "recovery_lookback": 10,
+    "low_stabilization_bars": 3,
+    "early_checkpoint_bar": 30,
+    "late_lift_min_bar": 180
+  },
+  "development_policy": "CACHED_CONTEXT_EXACT_REFERENCE_PARITY;FIRST_CAUSAL_APPEARANCE_ONLY_PER_TICKER_DAY_FORMULA;MEASURE_RAW_OUTCOME_DISTRIBUTIONS;NO_THRESHOLD_RESCUE_ONLY",
+  "oos_policy": "MARCH_2025_UNTOUCHED",
+  "objective": "FIND_EARLY_MG_BEHAVIOR_STRUCTURES_WITH_CROSS_PERIOD_POSITIVE_POST_SIGNAL_EXECUTABLE_REWARD_DISTRIBUTIONS_BEFORE_REAPPLYING_PROFIT_ROOM_GATE"
+}
