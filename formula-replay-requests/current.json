@@ -1,6 +1,6 @@
 {
   "schema": "A1_CANDIDATE_FORMULA_REPLAY_REQUEST_V1",
-  "request_id": "FORMULA_REPLAY_SMOKE_DES2024_20260915_01",
+  "request_id": "FORMULA_REPLAY_SMOKE_DES2024_20260915_02",
   "enabled": true,
   "authorization_phrase": "AUTHORIZE_HANDBOOK_CANDIDATE_FORMULA_REPLAY",
   "source_name": "Raw Des 02-31-2024.csv",
@@ -18,5 +18,5 @@
   },
   "parameter_status": "EXPLORATION_SEED_ONLY_NOT_ACCEPTED_THRESHOLDS",
   "formula_spec_id": "A1_HANDBOOK_DERIVED_CANDIDATE_FORMULAS_V1",
-  "purpose": "Operational smoke plus first causal cross-formula measurement; no final/canonical promotion."
+  "purpose": "Exact rerun of the first bounded smoke after physical current-clean field/session binding repair; parameters and horizons intentionally unchanged."
 }
