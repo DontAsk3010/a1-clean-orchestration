@@ -1,0 +1,100 @@
+name: Windows Telegram MG Precision Full Report
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - telegram-mg-precision-report-requests/current.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-telegram-mg-precision-full-report
+  cancel-in-progress: false
+
+jobs:
+  report:
+    name: Telegram MG P5 full December reward report
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact formula research revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate full-report request
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ('${{ github.ref_name }}' -ne 'formula/current-clean-research-v1') { throw 'MG precision full report is branch-restricted.' }
+          $req = Get-Content -LiteralPath 'telegram-mg-precision-report-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_TELEGRAM_MG_PRECISION_FULL_REPORT_REQUEST_V1') { throw 'Unsupported report request schema.' }
+          if ($req.enabled -ne $true) { throw 'Report request not enabled.' }
+          if ($req.authorization_phrase -ne 'AUTHORIZE_TELEGRAM_MG_PRECISION_FULL_REPORT') { throw 'Exact authorization phrase required.' }
+          if ($req.variant -ne 'MG_P5_STEP050_RET025_150') { throw 'This report request must use the frozen December research leader P5.' }
+          if ($req.source_name -ne 'Raw Des 02-31-2024.csv') { throw 'This report request is December 2024 only.' }
+          if ($req.drive_output_folder_id -ne '1uQKSZD8KbOZ2j3moyZiH1EuJPlEhEAuC') { throw 'Unexpected Formula Research output folder.' }
+          $json = $req | ConvertTo-Json -Compress -Depth 20
+          "A1_MG_PRECISION_REPORT_REQUEST_JSON=$json" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify Drive credential bindings
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($path in @($env:A1_DRIVE_READER_CREDENTIALS, $env:A1_DRIVE_WRITER_CREDENTIALS)) {
+            if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'Drive credential binding missing.' }
+          }
+
+      - name: Install and test exact report code
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[test]'
+          if ($LASTEXITCODE -ne 0) { throw 'MG_REPORT_INSTALL_FAILED' }
+          py -3.11 -m compileall -q src tests
+          if ($LASTEXITCODE -ne 0) { throw 'MG_REPORT_COMPILE_FAILED' }
+          py -3.11 -m pytest -q
+          if ($LASTEXITCODE -ne 0) { throw 'MG_REPORT_TESTS_FAILED' }
+
+      - name: Build full December P5 report
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = $env:A1_MG_PRECISION_REPORT_REQUEST_JSON | ConvertFrom-Json
+          py -3.11 -m a1clean.formula_research.telegram_mg_precision_full_report `
+            --source-name $req.source_name `
+            --variant $req.variant `
+            --request-id $req.request_id `
+            --software-revision '${{ github.sha }}' `
+            --drive-output-folder-id $req.drive_output_folder_id `
+            --output 'telegram-mg-precision-full-report.json' `
+            --effort-lookback ([int]$req.params.effort_lookback) `
+            --progress-lookback ([int]$req.params.progress_lookback) `
+            --high-lookback ([int]$req.params.high_lookback) `
+            --recovery-lookback ([int]$req.params.recovery_lookback) `
+            --low-stabilization-bars ([int]$req.params.low_stabilization_bars) `
+            --early-checkpoint-bar ([int]$req.params.early_checkpoint_bar) `
+            --late-lift-min-bar ([int]$req.params.late_lift_min_bar)
+          if ($LASTEXITCODE -ne 0) { throw "MG_REPORT_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Upload full report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-mg-precision-full-report-${{ github.run_id }}
+          path: telegram-mg-precision-full-report.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Research safety declaration
+        if: always()
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          "### Telegram MG P5 full report" >> $env:GITHUB_STEP_SUMMARY
+          "- Full December 2024 all-eligible source scope; first P5 alert per ticker-day." >> $env:GITHUB_STEP_SUMMARY
+          "- Reward evaluation starts on the next regular bar and ends at same-day close." >> $env:GITHUB_STEP_SUMMARY
+          "- Same alert bar high is excluded." >> $env:GITHUB_STEP_SUMMARY
+          "- H+1 is excluded from MG reward qualification." >> $env:GITHUB_STEP_SUMMARY
+          "- Candidate remains research-only, not final/canonical/live." >> $env:GITHUB_STEP_SUMMARY
