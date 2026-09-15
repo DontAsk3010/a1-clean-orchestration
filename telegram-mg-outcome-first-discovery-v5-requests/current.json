@@ -1,0 +1,35 @@
+{
+  "schema": "A1_TELEGRAM_MG_OUTCOME_FIRST_DISCOVERY_V5_REQUEST_V1",
+  "request_id": "TELEGRAM_MG_OUTCOME_FIRST_V5_DEC_DISCOVERY_JAN_FEB_VALIDATION_20260916_01",
+  "enabled": true,
+  "authorization_phrase": "AUTHORIZE_TELEGRAM_MG_OUTCOME_FIRST_DISCOVERY_V5",
+  "source_names": [
+    "Raw Des 02-31-2024.csv",
+    "Raw Jan 01-31-2025.csv",
+    "Raw Feb 03-28-2025.csv"
+  ],
+  "drive_output_folder_id": "1uQKSZD8KbOZ2j3moyZiH1EuJPlEhEAuC",
+  "prior_window": 2,
+  "execution": {
+    "buy_fee_pct": 0.15,
+    "sell_fee_pct": 0.25
+  },
+  "discovery_min_support": 30,
+  "validation_min_support": 20,
+  "max_signature_size": 3,
+  "top_marker_limit": 30,
+  "top_signature_limit": 80,
+  "params": {
+    "effort_lookback": 5,
+    "progress_lookback": 5,
+    "high_lookback": 5,
+    "recovery_lookback": 10,
+    "low_stabilization_bars": 3,
+    "early_checkpoint_bar": 30,
+    "late_lift_min_bar": 180
+  },
+  "discovery_policy": "FULL_UNIVERSE_NO_PARENT_GATE;DECEMBER_OUTCOME_LABEL_ONLY;EARLIEST_POSITIVE_EXECUTABLE_OPPORTUNITY_PER_TICKER_DAY_ELSE_BEST_FAILURE;MINE_CAUSAL_CURRENT_AND_SEQUENCE_MARKERS",
+  "validation_policy": "JANUARY_AND_FEBRUARY_USE_EXACT_UNCHANGED_SIGNATURE;EVALUATE_FIRST_CAUSAL_MATCH_PER_TICKER_DAY;NO_OUTCOME_BASED_SIGNAL_SELECTION",
+  "oos_policy": "MARCH_2025_UNTOUCHED",
+  "objective": "USE_REPLAY_AS_TEACHER_TO_DISCOVER_EARLIEST_CAUSAL_MG_FINGERPRINTS_ACROSS_THE_FULL_UNIVERSE_AND_DISTINGUISH_THEM_FROM_FAILURES"
+}
