@@ -1,0 +1,88 @@
+name: Windows Telegram MG High Conviction V7
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - telegram-mg-high-conviction-v7-requests/current.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-telegram-mg-high-conviction-v7
+  cancel-in-progress: true
+
+jobs:
+  study:
+    name: Mine high-conviction MG formulas across full universe
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact research revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate V7 request
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'telegram-mg-high-conviction-v7-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_TELEGRAM_MG_HIGH_CONVICTION_V7_REQUEST_V1') { throw 'Unsupported V7 request schema.' }
+          if ($req.enabled -ne $true) { throw 'V7 request not enabled.' }
+          if ($req.source_names.Count -lt 3) { throw 'V7 requires discovery plus two validation periods.' }
+          if ($req.source_names -contains 'Raw Maret 03-31-2025.csv') { throw 'March OOS must remain untouched.' }
+          $json = $req | ConvertTo-Json -Compress -Depth 20
+          "A1_MG_V7_REQUEST_JSON=$json" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify Drive credential bindings
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($path in @($env:A1_DRIVE_READER_CREDENTIALS, $env:A1_DRIVE_WRITER_CREDENTIALS)) {
+            if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'Drive credential binding missing.' }
+          }
+
+      - name: Install compile test
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[test]'
+          if ($LASTEXITCODE -ne 0) { throw 'MG_V7_INSTALL_FAILED' }
+          py -3.11 -m compileall -q src tests
+          if ($LASTEXITCODE -ne 0) { throw 'MG_V7_COMPILE_FAILED' }
+          py -3.11 -m pytest -q
+          if ($LASTEXITCODE -ne 0) { throw 'MG_V7_TESTS_FAILED' }
+
+      - name: Run V7 high-conviction discovery
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = $env:A1_MG_V7_REQUEST_JSON | ConvertFrom-Json
+          $argsList = @(
+            '-3.11', '-m', 'a1clean.formula_research.telegram_mg_high_conviction_v7',
+            '--output', 'telegram-mg-high-conviction-v7-result.json',
+            '--prior-window', [string][int]$req.prior_window,
+            '--buy-fee-pct', [string][double]$req.execution.buy_fee_pct,
+            '--sell-fee-pct', [string][double]$req.execution.sell_fee_pct,
+            '--min-support', [string][int]$req.min_support,
+            '--validation-min-support', [string][int]$req.validation_min_support,
+            '--max-required', [string][int]$req.max_required,
+            '--max-forbidden', [string][int]$req.max_forbidden,
+            '--top-positive-markers', [string][int]$req.top_positive_markers,
+            '--top-negative-markers', [string][int]$req.top_negative_markers,
+            '--top-signatures', [string][int]$req.top_signatures
+          )
+          foreach ($source in $req.source_names) { $argsList += @('--source-name', [string]$source) }
+          & py @argsList
+          if ($LASTEXITCODE -ne 0) { throw "MG_V7_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Upload V7 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-mg-high-conviction-v7-${{ github.run_id }}
+          path: telegram-mg-high-conviction-v7-result.json
+          if-no-files-found: error
+          retention-days: 30
