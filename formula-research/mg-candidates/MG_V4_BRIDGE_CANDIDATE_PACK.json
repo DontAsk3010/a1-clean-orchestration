@@ -1,0 +1,34 @@
+{
+  "schema": "A1_TELEGRAM_MG_FROZEN_CANDIDATE_PACK_V1",
+  "status": "RESEARCH_CANDIDATE_NOT_CANONICAL",
+  "source_schema": "A1_TELEGRAM_MG_SEQUENCE_DISCOVERY_V4",
+  "source_request_id": "TELEGRAM_MG_SEQUENCE_DISCOVERY_V4_DEC_DISCOVERY_JAN_FEB_VALIDATION_20260915_01",
+  "strict_only": false,
+  "formula_count": 2,
+  "formulas": [
+    {
+      "spec": {
+        "formula_id": "MG_RR_FLOW_RENEW_V4",
+        "required": ["HELD_FLOW", "PRIOR3_RECLAIM", "REGAIN_RENEWED_HIGH"],
+        "forbidden": [],
+        "first_match_per_ticker_day": true,
+        "status": "RESEARCH_CANDIDATE_NOT_CANONICAL",
+        "future_data_used_for_formula_state": false
+      }
+    },
+    {
+      "spec": {
+        "formula_id": "MG_RR_FLOW_FRESH_V4",
+        "required": ["HELD_FLOW", "PRIOR3_RECLAIM", "REGAIN_FRESH"],
+        "forbidden": [],
+        "first_match_per_ticker_day": true,
+        "status": "RESEARCH_CANDIDATE_NOT_CANONICAL",
+        "future_data_used_for_formula_state": false
+      }
+    }
+  ],
+  "runtime_rule": "CAUSAL_MARKERS_ONLY__FIRST_MATCH_PER_TICKER_DAY",
+  "future_data_in_executable_formula": false,
+  "promotion_to_live_allowed": false,
+  "purpose": "EXECUTABLE_RESEARCH_BASELINE_FOR_NEXT_REPLAY_AND_V5_FAILURE_REFINEMENT"
+}
