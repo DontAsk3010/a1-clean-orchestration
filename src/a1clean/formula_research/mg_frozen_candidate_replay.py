@@ -146,11 +146,32 @@ def _scan_fast_bridge(
     return matched, packet_counts
 
 
+def _previous_close(
+    history: Mapping[str, Mapping[str, DayRecord]],
+    ticker: str,
+    completed_dates: Sequence[str],
+) -> float | None:
+    ticker_history = history.get(ticker, {})
+    for day in reversed(completed_dates):
+        record = ticker_history.get(day)
+        if record is None:
+            continue
+        for bar in reversed(record.bars):
+            close = _num(bar.get("close"))
+            if close is not None and close > 0:
+                return float(close)
+    return None
+
+
 def _scan_first_parent_bridge(
     *, source_names: Sequence[str], candidate_parts: Mapping[str, tuple[str, ...]],
     params: CandidateParams, prior_window: int, buy_fee_pct: float, sell_fee_pct: float,
     parent_gate: Mapping[str, Any],
-) -> tuple[dict[str, list[dict[str, Any]]], dict[str, int]]:
+) -> tuple[
+    dict[str, list[dict[str, Any]]],
+    dict[str, int],
+    dict[str, list[dict[str, Any]]],
+]:
     required_states = tuple(str(x) for x in parent_gate.get("required_current_states") or ())
     if required_states != (
         "J05_FLOW_RESILIENT_CONTINUATION", "J06_EARLY_STRENGTH_RETAINED"
@@ -165,6 +186,11 @@ def _scan_first_parent_bridge(
     completed_dates: list[str] = []
     seen_dates: set[str] = set()
     current_date: str | None = None
+
+    slot_times: dict[str, set[str]] = defaultdict(set)
+    slot_rows: dict[str, dict[str, dict[str, dict[str, Any]]]] = defaultdict(
+        lambda: defaultdict(dict)
+    )
 
     def close_date(d: str | None) -> None:
         if d is None or d in seen_dates:
@@ -202,10 +228,13 @@ def _scan_first_parent_bridge(
             else:
                 context_series = [None] * len(bars)
 
+            prev_close = _previous_close(history, ticker, completed_dates)
             mg_rows = evaluate_mg_packet(bars, params)
             base_rows = evaluate_intraday_candidates(bars, params)
             publication_snapshots: list[dict[str, bool]] = []
             parent_seen = False
+            triggered_formulas: set[str] = set()
+
             for i, (mg, base) in enumerate(zip(mg_rows, base_rows, strict=True)):
                 states, evidence = _topology_states(
                     bars=bars, index=i, mg=mg, base=base,
@@ -213,26 +242,69 @@ def _scan_first_parent_bridge(
                 )
                 if not mg.get("publication_slot"):
                     continue
+                timestamp = str(mg.get("timestamp") or "")
+                slot_times[date].add(timestamp)
                 snap = _snapshot(mg=mg, base=base, evidence=evidence)
                 parent_match = all(bool(states.get(s)) for s in required_states)
+
                 if parent_match and not parent_seen:
                     parent_seen = True
                     markers = set(sequence_markers(snap, publication_snapshots))
                     for fid, required in candidate_parts.items():
                         if all(marker in markers for marker in required):
+                            triggered_formulas.add(fid)
                             outcome = _outcome_at(bars, i, buy_fee_pct, sell_fee_pct)
                             matched[fid].append({
                                 **outcome, "source": source_name, "trading_date": date,
                                 "ticker": ticker, "timestamp": mg.get("timestamp"),
                                 "signal_price": _num(bars[i].get("close")),
                             })
+
+                if triggered_formulas and parent_match:
+                    price = _num(bars[i].get("close"))
+                    chg_pct = None
+                    if price is not None and prev_close is not None and prev_close > 0:
+                        chg_pct = (float(price) / float(prev_close) - 1.0) * 100.0
+                    targets = mg.get("targets") or {}
+                    row = {
+                        "ticker": ticker,
+                        "price": price,
+                        "chg_pct": chg_pct,
+                        "tp1": _num(targets.get("tp1")),
+                        "tp2": _num(targets.get("tp2")),
+                        "formula_ids": sorted(triggered_formulas),
+                    }
+                    existing = slot_rows[date][timestamp].get(ticker)
+                    if existing is None:
+                        slot_rows[date][timestamp][ticker] = row
+                    else:
+                        existing["formula_ids"] = sorted(
+                            set(existing["formula_ids"]) | triggered_formulas
+                        )
+
                 publication_snapshots.append(snap)
+
             history.setdefault(ticker, {})[date] = DayRecord(
                 trading_date=date, bars=tuple(dict(b) for b in bars)
             )
         packet_counts[source_name] = pc
     close_date(current_date)
-    return matched, packet_counts
+
+    telegram_days: dict[str, list[dict[str, Any]]] = {}
+    for date in sorted(slot_times):
+        snapshots: list[dict[str, Any]] = []
+        for timestamp in sorted(slot_times[date]):
+            rows = list(slot_rows[date].get(timestamp, {}).values())
+            rows.sort(key=lambda row: str(row.get("ticker")))
+            snapshots.append({
+                "timestamp": timestamp,
+                "time": timestamp[11:16] if len(timestamp) >= 16 else timestamp,
+                "rows": rows,
+                "empty": len(rows) == 0,
+            })
+        telegram_days[date] = snapshots
+
+    return matched, packet_counts, telegram_days
 
 
 def replay_pack(
@@ -259,14 +331,15 @@ def replay_pack(
             raise ValueError("FORBIDDEN_MARKER_REPLAY_NOT_IMPLEMENTED")
         candidate_parts[formula_id] = required
 
+    telegram_days: dict[str, list[dict[str, Any]]] = {}
     parent_gate = pack.get("parent_gate") if isinstance(pack.get("parent_gate"), Mapping) else None
     if parent_gate:
-        matched, packet_counts = _scan_first_parent_bridge(
+        matched, packet_counts, telegram_days = _scan_first_parent_bridge(
             source_names=source_names, candidate_parts=candidate_parts, params=params,
             prior_window=prior_window, buy_fee_pct=buy_fee_pct, sell_fee_pct=sell_fee_pct,
             parent_gate=parent_gate,
         )
-        implementation = "FIRST_K06_PARENT_GATE_EXACT_V4"
+        implementation = "FIRST_K06_PARENT_GATE_EXACT_V4_WITH_5MIN_TELEGRAM_SNAPSHOTS"
     elif _can_fast_path(candidate_parts, parent_gate):
         matched, packet_counts = _scan_fast_bridge(
             source_names=source_names, candidate_parts=candidate_parts, params=params,
@@ -309,7 +382,7 @@ def replay_pack(
         str(r.get("ticker")), str(r.get("formula_id"))
     ))
     return {
-        "schema": "A1_TELEGRAM_MG_FROZEN_CANDIDATE_REPLAY_V4",
+        "schema": "A1_TELEGRAM_MG_FROZEN_CANDIDATE_REPLAY_V5",
         "status": "RESEARCH_REPLAY_NOT_CANONICAL",
         "implementation": implementation,
         "parent_gate": parent_gate,
@@ -318,6 +391,14 @@ def replay_pack(
         "formulas": formulas,
         "selections": all_selections,
         "daily_union": _daily_union(all_selections),
+        "telegram_5min_days": telegram_days,
+        "telegram_publication_policy": "09:00_AND_EVERY_OBSERVED_5MIN_PUBLICATION_SLOT",
+        "telegram_empty_slot_policy": "EMIT_SEPARATOR",
+        "telegram_display_persistence_policy": (
+            "AFTER_FIRST_VALID_V4_TRIGGER_TODAY__DISPLAY_WHILE_CURRENT_K06_VALID__"
+            "REAPPEAR_IF_CURRENT_K06_VALID_AGAIN"
+        ),
+        "telegram_columns": ["CODE", "PRICE", "CHG%", "TP-1", "TP-2"],
         "report_capital_per_pick_rp": REPORT_CAPITAL_PER_PICK_RP,
         "profit_field_semantics": "MAX_NET_FAVORABLE_EXCURSION_AFTER_BUY_SELL_FEES_AND_STEP_PROXY__NOT_REALIZED_EXIT_PNL",
         "packet_counts": packet_counts,
@@ -361,6 +442,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         "pass": True, "formula_count": report["formula_count"],
         "selection_count": len(report["selections"]),
         "trading_day_count": len(report["daily_union"]),
+        "telegram_day_count": len(report.get("telegram_5min_days") or {}),
+        "telegram_snapshot_count": sum(
+            len(v) for v in (report.get("telegram_5min_days") or {}).values()
+        ),
         "implementation": report["implementation"],
     }, indent=2))
     return 0
