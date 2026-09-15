@@ -1,6 +1,6 @@
 {
   "schema": "A1_MG_FROZEN_REPLAY_REQUEST_V1",
-  "request_id": "MG_V4_BRIDGE_FROZEN_REPLAY_DES_JAN_FEB_20260916_02",
+  "request_id": "MG_V4_BRIDGE_FAST_DAILY_REPLAY_DES_JAN_FEB_20260916_03",
   "enabled": true,
   "authorization_phrase": "AUTHORIZE_MG_FROZEN_CANDIDATE_REPLAY",
   "pack_path": "formula-packs/MG_V4_BRIDGE_FROZEN_PACK.json",
@@ -23,6 +23,6 @@
     "early_checkpoint_bar": 30,
     "late_lift_min_bar": 180
   },
-  "report_policy": "EMIT_EACH_DAILY_SELECTION_WITH_TICKER_SIGNAL_TIME_ENTRY_PROXY_NET_MFE_MAE_EOD_AND_RP5M_EQUIVALENT",
+  "report_policy": "TARGETED_FAST_BRIDGE__EMIT_EACH_DAILY_SELECTION_WITH_TICKER_SIGNAL_TIME_ENTRY_PROXY_NET_MFE_MAE_EOD_AND_RP5M_EQUIVALENT",
   "oos_policy": "MARCH_2025_UNTOUCHED"
 }
