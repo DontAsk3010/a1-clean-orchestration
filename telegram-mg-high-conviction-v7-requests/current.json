@@ -1,0 +1,21 @@
+{
+  "schema": "A1_TELEGRAM_MG_HIGH_CONVICTION_V7_REQUEST_V1",
+  "enabled": true,
+  "source_names": [
+    "Raw Des 02-31-2024.csv",
+    "Raw Jan 01-31-2025.csv",
+    "Raw Feb 03-28-2025.csv"
+  ],
+  "prior_window": 3,
+  "execution": {
+    "buy_fee_pct": 0.15,
+    "sell_fee_pct": 0.25
+  },
+  "min_support": 30,
+  "validation_min_support": 30,
+  "max_required": 3,
+  "max_forbidden": 1,
+  "top_positive_markers": 18,
+  "top_negative_markers": 10,
+  "top_signatures": 60
+}
