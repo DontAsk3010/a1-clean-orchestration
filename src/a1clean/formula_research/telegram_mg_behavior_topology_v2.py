@@ -106,9 +106,15 @@ def _pullback_reaccel_features(
     prior = [float(v) for v in closes[start:index] if v is not None]
     if len(prior) < 4:
         return {"had_pullback": None, "reclaim": None, "renewed_high": None}
-    peak_pos = max(range(len(prior)), key=lambda j: prior[j])
-    after_peak = prior[peak_pos + 1:]
-    had_pullback = bool(after_peak and min(after_peak) < prior[peak_pos])
+    # A pullback exists when any prior close falls below an earlier observed
+    # prefix high. Using only the latest absolute maximum would miss an earlier
+    # peak->drop->recovery once price has already reaccelerated.
+    running_high = prior[0]
+    had_pullback = False
+    for value in prior[1:]:
+        if value < running_high:
+            had_pullback = True
+        running_high = max(running_high, value)
     current_close = float(closes[index])
     prior_short = prior[-min(3, len(prior)):]
     reclaim = bool(had_pullback and current_close > max(prior_short))
