@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: a1-windows-telegram-mg-structural-discovery-v3
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   study:
@@ -98,6 +98,7 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           "### Telegram MG Structural Discovery V3" >> $env:GITHUB_STEP_SUMMARY
+          "- Superseded V3 revisions are cancelled when a newer governed structural request is triggered." >> $env:GITHUB_STEP_SUMMARY
           "- V2 broad topologies are not threshold-rescued after structural profit-room failure." >> $env:GITHUB_STEP_SUMMARY
           "- V3 tests transition and consensus structures and reports raw post-signal executable outcome distributions." >> $env:GITHUB_STEP_SUMMARY
           "- Dec-2024, Jan-2025, Feb-2025 are development; March-2025 remains untouched OOS." >> $env:GITHUB_STEP_SUMMARY
