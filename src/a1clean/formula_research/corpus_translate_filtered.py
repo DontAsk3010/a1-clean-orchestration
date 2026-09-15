@@ -44,9 +44,15 @@ def _load_target_input_manifests(reader_api, evidence_folder_id: str) -> list[di
         operation=f"formula.list_input_evidence:{evidence_folder_id}",
     )
     rows: list[dict[str, Any]] = []
+    target_name_token = f"__{EXPECTED_LANE2_PLAN_ID}__"
     for item in items:
         name = str(item.get("name") or "")
         if not name.endswith("__EVIDENCE_MANIFEST.json"):
+            continue
+        # Provider folder contains manifests for multiple governed plans. The
+        # plan id is embedded in the governed filename, so skip unrelated plans
+        # before downloading them. Content is still revalidated below.
+        if target_name_token not in name:
             continue
         raw = call_with_retry(
             lambda item=item: _download_bytes(reader_api, str(item["id"])),
@@ -59,11 +65,10 @@ def _load_target_input_manifests(reader_api, evidence_folder_id: str) -> list[di
         if not isinstance(manifest, dict) or manifest.get("schema") != base.INPUT_MANIFEST_SCHEMA:
             raise FormulaTranslationContractError(f"INPUT_MANIFEST_SCHEMA_INVALID:{name}")
 
-        # Multiple governed Lane 2 plans share this physical evidence folder.
-        # Non-target plans are valid neighbors and must be ignored, not treated
-        # as corruption of the target Stage-1 corpus.
+        # Non-target content under a target-looking governed filename is not
+        # silently accepted; the exact plan and fingerprint are checked here.
         if not is_target_stage1_manifest(manifest):
-            continue
+            raise FormulaTranslationContractError(f"TARGET_STAGE1_FILENAME_CONTENT_PLAN_MISMATCH:{name}")
 
         assertions = manifest.get("independence_assertions")
         if not isinstance(assertions, Mapping):
