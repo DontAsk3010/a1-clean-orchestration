@@ -1,13 +1,11 @@
 {
   "schema": "A1_MG_FROZEN_REPLAY_REQUEST_V1",
-  "request_id": "MG_V4_BRIDGE_FAST_DAILY_REPLAY_DES_JAN_FEB_20260916_03",
+  "request_id": "MG_V4_BRIDGE_FAST_DAILY_REPLAY_DEC2024_20260916_04",
   "enabled": true,
   "authorization_phrase": "AUTHORIZE_MG_FROZEN_CANDIDATE_REPLAY",
   "pack_path": "formula-packs/MG_V4_BRIDGE_FROZEN_PACK.json",
   "source_names": [
-    "Raw Des 02-31-2024.csv",
-    "Raw Jan 01-31-2025.csv",
-    "Raw Feb 03-28-2025.csv"
+    "Raw Des 02-31-2024.csv"
   ],
   "prior_window": 2,
   "execution": {
