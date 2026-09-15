@@ -4,7 +4,7 @@ import argparse
 import json
 import os
 
-from .corpus_translate import run_lane2_corpus_translation
+from .corpus_translate_filtered import run_lane2_corpus_translation_filtered
 
 
 def main(argv=None) -> int:
@@ -18,7 +18,7 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     if not args.software_revision or args.software_revision == "LOCAL_UNVERSIONED":
         raise SystemExit("SOFTWARE_REVISION_REQUIRED")
-    result = run_lane2_corpus_translation(
+    result = run_lane2_corpus_translation_filtered(
         evidence_folder_id=args.evidence_folder_id,
         output_folder_id=args.output_folder_id,
         control_folder_id=args.control_folder_id,
