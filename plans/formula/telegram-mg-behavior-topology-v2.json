@@ -1,0 +1,41 @@
+{
+  "spec_id": "A1_TELEGRAM_MG_BEHAVIOR_TOPOLOGY_V2",
+  "status": "ACTIVE_RESEARCH_CANDIDATES_NOT_CANONICAL",
+  "owner_authorized": true,
+  "objective": "Replace threshold-only rescue of the old MG line with distinct behavior-topology candidates, compare them across the full available Dec-2024/Jan-2025/Feb-2025 development corpus, preserve failures/near-twins, and require realistic post-signal profit room before Telegram eligibility.",
+  "old_line_status": {
+    "MG_CLEAN_W2_ARP_STRONG": "BASELINE_ONLY",
+    "MG_PROFIT_QUALIFIED_V1": "STRUCTURALLY_INSUFFICIENT_BASELINE; 2025-01-02 proof rejected all 9 old base candidates under executable profit-room gating",
+    "policy": "Do not rescue a structurally weak line by repeatedly moving numeric thresholds. Change the component topology when evidence shows the topology is exhausted."
+  },
+  "candidate_topologies": {
+    "J01_WAKE_RESPONSE_RETENTION": ["ACTIVITY_WAKE", "PATH_WAKE", "UP_PATH", "MULTIBAR_PERSISTENCE", "BAR_ACCEPTANCE", "VALUE_EXPANSION", "ANTI_BUY_STALL", "NOT_LATE_LIFT"],
+    "J02_RECOVERY_RECLAIM": ["PRIOR_WEAKNESS_STABILIZATION_RECLAIM", "BAR_ACCEPTANCE", "VALUE_EXPANSION", "FRESH_HIGH", "ANTI_BUY_STALL"],
+    "J03_COMPRESSION_EXPANSION": ["ACTIVITY_WAKE", "RANGE_WAKE", "PATH_WAKE", "UP_PATH", "BAR_ACCEPTANCE", "VALUE_EXPANSION", "FRESH_HIGH", "ANTI_BUY_STALL"],
+    "J04_PULLBACK_REACCELERATION": ["INTRADAY_PULLBACK_EXISTS", "RECLAIM", "RENEWED_HIGH", "MULTIBAR_PERSISTENCE", "BAR_ACCEPTANCE", "VALUE_EXPANSION", "ANTI_BUY_STALL"],
+    "J05_FLOW_RESILIENT_CONTINUATION": ["UP_PATH", "MULTIBAR_PERSISTENCE", "BAR_ACCEPTANCE", "VALUE_EXPANSION", "CONSTRUCTIVE_FLOW", "ANTI_BUY_STALL", "FRESH_HIGH"],
+    "J06_EARLY_STRENGTH_RETAINED": ["PATH_WAKE", "EARLY_STRENGTH_RETAINED", "MULTIBAR_PERSISTENCE", "BAR_ACCEPTANCE", "FRESH_HIGH", "ANTI_BUY_STALL", "NOT_LATE_LIFT"]
+  },
+  "research_rules": {
+    "all_available_development_months": ["Raw Des 02-31-2024.csv", "Raw Jan 01-31-2025.csv", "Raw Feb 03-28-2025.csv"],
+    "march_2025": "UNTOUCHED_OOS",
+    "first_signal_per_ticker_per_topology_per_day": true,
+    "signal_time": "5-minute Telegram publication slot",
+    "entry_proxy": "next eligible 1-minute bar open plus causal observed-step proxy",
+    "signal_equals_entry": false,
+    "fees_included": true,
+    "profit_room_learning": "topology-specific; prior completed market dates only",
+    "same_date_future_in_signal_or_profit_gate": false,
+    "same_date_future_for_outcome_and_next-date-training_only": true,
+    "h_plus_1_used": false,
+    "condition_breakdown": ["source/month", "trading_date", "session segment", "time band", "day-change regime", "activity regime"],
+    "negative_evidence_preserved": true
+  },
+  "portability": {
+    "formula_definition": "implementation-independent boolean state composition",
+    "python": "reference research implementation",
+    "afl": "must implement the same frozen topology/state definitions after research selection; no Python-only hidden signal logic",
+    "python_afl_parity_required_before_promotion": true
+  },
+  "promotion_guard": "Research ranking is not canonical selection. Any survivor still requires causal leakage checks, near-twin/failure validation, robustness, untouched OOS, AFL parity, live compatibility where applicable, and explicit owner promotion authorization."
+}
