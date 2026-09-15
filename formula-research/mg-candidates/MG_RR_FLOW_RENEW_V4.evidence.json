@@ -1,0 +1,36 @@
+{
+  "schema": "A1_MG_RESEARCH_CANDIDATE_EVIDENCE_V1",
+  "formula_id": "MG_RR_FLOW_RENEW_V4",
+  "status": "RESEARCH_CANDIDATE_NOT_CANONICAL",
+  "required_markers": [
+    "HELD_FLOW",
+    "PRIOR3_RECLAIM",
+    "REGAIN_RENEWED_HIGH"
+  ],
+  "source_run_id": 34988412088,
+  "source_schema": "A1_TELEGRAM_MG_SEQUENCE_DISCOVERY_V4",
+  "evidence": {
+    "Raw Des 02-31-2024.csv": {
+      "evaluable_count": 22,
+      "positive_net_mfe_rate": 0.7272727272727273,
+      "net_mfe_q25": 0.005068092502080734,
+      "net_mfe_q50": 0.6809230598546656
+    },
+    "Raw Jan 01-31-2025.csv": {
+      "evaluable_count": 25,
+      "positive_net_mfe_rate": 0.52,
+      "net_mfe_q25": -0.5885758257201168,
+      "net_mfe_q50": 0.008798277992827508
+    },
+    "Raw Feb 03-28-2025.csv": {
+      "evaluable_count": 53,
+      "positive_net_mfe_rate": 0.5660377358490566,
+      "net_mfe_q25": -0.7416709986566627,
+      "net_mfe_q50": 0.4592249556699457
+    }
+  },
+  "interpretation": "CORE_SEQUENCE_REPEATS_WITH_POSITIVE_MEDIAN_BUT_FAILURE_TAIL_REMAINS;KEEP_AS_BRIDGE_PARENT_FOR_V5_FAILURE_DISCRIMINATOR_DISCOVERY",
+  "strict_q25_cross_period_pass": false,
+  "march_2025_oos_touched": false,
+  "future_data_allowed_in_runtime_formula": false
+}
