@@ -1,0 +1,96 @@
+name: Windows Telegram MG Failure Continuation Study
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - telegram-mg-failure-study-requests/current.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-telegram-mg-failure-study
+  cancel-in-progress: false
+
+jobs:
+  study:
+    name: Telegram MG failure and H+1 continuation study
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact formula research revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate study request
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'telegram-mg-failure-study-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_TELEGRAM_MG_FAILURE_STUDY_REQUEST_V1') { throw 'Unsupported study request schema.' }
+          if ($req.enabled -ne $true) { throw 'Study request not enabled.' }
+          if ($req.authorization_phrase -ne 'AUTHORIZE_TELEGRAM_MG_FAILURE_STUDY') { throw 'Exact study authorization phrase required.' }
+          if ($req.drive_output_folder_id -ne '1uQKSZD8KbOZ2j3moyZiH1EuJPlEhEAuC') { throw 'Unexpected Formula Research audit/output folder.' }
+          $json = $req | ConvertTo-Json -Compress -Depth 20
+          "A1_MG_FAILURE_STUDY_REQUEST_JSON=$json" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify Drive credential bindings
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($path in @($env:A1_DRIVE_READER_CREDENTIALS, $env:A1_DRIVE_WRITER_CREDENTIALS)) {
+            if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'Drive credential binding missing.' }
+          }
+
+      - name: Install and test exact MG failure study code
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[test]'
+          if ($LASTEXITCODE -ne 0) { throw 'MG_FAILURE_STUDY_INSTALL_FAILED' }
+          py -3.11 -m compileall -q src tests
+          if ($LASTEXITCODE -ne 0) { throw 'MG_FAILURE_STUDY_COMPILE_FAILED' }
+          py -3.11 -m pytest -q
+          if ($LASTEXITCODE -ne 0) { throw 'MG_FAILURE_STUDY_TESTS_FAILED' }
+
+      - name: Study same-day failure and H+1 continuation
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = $env:A1_MG_FAILURE_STUDY_REQUEST_JSON | ConvertFrom-Json
+          py -3.11 -m a1clean.formula_research.telegram_mg_failure_study `
+            --source-name $req.source_name `
+            --trading-date $req.trading_date `
+            --variant $req.variant `
+            --request-id $req.request_id `
+            --software-revision '${{ github.sha }}' `
+            --drive-output-folder-id $req.drive_output_folder_id `
+            --output 'telegram-mg-failure-study.json' `
+            --effort-lookback ([int]$req.params.effort_lookback) `
+            --progress-lookback ([int]$req.params.progress_lookback) `
+            --high-lookback ([int]$req.params.high_lookback) `
+            --recovery-lookback ([int]$req.params.recovery_lookback) `
+            --low-stabilization-bars ([int]$req.params.low_stabilization_bars) `
+            --early-checkpoint-bar ([int]$req.params.early_checkpoint_bar) `
+            --late-lift-min-bar ([int]$req.params.late_lift_min_bar)
+          if ($LASTEXITCODE -ne 0) { throw "MG_FAILURE_STUDY_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Upload failure study artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-mg-failure-study-${{ github.run_id }}
+          path: telegram-mg-failure-study.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Research safety declaration
+        if: always()
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          "### Telegram MG failure/continuation study" >> $env:GITHUB_STEP_SUMMARY
+          "- H+1 is evaluation-only and cannot alter the H formula state." >> $env:GITHUB_STEP_SUMMARY
+          "- Same-day MG and deferred H+1 continuation are kept as separate research concepts." >> $env:GITHUB_STEP_SUMMARY
+          "- No final/canonical formula claim is made by this study." >> $env:GITHUB_STEP_SUMMARY
