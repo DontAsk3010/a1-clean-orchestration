@@ -1,0 +1,99 @@
+name: Windows AmiBroker Bridge Probe
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - amibroker-bridge-probe-requests/current.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-amibroker-bridge-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Probe AmiBroker installation and OLE registration read-only
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate probe request
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'amibroker-bridge-probe-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_AMIBROKER_BRIDGE_PROBE_REQUEST_V1') { throw 'Unsupported AmiBroker probe schema.' }
+          if ($req.enabled -ne $true) { throw 'AmiBroker probe not enabled.' }
+          if ($req.authorization_phrase -ne 'AUTHORIZE_READ_ONLY_AMIBROKER_BRIDGE_PROBE') { throw 'Exact authorization phrase required.' }
+
+      - name: Probe installation and COM registration
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $result = [ordered]@{
+            schema = 'A1_AMIBROKER_BRIDGE_PROBE_RESULT_V1'
+            machine = $env:COMPUTERNAME
+            broker_application_registered = $false
+            broker_application_clsid = $null
+            local_server32 = $null
+            executable_exists = $false
+            executable_candidates = @()
+            common_install_paths = @()
+            running_processes = @()
+            apx_files_in_repo = @()
+            afl_lab_files_in_repo = @()
+          }
+          try {
+            $clsidKey = 'Registry::HKEY_CLASSES_ROOT\Broker.Application\CLSID'
+            if (Test-Path -LiteralPath $clsidKey) {
+              $clsid = (Get-ItemProperty -LiteralPath $clsidKey).'(default)'
+              if (-not $clsid) { $clsid = (Get-Item -LiteralPath $clsidKey).GetValue('') }
+              $result.broker_application_registered = $true
+              $result.broker_application_clsid = [string]$clsid
+              if ($clsid) {
+                $serverKey = "Registry::HKEY_CLASSES_ROOT\CLSID\$clsid\LocalServer32"
+                if (Test-Path -LiteralPath $serverKey) {
+                  $server = (Get-Item -LiteralPath $serverKey).GetValue('')
+                  $result.local_server32 = [string]$server
+                }
+              }
+            }
+          } catch {}
+          $candidates = @(
+            'C:\Program Files\AmiBroker\Broker.exe',
+            'C:\Program Files (x86)\AmiBroker\Broker.exe'
+          )
+          if ($result.local_server32) {
+            $clean = ([string]$result.local_server32).Trim().Trim('"')
+            if ($clean) { $candidates += $clean }
+          }
+          $candidates = $candidates | Select-Object -Unique
+          foreach ($p in $candidates) {
+            $exists = Test-Path -LiteralPath $p -PathType Leaf
+            $result.executable_candidates += [ordered]@{ path = $p; exists = $exists }
+            if ($exists) { $result.executable_exists = $true }
+          }
+          foreach ($p in @('C:\Program Files\AmiBroker','C:\Program Files (x86)\AmiBroker')) {
+            if (Test-Path -LiteralPath $p -PathType Container) { $result.common_install_paths += $p }
+          }
+          $result.running_processes = @(Get-Process -Name Broker -ErrorAction SilentlyContinue | ForEach-Object { [ordered]@{ id=$_.Id; path=$_.Path } })
+          $result.apx_files_in_repo = @(Get-ChildItem -Path . -Filter *.apx -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName.Substring((Get-Location).Path.Length + 1) })
+          $result.afl_lab_files_in_repo = @(Get-ChildItem -Path .\afl -Filter *.afl -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName.Substring((Get-Location).Path.Length + 1) })
+          $result | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath 'amibroker-bridge-probe-result.json' -Encoding UTF8
+          Get-Content -LiteralPath 'amibroker-bridge-probe-result.json'
+
+      - name: Upload probe artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: amibroker-bridge-probe-${{ github.run_id }}
+          path: amibroker-bridge-probe-result.json
+          if-no-files-found: error
+          retention-days: 30
