@@ -1,4 +1,4 @@
-name: Machine1 After BSIM Evidence Extract
+name: Machine1 After CARE Evidence Extract
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  extract-after-bsim:
+  extract-after-care:
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 30
     env:
@@ -18,7 +18,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Extract exact governed ticker packets after BSIM
+      - name: Extract exact governed ticker packets after CARE
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
@@ -27,7 +27,7 @@ jobs:
 
           raw = pathlib.Path(os.environ['RAW_FILE'])
           trading_date = '2024-12-03'
-          anchor = 'BSIM'
+          anchor = 'CARE'
           take = 20
           expected_md5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
           expected_sha256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
@@ -63,7 +63,7 @@ jobs:
           if not selected:
               raise SystemExit('NO_TICKERS_AFTER_ANCHOR')
 
-          out = pathlib.Path('machine1_after_bsim_evidence')
+          out = pathlib.Path('machine1_after_care_evidence')
           out.mkdir(exist_ok=True)
           manifest = []
           for offset, ticker in enumerate(selected, start=1):
@@ -78,7 +78,7 @@ jobs:
                   'ticker': ticker,
                   'trading_date': trading_date,
                   'semantic_bundle': 'Raw Des 02-31-2024__SEMANTIC_0006.jsonl',
-                  'bundle_line_number': 49 + offset,
+                  'bundle_line_number': 69 + offset,
                   'source_row_first': rows[0],
                   'source_row_last': rows[-1],
                   'data_rows': len(arr),
@@ -92,7 +92,7 @@ jobs:
                   for n,r in arr:
                       w.write(json.dumps({'source_row': n, **r}, ensure_ascii=False, separators=(',',':')) + '\n')
               manifest.append({k: packet[k] for k in ['ticker','trading_date','semantic_bundle','bundle_line_number','source_row_first','source_row_last','data_rows','first_datetime','last_datetime']})
-              print(f"NEXT_{offset:02d} ticker={ticker} line={49+offset} rows={len(arr)} source_rows={rows[0]}-{rows[-1]} first={first_dt} last={last_dt}")
+              print(f"NEXT_{offset:02d} ticker={ticker} line={69+offset} rows={len(arr)} source_rows={rows[0]}-{rows[-1]} first={first_dt} last={last_dt}")
 
           (out / 'CHUNK_MANIFEST.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
           (out / 'ORDER_PROOF.json').write_text(json.dumps({
@@ -105,13 +105,13 @@ jobs:
               'source_md5': got_md5,
               'source_sha256': got_sha256,
           }, ensure_ascii=False, indent=2), encoding='utf-8')
-          '@ | Set-Content -LiteralPath extract_after_bsim.py -Encoding UTF8
-          py -3.11 extract_after_bsim.py
+          '@ | Set-Content -LiteralPath extract_after_care.py -Encoding UTF8
+          py -3.11 extract_after_care.py
 
       - name: Upload evidence chunk
         uses: actions/upload-artifact@v4
         with:
-          name: machine1-after-bsim-20241203-evidence
-          path: machine1_after_bsim_evidence/
+          name: machine1-after-care-20241203-evidence
+          path: machine1_after_care_evidence/
           if-no-files-found: error
           retention-days: 7
