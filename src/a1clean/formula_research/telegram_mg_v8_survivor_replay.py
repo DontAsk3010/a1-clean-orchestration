@@ -9,24 +9,12 @@ from typing import Any, Mapping, Sequence
 from ..google_drive import build_drive_api
 from ..pattern_discovery.source_reader import GovernedSourceReader
 from .formula_replay import packet_to_formula_bars
-from .handbook_candidates import CandidateParams
 from .telegram_mg_behavior_topology_v2 import _net_return_pct
-from .telegram_mg_multihypothesis_v8 import _daily, _event_features, _finite, _outcome
+from .telegram_mg_multihypothesis_v8 import _daily, _finite, _outcome
 from .telegram_mg_multihypothesis_v8b import _marker_set
 from .telegram_mg_multihypothesis_v8c import _discover_sources_strict
-from .telegram_mg_replay import _dynamic_targets, evaluate_mg_packet
-
-
-def _params() -> CandidateParams:
-    return CandidateParams(
-        effort_lookback=5,
-        progress_lookback=5,
-        high_lookback=5,
-        recovery_lookback=5,
-        low_stabilization_bars=3,
-        early_checkpoint_bar=30,
-        late_lift_min_bar=120,
-    )
+from .telegram_mg_multihypothesis_v8e import _event_features_fast, _prefix_series
+from .telegram_mg_replay import _dynamic_targets, _is_publication_slot
 
 
 def _hhmm(ts: Any) -> str | None:
@@ -90,11 +78,10 @@ def build_replay(
     selected_sources = sources[: names.index(target_source) + 1]
 
     api = build_drive_api(read_write=False)
-    params = _params()
     history_daily: dict[str, list[Any]] = defaultdict(list)
-    history_bars: dict[str, list[list[dict[str, Any]]]] = defaultdict(list)
+    history_prefix: dict[str, list[list[dict[str, float | None]]]] = defaultdict(list)
     snapshots: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    observed_slots: set[str] = set()
+    slots_by_date: dict[str, set[str]] = defaultdict(set)
     target_dates_seen: set[str] = set()
     target_ticker_days = 0
 
@@ -109,33 +96,32 @@ def build_replay(
             ticker = str(packet.identity.ticker)
             date = str(packet.identity.trading_date)
             hd = history_daily.get(ticker, [])[-prior_days:]
-            hb = history_bars.get(ticker, [])[-prior_days:]
+            hp = history_prefix.get(ticker, [])[-prior_days:]
+            current_prefix = _prefix_series(bars)
 
             is_target = source_name == target_source and (target_date is None or date == target_date)
             if is_target:
                 target_ticker_days += 1
                 target_dates_seen.add(date)
-                mgrows = evaluate_mg_packet(bars, params)
-                if len(hd) >= 2 and len(hb) >= 2:
-                    prev_close = float(hd[-1].close) if hd else None
-                    for i, mg in enumerate(mgrows):
-                        if not mg.get("publication_slot"):
+                if len(hd) >= 2 and len(hp) >= 2:
+                    prev_close = float(hd[-1].close)
+                    for i, bar in enumerate(bars):
+                        if not _is_publication_slot(bar.get("timestamp")):
                             continue
-                        slot = _hhmm(mg.get("timestamp"))
+                        slot = _hhmm(bar.get("timestamp"))
                         if slot is None:
                             continue
-                        observed_slots.add(slot)
-                        feat = _event_features(bars, i, hd, hb)
+                        slots_by_date[date].add(slot)
+                        feat = _event_features_fast(bars, i, hd, hp, current_prefix)
                         if not feat:
                             continue
-                        event = {"features": feat}
-                        markers = _marker_set(event, thresholds)
+                        markers = _marker_set({"features": feat}, thresholds)
                         matched_ids = _formula_matches(markers, formulas)
                         if not matched_ids:
                             continue
 
-                        price = _finite(bars[i].get("close"))
-                        chg = None if price is None or prev_close is None or prev_close <= 0 else (price / prev_close - 1.0) * 100.0
+                        price = _finite(bar.get("close"))
+                        chg = None if price is None or prev_close <= 0 else (price / prev_close - 1.0) * 100.0
                         tp1, tp2, _target_step = _dynamic_targets(bars, i, 5)
                         outcome = _outcome(bars, i, buy_fee_pct, sell_fee_pct)
                         entry = _finite(outcome.get("entry_proxy"))
@@ -167,34 +153,37 @@ def build_replay(
             if d is not None:
                 history_daily[ticker].append(d)
                 history_daily[ticker] = history_daily[ticker][-prior_days:]
-                history_bars[ticker].append(bars)
-                history_bars[ticker] = history_bars[ticker][-prior_days:]
+                history_prefix[ticker].append(current_prefix)
+                history_prefix[ticker] = history_prefix[ticker][-prior_days:]
 
-    ordered = []
+    ordered: list[dict[str, Any]] = []
     for date in sorted(target_dates_seen):
-        for slot in sorted(observed_slots):
+        for slot in sorted(slots_by_date.get(date, set())):
             rows = sorted(snapshots.get(f"{date} {slot}", []), key=lambda r: r["code"])
             ordered.append({"date": date, "time": slot, "rows": rows})
 
-    unique_events = sum(len(s["rows"]) for s in ordered)
+    signal_rows = sum(len(s["rows"]) for s in ordered)
     unique_tickers = sorted({r["code"] for s in ordered for r in s["rows"]})
+    signal_dates = sorted({s["date"] for s in ordered if s["rows"]})
     return {
-        "schema": "A1_TELEGRAM_MG_V8_SURVIVOR_REPLAY_V1",
+        "schema": "A1_TELEGRAM_MG_V8_SURVIVOR_REPLAY_V2",
         "status": "RESEARCH_REPLAY_NOT_CANONICAL",
         "target_source": target_source,
         "target_date": target_date,
         "target_dates_seen": sorted(target_dates_seen),
+        "signal_dates": signal_dates,
         "target_ticker_days": target_ticker_days,
         "formula_ids": [str(x.get("id")) for x in formulas],
         "formula_mode": "UNION_ANY_SURVIVOR_TRUE_AT_CURRENT_SNAPSHOT",
         "recompute_each_publication_snapshot": True,
         "repeat_ticker_if_still_qualifies": True,
+        "cached_prefix_exact_equivalent": True,
         "live_contract_columns": ["CODE", "PRICE", "CHG%", "TP-1", "TP-2"],
         "test_only_columns": ["ENTRY_PROXY", "TP1_HIT", "TP1_HIT_TIME", "TP1_NET_PCT", "TP2_HIT", "TP2_HIT_TIME", "TP2_NET_PCT", "NET_MFE_PCT", "MAE_PCT", "EOD_NET_PCT"],
         "future_data_used_for_formula_state": False,
         "future_data_used_for_replay_outcome_only": True,
         "snapshot_count": len(ordered),
-        "signal_rows": unique_events,
+        "signal_rows": signal_rows,
         "unique_tickers": unique_tickers,
         "snapshots": ordered,
     }
