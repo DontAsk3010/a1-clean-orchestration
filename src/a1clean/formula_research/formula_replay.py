@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import asdict
-from datetime import time
 import json
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
 from ..google_drive import build_drive_api
 from ..pattern_discovery.source_reader import GovernedSourceReader
@@ -18,13 +17,30 @@ from .handbook_candidates import (
 
 
 FIELD_ALIASES = {
-    "open": ("RAW_Open", "RAW_OPEN", "Open", "OPEN"),
-    "high": ("RAW_High", "RAW_HIGH", "High", "HIGH"),
-    "low": ("RAW_Low", "RAW_LOW", "Low", "LOW"),
-    "close": ("RAW_Close", "RAW_CLOSE", "Close", "CLOSE"),
-    "volume": ("RAW_Volume", "RAW_VOLUME", "Volume", "VOLUME"),
-    "trade_value": ("RAW_Aux2", "RAW_AUX2", "Aux2", "AUX2"),
-    "nbss": ("RAW_OpenInterest", "RAW_OPENINTEREST", "OpenInterest", "OPENINTEREST"),
+    "open": ("RAW_OPEN", "RAW_Open", "Open", "OPEN"),
+    "high": ("RAW_HIGH", "RAW_High", "High", "HIGH"),
+    "low": ("RAW_LOW", "RAW_Low", "Low", "LOW"),
+    "close": ("RAW_CLOSE", "RAW_Close", "Close", "CLOSE"),
+    "volume": ("RAW_VOLUME", "RAW_Volume", "Volume", "VOLUME"),
+    "trade_value": (
+        "RAW_AUX2_PHYSICAL",
+        "RAW_Aux2",
+        "RAW_AUX2",
+        "Aux2",
+        "AUX2",
+    ),
+    "nbss": (
+        "RAW_OPENINT_PHYSICAL",
+        "RAW_OPENINTEREST_PHYSICAL",
+        "RAW_OpenInterest",
+        "RAW_OPENINTEREST",
+        "OpenInterest",
+        "OPENINTEREST",
+    ),
+    "regular_session1": ("CLK_REGULAR_SESSION1_FLAG",),
+    "regular_session2": ("CLK_REGULAR_SESSION2_FLAG",),
+    "symbol_is_index": ("SYMBOL_IS_INDEX",),
+    "continuous_quotations": ("SYMBOL_CONTINUOUS_QUOTATIONS_FLAG",),
 }
 
 INTRADAY_FORMULAS = (
@@ -56,17 +72,29 @@ def _num(row: Mapping[str, str], field: str) -> float | None:
     return float(raw)
 
 
+def _flag(row: Mapping[str, str], field: str) -> bool:
+    value = _num(row, field)
+    return value is not None and value != 0.0
+
+
 def packet_to_formula_bars(packet) -> tuple[list[dict[str, Any]], dict[str, str]]:
     mapping = {logical: _resolve(packet.header, logical) for logical in FIELD_ALIASES}
     bars: list[dict[str, Any]] = []
     for row, ts in zip(packet.rows, packet.timestamps, strict=True):
         nbss = _num(row, mapping["nbss"])
-        # Conservative historical availability guard: non-zero observed NBSS proves
-        # this bar is populated enough for positive/negative effort relations.
-        # Zero is NOT assumed neutral without a separate availability fact.
-        flow_available = nbss is not None and nbss != 0.0
-        regular_clock = time(9, 0) <= ts.time() < time(15, 50)
-        session_clock = time(9, 0) <= ts.time() <= time(16, 15)
+        trade_value = _num(row, mapping["trade_value"])
+        is_index = _flag(row, mapping["symbol_is_index"])
+        continuous = _flag(row, mapping["continuous_quotations"])
+        regular_clock = _flag(row, mapping["regular_session1"]) or _flag(row, mapping["regular_session2"])
+        ordinary_regular_stock = bool((not is_index) and continuous and regular_clock)
+
+        # Source-scoped historical semantics already establish OpenInt physical as
+        # NBSS for the validated source family.  At row level, a non-zero value
+        # proves a populated signed-flow observation.  Physical zero is kept
+        # UNKNOWN here unless a separate independent availability fact is later
+        # bound; it is never silently treated as neutral.
+        flow_available = bool(trade_value is not None and nbss is not None and nbss != 0.0)
+
         bars.append(
             {
                 "trading_date": packet.identity.trading_date,
@@ -75,11 +103,11 @@ def packet_to_formula_bars(packet) -> tuple[list[dict[str, Any]], dict[str, str]
                 "low": _num(row, mapping["low"]),
                 "close": _num(row, mapping["close"]),
                 "volume": _num(row, mapping["volume"]),
-                "trade_value": _num(row, mapping["trade_value"]),
+                "trade_value": trade_value,
                 "nbss": nbss,
                 "flow_available": flow_available,
-                "mechanism_eligible": bool(regular_clock and flow_available),
-                "session_eligible": session_clock,
+                "mechanism_eligible": bool(ordinary_regular_stock and flow_available),
+                "session_eligible": ordinary_regular_stock,
                 "canonical_vwap": None,
                 "timestamp": ts.isoformat(sep=" "),
             }
@@ -104,7 +132,11 @@ def _record_event(
     index: int,
     horizons: Sequence[int],
 ) -> None:
-    entry = float(bars[index]["close"])
+    entry_raw = bars[index].get("close")
+    if entry_raw is None or float(entry_raw) <= 0:
+        return
+    entry = float(entry_raw)
+    event_date = str(bars[index].get("trading_date") or "")
     for horizon in horizons:
         key = str(horizon)
         row = bucket.setdefault(key, _blank_horizon())
@@ -112,11 +144,18 @@ def _record_event(
         end = index + horizon
         if end >= len(bars):
             continue
-        forward_close = float(bars[end]["close"])
-        highs = [float(bar["high"]) for bar in bars[index + 1 : end + 1] if bar.get("high") is not None]
-        lows = [float(bar["low"]) for bar in bars[index + 1 : end + 1] if bar.get("low") is not None]
+        evaluation = bars[index + 1 : end + 1]
+        # Never let a forward-horizon metric cross a ticker-day packet boundary.
+        if any(str(bar.get("trading_date") or "") != event_date for bar in evaluation):
+            continue
+        forward_raw = bars[end].get("close")
+        if forward_raw is None:
+            continue
+        highs = [float(bar["high"]) for bar in evaluation if bar.get("high") is not None]
+        lows = [float(bar["low"]) for bar in evaluation if bar.get("low") is not None]
         if not highs or not lows:
             continue
+        forward_close = float(forward_raw)
         forward_return = forward_close / entry - 1.0
         row["evaluable_count"] += 1
         row["positive_forward_count"] += int(forward_return > 0)
@@ -189,13 +228,16 @@ def replay_source(
                 previous_true = is_true
 
         eligible = [bar for bar in bars if bar["session_eligible"]]
-        if eligible:
+        highs = [float(bar["high"]) for bar in eligible if bar["high"] is not None]
+        lows = [float(bar["low"]) for bar in eligible if bar["low"] is not None]
+        closes = [float(bar["close"]) for bar in eligible if bar["close"] is not None]
+        if highs and lows and closes:
             ticker_sessions[packet.identity.ticker].append(
                 {
                     "trading_date": packet.identity.trading_date,
-                    "high": max(float(bar["high"]) for bar in eligible if bar["high"] is not None),
-                    "low": min(float(bar["low"]) for bar in eligible if bar["low"] is not None),
-                    "close": float(eligible[-1]["close"]),
+                    "high": max(highs),
+                    "low": min(lows),
+                    "close": closes[-1],
                     "activity": sum(float(bar["trade_value"] or 0.0) for bar in eligible),
                 }
             )
@@ -220,7 +262,8 @@ def replay_source(
         "packet_count": packet_count,
         "row_count": row_count,
         "field_mappings_observed": [json.loads(value) for value in sorted(field_mappings)],
-        "flow_availability_policy": "NBSS_NONZERO_PROVES_POPULATED_FOR_SIGNED_EFFORT; ZERO_REMAINS_UNKNOWN_WITHOUT_INDEPENDENT_AVAILABILITY",
+        "flow_availability_policy": "SOURCE_SCOPED_HISTORICAL_SEMANTICS_PLUS_ROW_NBSS_NONZERO_POPULATION_PROOF; PHYSICAL_ZERO_REMAINS_UNKNOWN_UNTIL_INDEPENDENT_AVAILABILITY_IS_BOUND",
+        "session_policy": "USE_DATA_PLANE_REGULAR_SESSION_FLAGS_AND_CONTINUOUS_STOCK_FLAG; NO_HARDCODED_MON_THU_CLOCK_ASSUMPTION",
         "canonical_vwap_policy": "NOT_SYNTHESIZED; VWAP_DEPENDENT_VARIANTS_REMAIN_UNKNOWN",
         "intraday_state_counts": state_counts,
         "intraday_event_forward_metrics": _finalize(metrics),
