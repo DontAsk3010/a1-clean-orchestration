@@ -1,0 +1,23 @@
+// A1 CLEAN / QHPX — TELEGRAM MG V4 BRIDGE CANDIDATES
+// STATUS: RESEARCH_CANDIDATE_NOT_CANONICAL
+//
+// IMPORTANT:
+// S_* arrays below MUST be bound to AFL state/sequence implementations that
+// are parity-tested against the Python markers of the exact same name before
+// any Python<->AFL parity claim is made.
+
+MG_RR_FLOW_RENEW_V4 =
+    S_HELD_FLOW AND
+    S_PRIOR3_RECLAIM AND
+    S_REGAIN_RENEWED_HIGH;
+
+MG_RR_FLOW_FRESH_V4 =
+    S_HELD_FLOW AND
+    S_PRIOR3_RECLAIM AND
+    S_REGAIN_FRESH;
+
+// Publication/execution policy is external to the boolean expression:
+// - evaluate at governed publication snapshots
+// - first causal match per ticker/day for research comparison
+// - signal is not entry
+// - historical execution proxy begins at next eligible bar
