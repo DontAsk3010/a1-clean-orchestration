@@ -1,0 +1,114 @@
+{
+  "spec_id": "A1_MG_PROFIT_QUALIFIED_FORMULA_FAMILY_V3",
+  "status": "ACTIVE_RESEARCH_CANDIDATE_NOT_CANONICAL",
+  "purpose": "Represent MG as multiple behavior-journey formulas feeding common safety, execution, and profit-room gates. Structural failure should trigger topology replacement rather than repeated threshold rescue.",
+  "design_principles": [
+    "NO_WEIGHTED_SCORE",
+    "NO_FUTURE_DATA_IN_DECISION_STATE",
+    "ALTERNATIVE_BEHAVIOR_PATHS_ALLOWED",
+    "COMMON_HARD_ANTI_TRAP_GATE",
+    "SIGNAL_IS_NOT_ENTRY",
+    "EXECUTION_AFTER_SIGNAL_KNOWLEDGE",
+    "PROFIT_ROOM_REQUIRED_BEFORE_TELEGRAM",
+    "FAILED_AND_WEAK_TOPOLOGIES_PRESERVED",
+    "CROSS_MONTH_CROSS_DAY_TIME_CONDITION_BREAKDOWN_REQUIRED",
+    "MARCH_2025_OOS_UNTOUCHED",
+    "PYTHON_AFL_PARITY_REQUIRED_BEFORE_PROMOTION"
+  ],
+  "normalized_inputs": {
+    "ACTIVITY_WAKE": "Current comparable-session activity exceeds prior same-ticker comparable-state reference.",
+    "RANGE_WAKE": "Current comparable-session range exceeds prior same-ticker comparable-state reference.",
+    "PATH_WAKE": "Current path improves versus prior same-ticker comparable-state reference.",
+    "UP_PATH": "Current causal price path is above session reference and not below recent observed path mean.",
+    "PERSISTENCE": "Observed close-to-close path contains sufficient non-down persistence over causal lookback.",
+    "ACCEPTANCE": "Current close is accepted in the upper half of the current observed bar.",
+    "VALUE_EXPANSION": "Current transaction value exceeds its prior causal reference.",
+    "CONSTRUCTIVE_FLOW": "Observed flow resolves as buy response or sell resilience rather than ineffective effort.",
+    "ANTI_BUY_STALL": "No buy-effort-without-price-progress state is present.",
+    "FRESH_HIGH": "Current bar renews the causal recent high.",
+    "EARLY_STRENGTH_RETAINED": "Earlier established strength remains accepted later in the observed session.",
+    "RECOVERY_RUNNER": "Prior weakness is followed by stabilization, reclaim and renewed high behavior.",
+    "LATE_LIFT": "Strength appears only after weak/flat earlier state at a late session stage.",
+    "HAD_PULLBACK": "A causal earlier peak-to-lower-close sequence exists before the current bar.",
+    "RECLAIM": "Current close reclaims recent post-pullback closes.",
+    "RENEWED_HIGH": "Current high renews the recent causal high after pullback.",
+    "STRUCTURE_LOSS": "Explicit destructive lower-structure/invalidation state; never inferred from missing data.",
+    "SESSION_SAFE": "Current bar belongs to an eligible governed regular-session mechanism.",
+    "DATA_COMPLETE": "All mandatory inputs for the selected path are available/proven; unavailable is not zero.",
+    "EXECUTION_READY": "A post-signal executable entry proxy/order state exists after the signal is known.",
+    "PROFIT_ROOM_PASS": "Conservative remaining reward after realistic entry exceeds explicit round-trip friction and required safety margin."
+  },
+  "behavior_paths": [
+    {
+      "formula_id": "P01_WAKE_RESPONSE_RETENTION",
+      "formula": "ACTIVITY_WAKE AND PATH_WAKE AND UP_PATH AND PERSISTENCE AND ACCEPTANCE AND VALUE_EXPANSION AND ANTI_BUY_STALL AND NOT LATE_LIFT",
+      "meaning": "Ticker wakes relative to its own recent comparable state and immediately converts activity into retained upward price response."
+    },
+    {
+      "formula_id": "P02_RECOVERY_RECLAIM",
+      "formula": "RECOVERY_RUNNER AND ACCEPTANCE AND VALUE_EXPANSION AND FRESH_HIGH AND ANTI_BUY_STALL",
+      "meaning": "Earlier weakness is repaired causally; stabilization and reclaim culminate in renewed progress."
+    },
+    {
+      "formula_id": "P03_COMPRESSION_EXPANSION",
+      "formula": "ACTIVITY_WAKE AND RANGE_WAKE AND PATH_WAKE AND UP_PATH AND ACCEPTANCE AND VALUE_EXPANSION AND FRESH_HIGH AND ANTI_BUY_STALL",
+      "meaning": "A previously quieter comparable state expands simultaneously in activity, range and path with fresh price progress."
+    },
+    {
+      "formula_id": "P04_PULLBACK_REACCELERATION",
+      "formula": "HAD_PULLBACK AND RECLAIM AND RENEWED_HIGH AND PERSISTENCE AND ACCEPTANCE AND VALUE_EXPANSION AND ANTI_BUY_STALL",
+      "meaning": "An already active journey survives a causal pullback and reaccelerates rather than merely printing another green bar."
+    },
+    {
+      "formula_id": "P05_FLOW_RESILIENT_CONTINUATION",
+      "formula": "UP_PATH AND PERSISTENCE AND ACCEPTANCE AND VALUE_EXPANSION AND CONSTRUCTIVE_FLOW AND ANTI_BUY_STALL AND FRESH_HIGH",
+      "meaning": "Price progress, value and flow response remain mutually constructive; buying is not stalling and selling does not create proportional damage."
+    },
+    {
+      "formula_id": "P06_EARLY_STRENGTH_RETAINED",
+      "formula": "PATH_WAKE AND EARLY_STRENGTH_RETAINED AND PERSISTENCE AND ACCEPTANCE AND FRESH_HIGH AND ANTI_BUY_STALL AND NOT LATE_LIFT",
+      "meaning": "Strength was established earlier in the ticker journey, survives intervening pressure, and still renews highs."
+    }
+  ],
+  "negative_formulas": [
+    {
+      "formula_id": "N01_BUY_STALL_TRAP",
+      "formula": "NOT ANTI_BUY_STALL",
+      "meaning": "Aggressive/buy effort is not producing corresponding close/high progress."
+    },
+    {
+      "formula_id": "N02_LATE_CHASE_TRAP",
+      "formula": "LATE_LIFT",
+      "meaning": "The move is being recognized only after a weak earlier state and is treated as chase risk for MG."
+    },
+    {
+      "formula_id": "N03_STRUCTURE_FAILURE",
+      "formula": "STRUCTURE_LOSS",
+      "meaning": "Observed price journey has explicitly invalidated the retained/recovery structure."
+    },
+    {
+      "formula_id": "N04_DATA_OR_SESSION_BLOCK",
+      "formula": "NOT DATA_COMPLETE OR NOT SESSION_SAFE",
+      "meaning": "Signal is blocked when required evidence is unavailable/unproven or the mechanism/session is ineligible."
+    }
+  ],
+  "common_gates": {
+    "BEHAVIOR_PATH_OK": "P01 OR P02 OR P03 OR P04 OR P05 OR P06",
+    "TRAP_FREE": "NOT (N01 OR N02 OR N03 OR N04)",
+    "MG_BEHAVIOR_CANDIDATE": "BEHAVIOR_PATH_OK AND TRAP_FREE",
+    "MG_EXECUTION_CANDIDATE": "MG_BEHAVIOR_CANDIDATE AND EXECUTION_READY",
+    "MG_PROFIT_QUALIFIED": "MG_EXECUTION_CANDIDATE AND PROFIT_ROOM_PASS"
+  },
+  "execution_contract": {
+    "signal_entry_separation": "Signal knowledge occurs first. Historical execution evaluation starts only on eligible bars after the signal timestamp.",
+    "historical_quote_limit": "Current historical OHLCV/TRADE_VALUE/NBSS corpus does not prove exact historical L1 bid/ask or queue fills; proxy execution must be labelled as such.",
+    "friction": "Buy fee, sell fee, observed tick/price-step proxy and any declared slippage buffer must be included explicitly.",
+    "no_entry": "Candidate may become NO_ENTRY/SKIP when executable price runs away, structure deteriorates, or remaining net reward is insufficient."
+  },
+  "research_decision_rule": {
+    "keep": "A behavior path may survive only if its performance remains directionally and economically defensible across multiple development months and multiple day/time/condition buckets.",
+    "replace": "If a path is structurally weak across conditions, create a new behavior topology or combination. Do not rescue it solely by repeatedly moving numeric thresholds.",
+    "parameter_change": "Parameter research remains permitted only to measure robustness around an already defensible topology, not to manufacture isolated historical fit."
+  },
+  "promotion_state": "CLOSED_UNTIL_CROSS_MONTH_RESULTS_NEAR_TWIN_FAILURE_TESTS_AFL_PARITY_AND_UNTOUCHED_OOS_PASS"
+}
