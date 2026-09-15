@@ -1,0 +1,22 @@
+{
+  "schema": "A1_TELEGRAM_MG_SAME_DAY_PRECISION_REQUEST_V1",
+  "request_id": "TELEGRAM_MG_PRECISION_DES2024_DEVELOPMENT_20260915_01",
+  "enabled": true,
+  "authorization_phrase": "AUTHORIZE_TELEGRAM_MG_SAME_DAY_PRECISION_STUDY",
+  "source_name": "Raw Des 02-31-2024.csv",
+  "drive_output_folder_id": "1uQKSZD8KbOZ2j3moyZiH1EuJPlEhEAuC",
+  "mode": "DEVELOPMENT_COMPARE_ALL",
+  "selected_variant": "",
+  "params": {
+    "effort_lookback": 5,
+    "progress_lookback": 5,
+    "high_lookback": 5,
+    "recovery_lookback": 10,
+    "low_stabilization_bars": 3,
+    "early_checkpoint_bar": 30,
+    "late_lift_min_bar": 180
+  },
+  "development_policy": "DECEMBER_ONLY_COMPARE_FIXED_ROUNDED_PRECISION_VARIANTS",
+  "validation_policy": "SELECT_ONE_FROM_DECEMBER_THEN_FREEZE_BEFORE_JANUARY_NO_RETUNING",
+  "objective": "FEWER_CLEANER_MG_SIGNALS_WITH_REWARD_ON_H_SAME_TRADING_DAY"
+}
