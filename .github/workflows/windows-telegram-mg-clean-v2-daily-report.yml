@@ -1,0 +1,105 @@
+name: Windows Telegram MG Clean V2 Daily Report
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - telegram-mg-clean-v2-daily-report-requests/current.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-telegram-mg-clean-v2-daily-report
+  cancel-in-progress: false
+
+jobs:
+  report:
+    name: Telegram MG clean V2 daily 5m tape and hit-time audit
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact formula research revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate daily report request
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ('${{ github.ref_name }}' -ne 'formula/current-clean-research-v1') { throw 'MG clean V2 daily report is branch-restricted.' }
+          $req = Get-Content -LiteralPath 'telegram-mg-clean-v2-daily-report-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_TELEGRAM_MG_CLEAN_V2_DAILY_REPORT_REQUEST_V1') { throw 'Unsupported request schema.' }
+          if ($req.enabled -ne $true) { throw 'Daily report request not enabled.' }
+          if ($req.authorization_phrase -ne 'AUTHORIZE_TELEGRAM_MG_CLEAN_V2_DAILY_REPORT') { throw 'Exact authorization phrase required.' }
+          if ($req.drive_output_folder_id -ne '1uQKSZD8KbOZ2j3moyZiH1EuJPlEhEAuC') { throw 'Unexpected Formula Research output folder.' }
+          if ($req.profile -ne 'ARP_STRONG') { throw 'This report request must use the selected ARP_STRONG research leader.' }
+          if ($req.source_names.Count -lt 2) { throw 'Prior and target source coverage required.' }
+          $json = $req | ConvertTo-Json -Compress -Depth 20
+          "A1_MG_CLEAN_V2_DAILY_REPORT_REQUEST_JSON=$json" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify Drive credential bindings
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($path in @($env:A1_DRIVE_READER_CREDENTIALS, $env:A1_DRIVE_WRITER_CREDENTIALS)) {
+            if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'Drive credential binding missing.' }
+          }
+
+      - name: Install and test exact report code
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[test]'
+          if ($LASTEXITCODE -ne 0) { throw 'MG_CLEAN_V2_DAILY_REPORT_INSTALL_FAILED' }
+          py -3.11 -m compileall -q src tests
+          if ($LASTEXITCODE -ne 0) { throw 'MG_CLEAN_V2_DAILY_REPORT_COMPILE_FAILED' }
+          py -3.11 -m pytest -q
+          if ($LASTEXITCODE -ne 0) { throw 'MG_CLEAN_V2_DAILY_REPORT_TESTS_FAILED' }
+
+      - name: Build exact 5-minute Telegram tape and reward hit audit
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = $env:A1_MG_CLEAN_V2_DAILY_REPORT_REQUEST_JSON | ConvertFrom-Json
+          $argsList = @(
+            '-3.11', '-m', 'a1clean.formula_research.telegram_mg_clean_v2_daily_report',
+            '--trading-date', [string]$req.trading_date,
+            '--profile', [string]$req.profile,
+            '--request-id', [string]$req.request_id,
+            '--software-revision', '${{ github.sha }}',
+            '--drive-output-folder-id', [string]$req.drive_output_folder_id,
+            '--output', 'telegram-mg-clean-v2-daily-report-result.json',
+            '--effort-lookback', [string][int]$req.params.effort_lookback,
+            '--progress-lookback', [string][int]$req.params.progress_lookback,
+            '--high-lookback', [string][int]$req.params.high_lookback,
+            '--recovery-lookback', [string][int]$req.params.recovery_lookback,
+            '--low-stabilization-bars', [string][int]$req.params.low_stabilization_bars,
+            '--early-checkpoint-bar', [string][int]$req.params.early_checkpoint_bar,
+            '--late-lift-min-bar', [string][int]$req.params.late_lift_min_bar
+          )
+          foreach ($source in $req.source_names) {
+            $argsList += @('--source-name', [string]$source)
+          }
+          & py @argsList
+          if ($LASTEXITCODE -ne 0) { throw "MG_CLEAN_V2_DAILY_REPORT_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Upload daily report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-mg-clean-v2-daily-report-${{ github.run_id }}
+          path: telegram-mg-clean-v2-daily-report-result.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Report safety declaration
+        if: always()
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          "### Telegram MG clean V2 daily report" >> $env:GITHUB_STEP_SUMMARY
+          "- Every available publication slot is retained, including zero-match slots." >> $env:GITHUB_STEP_SUMMARY
+          "- Public rows use CODE | PRICE | CHG% | TP-1 | TP-2." >> $env:GITHUB_STEP_SUMMARY
+          "- TP hit times are outcome-audit fields only and begin after the alert bar." >> $env:GITHUB_STEP_SUMMARY
+          "- Candidate state is causal; H+1 is excluded." >> $env:GITHUB_STEP_SUMMARY
