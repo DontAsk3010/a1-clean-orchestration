@@ -1,4 +1,4 @@
-name: Machine1 BBTN Evidence Extract
+name: Machine1 Next Chunk Evidence Extract
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  extract-bbtn:
+  extract-next-chunk:
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 30
     env:
@@ -18,7 +18,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Extract exact governed BBTN packet
+      - name: Extract exact governed ticker packets
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
@@ -28,47 +28,57 @@ jobs:
           raw = pathlib.Path(os.environ['RAW_FILE'])
           expected_md5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
           expected_sha256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
-          expected_rows = list(range(181719, 182046))
+          specs = {
+              'BBYB': {'first':187366,'last':187635,'count':270,'first_time':'09:00:00','last_time':'16:13:00'},
+              'BCAP': {'first':193693,'last':193786,'count':94,'first_time':'09:00:00','last_time':'16:12:00'},
+              'BCIC': {'first':191852,'last':191954,'count':103,'first_time':'09:00:00','last_time':'16:02:00'},
+              'BCIP': {'first':195612,'last':195697,'count':86,'first_time':'09:00:00','last_time':'16:05:00'},
+          }
           if not raw.is_file():
               raise SystemExit(f'RAW_MISSING: {raw}')
 
-          md5 = hashlib.md5(); sha256 = hashlib.sha256()
+          md5=hashlib.md5(); sha256=hashlib.sha256()
           with raw.open('rb') as f:
-              for chunk in iter(lambda: f.read(8 * 1024 * 1024), b''):
+              for chunk in iter(lambda: f.read(8*1024*1024), b''):
                   md5.update(chunk); sha256.update(chunk)
-          got_md5, got_sha256 = md5.hexdigest(), sha256.hexdigest()
+          got_md5, got_sha256=md5.hexdigest(), sha256.hexdigest()
           if got_md5 != expected_md5 or got_sha256 != expected_sha256:
               raise SystemExit(f'RAW_HASH_MISMATCH md5={got_md5} sha256={got_sha256}')
 
-          hits=[]
-          with raw.open('r', encoding='utf-8-sig', newline='') as f:
+          hits={k:[] for k in specs}
+          with raw.open('r',encoding='utf-8-sig',newline='') as f:
               reader=csv.DictReader(f)
               for source_row,row in enumerate(reader,start=1):
-                  if row.get('RAW_TICKER') == 'BBTN' and row.get('RAW_DATETIME_ISO','').startswith('2024-12-03'):
-                      hits.append((source_row,row))
-          rows=[n for n,_ in hits]
-          if len(hits) != 327:
-              raise SystemExit(f'BBTN_ROW_COUNT_MISMATCH count={len(hits)}')
-          if rows != expected_rows:
-              raise SystemExit(f'BBTN_SOURCE_ROW_MISMATCH first={rows[:5]} last={rows[-5:]}')
-          first_dt=hits[0][1]['RAW_DATETIME_ISO']; last_dt=hits[-1][1]['RAW_DATETIME_ISO']
-          if '08:59' not in first_dt or '16:14' not in last_dt:
-              raise SystemExit(f'BBTN_BOUNDARY_TIME_MISMATCH first={first_dt} last={last_dt}')
+                  t=row.get('RAW_TICKER')
+                  if t in hits and row.get('RAW_DATETIME_ISO','').startswith('2024-12-03'):
+                      hits[t].append((source_row,row))
 
-          out=pathlib.Path('machine1_bbtn_evidence'); out.mkdir(exist_ok=True)
-          packet={'source_name':raw.name,'source_md5':got_md5,'source_sha256':got_sha256,'ticker':'BBTN','trading_date':'2024-12-03','source_row_first':rows[0],'source_row_last':rows[-1],'data_rows':len(hits),'first_datetime':first_dt,'last_datetime':last_dt,'header_fields':list(hits[0][1].keys()),'rows':[{'source_row':n,**r} for n,r in hits]}
-          (out/'BBTN_20241203_PACKET.json').write_text(json.dumps(packet,ensure_ascii=False,indent=2),encoding='utf-8')
-          with (out/'BBTN_20241203_ROWS.jsonl').open('w',encoding='utf-8',newline='\n') as w:
-              for n,r in hits:
-                  w.write(json.dumps({'source_row':n,**r},ensure_ascii=False,separators=(',',':'))+'\n')
-          print(f'BBTN_PACKET_PASS rows={len(hits)} source_rows={rows[0]}-{rows[-1]} first={first_dt} last={last_dt}')
-          '@ | Set-Content -LiteralPath extract_bbtn.py -Encoding UTF8
-          py -3.11 extract_bbtn.py
+          out=pathlib.Path('machine1_next_chunk_evidence'); out.mkdir(exist_ok=True)
+          manifest=[]
+          for ticker,s in specs.items():
+              arr=hits[ticker]; rows=[n for n,_ in arr]
+              if len(arr)!=s['count']:
+                  raise SystemExit(f'{ticker}_ROW_COUNT_MISMATCH got={len(arr)} expected={s["count"]}')
+              if rows != list(range(s['first'],s['last']+1)):
+                  raise SystemExit(f'{ticker}_SOURCE_ROW_MISMATCH first={rows[:3]} last={rows[-3:]}')
+              first_dt=arr[0][1]['RAW_DATETIME_ISO']; last_dt=arr[-1][1]['RAW_DATETIME_ISO']
+              if s['first_time'] not in first_dt or s['last_time'] not in last_dt:
+                  raise SystemExit(f'{ticker}_BOUNDARY_TIME_MISMATCH first={first_dt} last={last_dt}')
+              packet={'source_name':raw.name,'source_md5':got_md5,'source_sha256':got_sha256,'ticker':ticker,'trading_date':'2024-12-03','source_row_first':rows[0],'source_row_last':rows[-1],'data_rows':len(arr),'first_datetime':first_dt,'last_datetime':last_dt,'header_fields':list(arr[0][1].keys()),'rows':[{'source_row':n,**r} for n,r in arr]}
+              (out/f'{ticker}_20241203_PACKET.json').write_text(json.dumps(packet,ensure_ascii=False,indent=2),encoding='utf-8')
+              with (out/f'{ticker}_20241203_ROWS.jsonl').open('w',encoding='utf-8',newline='\n') as w:
+                  for n,r in arr:
+                      w.write(json.dumps({'source_row':n,**r},ensure_ascii=False,separators=(',',':'))+'\n')
+              manifest.append({k:packet[k] for k in ['ticker','trading_date','source_row_first','source_row_last','data_rows','first_datetime','last_datetime']})
+              print(f'{ticker}_PACKET_PASS rows={len(arr)} source_rows={rows[0]}-{rows[-1]} first={first_dt} last={last_dt}')
+          (out/'CHUNK_MANIFEST.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
+          '@ | Set-Content -LiteralPath extract_next_chunk.py -Encoding UTF8
+          py -3.11 extract_next_chunk.py
 
-      - name: Upload BBTN evidence packet
+      - name: Upload evidence chunk
         uses: actions/upload-artifact@v4
         with:
-          name: machine1-bbtn-20241203-evidence
-          path: machine1_bbtn_evidence/
+          name: machine1-next-chunk-20241203-evidence
+          path: machine1_next_chunk_evidence/
           if-no-files-found: error
           retention-days: 7
