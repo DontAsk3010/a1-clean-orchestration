@@ -610,3 +610,118 @@ through 5.7% confirming 12%.
   `tests/test_claude_open_extreme_ladder_v1.py`,
   `claude-mg-open-extreme-ladder-requests/current.json`,
   `.github/workflows/claude-mg-open-extreme-ladder.yml`.
+
+---
+
+## Entry 008 — 2026-09-16 — H13/H14 EXECUTED on December 2024. Open-extremes: FAIL as tradable. Ladder: PARTIAL, with one real structural find.
+
+- **Run**: `35097581002`, job `104798657443`, commit `bdc6af7`, runner
+  `A1-WINDOWS-COMPUTE`, module ran 12:47:38Z → 12:52:02Z (4m24s), conclusion
+  `success`, artifact `10446918822`.
+- **Scope**: `Raw Des 02-31-2024.csv`, 900 tickers, 15,201 ticker-days seen,
+  **13,127 evaluated, 2,074 degenerate flat days excluded** (13.6% of the month
+  is untraded-flat — a large share, and they would have silently inflated the
+  `Open == Low` result had they been left in).
+- **Unconditional baseline**: `P(close > open) = 35.03%`,
+  `P(close > prev close) = 36.18%`, median day return `0.00%`.
+
+### H13 — Open == Low / Open == High → FAIL as a tradable pattern
+
+| | n | P(close>open) | P(close>prev close) | mean day return |
+|---|---|---|---|---|
+| baseline | 13,127 | 35.03% | 36.18% | +0.02% |
+| **open == low** (hindsight) | 2,363 | 83.92% (**+48.89pp**) | 61.57% (**+25.39pp**) | +2.09% |
+| **open == high** (hindsight) | 3,674 | 0.00% (−35.03pp) | 13.26% (−22.93pp) | −1.45% |
+
+**The headline lift is largely an artifact of the definition.** If the open IS
+the day's final low then `close >= open` is true by construction, so the 83.92%
+is near-tautological — the missing 16% is only ties where close equals open.
+`Open == High` giving exactly `0.00%` proves the same point from the other side.
+Reporting +48.89pp as a discovery would be self-deception.
+
+The non-tautological number is `P(close > prev close)`: **61.57% vs 36.18%
+baseline, +25.39pp**. That is real — a gap-down day can open at its low and
+still close under the prior close — but it is still **hindsight**: you only know
+the open was the final low after the close.
+
+**The decisive test is the causal form, and it does not survive it:**
+
+| executable state | snapshots | outcome |
+|---|---|---|
+| `low_so_far == open` | 215,227 | `P(close > price now)` = **34.33%** |
+| `high_so_far == open` | 298,765 | `P(close < price now)` = **37.92%** |
+
+At 34.33%, the tradable version of "Open == Low" is **at or slightly below** the
+35.03% daily base rate. **There is no edge in the form that can actually be
+traded.** The answer to "is Open == Low sure to go up" is **no**.
+
+**Instrumentation gap, stated rather than hidden**: the exact unconditional
+`P(close > price at snapshot t)` was not computed, so the 35.03% daily figure is
+a proxy rather than a matched baseline. The conclusion is robust to this (34.33%
+is nowhere near a level that would survive a stricter comparison) but the
+matched baseline should be added before this is cited as settled.
+
+### H14 — Rung escalation → PARTIAL. The owner's specific chain is not confirmed.
+
+`P(reach next rung | reached)` upward, with `n` reached:
+
+| rung → next | p | n | strong cross | retention |
+|---|---|---|---|---|
+| 1 → 2 | 65.7% | 7,747 | 72.5% | 42.8% |
+| 2 → 3 | 70.2% | 5,093 | 74.2% | 40.2% |
+| 3 → 3.5 | 85.3% | 3,576 | 88.7% | 39.6% |
+| **3.5 → 4** | **87.8%** | 3,051 | 89.8% | 39.3% |
+| 4 → 5 | 78.5% | 2,679 | 81.7% | 37.9% |
+| **5 → 5.7** | **85.2%** | 2,104 | 86.4% | 37.4% |
+| 5.7 → 7 | 75.8% | 1,793 | 79.2% | 37.8% |
+| **7 → 10** | **49.9%** | 1,359 | 57.5% | 36.4% |
+| 10 → 12 | 72.1% | 678 | 79.8% | 34.7% |
+| 12 → 15 | 69.9% | 489 | 73.2% | 34.4% |
+| 15 → 20 | 62.6% | 342 | 66.0% | 35.7% |
+| 20 → 25 | 43.9% | 214 | 43.0% | 38.3% |
+
+**Chaining the owner's claims:**
+- "breaks 3.5% → confirms 5%" = 0.878 × 0.785 = **68.9%**. Better than a coin
+  flip, but not a confirmation.
+- "5% strong through 5.7% → confirms 12%" = 0.758 × 0.499 × 0.721 = **27.3%**.
+  **Not supported — roughly one in four.**
+
+**Two confounds that inflate every number in that table, both mine:**
+1. **Rung spacing is uneven.** `3 → 3.5` is a 0.5pp step while `7 → 10` is 3pp.
+   The high probabilities at the tight rungs are substantially a spacing
+   artifact, so the columns are not comparable as they stand.
+2. **`median_bars_to_next_rung = 0.0` at almost every rung.** The next rung is
+   typically reached **in the same bar**. This is therefore not step-by-step
+   confirmation over time — it is one impulse bar spanning several rungs at
+   once, and the conditional probability is inflated by within-bar
+   co-occurrence. This substantially weakens the escalation reading as stated.
+
+**The one genuine structural find**: there is a real trough at **7 → 10
+(49.9%)** that then *recovers* at 10 → 12 (72.1%). Uneven spacing explains part
+of it, but not the recovery — a 3pp step at 12 → 15 scores 69.9% while the same
+3pp step at 7 → 10 scores 49.9%. So the 7–10% band behaves as a genuine
+resistance zone, and past ~10% continuation improves markedly. The downward
+ladder is asymmetric there (7 → 10 down = 38.2%), i.e. upside continuation past
+7% is stronger than downside. This is non-obvious and worth pursuing.
+
+**Retention is the trading-relevant constraint**: `P(close at or beyond rung |
+reached)` sits at **34–43% at every single rung**. Levels get touched and mostly
+not held. Any TP built on these rungs must be taken intraday on touch; holding
+to the close discards roughly two-thirds of it.
+
+- **Result**: **H13 FAIL (no tradable edge). H14 PARTIAL — the specific chain is
+  not confirmed, but the 7–10% resistance band and its asymmetry are real
+  findings.**
+- **Usable output despite the partial result**: the transition table is a
+  market-derived TP ladder. From +3.5%, TP-1 = 4% (~88% touch) and TP-2 = 5%
+  (~69% touch) are grounded in measured behaviour, which is what Master §20A.6
+  requires and what Entry 006's quantile-of-MFE derivation failed to deliver.
+- **Next**: re-run the ladder on **evenly spaced rungs** to remove the spacing
+  confound, and add a **same-bar vs later-bar split** so genuine sequential
+  confirmation is separated from single-impulse co-occurrence. Add the matched
+  snapshot baseline for the causal open-extreme comparison. Only then is either
+  hypothesis settled.
+- **Paths**: run
+  `https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35097581002`;
+  artifact `claude-mg-open-extreme-ladder-35097581002` (ID `10446918822`);
+  `src/a1clean/formula_research/claude_open_extreme_ladder_v1.py`.

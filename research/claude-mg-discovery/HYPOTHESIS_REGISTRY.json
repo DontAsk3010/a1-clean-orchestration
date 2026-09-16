@@ -14,7 +14,7 @@
     "Raw Feb 03-28-2025.csv"
   ],
   "untouched_oos_source": "Raw Maret 03-31-2025.csv",
-  "notes": "Every hypothesis below targets a data dimension or open problem identified in RESEARCH_AUDIT.md section 3/4/5 as underused or unresolved by the existing V2-V8d GPT lane, rather than re-testing what that lane already tried. None have been executed yet -- this is a discovery-stage backlog, not a results table. Data fields per README.md/CLAUDE.md: trade_value=RAW_Aux2 (TRADE_VALUE_1M); nbss=RAW_OpenInterest (NBSS_VALUE_1M, not futures open interest); HAKA=(trade_value+nbss)/2; HAKI=(trade_value-nbss)/2. Missing/unproven fields must resolve to UNKNOWN/UNAVAILABLE, never zero. | 2026-09-16: H04 marked EXECUTED_METRICS_UNREAD (run 35070450297; artifact unreadable from the analysis context due to egress policy). H12 added after reading the Branch 07 handbook and the governed December replay: the MG family is intraday with dynamic per-snapshot targets, so H04's daily shape is superseded rather than merely underperforming. No performance claim is made for either until a run's log is actually read. | 2026-09-16 (later): H12 TESTED_FAILED_ON_DISCOVERY on December 2024 (run 35089709020). The contract-shaped candidate does not beat the existing standalone baseline. Validation data deliberately NOT spent. | 2026-09-16: H13 and H14 added from owner-posed hypotheses (open extremes, rung escalation). Both are measured against the unconditional baseline with explicit lift; neither is assumed. H14, if confirmed, supplies the market-derived TP levels that H12's quantile approach failed to.",
+  "notes": "Every hypothesis below targets a data dimension or open problem identified in RESEARCH_AUDIT.md section 3/4/5 as underused or unresolved by the existing V2-V8d GPT lane, rather than re-testing what that lane already tried. None have been executed yet -- this is a discovery-stage backlog, not a results table. Data fields per README.md/CLAUDE.md: trade_value=RAW_Aux2 (TRADE_VALUE_1M); nbss=RAW_OpenInterest (NBSS_VALUE_1M, not futures open interest); HAKA=(trade_value+nbss)/2; HAKI=(trade_value-nbss)/2. Missing/unproven fields must resolve to UNKNOWN/UNAVAILABLE, never zero. | 2026-09-16: H04 marked EXECUTED_METRICS_UNREAD (run 35070450297; artifact unreadable from the analysis context due to egress policy). H12 added after reading the Branch 07 handbook and the governed December replay: the MG family is intraday with dynamic per-snapshot targets, so H04's daily shape is superseded rather than merely underperforming. No performance claim is made for either until a run's log is actually read. | 2026-09-16 (later): H12 TESTED_FAILED_ON_DISCOVERY on December 2024 (run 35089709020). The contract-shaped candidate does not beat the existing standalone baseline. Validation data deliberately NOT spent. | 2026-09-16: H13 and H14 added from owner-posed hypotheses (open extremes, rung escalation). Both are measured against the unconditional baseline with explicit lift; neither is assumed. H14, if confirmed, supplies the market-derived TP levels that H12's quantile approach failed to. | 2026-09-16: H13 FAILED as tradable (hindsight lift largely tautological; causal form 34.33% vs 35.03% base rate). H14 PARTIAL -- owner's specific chain unconfirmed, but the 7-10% resistance band and its up/down asymmetry are real, and the transition table supplies a market-derived TP ladder.",
   "hypotheses": [
     {
       "id": "H01",
@@ -193,9 +193,9 @@
         "degenerate control: high == low excluded and counted"
       ],
       "data_dependency": "OHLC at base bar resolution plus the previous day's close for CHG% basis. No flow dependency, so this hypothesis is unaffected by NBSS availability.",
-      "status": "CODE_READY_AWAITING_EXECUTION",
+      "status": "TESTED_FAILED_AS_TRADABLE",
       "priority": "high",
-      "implementation": "src/a1clean/formula_research/claude_open_extreme_ladder_v1.py, tests in tests/test_claude_open_extreme_ladder_v1.py."
+      "implementation": "src/a1clean/formula_research/claude_open_extreme_ladder_v1.py, tests in tests/test_claude_open_extreme_ladder_v1.py. EXECUTED run 35097581002, December 2024, 13,127 ticker-days (2,074 degenerate flat days excluded). RESULT: FAIL as tradable. The hindsight lift is largely tautological -- if the open IS the final low then close >= open by construction, which is why open==high returns exactly 0.00%. The non-tautological hindsight number is P(close > prev close) = 61.57% vs 36.18% baseline (+25.39pp), real but still only knowable after the close. The causal form, the only one that can be traded, gives P(close > price now) = 34.33% over 215,227 snapshots against a 35.03% daily base rate -- no edge. See RESEARCH_LEDGER.md Entry 008."
     },
     {
       "id": "H14",
@@ -210,9 +210,9 @@
         "median bars between consecutive rung touches"
       ],
       "data_dependency": "OHLC at base bar resolution, previous day's close, and trade_value for the strength condition. Where flow is unproven the strength test falls back to price alone rather than reading a physical zero as real.",
-      "status": "CODE_READY_AWAITING_EXECUTION",
+      "status": "TESTED_PARTIAL",
       "priority": "high",
-      "implementation": "src/a1clean/formula_research/claude_open_extreme_ladder_v1.py, tests in tests/test_claude_open_extreme_ladder_v1.py. If confirmed, feeds the TP derivation that Entry 006 found broken."
+      "implementation": "src/a1clean/formula_research/claude_open_extreme_ladder_v1.py, tests in tests/test_claude_open_extreme_ladder_v1.py. If confirmed, feeds the TP derivation that Entry 006 found broken. EXECUTED run 35097581002. RESULT: PARTIAL. Chaining the owner's claims gives 3.5->5 = 68.9% (better than a coin flip, not a confirmation) and 5.7->12 = 27.3% (not supported). Two confounds inflate the raw table: rung spacing is uneven (3->3.5 is 0.5pp while 7->10 is 3pp), and median_bars_to_next_rung is 0.0 at nearly every rung, meaning the next rung is typically hit in the SAME bar -- single-impulse co-occurrence, not sequential confirmation. One genuine find survives: a trough at 7->10 (49.9%) that recovers at 10->12 (72.1%), where an equal 3pp step at 12->15 scores 69.9%, so the 7-10% band is a real resistance zone and upside continuation past it is stronger than the downside mirror (38.2%). Retention is 34-43% at every rung, so rung-based TP must be taken intraday on touch, not held. See Entry 008."
     }
   ]
 }
