@@ -1,7 +1,7 @@
 {
   "schema": "A1_TELEGRAM_MG_STREAMING_V9_REQUEST_V1",
   "enabled": true,
-  "run_revision": 1,
+  "run_revision": 2,
   "prior_days": 10,
   "execution": {
     "buy_fee_pct": 0.15,
