@@ -1,0 +1,157 @@
+{
+  "schema": "A1_CLAUDE_MG_HYPOTHESIS_REGISTRY_V1",
+  "status": "PROPOSED_NOT_TESTED",
+  "branch": "research/claude-mg-discovery",
+  "prepared": "2026-09-15",
+  "scope": "Telegram A / EARLY_POTENTIAL / MULAI GENIT (MG) only",
+  "non_negotiable_rules_inherited_from": ["CLAUDE.md", "plans/formula/current-clean-formula-research-v1.json"],
+  "discovery_source": "Raw Des 02-31-2024.csv",
+  "validation_sources": ["Raw Jan 01-31-2025.csv", "Raw Feb 03-28-2025.csv"],
+  "untouched_oos_source": "Raw Maret 03-31-2025.csv",
+  "notes": "Every hypothesis below targets a data dimension or open problem identified in RESEARCH_AUDIT.md section 3/4/5 as underused or unresolved by the existing V2-V8d GPT lane, rather than re-testing what that lane already tried. None have been executed yet -- this is a discovery-stage backlog, not a results table. Data fields per README.md/CLAUDE.md: trade_value=RAW_Aux2 (TRADE_VALUE_1M); nbss=RAW_OpenInterest (NBSS_VALUE_1M, not futures open interest); HAKA=(trade_value+nbss)/2; HAKI=(trade_value-nbss)/2. Missing/unproven fields must resolve to UNKNOWN/UNAVAILABLE, never zero.",
+  "hypotheses": [
+    {
+      "id": "H01",
+      "family": "multi-day precursor",
+      "title": "Repeated close-location/acceptance count over rolling N bars",
+      "causal_rationale": "A single-bar 'close near high' event (BAR_ACCEPTANCE) is already used everywhere, but no version tests whether *repeated* acceptance over a rolling window (e.g. share of the last 10/20 bars with close-location >= 0.6) is itself a distinct, stronger precursor than a single bar or a same-window average.",
+      "proposed_features": [
+        "acceptance_count_n = count(close_location(bar) >= 0.6 for bar in last N causal bars) / N, for N in {10, 20, 40}",
+        "acceptance_streak_n = longest current consecutive run of close_location >= 0.6 within last N bars"
+      ],
+      "data_dependency": "1-minute OHLC, causal only (bars[:index+1])",
+      "status": "PROPOSED",
+      "priority": "medium"
+    },
+    {
+      "id": "H02",
+      "family": "multi-day precursor",
+      "title": "Progressive higher-lows / tightening structure",
+      "causal_rationale": "CLAUDE.md explicitly lists this as a hypothesis to test; the only existing proxy (pre3_range_contraction) measures range shrinkage, not a higher-lows sequence specifically. A genuine higher-lows-with-contraction structure is a distinct, commonly-cited technical precursor never coded in this repo.",
+      "proposed_features": [
+        "higher_low_streak_w = count of consecutive prior trading days (w in {3,5,8}) whose daily low is >= the previous day's daily low",
+        "higher_low_and_contraction_w = higher_low_streak_w >= w-1 AND pre{w}_range_pct below its own historical median (reuses V8's pre{w}_range_pct)"
+      ],
+      "data_dependency": "daily OHLC aggregated causally from 1-minute bars, completed trading dates only",
+      "status": "PROPOSED",
+      "priority": "medium"
+    },
+    {
+      "id": "H03",
+      "family": "multi-day precursor",
+      "title": "Matrix-profile (STUMPY) 'quiet period then wake' motif detection",
+      "causal_rationale": "src/a1clean/pattern_discovery/ (Ruptures/STUMPY/DTW) is a fully-built, entirely disconnected pipeline whose own code asserts formula_stage_opened=False. STUMPY matrix-profile discord/motif detection is directly relevant to CLAUDE.md's 'quiet period followed by activity wake' and 'any other recurring precursor' hypotheses and has never been applied to MG discovery. This hypothesis wires it in as a read-only feature source, not a change to the pattern_discovery engine's own independence assertions.",
+      "proposed_features": [
+        "matrix_profile_min_distance_w = STUMPY matrix profile minimum distance for the trailing w-day close/range series, computed causally (no lookahead in the profile window)",
+        "is_low_variance_motif = whether the trailing window matches a recurring low-variance motif class discovered on the discovery corpus, frozen and reapplied unchanged on validation"
+      ],
+      "data_dependency": "daily close/range series, STUMPY library, causal windowing only",
+      "status": "PROPOSED",
+      "priority": "high"
+    },
+    {
+      "id": "H04",
+      "family": "multi-day precursor",
+      "title": "Multi-day NBSS persistence / acceleration",
+      "causal_rationale": "pre{w}_nbss_to_value (V8/V8b) is a single-window ratio; no version tests whether NBSS dominance *persists or accelerates* across consecutive days, which is a materially different (and per the Behavior Handbook's anti-template rule, more defensible) claim than a one-window snapshot.",
+      "proposed_features": [
+        "nbss_buildup_streak_w = count of consecutive prior days with nbss_to_value above its own trailing median",
+        "nbss_accel_w = median(nbss_to_value, most recent half of window w) / median(nbss_to_value, earlier half of window w), only where flow_available is True on all contributing days else UNKNOWN"
+      ],
+      "data_dependency": "trade_value (Aux2) and nbss (OpenInterest) fields, availability-gated per formula_replay.py flow_available logic",
+      "status": "PROPOSED",
+      "priority": "medium"
+    },
+    {
+      "id": "H05",
+      "family": "near-twin failure discriminator",
+      "title": "Discriminate the frozen V4 bridge candidate's Jan/Feb losing tail",
+      "causal_rationale": "MG_RR_FLOW_RENEW_V4 (K06_EARLY_RETAINED_FLOW parent + HELD_FLOW + PRIOR3_RECLAIM + REGAIN_RENEWED_HIGH) already shows a real, repeating, positive-median precursor sequence across all 3 governed months, but with a losing Q25 tail of roughly a quarter to a third of matching events in Jan/Feb. This is the single most concretely-scoped, evidence-backed open problem in the corpus (see RESEARCH_AUDIT.md section 5) -- directly answers V5's own stated purpose.",
+      "proposed_features": [
+        "For every event matching the exact V4 bridge signature, split into net-MFE-positive vs net-MFE-negative groups on discovery (Dec 2024) only",
+        "Compare, causally, at the moment of signature completion: time-of-day band, magnitude of the prior pullback, magnitude/persistence of held flow (NBSS dominance duration), pre-signature range compression, and volume (not just value) confirmation",
+        "Freeze whichever discriminator(s) separate the groups on discovery; require the same separation to replicate on Jan+Feb before calling it a valid anti-failure condition"
+      ],
+      "data_dependency": "same governed sources as V4/V5; requires re-deriving the exact K06+HELD_FLOW+PRIOR3_RECLAIM+REGAIN signature from telegram_mg_sequence_discovery_v4.py's own logic to identify the matching event population",
+      "status": "PROPOSED",
+      "priority": "highest"
+    },
+    {
+      "id": "H06",
+      "family": "intraday ignition",
+      "title": "Volume-led ignition as an independent family from value/NBSS-led ignition",
+      "causal_rationale": "RAW_VOLUME is parsed into every bar and V8 computes volume ratios/accelerations, but no J01-J06/MG_A-H/P0-P5 formula has ever used volume as a load-bearing condition -- only trade_value and nbss drive causal formulas through V7. Given wide IDX price dispersion, a raw-share ignition signal may carry information independent of value-based signals, especially for low-priced high-float names.",
+      "proposed_features": [
+        "ign_volume_ratio_only (already computed in V8) tested as the SOLE ignition condition, deliberately excluding ign_value_ratio and ign_range_ratio, to measure standalone discriminative power",
+        "value_volume_divergence = ign_value_ratio - ign_volume_ratio, to flag cases where value and volume signals disagree"
+      ],
+      "data_dependency": "RAW_VOLUME, RAW_Aux2",
+      "status": "PROPOSED",
+      "priority": "medium"
+    },
+    {
+      "id": "H07",
+      "family": "multi-day precursor",
+      "title": "Repeated-test-of-level behavior",
+      "causal_rationale": "Existing pullback/reclaim features are binary (happened or not); none test whether a ticker has bounced off approximately the same support/resistance level multiple times, a distinct and commonly-cited precursor structure not covered by pullback_reaccel_features.",
+      "proposed_features": [
+        "level_test_count_w = number of distinct prior local lows (or highs) within w days that fall within a small tolerance band of each other, tolerance frozen from discovery-corpus volatility only",
+        "level_hold_quality = whether each test showed decreasing downside penetration (a tightening test) vs. random scatter"
+      ],
+      "data_dependency": "daily OHLC, causal local-extrema detection",
+      "status": "PROPOSED",
+      "priority": "low"
+    },
+    {
+      "id": "H08",
+      "family": "interaction",
+      "title": "Time-of-day interaction with multi-day precursor reliability",
+      "causal_rationale": "V8 computes a TIME_09/10_11/12_13/14_PLUS marker but no version tests whether a given multi-day precursor's positive-MFE rate actually depends on which intraday band the ignition falls in -- an early-session vs late-lift distinction CLAUDE.md explicitly asks for.",
+      "proposed_features": [
+        "For each surviving multi-day precursor (H01-H04, H07), stratify discovery-period outcomes by TIME band and report whether positive_net_mfe_rate differs materially by band before deciding whether time-of-day should be a required or merely descriptive condition"
+      ],
+      "data_dependency": "same as whichever precursor is being stratified, plus existing V8 TIME_* markers",
+      "status": "PROPOSED",
+      "priority": "low"
+    },
+    {
+      "id": "H09",
+      "family": "intraday ignition",
+      "title": "Research-only intrabar VWAP proxy",
+      "causal_rationale": "canonical_vwap is hard-coded None everywhere in formula_replay.py, permanently disabling F02B/F05B. This hypothesis reconstructs an explicitly-labeled RESEARCH-ONLY intrabar VWAP proxy from available 1-minute OHLCV (price*volume cumulative / cumulative volume within the session) purely to test VWAP-acceptance hypotheses -- never to be presented or promoted as a true governed VWAP field.",
+      "proposed_features": [
+        "research_vwap_proxy = cumulative(typical_price * volume) / cumulative(volume) from session open to current bar, causal only",
+        "close_vs_vwap_proxy = close - research_vwap_proxy, used only inside this hypothesis's own discovery/validation, clearly flagged as a proxy in every result record"
+      ],
+      "data_dependency": "RAW OHLC + RAW_VOLUME only; explicitly does not claim to be the governed canonical_vwap field",
+      "status": "PROPOSED",
+      "priority": "low",
+      "caveat": "Must be labeled a research proxy in every output; the project's data-semantics rules treat canonical_vwap as a distinct, currently-unavailable governed field and this must never be conflated with it."
+    },
+    {
+      "id": "H10",
+      "family": "data-quality audit",
+      "title": "Systematic re-audit for session-boundary contamination",
+      "causal_rationale": "telegram_mg_precision_study.py documents and guards a specific bug: the original MG_B lookback could pull prior bars from a different regular-session segment (mixing session-1 and session-2 history). No evidence was found that any other lookback-based feature (multiday_context_study, pullback_reaccel_features, the V8 pre{w}/ign_* family) was checked for the identical defect.",
+      "proposed_features": [
+        "For every existing causal lookback function reviewed in RESEARCH_AUDIT.md section 1-3, verify whether its lookback window can cross a session-segment boundary (S1/S2, or a trading-day boundary) in a way inconsistent with how it is described",
+        "Where found, add the same session_safe-style guard used in telegram_mg_precision_study.py rather than a new ad hoc fix"
+      ],
+      "data_dependency": "code review + targeted replay on a small known contamination-prone sample; not a new market hypothesis, but a correctness gate every other hypothesis here should pass before being trusted",
+      "status": "PROPOSED",
+      "priority": "high"
+    },
+    {
+      "id": "H11",
+      "family": "multi-day precursor, capability-gated",
+      "title": "Narrow research-only ARA-boundary-distance proxy",
+      "causal_rationale": "ARA_POTENTIAL/ARA_IMMINENT are explicitly BLOCKED project-wide on ARA reference binding (plans/formula/telegram-family-feature-availability-v1.json), not merely unused. This hypothesis is scoped narrowly to MG (not to reproducing the ARA families): does proximity to a distance-from-reference-price band (computed only if IDX's public percentage-band rules by price tier can be reconstructed from OHLC alone, with NO claim of true exchange ARA/ARB state) add any signal to MG persistence. If the underlying reference price or band rule cannot be reconstructed causally and losslessly, this hypothesis resolves to UNAVAILABLE and is dropped, per the project's fail-closed rule -- it is not to be forced through with an approximation presented as fact.",
+      "proposed_features": [
+        "distance_to_estimated_band_pct = (estimated_upper_band - close) / close, ONLY if band construction can be verified against known public IDX price-limit rules without any unproven assumption"
+      ],
+      "data_dependency": "RAW OHLC plus an externally-verifiable, publicly documented IDX price-limit percentage rule; status may resolve to UNAVAILABLE",
+      "status": "PROPOSED",
+      "priority": "lowest"
+    }
+  ]
+}
