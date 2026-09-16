@@ -1,0 +1,58 @@
+name: Windows Telegram MG Daily Strength V14
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - telegram-mg-daily-strength-v14-requests/current.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-telegram-mg-daily-strength-v14
+  cancel-in-progress: true
+
+jobs:
+  study:
+    name: Analyze December strong10 cohort per day
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 180
+    steps:
+      - name: Checkout exact research revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate request
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'telegram-mg-daily-strength-v14-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_TELEGRAM_MG_DAILY_STRENGTH_V14_REQUEST_V1') { throw 'Unsupported V14 request schema.' }
+          if ($req.enabled -ne $true) { throw 'V14 request disabled.' }
+
+      - name: Install and compile V14
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[test]'
+          if ($LASTEXITCODE -ne 0) { throw 'V14_INSTALL_FAILED' }
+          py -3.11 -m py_compile src/a1clean/formula_research/telegram_mg_daily_strength_v14.py
+          if ($LASTEXITCODE -ne 0) { throw 'V14_COMPILE_FAILED' }
+
+      - name: Run V14 from durable cache only
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & py -3.11 -m a1clean.formula_research.telegram_mg_daily_strength_v14 --output 'telegram-mg-daily-strength-v14-result.json'
+          if ($LASTEXITCODE -ne 0) { throw "V14_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Upload V14 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-mg-daily-strength-v14-${{ github.run_id }}
+          path: telegram-mg-daily-strength-v14-result.json
+          if-no-files-found: error
+          retention-days: 30
