@@ -380,3 +380,73 @@ mass explicitly rather than treating it as FALSE.
   December replay `12uivFUAhM-H01ANXQbjdPmi8qCMOyMQ-`; Branch 07 workspace
   `1ePhRnCs0ZnsgI-_kf19lhFpOr4C93D4H`; audit/readback
   `1uQKSZD8KbOZ2j3moyZiH1EuJPlEhEAuC`.
+
+---
+
+## Entry 005 — 2026-09-16 — V2 built to the governed MG contract: multi-day precursor → intraday snapshot + dynamic TP
+
+Direct response to Entry 004's architectural mismatch. Owner instruction was to
+adjust the candidate to the contract rather than relabel it, noting that fitting
+the contract is precisely where the difficulty lies.
+
+- **What changed**: new `src/a1clean/formula_research/claude_mg_intraday_v2.py`.
+  v1 is left untouched as evidence, not deleted. v1 collapsed each day into one
+  daily aggregate and measured outcomes in days; v2 keeps the multi-day
+  absorption precursor as *context* and moves ignition, publication and outcome
+  onto the intraday snapshot grid required by Branch 07 handbook §3.
+- **Contract alignment**: emits `PRICE | CHG% | TP-1 | TP-2` per qualifying
+  snapshot, with actual source timestamp retained. Forward horizons are regular
+  bars `5,15,30,60` — deliberately the same axis as the GPT lane's governed
+  December replay, so the two lanes compare head-to-head on identical
+  measurement rather than on rescaled numbers.
+- **Causality**: at day D bar t, state reads only complete days < D plus bars
+  0..t of D. Forward bars live solely inside `_forward_from_bar`, clipped to the
+  same trading date so no outcome can borrow the next day's open. This is
+  enforced by test, not by assertion: `test_forward_bars_cannot_change_the_signal`
+  runs identical history against two opposite futures and requires the fired
+  bar index and every published field to match while the outcomes diverge.
+- **Targets are derived, not chosen**: TP-1/TP-2 are
+  `price + multiple × volatility_unit`, where `volatility_unit` is the median
+  prior-window daily range and the multiples are the median and Q75 of the
+  realized favorable-excursion distribution measured on discovery in volatility
+  units. No fixed percentage appears anywhere, satisfying Master §20A.6.
+  `test_targets_scale_with_measured_volatility_not_a_fixed_percentage` pins this:
+  identical price and identical gates, calm vs volatile prior context, different
+  targets.
+- **Failure/lookalike controls** (handbook §4, all implemented and counted, so
+  suppressed candidates stay visible as evidence instead of disappearing):
+  `stale_or_partial_data`, `no_precursor_context`, `absorption_streak_too_short`,
+  `thin_liquidity`, `mature_chase`, `one_bar_spike_no_continuation`,
+  `effort_without_response`, `rejection_giveback`, `unstable_path`,
+  `no_remaining_room`.
+- **Entry 004 gap 3 honoured**: flow comes from `packet_to_formula_bars`, where a
+  physical NBSS zero yields `flow_available=False`.
+  `test_physical_nbss_zero_is_unknown_not_neutral` proves a zero-NBSS day is
+  refused as `stale_or_partial_data` rather than read as low flow.
+- **Snapshot accounting**: MG republishes while criteria hold, but only the
+  first qualifying snapshot per ticker-day is recorded for outcome accounting,
+  so one persistent opportunity cannot inflate into dozens of independent wins.
+- **Workflow change worth keeping**: `.github/workflows/claude-mg-intraday-v2.yml`
+  prints the learned thresholds, rejection counts and per-horizon summary into
+  the **job log** as well as the artifact. Entry 003's metrics were unreadable
+  because artifact blob storage is blocked by egress policy from the analysis
+  context; a result that cannot be read cannot be judged, so the numbers now
+  travel in the log too.
+- **Verification before pushing**: 12 new unit tests plus the full existing
+  suite — **201 passed**, `compileall` clean, request JSON and workflow YAML
+  both parsed and asserted (7 steps, correct runner labels, correct path
+  filter).
+- **Result**: **CODE_READY — AWAITING GOVERNED RUN.** No performance claim is
+  made. Nothing has been measured against real data yet; the December run's
+  numbers will decide whether this shape is worth anything, and the December
+  F01–F06 table in Entry 004 is the failure control it must be read against —
+  especially F05A SESSION_OPEN_RECOVERY, the worst standalone component and the
+  closest existing analogue to this lane's decline-then-stabilise framing.
+- **Still open / not claimed**: Entry 003's v1 run metrics remain UNAVAILABLE;
+  this lane is still unregistered in Drive governance; validation on Jan/Feb
+  2025 with frozen thresholds has not been requested; March 2025 untouched and
+  fail-closed in both the module and the workflow guard.
+- **Paths**: `src/a1clean/formula_research/claude_mg_intraday_v2.py`,
+  `tests/test_claude_mg_intraday_v2.py`,
+  `claude-mg-intraday-v2-requests/current.json`,
+  `.github/workflows/claude-mg-intraday-v2.yml`.

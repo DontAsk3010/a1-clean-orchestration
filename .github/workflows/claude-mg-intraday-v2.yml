@@ -1,0 +1,114 @@
+name: Claude MG Intraday V2
+
+on:
+  push:
+    branches:
+      - research/claude-mg-discovery
+    paths:
+      - claude-mg-intraday-v2-requests/current.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-claude-mg-intraday-v2
+  cancel-in-progress: true
+
+jobs:
+  discover_or_validate:
+    name: Run Claude MG intraday discovery/validation
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate request
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'claude-mg-intraday-v2-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_CLAUDE_MG_INTRADAY_REQUEST_V2') { throw 'Unsupported request schema.' }
+          if ($req.enabled -ne $true) { throw 'Request disabled.' }
+          if ($req.authorization_phrase -ne 'AUTHORIZE_CLAUDE_MG_INTRADAY_V2_DISCOVERY') { throw 'Authorization phrase required.' }
+          if ($req.source_name -match '(?i)mar(et)?') { throw 'Refusing source name that may be the reserved March 2025 OOS month.' }
+          if ($req.phase -eq 'validate' -and -not $req.frozen_thresholds_path) { throw 'validate phase requires frozen_thresholds_path.' }
+
+      - name: Verify Drive bindings
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($path in @($env:A1_DRIVE_READER_CREDENTIALS)) {
+            if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'Drive credential binding missing.' }
+          }
+
+      - name: Install compile test
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[test]'
+          if ($LASTEXITCODE -ne 0) { throw 'INSTALL_FAILED' }
+          py -3.11 -m compileall -q src tests
+          if ($LASTEXITCODE -ne 0) { throw 'COMPILE_FAILED' }
+          py -3.11 -m pytest -q
+          if ($LASTEXITCODE -ne 0) { throw 'TESTS_FAILED' }
+
+      - name: Run MG intraday research module
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'claude-mg-intraday-v2-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          $commonArgs = @(
+            '-m', 'a1clean.formula_research.claude_mg_intraday_v2',
+            '--phase', $req.phase,
+            '--source-name', $req.source_name,
+            '--horizons-bars', $req.horizons_bars,
+            '--precursor-window-days', $req.precursor_window_days,
+            '--output', 'claude-mg-intraday-v2-result.json'
+          )
+          if ($req.phase -eq 'discover') {
+            $commonArgs += @('--min-streak-grid', $req.min_streak_grid)
+          } else {
+            $commonArgs += @('--frozen-thresholds', $req.frozen_thresholds_path)
+          }
+          & py -3.11 @commonArgs
+          if ($LASTEXITCODE -ne 0) { throw "CLAUDE_MG_INTRADAY_V2_RUN_FAILED:$LASTEXITCODE" }
+
+      # Metrics are echoed into the job log as well as the artifact: artifact
+      # blob storage is not reachable from every analysis context, and a result
+      # that cannot be read is a result that cannot be judged.
+      - name: Print result summary to log
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $r = Get-Content -LiteralPath 'claude-mg-intraday-v2-result.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          Write-Host '===== CLAUDE MG INTRADAY V2 RESULT SUMMARY ====='
+          Write-Host "schema=$($r.schema) status=$($r.status) source=$($r.source_name) tickers=$($r.ticker_count)"
+          if ($r.learned_thresholds) {
+            Write-Host '--- learned thresholds (frozen for validation) ---'
+            $r.learned_thresholds | ConvertTo-Json -Depth 6 | Write-Host
+          }
+          if ($r.min_streak_grid_results) {
+            foreach ($row in $r.min_streak_grid_results) {
+              Write-Host "--- min_streak=$($row.min_absorption_streak_days) signals=$($row.signal_count) tickers=$($row.unique_ticker_count) dates=$($row.unique_date_count) ---"
+              $row.rejection_counts | ConvertTo-Json -Depth 6 | Write-Host
+              $row.summary | ConvertTo-Json -Depth 6 | Write-Host
+            }
+          }
+          if ($r.summary) {
+            Write-Host '--- validation summary ---'
+            $r.summary | ConvertTo-Json -Depth 6 | Write-Host
+            $r.rejection_counts | ConvertTo-Json -Depth 6 | Write-Host
+            Write-Host "signals=$($r.signal_count) tickers=$($r.unique_ticker_count) dates=$($r.unique_date_count)"
+          }
+          Write-Host '===== END SUMMARY ====='
+
+      - name: Upload result artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-mg-intraday-v2-${{ github.run_id }}
+          path: claude-mg-intraday-v2-result.json
+          if-no-files-found: error
+          retention-days: 30
