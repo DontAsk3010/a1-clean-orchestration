@@ -47,7 +47,8 @@
       ],
       "data_dependency": "daily close/range series, STUMPY library, causal windowing only",
       "status": "PROPOSED",
-      "priority": "high"
+      "priority": "high",
+      "implementation_note": "Not yet coded as its own module; the discovery-vs-validation and streak-persistence mechanics it needs are shared with H04/H05's implementation in claude_absorption_wake_v1.py. A STUMPY crosscheck pass against that module's flagged events is the next planned extension, not yet written."
     },
     {
       "id": "H04",
@@ -59,8 +60,9 @@
         "nbss_accel_w = median(nbss_to_value, most recent half of window w) / median(nbss_to_value, earlier half of window w), only where flow_available is True on all contributing days else UNKNOWN"
       ],
       "data_dependency": "trade_value (Aux2) and nbss (OpenInterest) fields, availability-gated per formula_replay.py flow_available logic",
-      "status": "PROPOSED",
-      "priority": "medium"
+      "status": "CODE_READY_AWAITING_EXECUTION",
+      "priority": "medium",
+      "implementation": "src/a1clean/formula_research/claude_absorption_wake_v1.py (flow_persistence_ratio + absorption_streak_days), tested against synthetic fixtures in tests/test_claude_absorption_wake_v1.py. Not yet run against real governed data -- blocked on GitHub push authorization for this session, see RESEARCH_LEDGER.md entry 002."
     },
     {
       "id": "H05",
@@ -73,8 +75,9 @@
         "Freeze whichever discriminator(s) separate the groups on discovery; require the same separation to replicate on Jan+Feb before calling it a valid anti-failure condition"
       ],
       "data_dependency": "same governed sources as V4/V5; requires re-deriving the exact K06+HELD_FLOW+PRIOR3_RECLAIM+REGAIN signature from telegram_mg_sequence_discovery_v4.py's own logic to identify the matching event population",
-      "status": "PROPOSED",
-      "priority": "highest"
+      "status": "PARTIALLY_CODE_READY",
+      "priority": "highest",
+      "implementation_note": "claude_absorption_wake_v1.py implements the general precursor-duration-then-ignition mechanism this hypothesis needs (absorption_streak_days + ignition_today + three-way discover/validate split), but does not yet re-derive V4's exact K06/HELD_FLOW/PRIOR3_RECLAIM/REGAIN signature specifically -- that re-derivation is the next concrete coding step once the current module has real discovery-phase numbers back."
     },
     {
       "id": "H06",

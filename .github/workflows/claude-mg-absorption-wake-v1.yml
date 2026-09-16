@@ -1,0 +1,85 @@
+name: Claude MG Absorption-Wake V1
+
+on:
+  push:
+    branches:
+      - research/claude-mg-discovery
+    paths:
+      - claude-mg-absorption-wake-v1-requests/current.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-claude-mg-absorption-wake-v1
+  cancel-in-progress: true
+
+jobs:
+  discover_or_validate:
+    name: Run Claude absorption-wake discovery/validation
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate request
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'claude-mg-absorption-wake-v1-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_CLAUDE_MG_ABSORPTION_WAKE_REQUEST_V1') { throw 'Unsupported request schema.' }
+          if ($req.enabled -ne $true) { throw 'Request disabled.' }
+          if ($req.authorization_phrase -ne 'AUTHORIZE_CLAUDE_MG_ABSORPTION_WAKE_V1_DISCOVERY') { throw 'Authorization phrase required.' }
+          if ($req.source_name -match '(?i)mar(et)?') { throw 'Refusing source name that may be the reserved March 2025 OOS month.' }
+          if ($req.phase -eq 'validate' -and -not $req.frozen_thresholds_path) { throw 'validate phase requires frozen_thresholds_path.' }
+
+      - name: Verify Drive bindings
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($path in @($env:A1_DRIVE_READER_CREDENTIALS)) {
+            if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'Drive credential binding missing.' }
+          }
+
+      - name: Install compile test
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[test]'
+          if ($LASTEXITCODE -ne 0) { throw 'INSTALL_FAILED' }
+          py -3.11 -m compileall -q src tests
+          if ($LASTEXITCODE -ne 0) { throw 'COMPILE_FAILED' }
+          py -3.11 -m pytest -q
+          if ($LASTEXITCODE -ne 0) { throw 'TESTS_FAILED' }
+
+      - name: Run absorption-wake research module
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'claude-mg-absorption-wake-v1-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          $commonArgs = @(
+            '-m', 'a1clean.formula_research.claude_absorption_wake_v1',
+            '--phase', $req.phase,
+            '--source-name', $req.source_name,
+            '--horizons-days', $req.horizons_days,
+            '--precursor-window-days', $req.precursor_window_days,
+            '--output', 'claude-mg-absorption-wake-result.json'
+          )
+          if ($req.phase -eq 'discover') {
+            $commonArgs += @('--min-streak-grid', $req.min_streak_grid)
+          } else {
+            $commonArgs += @('--frozen-thresholds', $req.frozen_thresholds_path)
+          }
+          & py -3.11 @commonArgs
+          if ($LASTEXITCODE -ne 0) { throw "CLAUDE_ABSORPTION_WAKE_RUN_FAILED:$LASTEXITCODE" }
+
+      - name: Upload result artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-mg-absorption-wake-v1-${{ github.run_id }}
+          path: claude-mg-absorption-wake-result.json
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,13 @@
+{
+  "schema": "A1_CLAUDE_MG_ABSORPTION_WAKE_REQUEST_V1",
+  "request_id": "CLAUDE_MG_ABSORPTION_WAKE_V1_DEC2024_DISCOVERY",
+  "enabled": true,
+  "authorization_phrase": "AUTHORIZE_CLAUDE_MG_ABSORPTION_WAKE_V1_DISCOVERY",
+  "phase": "discover",
+  "source_name": "Raw Des 02-31-2024.csv",
+  "oos_policy": "MARCH_2025_UNTOUCHED",
+  "horizons_days": "1,3,5,8",
+  "precursor_window_days": 8,
+  "min_streak_grid": "2,3,4,5,6,8",
+  "notes": "Claude-owned, independent of GPT lane. Learns dormant-return and flow-persistence cutoffs plus the minimum absorption-streak length from this discovery source only; freezes them for later validation runs on Jan/Feb 2025 via a follow-up validate-phase request. See research/claude-mg-discovery/RESEARCH_AUDIT.md section 6 (hypotheses H03-H05) and src/a1clean/formula_research/claude_absorption_wake_v1.py module docstring for the full causal rationale."
+}
