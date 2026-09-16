@@ -49,7 +49,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           py -3.11 -m pip install -e '.[test]'
           if ($LASTEXITCODE -ne 0) { throw 'MG_V9_INSTALL_FAILED' }
-          py -3.11 -m py_compile src/a1clean/formula_research/telegram_mg_streaming_multilogic_v9.py
+          py -3.11 -m py_compile src/a1clean/formula_research/telegram_mg_streaming_multilogic_v9.py src/a1clean/formula_research/telegram_mg_streaming_multilogic_v9b.py
           if ($LASTEXITCODE -ne 0) { throw 'MG_V9_COMPILE_FAILED' }
           py -3.11 -m pytest -q tests/test_telegram_mg_streaming_multilogic_v9.py
           if ($LASTEXITCODE -ne 0) { throw 'MG_V9_TESTS_FAILED' }
@@ -59,7 +59,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $req = $env:A1_MG_V9_REQUEST_JSON | ConvertFrom-Json
-          & py -3.11 -m a1clean.formula_research.telegram_mg_streaming_multilogic_v9 `
+          & py -3.11 -m a1clean.formula_research.telegram_mg_streaming_multilogic_v9b `
             --output 'telegram-mg-streaming-v9-result.json' `
             --prior-days ([string][int]$req.prior_days) `
             --buy-fee-pct ([string][double]$req.execution.buy_fee_pct) `
