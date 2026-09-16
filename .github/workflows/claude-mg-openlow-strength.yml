@@ -64,6 +64,8 @@ jobs:
             --min-chg-pct $req.min_chg_pct `
             --rungs $req.rungs `
             --strength-target-pct $req.strength_target_pct `
+            --max-bar-index $req.max_bar_index `
+            --min-prior-day-range-pct $req.min_prior_day_range_pct `
             --output 'claude-mg-openlow-strength-result.json' `
             --report-output 'claude-mg-openlow-strength-report.txt' `
             --strength-report-output 'claude-mg-openlow-strength-10pct.txt'

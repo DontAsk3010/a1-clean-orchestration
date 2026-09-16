@@ -868,3 +868,66 @@ New module `claude_mg_openlow_strength_v1`:
   `tests/test_claude_mg_openlow_strength_v1.py`,
   `claude-mg-openlow-strength-requests/current.json`,
   `.github/workflows/claude-mg-openlow-strength.yml`.
+
+---
+
+## Entry 011 — 2026-09-16 — Open=Low scout + ignition EXECUTED. A real discriminator for the 10% question found.
+
+First run `35103189036` **FAILED** — it completed the full analysis in 3m31s and
+then died on `print`: the runner's cp1252 stdout cannot encode the report's
+emoji, so a finished analysis was discarded by a console codec. Fixed by writing
+reports to disk before printing and degrading instead of raising. Recorded
+because a failure caused by my own output formatting is still a failure.
+
+Re-run `35104707504` (commit `e81a41e`), module 13:52:48Z → 13:56:14Z (3m26s),
+`success`, artifact `10450456275`.
+
+### Ungated result — Open=Low scout + chg ≥ 3.5%
+
+| metric | value |
+|---|---|
+| signals | 1,246 |
+| TP-1 hits | 520 (41.7%) |
+| TP-2 hits | 398 (31.9%) |
+| reached ≥10% | **281** |
+| **P(reach 10% \| signal)** | **22.55%** |
+
+Targets are now real: rung-based TP-1/TP-2 sit at genuine ladder levels rather
+than the +0.6% artefacts of Entry 009. The owner's complaint about short targets
+is addressed by construction.
+
+### The discriminator — this is the answer to "which ones are strong to 10%"
+
+Features measured **at signal time only**, reached-10% group vs the rest:
+
+| signal-time feature | reached ≥10% (n=281) | did not (n=965) | separation |
+|---|---|---|---|
+| **mean bar index** | **7.83** | 15.56 | **fires at half the elapsed time** |
+| **mean chg at signal** | **8.32%** | 5.41% | **+2.91pp** |
+| **mean prior-day range** | **8.61%** | 5.88% | **+2.73pp** |
+| mean day range so far | 6.38% | 4.58% | +1.80pp |
+| mean value expansion | 226.6 | 190.0 | +36.6 |
+| mean close location | 0.895 | 0.924 | **none — slightly inverted** |
+
+Three features separate materially and one does not. The tickers that carry past
+10% **fire early in the session**, are **already strong when signalled**, and —
+the genuinely useful one — **were already volatile the previous day**, which is a
+prior-day fact knowable before the session even opens.
+
+**Close location does not separate** (0.895 vs 0.924, mildly the wrong way) and
+is therefore deliberately NOT gated on, despite being intuitively appealing.
+Gating on it would have cost signals and bought nothing.
+
+### Next run: the gates applied
+
+`min_chg_pct 7.0`, `max_bar_index 10`, `min_prior_day_range_pct 7.0`, pushed as
+request `..._GATED`. **These are mean differences, not a validated filter.** The
+question the gated run answers is whether `P(reach 10% | signal)` rises
+materially above the 22.55% ungated baseline and what it costs in signal count —
+a gate that triples precision while leaving two signals a month is not useful.
+
+- **Result**: **MEASURED — DISCRIMINATOR FOUND, GATE UNTESTED.** No claim that
+  the gate works until the gated run reports.
+- **Paths**: run
+  `https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35104707504`;
+  artifact `claude-mg-openlow-strength-35104707504` (ID `10450456275`).

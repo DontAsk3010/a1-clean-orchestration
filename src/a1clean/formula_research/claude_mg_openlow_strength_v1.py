@@ -163,6 +163,8 @@ def analyse(
     min_chg_pct: float,
     rungs: Sequence[float],
     strength_target_pct: float,
+    max_bar_index: int | None = None,
+    min_prior_day_range_pct: float | None = None,
 ) -> dict[str, Any]:
     _reject_oos_source(source_name)
     api = build_drive_api(read_write=False)
@@ -217,6 +219,15 @@ def analyse(
                 price = float(bar["close"])
                 chg = (price / prev_close - 1.0) * 100.0
                 if chg < min_chg_pct:
+                    continue
+                # Gates derived from the Entry 011 contrast: the group that
+                # carried past the strength target fired earlier in the day and
+                # was already volatile the day before.
+                if max_bar_index is not None and t > max_bar_index:
+                    continue
+                if min_prior_day_range_pct is not None and (
+                    prior_range is None or prior_range < min_prior_day_range_pct
+                ):
                     continue
 
                 tp1, tp2 = _next_rungs(chg, rungs)
@@ -300,6 +311,8 @@ def analyse(
         "source_name": source_name,
         "ticker_count": len(per_ticker),
         "min_chg_pct": min_chg_pct,
+        "max_bar_index": max_bar_index,
+        "min_prior_day_range_pct": min_prior_day_range_pct,
         "rungs": list(rungs),
         "strength_target_pct": strength_target_pct,
         "totals": {
@@ -395,6 +408,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--min-chg-pct", type=float, default=3.5)
     parser.add_argument("--rungs", default=",".join(str(r) for r in DEFAULT_RUNGS))
     parser.add_argument("--strength-target-pct", type=float, default=10.0)
+    parser.add_argument("--max-bar-index", type=int, default=None,
+                        help="Gate: refuse signals later than this bar. Omit to disable.")
+    parser.add_argument("--min-prior-day-range-pct", type=float, default=None,
+                        help="Gate: require the previous day to have ranged at least this much.")
     parser.add_argument("--output", required=True)
     parser.add_argument("--report-output", default=None)
     parser.add_argument("--strength-report-output", default=None)
@@ -406,6 +423,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         min_chg_pct=args.min_chg_pct,
         rungs=rungs,
         strength_target_pct=args.strength_target_pct,
+        max_bar_index=args.max_bar_index,
+        min_prior_day_range_pct=args.min_prior_day_range_pct,
     )
     Path(args.output).write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
