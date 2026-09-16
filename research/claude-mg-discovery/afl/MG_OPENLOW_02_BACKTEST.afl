@@ -115,6 +115,29 @@ Buy  = ExRem(Buy, Sell);
 Sell = ExRem(Sell, Buy);
 
 //=============================================================================
+//  DUA SETELAN YANG WAJIB DIPERIKSA SEBELUM PERCAYA ANGKANYA
+//
+//  1. Settings > Portfolio > "Limit trade size to ... % of entry bar volume"
+//     MATIKAN, atau isi 0.
+//     Kalau aktif (bawaan 10%), AmiBroker MENGECILKAN posisi supaya tidak
+//     melebihi 10% volume bar entry. Di bar 1 menit itu sangat kecil, jadi
+//     banyak sinyal TIDAK jadi dibeli Rp5 juta, melainkan beberapa ratus ribu
+//     saja. Untung dan rugi ikut mengecil, dan hasilnya terlihat jauh lebih
+//     jinak daripada kenyataan. Action log akan memberi tahu:
+//         "Notice 802: Trade size limit of 10% of entry bar volume has been
+//          hit N times"
+//     Selama Notice 802 masih muncul, angka Profit belum menjawab pertanyaan
+//     "tiap sinyal beli Rp5 juta dapat berapa".
+//
+//  2. Settings > General > "Pad and align all data to reference symbol"
+//     KOSONGKAN, atau ganti ke simbol IDX seperti COMPOSITE.
+//     Kalau diisi ^DJI, simbol IDX yang tidak punya tanggal sama dengan ^DJI
+//     akan DIBUANG diam-diam. Action log memberi tahu:
+//         "Quotes from N symbols ... filtered out probably due to pad and
+//          align to reference symbol ^DJI"
+//     Artinya sebagian universe tidak ikut diuji.
+//
+//=============================================================================
 //  CARA PAKAI
 //  1. Analysis > pilih formula ini
 //  2. Settings:
@@ -123,7 +146,16 @@ Sell = ExRem(Sell, Buy);
 //       Report   : centang "Show MAE/MFE"   <- kolom MAX PROFIT
 //  3. Apply to: All symbols (atau watchlist IDX)
 //  4. Tekan BACKTEST
-//  5. Report > tab Trades. Klik kanan > Export CSV kalau mau diolah lagi.
+//  5. Buka tab "Result list" di bawah, BUKAN tab "Info".
+//     Tab Info hanya memuat ringkasan dan Action log.
+//     Tab Result list memuat daftar transaksinya:
+//         Symbol | Trade | Date | Price | Ex.date | Ex.Price | % chg |
+//         Profit | % Profit | Shares | Position value | ... | MAE | MFE
+//         Price    = ENTRY        Ex.Price = EXIT
+//         Date     = HARI dan JAM masuk
+//         Ex.date  = HARI dan JAM keluar
+//         Profit   = PROFIT/LOSS  MFE      = MAX PROFIT
+//  6. Klik kanan pada daftar itu > Export kalau mau diolah di Excel.
 //
 //  CATATAN UKURAN POSISI
 //  Rp5 juta tidak membeli jumlah lot yang sama di tiap harga:

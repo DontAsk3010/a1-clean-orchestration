@@ -94,6 +94,19 @@ Terpakai = Lembar * C;
 //=============================================================================
 Filter = Screened;
 
+//--- Waktu kemunculan ------------------------------------------------------
+//  WAKTU = tanggal + jam bar sinyal.
+//  SLOT  = jam publikasi 5 menit, dibulatkan ke bawah. Bar 09:07 masuk slot
+//          09:05, bar 10:59 masuk slot 10:55. Ini identitas slot menurut
+//          kontrak Telegram, bukan menit bar-nya.
+tn   = TimeNum();
+hh   = floor( tn / 10000 );
+mi   = floor( ( tn - hh * 10000 ) / 100 );
+Slot = hh * 100 + floor( mi / 5 ) * 5;
+
+AddColumn(DateTime(), "WAKTU", formatDateTime);
+AddColumn(Slot,       "SLOT",  1.0);
+
 AddTextColumn(Name(), "CODE",  1.0);
 AddColumn(C,          "PRICE", 1.0);
 AddColumn(Chg,        "CHG%",  1.2);
@@ -115,8 +128,10 @@ AddColumn(PrevRange,  "RANGE KMR%", 1.2);
 //=============================================================================
 //  CARA PAKAI
 //  1. Analysis > pilih formula ini > Apply to: All symbols (atau watchlist IDX)
-//  2. Range: "1 recent bar" untuk screening live
+//  2. Range: "1 recent bar" untuk screening live,
+//     atau "From-To dates" kalau mau melihat kemunculan sepanjang sebulan
 //  3. Tekan EXPLORE
+//  4. Klik judul kolom WAKTU untuk mengurutkan per jam kemunculan
 //  4. Database intraday 5 menit: tiap bar = satu slot publikasi mulai 09:00.
 //     Saham yang masih lolos di slot berikutnya muncul lagi; kalau tidak lolos
 //     dia hilang dan bisa muncul lagi nanti. Itu perilaku yang benar.

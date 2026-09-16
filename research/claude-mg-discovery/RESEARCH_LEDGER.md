@@ -1468,3 +1468,49 @@ Ambang tetap ditandai [UKUR] dan [SETEL] seperti sebelumnya, dan angka
 pembanding Desember minus Rp17.678.396 tetap tertanam di file backtest.
 
 Status: RESEARCH_ONLY.
+
+## Entry 023 — Backtest owner jalan, tetapi dua setelan AmiBroker merusak angkanya
+
+Owner menjalankan `MG_OPENLOW_02_BACKTEST.afl` pada 1 menit, 02-31 Desember 2024.
+Hasil yang dilaporkan Action log:
+
+```
+Profit = 14.490.292,66 (0,29%)  CAR = 3,84%  MaxSysDD = -328.111,85
+# winners = 274 (35,82%)   # losers = 491 (64,18%)   rows = 765
+Notice 802: Trade size limit of 10% of entry bar volume has been hit 517 times
+Quotes from 58 symbols ... filtered out ... reference symbol ^DJI
+```
+
+Angka +Rp14,49 juta itu **belum boleh dipakai**, dan alasannya ada di dua baris
+peringatan itu sendiri.
+
+**1. Notice 802, 517 kali dari 765 transaksi.** Settings > Portfolio memuat
+"Limit trade size to 10% of entry bar volume". Pada bar 1 menit, 10% volume satu
+bar sangat kecil, sehingga AmiBroker mengecilkan posisi. Dua pertiga transaksi
+TIDAK dibeli Rp5 juta melainkan jauh di bawahnya. Karena ukuran mengecil,
+kerugian ikut mengecil, dan hasil terlihat positif. Ini menjelaskan selisih arah
+terhadap replay saya yang minus Rp17.678.396: replay membeli Rp5 juta penuh
+tanpa batas volume. Selama Notice 802 masih muncul, backtest tidak menjawab
+pertanyaan owner.
+
+**2. Pad and align ke ^DJI.** 58 simbol dibuang diam-diam karena tanggalnya
+tidak sama dengan indeks Amerika. Sebagian universe tidak ikut diuji, padahal
+aturan proyek mensyaratkan full universe.
+
+Ada juga selisih definisi yang perlu dicatat: 765 transaksi di sini vs 166 sinyal
+di replay saya. Wajar, karena replay memakai gate lama (naik >= 7%, bar_index
+<= 10, range kemarin >= 7%), sedangkan AFL memakai 3,5-12% tanpa batas bar.
+Jadi keduanya bukan populasi yang sama dan belum bisa diadu langsung.
+
+Tindakan: kedua peringatan didokumentasikan di dalam file backtest sebagai
+"dua setelan yang wajib diperiksa sebelum percaya angkanya", lengkap dengan
+bunyi pesan yang akan muncul, supaya bisa dikenali sendiri lain kali.
+
+Ditambahkan juga ke screener: kolom WAKTU (tanggal + jam bar) dan SLOT (jam
+publikasi 5 menit, dibulatkan ke bawah, 09:07 menjadi 09:05), karena owner
+menanyakan jam kemunculan.
+
+Untuk P/L dan MAX PROFIT: sudah ada, tetapi owner membuka tab Info. Tab yang
+benar adalah Result list. Petunjuk pemetaan kolom ditulis di dalam file.
+
+Status: RESEARCH_ONLY.
