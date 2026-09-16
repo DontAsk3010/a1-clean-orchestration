@@ -931,3 +931,52 @@ a gate that triples precision while leaving two signals a month is not useful.
 - **Paths**: run
   `https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35104707504`;
   artifact `claude-mg-openlow-strength-35104707504` (ID `10450456275`).
+
+---
+
+## Entry 012 — 2026-09-16 — GATED run: precision more than doubles. Best result of the lane so far, and still in-sample.
+
+Run `35105451803` (commit `d5ca1eb`), module 13:59:42Z → 14:04:09Z (4m27s),
+`success`, artifact `10450401781`. Gates applied: `min_chg_pct 7.0`,
+`max_bar_index 10`, `min_prior_day_range_pct 7.0`.
+
+| | ungated (`35104707504`) | **gated (`35105451803`)** |
+|---|---|---|
+| signals | 1,246 | **166** |
+| TP-1 hits | 520 | 57 |
+| TP-2 hits | 398 | 45 |
+| reached ≥10% | 281 | **86** |
+| **P(reach 10% \| signal)** | 22.55% | **51.81%** |
+
+**Precision more than doubles, +29.3pp.** Signal volume lands at 6–12 per
+trading day, which is a usable publication rate rather than a curiosity. The
+surviving signals cluster before 09:15, exactly as the bar-index separator in
+Entry 011 predicted — the gate is behaving the way the evidence said it should.
+
+### Three things that stop this being a win yet
+
+1. **It is in-sample.** The gate values were derived from December means and
+   then tested on December. That is the textbook setup for overfitting. Nothing
+   here is validated until the same frozen gates are replayed unchanged on
+   Jan/Feb 2025. This is the single most important caveat in the entry.
+2. **Recall is 30.6%.** 86 of the 281 ticker-days that reached +10% are caught;
+   **two in three are missed**. Precision was bought with coverage.
+3. **TP hit rates are NOT comparable across the two runs.** Gated signals fire
+   at ≥7%, so their next rungs are 10% and 12% — materially bigger jumps than an
+   ungated signal firing at 3.5% with rungs at 5% and 5.7%. The gated run's
+   lower TP-1 rate (34.3% vs 41.7%) reflects harder targets, not worse
+   behaviour, and reading it as a decline would be an error.
+
+Also visible in the output: signals already above the top rung publish TP-2 as
+`—` rather than inventing a level (POLU at +24.51%, XCIS at +22.64%). Absent
+stays absent.
+
+- **Result**: **STRONG IN-SAMPLE, UNVALIDATED.** No promotion, no claim of an
+  edge until out-of-sample replay reports.
+- **Next**: replay the **frozen** gates on `Raw Jan 01-31-2025.csv`. If
+  P(reach 10%) holds near 50% there, the discriminator is real; if it collapses
+  toward the 22.55% base, it was overfitting and this entry becomes a negative
+  result. March 2025 remains untouched.
+- **Paths**: run
+  `https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35105451803`;
+  artifact `claude-mg-openlow-strength-35105451803` (ID `10450401781`).

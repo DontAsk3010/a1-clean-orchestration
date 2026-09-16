@@ -1,14 +1,14 @@
 {
   "schema": "A1_CLAUDE_MG_OPENLOW_STRENGTH_REQUEST_V1",
-  "request_id": "CLAUDE_MG_OPENLOW_STRENGTH_V1_DES2024_GATED",
+  "request_id": "CLAUDE_MG_OPENLOW_STRENGTH_V1_JAN2025_VALIDATION",
   "enabled": true,
   "authorization_phrase": "AUTHORIZE_CLAUDE_MG_OPENLOW_STRENGTH_V1",
-  "source_name": "Raw Des 02-31-2024.csv",
+  "source_name": "Raw Jan 01-31-2025.csv",
   "oos_policy": "MARCH_2025_UNTOUCHED",
   "min_chg_pct": 7.0,
   "rungs": "3.5,5,5.7,7,10,12,15,20,25",
   "strength_target_pct": 10.0,
-  "notes": "GATED run. The ungated R2 run 35104707504 measured 1,246 signals with P(reach 10%|signal) = 22.55%, and its strength contrast separated the group that carried past 10% from the rest on three signal-time features: they fired at roughly half the bar index (7.8 vs 15.6), were already stronger when signalled (8.32% vs 5.41%), and had ranged far more the PREVIOUS day (8.61% vs 5.88%). Close location did not separate at all (0.895 vs 0.924) and is deliberately not gated on. This run applies the three separating features as gates -- min_chg_pct 7.0, max_bar_index 10, min_prior_day_range_pct 7.0 -- to measure whether P(reach 10%|signal) rises materially above the 22.55% ungated baseline and at what cost in signal count. Mean differences are a lead, not a validated filter; this run is what tests them.",
+  "notes": "VALIDATION run. The December gated run 35105451803 measured P(reach 10%|signal) = 51.81% on 166 signals against a 22.55% ungated baseline -- but the gate values were derived from December means and tested on December, which is in-sample and the textbook setup for overfitting. This run replays the SAME gates UNCHANGED (min_chg_pct 7.0, max_bar_index 10, min_prior_day_range_pct 7.0) on January 2025, which was not used to derive them. Nothing is retuned. If P(reach 10%) holds near 50% the discriminator is real; if it collapses toward the 22.55% base rate it was overfitting and the December result becomes a negative finding. March 2025 remains untouched and is refused fail-closed by both the module and the workflow guard.",
   "max_bar_index": 10,
   "min_prior_day_range_pct": 7.0
 }
