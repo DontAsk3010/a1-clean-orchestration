@@ -725,3 +725,72 @@ to the close discards roughly two-thirds of it.
   `https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35097581002`;
   artifact `claude-mg-open-extreme-ladder-35097581002` (ID `10446918822`);
   `src/a1clean/formula_research/claude_open_extreme_ladder_v1.py`.
+
+---
+
+## Entry 009 — 2026-09-16 — MG output contract rendered from real signals; full-month daily feed built
+
+### Part A — the contract rows exist now, from real December signals
+
+Run `35098274931` (commit `5ee8bcf`) completed `success`; module 13:06:24Z →
+13:15:34Z, render step 13:15:34Z → 13:15:35Z, artifact `10447967070`.
+**109 real signals** across 97 snapshot slots rendered into
+`CODE | PRICE | CHG% | TP-1 | TP-2`. Sample, verbatim from the job log:
+
+```
+[2024-12-20 09:02:00]  (5 ticker)
+AMMN | 9.000 | +1.98% | 9.053 | 9.107
+BBNI | 4.340 | +0.93% | 4.363 | 4.386
+BMRI | 5.750 | +1.32% | 5.774 | 5.799
+BRIS | 2.680 | +1.52% | 2.694 | 2.708
+TLKM | 2.550 | +1.19% | 2.563 | 2.577
+```
+
+**The rendered rows are themselves evidence of Entry 006's failure.** SMGA
+publishes at price 54 with TP-1 also 54 — a target identical to the entry price.
+AMMN's TP-1 is +0.59%. These are the direct consequence of
+`tp1_vol_multiple = 0.196` being learned from the unconditional bar pool. The
+pipeline is proven end to end; the targets it carries are not usable.
+
+### Part B — two structural facts the real output exposed
+
+1. **The governed source is minute-resolution, not 5-minute.** Observed
+   timestamps are `09:04`, `09:07`, `11:29`, `13:42` — not on 5-minute
+   boundaries, consistent with the `*_1M` physical field names. Any MG feed must
+   therefore evaluate at native bar resolution and *assign* each qualifying bar
+   to the 5-minute slot containing it. Publishing raw bar timestamps as if they
+   were slots would misstate the contract.
+2. **The discovery module cannot produce a feed.** It keeps only the first
+   qualifying snapshot per ticker-day — correct for outcome statistics, wrong
+   for a feed, where a ticker republishes at every slot while it still
+   qualifies. These are opposite emission policies and cannot be the same code
+   path.
+
+### Part C — `claude_mg_daily_feed_v1` built to answer the actual question
+
+New module reproduces the live emission policy for a whole source month: per
+date, per 5-minute slot, which tickers would have been published. It imports the
+state and gate functions from `claude_mg_intraday_v2` unchanged, so the feed can
+never drift from the researched candidate — only the emission policy differs.
+
+- Within one slot a ticker appears once, carrying its latest qualifying state.
+- **Pre-open**: rows before the day's first regular-session bar carrying neither
+  session flag are counted and reported with their earliest observed times, as
+  evidence of what the source holds. They are **not published** — the MG
+  contract begins at the first automatic snapshot, and these gates were never
+  researched against pre-open mechanics. What the source carries and what the
+  contract publishes are different questions and are not conflated.
+- `--from-time` is a **display filter only** and never filters evaluation, per
+  the Master's no-universal-cutoff rule.
+- 7 new tests (slot flooring at 09:04→09:00, 09:07→09:05, 11:29→11:25; pre-open
+  detection excluding the midday break; malformed timestamps; display filter
+  isolation). Full suite **224 passing**, `compileall` clean.
+
+- **Result**: **CODE_READY — AWAITING GOVERNED RUN.** Expect the feed to be
+  sparse and empty on many December dates: the candidate produced only 109
+  first-appearances all month and failed its outcome test. A feed from a failing
+  formula shows what it would have published, not that it should have.
+- **Paths**: `src/a1clean/formula_research/claude_mg_daily_feed_v1.py`,
+  `tests/test_claude_mg_daily_feed_v1.py`,
+  `claude-mg-daily-feed-requests/current.json`,
+  `.github/workflows/claude-mg-daily-feed.yml`.

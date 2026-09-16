@@ -1,0 +1,13 @@
+{
+  "schema": "A1_CLAUDE_MG_DAILY_FEED_REQUEST_V1",
+  "request_id": "CLAUDE_MG_DAILY_FEED_V1_DES2024",
+  "enabled": true,
+  "authorization_phrase": "AUTHORIZE_CLAUDE_MG_DAILY_FEED_V1",
+  "source_name": "Raw Des 02-31-2024.csv",
+  "oos_policy": "MARCH_2025_UNTOUCHED",
+  "precursor_window_days": 8,
+  "slot_minutes": 5,
+  "min_streak": 4,
+  "from_time": "09:00",
+  "notes": "Owner asked to see the whole December month day by day: which tickers appear on which date and in which 5-minute publication slot, starting 09:00. The governed source is minute-resolution, so evaluation runs at native bar resolution and each qualifying bar is assigned to the 5-minute slot containing it; a ticker is published once per slot carrying its latest qualifying state. Unlike the discovery module, which keeps only the first qualifying snapshot per ticker-day so outcome statistics are not inflated, this feed republishes a ticker at every slot while it still qualifies, matching the live contract. Pre-open candidate rows are counted and reported as source evidence but not published, because the MG contract begins at the first automatic snapshot and these gates were never researched against pre-open mechanics. from_time is a display filter only and never filters evaluation, per the no-universal-cutoff rule. The underlying candidate FAILED on December per RESEARCH_LEDGER.md Entry 006, so this feed shows what a failing formula would have published -- expect it to be sparse and empty on many days."
+}

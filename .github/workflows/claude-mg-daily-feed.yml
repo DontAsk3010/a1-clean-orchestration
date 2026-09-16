@@ -1,0 +1,98 @@
+name: Claude MG Daily Feed V1
+
+on:
+  push:
+    branches:
+      - research/claude-mg-discovery
+    paths:
+      - claude-mg-daily-feed-requests/current.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-claude-mg-daily-feed
+  cancel-in-progress: true
+
+jobs:
+  feed:
+    name: Build full-month MG publication feed
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate request
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'claude-mg-daily-feed-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_CLAUDE_MG_DAILY_FEED_REQUEST_V1') { throw 'Unsupported request schema.' }
+          if ($req.enabled -ne $true) { throw 'Request disabled.' }
+          if ($req.authorization_phrase -ne 'AUTHORIZE_CLAUDE_MG_DAILY_FEED_V1') { throw 'Authorization phrase required.' }
+          if ($req.source_name -match '(?i)mar(et)?') { throw 'Refusing source name that may be the reserved March 2025 OOS month.' }
+
+      - name: Verify Drive bindings
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($path in @($env:A1_DRIVE_READER_CREDENTIALS)) {
+            if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'Drive credential binding missing.' }
+          }
+
+      - name: Install compile test
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[test]'
+          if ($LASTEXITCODE -ne 0) { throw 'INSTALL_FAILED' }
+          py -3.11 -m compileall -q src tests
+          if ($LASTEXITCODE -ne 0) { throw 'COMPILE_FAILED' }
+          py -3.11 -m pytest -q
+          if ($LASTEXITCODE -ne 0) { throw 'TESTS_FAILED' }
+
+      - name: Build full-month feed
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'claude-mg-daily-feed-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          & py -3.11 -m a1clean.formula_research.claude_mg_daily_feed_v1 `
+            --source-name $req.source_name `
+            --precursor-window-days $req.precursor_window_days `
+            --slot-minutes $req.slot_minutes `
+            --min-streak $req.min_streak `
+            --from-time $req.from_time `
+            --output 'claude-mg-daily-feed-result.json' `
+            --text-output 'claude-mg-daily-feed.txt'
+          if ($LASTEXITCODE -ne 0) { throw "CLAUDE_MG_DAILY_FEED_RUN_FAILED:$LASTEXITCODE" }
+
+      # Per-day roll-up in the log so the month is readable without the artifact.
+      - name: Print per-day roll-up to log
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $r = Get-Content -LiteralPath 'claude-mg-daily-feed-result.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          Write-Host '===== CLAUDE MG DAILY FEED — DECEMBER 2024 ====='
+          Write-Host "tickers=$($r.ticker_count) dates_in_source=$($r.trading_dates_in_source) dates_with_publication=$($r.trading_dates_with_any_publication) qualifying_bars=$($r.qualifying_bars_total)"
+          Write-Host '--- pre-open candidate rows (counted, NOT published) ---'
+          $r.preopen_candidate_rows | ConvertTo-Json -Depth 6 | Write-Host
+          Write-Host '--- per-day summary ---'
+          foreach ($d in $r.days) {
+            Write-Host "$($d.date) | slots=$($d.slot_count) | tickers=$($d.unique_ticker_count) | $($d.unique_tickers -join ', ')"
+          }
+          Write-Host '===== PER-SLOT DETAIL ====='
+          Get-Content -LiteralPath 'claude-mg-daily-feed.txt' -Encoding UTF8 | Write-Host
+          Write-Host '===== END FEED ====='
+
+      - name: Upload feed artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-mg-daily-feed-${{ github.run_id }}
+          path: |
+            claude-mg-daily-feed-result.json
+            claude-mg-daily-feed.txt
+          if-no-files-found: error
+          retention-days: 30
