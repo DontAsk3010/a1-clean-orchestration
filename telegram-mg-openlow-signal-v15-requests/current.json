@@ -1,0 +1,10 @@
+{
+  "schema": "A1_TELEGRAM_MG_OPENLOW_SIGNAL_V15_REQUEST_V1",
+  "enabled": true,
+  "run_revision": 1,
+  "source": "Raw Des 02-31-2024.csv",
+  "execution": {
+    "buy_fee_pct": 0.15,
+    "sell_fee_pct": 0.25
+  }
+}
