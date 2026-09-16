@@ -1,0 +1,149 @@
+_SECTION_BEGIN("MG OPEN=LOW SCREENER V1 - RESEARCH ONLY");
+//=============================================================================
+//  A1 CLEAN / QHPX - Telegram A - MULAI GENIT (MG)
+//  Open=Low screener, Exploration untuk AmiBroker.
+//
+//  STATUS: RESEARCH_ONLY. Belum ada promosi kanonik dari lane riset ini.
+//
+//  APA YANG SUDAH DIUKUR (Desember 2024, full universe, replay):
+//    - Open=Low + syarat "sudah naik 7%" : 166 sinyal, -Rp17.678.396 (-2,14%),
+//      58 untung / 66 rugi / 42 impas.  -> syarat 7% itu beli di pucuk.
+//    - Diturunkan ke 3,5% : 1.251 sinyal, rata-rata -Rp83.551 per sinyal.
+//      TIDAK ADA satu pun desil fitur yang rata-ratanya positif.
+//    - Tier harga Rp4-42 : cuma 9% untung, rata-rata -Rp124.549 per sinyal.
+//      Di bawah ~Rp50 satu tik = belasan persen, TP-1 dan TP-2 menumpuk di
+//      harga yang sama. Ini alasan lantai harga di bawah, bukan tebakan.
+//    - 42 dari 166 sinyal hasilnya PERSIS nol: saham terkunci, harga tidak
+//      bergerak lagi setelah sinyal. Ini alasan filter likuiditas + anti-ARA.
+//
+//  Jadi filter di bawah bukan hiasan. Tanpa itu, Open=Low polos rugi.
+//  Yang ditandai [UKUR] berasal dari pengukuran di atas.
+//  Yang ditandai [SETEL] konvensi biasa, silakan geser sesuai selera.
+//=============================================================================
+
+SetOption("NoDefaultColumns", True);
+
+//--- Parameter -------------------------------------------------------------
+MinPrice      = Param("[UKUR] Lantai harga (Rp)",        100,   1, 5000, 1);
+MinChg        = Param("[SETEL] Naik minimal hari ini %", 3.5,   0,   25, 0.1);
+MaxChg        = Param("[SETEL] Naik maksimal hari ini %",12.0,   1,   35, 0.5);
+MinValueRp    = Param("[SETEL] Nilai transaksi min (Rp)", 1e9, 1e7, 5e10, 1e7);
+ARAMargin     = Param("[UKUR] Jarak minimal ke ARA %",    2.0,   0,   10, 0.5);
+MinPrevRange  = Param("[SETEL] Range kemarin minimal %",  4.0,   0,   30, 0.5);
+
+//--- Referensi harian, aman dipakai intraday -------------------------------
+// shift 0 = hari ini SEDANG berjalan (hanya memakai bar sampai sekarang),
+// shift -1 = hari bursa sebelumnya. Tidak ada bar masa depan yang dibaca.
+DayO   = TimeFrameGetPrice("O", inDaily,  0);
+DayH   = TimeFrameGetPrice("H", inDaily,  0);
+DayL   = TimeFrameGetPrice("L", inDaily,  0);
+PrevC  = TimeFrameGetPrice("C", inDaily, -1);
+PrevH  = TimeFrameGetPrice("H", inDaily, -1);
+PrevL  = TimeFrameGetPrice("L", inDaily, -1);
+
+Chg        = IIf(PrevC > 0, (C / PrevC - 1) * 100, 0);
+PrevRange  = IIf(PrevC > 0, (PrevH - PrevL) / PrevC * 100, 0);
+ValueToday = TimeFrameGetPrice("V", inDaily, 0) * C;   // proxy nilai transaksi
+
+//--- Batas ARA IDX ---------------------------------------------------------
+// 50-200 : 35% | 200-5000 : 25% | >5000 : 20%
+ARALimit = IIf(PrevC < 200, 35, IIf(PrevC < 5000, 25, 20));
+ARAPrice = PrevC * (1 + ARALimit / 100);
+RoomToARA = IIf(C > 0, (ARAPrice / C - 1) * 100, 0);
+
+//--- SCOUT: harga belum pernah turun di bawah open hari ini -----------------
+// Bentuk kausal. "Open == Low final" itu label hindsight dan tidak bisa
+// dipakai runtime; "low sejauh ini tidak di bawah open" bisa dibaca live
+// di setiap slot 5 menit.
+OpenIsLow = DayL >= DayO AND DayO > 0;
+
+//--- Filter yang lahir dari pengukuran, bukan dari selera -------------------
+FloorOK  = C >= MinPrice;                 // [UKUR] tier receh membakar modal
+LiquidOK = ValueToday >= MinValueRp;      // [SETEL] lawan sinyal "impas" terkunci
+NotARA   = RoomToARA >= ARAMargin;        // [UKUR] terkunci ARA = tidak bisa keluar
+IgnitOK  = Chg >= MinChg AND Chg <= MaxChg;
+PrevOK   = PrevRange >= MinPrevRange;
+
+Screened = OpenIsLow AND FloorOK AND LiquidOK AND NotARA AND IgnitOK AND PrevOK;
+
+//--- Fraksi harga IDX, untuk membulatkan target ke tik yang sah -------------
+function IdxTick(px)
+{
+    return IIf(px < 200, 1, IIf(px < 500, 2, IIf(px < 2000, 5,
+           IIf(px < 5000, 10, 25))));
+}
+function RoundUpTick(px)
+{
+    t = IdxTick(px);
+    return ceil(px / t) * t;
+}
+
+//--- Tangga target: 3,5 - 5 - 5,7 - 7 - 10 - 12 - 15 - 20 - 25 -------------
+// TP bukan kuantil hasil, tapi anak tangga berikutnya di atas posisi sekarang.
+TP1pct = IIf(Chg <  3.5,  3.5, IIf(Chg <  5.0,  5.0, IIf(Chg <  5.7,  5.7,
+         IIf(Chg <  7.0,  7.0, IIf(Chg < 10.0, 10.0, IIf(Chg < 12.0, 12.0,
+         IIf(Chg < 15.0, 15.0, IIf(Chg < 20.0, 20.0, IIf(Chg < 25.0, 25.0, Null)))))))));
+
+TP2pct = IIf(Chg <  3.5,  5.0, IIf(Chg <  5.0,  5.7, IIf(Chg <  5.7,  7.0,
+         IIf(Chg <  7.0, 10.0, IIf(Chg < 10.0, 12.0, IIf(Chg < 12.0, 15.0,
+         IIf(Chg < 15.0, 20.0, IIf(Chg < 20.0, 25.0, Null))))))));
+
+TP1 = RoundUpTick(PrevC * (1 + TP1pct / 100));
+TP2 = RoundUpTick(PrevC * (1 + TP2pct / 100));
+
+// Target tidak boleh lebih tinggi dari ARA: di atas itu tidak bisa terjadi.
+TP1 = IIf(TP1 > ARAPrice, Null, TP1);
+TP2 = IIf(TP2 > ARAPrice, Null, TP2);
+
+//--- Ukuran posisi Rp5 juta, lot penuh 100 lembar --------------------------
+// Rp5 juta tidak membeli jumlah lot yang sama di tiap harga. Di Rp100 muat
+// 500 lot, di Rp9.750 cuma 5 lot dan Rp125.000 tidak terpakai.
+Modal   = Param("[SETEL] Modal per sinyal (Rp)", 5000000, 1000000, 100000000, 1000000);
+Lot     = floor(Modal / (C * 100));
+Lembar  = Lot * 100;
+Terpakai = Lembar * C;
+
+//=============================================================================
+//  EXPLORATION - kolom kontrak Telegram: CODE | PRICE | CHG% | TP-1 | TP-2
+//=============================================================================
+Filter = Screened;
+
+AddTextColumn(Name(),  "CODE",  1.0);
+AddColumn(C,           "PRICE", 1.0);
+AddColumn(Chg,         "CHG%",  1.2);
+AddColumn(TP1,         "TP-1",  1.0);
+AddColumn(TP2,         "TP-2",  1.0);
+
+// Kolom bantu. Hapus kalau mau output persis lima kolom kontrak.
+AddColumn(Lot,         "LOT",   1.0);
+AddColumn(Terpakai,    "MODAL", 1.0);
+AddColumn(RoomToARA,   "KE ARA%", 1.2);
+AddColumn(ValueToday,  "VALUE", 1.0);
+AddColumn(PrevRange,   "RANGE KMR%", 1.2);
+
+//=============================================================================
+//  Untuk Scan / Auto-Trade signal (opsional)
+//=============================================================================
+Buy  = Screened AND NOT Ref(Screened, -1);   // hanya bar pertama saat lolos
+Sell = C >= TP1 OR NOT OpenIsLow;            // kena target, atau scout batal
+Buy  = ExRem(Buy, Sell);
+Sell = ExRem(Sell, Buy);
+
+//=============================================================================
+//  CARA PAKAI
+//  1. Analysis > Formula ini > Apply to: All symbols (atau watchlist IDX).
+//  2. Range: 1 recent bar untuk screening live, atau n last quotations
+//     untuk melihat kemunculan per slot.
+//  3. Database intraday 5 menit -> tiap bar = satu slot publikasi, mulai 09:00.
+//     Saham yang masih lolos di slot berikutnya akan muncul lagi; kalau tidak
+//     lolos dia hilang, dan bisa muncul lagi nanti. Itu perilaku yang benar.
+//  4. Di database harian, DayL == DayO berarti Open = Low hari itu.
+//
+//  PERINGATAN JUJUR
+//  Filter di atas memotong kerusakan yang terukur (tier receh, saham terkunci,
+//  ARA). Itu TIDAK sama dengan terbukti untung. Yang sudah diukur baru versi
+//  tanpa filter dan hasilnya minus. Kombinasi dengan filter ini belum direplay
+//  utuh, jadi jangan dipakai uang besar sebelum direplay per-hari per-menit
+//  seperti laporan Desember.
+//=============================================================================
+_SECTION_END();

@@ -1322,3 +1322,36 @@ floor around Rp100 carried forward as a standing constraint, since that is the o
 result here strong enough to survive on its own.
 
 Status: RESEARCH_ONLY. March 2025 untouched.
+
+## Entry 019 — AFL screener untuk AmiBroker (permintaan owner)
+
+`research/claude-mg-discovery/afl/claude_mg_openlow_screener_v1.afl`
+
+Owner meminta AFL yang bisa dipakai menyaring saham layak beli, dengan Open=Low.
+Entry 018 menolak Open=Low polos sebagai dasar screener, dan owner tetap meminta
+formulanya, jadi AFL dikirim lengkap dengan filter yang memang lahir dari
+pengukuran, dan tiap ambang ditandai sumbernya.
+
+Scout ditulis dalam bentuk kausal: `DayL >= DayO` lewat `TimeFrameGetPrice(...,
+inDaily, 0)`, yaitu harga belum pernah turun di bawah open hari ini, terbaca di
+tiap slot. `Open == Low` final adalah label hindsight dan tidak dipakai.
+Referensi kemarin memakai shift -1. Tidak ada bar masa depan yang dibaca.
+
+Ambang yang ditandai [UKUR] dan dasarnya:
+
+- lantai harga Rp100 — tier Rp4-42 untung 9%, rata-rata -Rp124.549/sinyal
+- jarak ke ARA >= 2% — 42 dari 166 sinyal Desember hasilnya persis nol karena
+  terkunci; target di atas harga ARA di-Null-kan karena tidak mungkin tercapai
+- pembulatan TP ke fraksi harga IDX — diverifikasi silang dengan Python:
+  pada prevC Rp11, TP-1 dan TP-2 sama-sama membulat ke Rp13, yaitu kerusakan
+  yang dijelaskan Entry 017 terperagakan langsung
+
+Ambang [SETEL] (min/max chg, nilai transaksi, range kemarin) adalah konvensi,
+bukan hasil ukur, dan diberi label begitu di dalam file supaya tidak terbaca
+sebagai temuan.
+
+Ukuran posisi Rp5 juta memakai lot penuh 100 lembar, konsisten dengan Entry 017.
+
+Batas yang dicatat di dalam file itu sendiri: kombinasi filter ini BELUM
+direplay utuh. Yang sudah diukur adalah versi tanpa filter dan hasilnya minus.
+Status tetap RESEARCH_ONLY, tidak ada promosi.
