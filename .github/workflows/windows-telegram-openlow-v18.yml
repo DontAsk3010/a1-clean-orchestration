@@ -1,0 +1,41 @@
+name: Windows Telegram OpenLow V18 Trade Report
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - telegram-openlow-v18-requests/current.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-telegram-openlow-v18
+  cancel-in-progress: true
+
+jobs:
+  replay:
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Install
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[test]'
+      - name: Run V18
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m a1clean.formula_research.telegram_openlow_trade_report_v18 --output-dir 'telegram-openlow-v18-output'
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-openlow-v18-${{ github.run_id }}
+          path: telegram-openlow-v18-output/**
+          if-no-files-found: error
+          retention-days: 30
