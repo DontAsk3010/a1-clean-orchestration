@@ -1436,3 +1436,35 @@ wajib. Juga dicatat bahwa `trade.GetMFE()` bergantung versi custom backtester;
 kalau ditolak, kolom MFE bawaan memberi angka yang sama.
 
 Status: RESEARCH_ONLY.
+
+## Entry 022 — Set AFL bersih, dua file bernomor
+
+Owner menghapus semua file lama karena tertukar antara versi lama dan baru, dan
+meminta set yang tidak mungkin keliru.
+
+File v1 dihapus dari repo, diganti dua file bernomor yang namanya menyebut
+tombolnya sendiri:
+
+- `MG_OPENLOW_01_SCREENER.afl`  -> tombol EXPLORE
+- `MG_OPENLOW_02_BACKTEST.afl`  -> tombol BACKTEST
+
+`claude_mg_openlow_report_v1.afl` **dibuang, tidak diganti**. File itu menambah
+`printf`, `SetCustomBacktestProc` dan `#include`, yaitu tiga hal yang justru
+menyebabkan Error 61 dan kebingungan versi, padahal tab Trades bawaan sudah
+memuat seluruh kolom kontrak: Price sebagai ENTRY, Ex.Price sebagai EXIT,
+Profit sebagai PROFIT/LOSS, MFE sebagai MAX PROFIT. Menambah file untuk
+menghasilkan kolom yang sudah ada hanya menambah permukaan kegagalan.
+
+Kedua file berdiri sendiri dan diverifikasi di build: tidak ada `printf`, tidak
+ada `SetCustomBacktestProc`, tidak ada `#include`, paren dan brace seimbang,
+screener tidak mendefinisikan Buy/Sell, dan backtest memakai
+`SetPositionSize(Modal, spsValue)` dengan `RoundLotSize = 100`.
+
+Dicatat di dalam file backtest: kalau Error 61 masih muncul padahal file bersih,
+periksa Tools > Preferences > AFL > "Include file", karena isian itu
+disuntikkan ke setiap formula yang dijalankan AmiBroker.
+
+Ambang tetap ditandai [UKUR] dan [SETEL] seperti sebelumnya, dan angka
+pembanding Desember minus Rp17.678.396 tetap tertanam di file backtest.
+
+Status: RESEARCH_ONLY.

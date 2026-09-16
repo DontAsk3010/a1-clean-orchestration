@@ -1,0 +1,142 @@
+//=============================================================================
+//  MG_OPENLOW_02_BACKTEST
+//  >>> TEKAN TOMBOL: BACKTEST  <<<
+//
+//  Ini yang menjawab "entry Rp5 juta dapat untung rugi berapa".
+//  Hasilnya dibaca di: Report > tab Trades.
+//      Symbol   = SAHAM
+//      Price    = ENTRY
+//      Ex.Price = EXIT
+//      Profit   = PROFIT/LOSS
+//      MFE      = MAX PROFIT     (centang Settings > Report > Show MAE/MFE)
+//
+//  File ini SENGAJA tidak memakai:
+//    - printf            -> penyebab Error 61 kalau ada tanda % tidak digandakan
+//    - SetCustomBacktestProc -> memanggil kode report formula lain
+//    - #include          -> supaya tidak menarik file lain yang bermasalah
+//  Berdiri sendiri. Jangan tambahkan ketiganya.
+//
+//  Kalau Error 61 masih muncul padahal file ini bersih, periksa
+//  Tools > Preferences > AFL > "Include file". Isi di situ disuntikkan ke
+//  SETIAP formula, termasuk yang ini.
+//
+//  STATUS: RESEARCH_ONLY.
+//=============================================================================
+_SECTION_BEGIN("MG OPENLOW 02 BACKTEST");
+
+//--- Modal dan lot ---------------------------------------------------------
+Modal = Param("Modal per sinyal (Rp)", 5000000, 1000000, 100000000, 1000000);
+
+//  InitialEquity dan MaxOpenPositions dibuat besar supaya TIAP sinyal benar
+//  benar dibeli Rp5 juta, bukan bergantian dan bukan dibatasi per hari.
+SetOption("InitialEquity",     5000000000 );
+SetOption("MaxOpenPositions",  500 );
+SetOption("AllowSameBarExit",  True );
+SetOption("CommissionMode",    2 );
+SetOption("CommissionAmount",  Param("Fee beli+jual %", 0.0, 0, 1, 0.01) );
+
+SetPositionSize( Modal, spsValue );
+RoundLotSize = 100;                  // 1 lot IDX = 100 lembar
+
+//  Masuk dan keluar tanpa penundaan. BuyPrice = C adalah proxy HAKA.
+//  Tanpa data L1 ask/queue ini BUKAN fill HAKA sebenarnya.
+SetTradeDelays(0, 0, 0, 0);
+
+//--- Parameter penyaring, sama persis dengan MG_OPENLOW_01_SCREENER --------
+MinPrice     = Param("[UKUR] Lantai harga (Rp)",        100,   1, 5000, 1);
+MinChg       = Param("[SETEL] Naik minimal hari ini %", 3.5,   0,   25, 0.1);
+MaxChg       = Param("[SETEL] Naik maksimal hari ini %",12.0,   1,   35, 0.5);
+MinValueRp   = Param("[SETEL] Nilai transaksi min (Rp)", 1e9, 1e7, 5e10, 1e7);
+ARAMargin    = Param("[UKUR] Jarak minimal ke ARA %",    2.0,   0,   10, 0.5);
+MinPrevRange = Param("[SETEL] Range kemarin minimal %",  4.0,   0,   30, 0.5);
+
+//--- Referensi harian ------------------------------------------------------
+DayO  = TimeFrameGetPrice("O", inDaily,  0);
+DayL  = TimeFrameGetPrice("L", inDaily,  0);
+PrevC = TimeFrameGetPrice("C", inDaily, -1);
+PrevH = TimeFrameGetPrice("H", inDaily, -1);
+PrevL = TimeFrameGetPrice("L", inDaily, -1);
+
+Chg        = IIf(PrevC > 0, (C / PrevC - 1) * 100, 0);
+PrevRange  = IIf(PrevC > 0, (PrevH - PrevL) / PrevC * 100, 0);
+ValueToday = TimeFrameGetPrice("V", inDaily, 0) * C;
+
+ARALimit  = IIf(PrevC < 200, 35, IIf(PrevC < 5000, 25, 20));
+ARAPrice  = PrevC * (1 + ARALimit / 100);
+RoomToARA = IIf(C > 0, (ARAPrice / C - 1) * 100, 0);
+
+OpenIsLow = DayL >= DayO AND DayO > 0;
+
+Screened = OpenIsLow
+       AND C >= MinPrice
+       AND ValueToday >= MinValueRp
+       AND RoomToARA >= ARAMargin
+       AND Chg >= MinChg AND Chg <= MaxChg
+       AND PrevRange >= MinPrevRange;
+
+//--- Tangga target ---------------------------------------------------------
+function IdxTick(px)
+{
+    return IIf(px < 200, 1, IIf(px < 500, 2, IIf(px < 2000, 5,
+           IIf(px < 5000, 10, 25))));
+}
+function RoundUpTick(px)
+{
+    t = IdxTick(px);
+    return ceil(px / t) * t;
+}
+
+TP1pct = IIf(Chg <  3.5,  3.5, IIf(Chg <  5.0,  5.0, IIf(Chg <  5.7,  5.7,
+         IIf(Chg <  7.0,  7.0, IIf(Chg < 10.0, 10.0, IIf(Chg < 12.0, 12.0,
+         IIf(Chg < 15.0, 15.0, IIf(Chg < 20.0, 20.0, IIf(Chg < 25.0, 25.0, 1e9)))))))));
+
+TP1 = RoundUpTick(PrevC * (1 + TP1pct / 100));
+TP1 = IIf(TP1 > ARAPrice, 1e9, TP1);    // target di atas ARA mustahil tercapai
+
+//--- Sinyal ----------------------------------------------------------------
+//  Satu posisi per ticker per hari: hanya bar PERTAMA yang lolos.
+NewDay    = Day() != Ref(Day(), -1);
+FirstPass = Screened AND (NewDay OR NOT Ref(Screened, -1));
+
+Buy      = FirstPass;
+BuyPrice = C;
+
+//  Keluar: target tersentuh, atau tutup di harga close hari itu.
+//  Sengaja polos, supaya hasilnya tidak dipercantik exit yang pintar.
+ExitTime = Param("Jam tutup posisi (HHMMSS)", 155500, 90000, 160000, 100);
+IsDaily  = Interval() >= inDaily;
+EODBar   = IIf(IsDaily, True, TimeNum() >= ExitTime);
+
+HitTP1    = H >= TP1;
+Sell      = HitTP1 OR EODBar;
+SellPrice = IIf(HitTP1, Min(TP1, H), C);
+
+Buy  = ExRem(Buy, Sell);
+Sell = ExRem(Sell, Buy);
+
+//=============================================================================
+//  CARA PAKAI
+//  1. Analysis > pilih formula ini
+//  2. Settings:
+//       Periods  : rentang tanggalnya, misal 02/12/2024 - 31/12/2024
+//       Positions: Long only
+//       Report   : centang "Show MAE/MFE"   <- kolom MAX PROFIT
+//  3. Apply to: All symbols (atau watchlist IDX)
+//  4. Tekan BACKTEST
+//  5. Report > tab Trades. Klik kanan > Export CSV kalau mau diolah lagi.
+//
+//  CATATAN UKURAN POSISI
+//  Rp5 juta tidak membeli jumlah lot yang sama di tiap harga:
+//      harga   100 -> 500 lot, terpakai Rp5.000.000
+//      harga 9.750 ->   5 lot, terpakai Rp4.875.000 (sisa Rp125.000 menganggur)
+//  RoundLotSize 100 membuat AmiBroker membulatkan ke bawah, sama seperti nyata.
+//
+//  ANGKA PEMBANDING YANG SUDAH DIUKUR DI LUAR AMIBROKER
+//  Desember 2024, Open=Low + syarat naik 7%, TANPA lantai harga dan anti-ARA:
+//      166 sinyal, untung 58 / rugi 66 / impas 42
+//      modal terpakai Rp825.274.000
+//      hasil bersih MINUS Rp17.678.396  (-2,14%)
+//  Kalau hasil backtest Anda jauh lebih bagus, periksa dulu SetTradeDelays dan
+//  ketatnya filter. Biasanya bedanya di situ, bukan temuan baru.
+//=============================================================================
+_SECTION_END();
