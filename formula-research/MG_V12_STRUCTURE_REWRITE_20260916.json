@@ -1,0 +1,125 @@
+{
+  "schema": "A1_TELEGRAM_MG_V12_STRUCTURE_REWRITE_V1",
+  "status": "RESEARCH_ONLY_NOT_CANONICAL",
+  "date_wib": "2026-09-16",
+  "change_type": "STRUCTURE_ONLY_NO_NUMERIC_THRESHOLD_CHANGE",
+  "locks": {
+    "reuse_v11_primitive_features": true,
+    "reuse_v11_relative_comparisons": true,
+    "no_new_numeric_thresholds": true,
+    "no_validation_rescue": true,
+    "march_2025_oos_untouched": true,
+    "first_signal_only_after_full_sequence_complete": true,
+    "same_snapshot_coexistence_is_not_sequence": true
+  },
+  "why_v11_is_replaced": {
+    "diagnostic": "V11 still collapsed most paths into WAKE -> RESPONSE -> RETENTION, so a one-wave spike followed by one acceptable snapshot could qualify. V12 changes the causal arrangement, not the numbers.",
+    "v11_strict_survivor_count": 0
+  },
+  "structures": [
+    {
+      "id": "K01_BREAK_RETEST_REACCEL_HOLD",
+      "sequence": [
+        "PRECONDITION",
+        "PARTICIPATION_WAKE",
+        "FIRST_ACCEPTED_PRICE_PROGRESS",
+        "CONTROLLED_RETEST_OR_PAUSE",
+        "SECOND_PRICE_PROGRESS",
+        "HOLD_SECOND_PROGRESS"
+      ],
+      "structural_intent": "Require two distinct price-progress waves separated by a controlled pause/retest; reject first-spike-only behavior."
+    },
+    {
+      "id": "K02_SHAKEOUT_RECLAIM_RETEST_CONTINUE",
+      "sequence": [
+        "PRIOR_SHAKEOUT_OR_LOWER_LOW",
+        "SELLING_STOPS_PRODUCING_DOWNSIDE",
+        "BUYER_OR_FLOW_RETURN",
+        "PRICE_RECLAIM",
+        "RETEST_RECLAIM_LEVEL_HOLDS",
+        "CONTINUATION"
+      ],
+      "structural_intent": "Treat failed breakdown/reclaim as the core event; participation is confirmation, not the starting event."
+    },
+    {
+      "id": "K03_FLOW_LEAD_PERSIST_PRICE_CATCHUP",
+      "sequence": [
+        "PRICE_CONTAINED_OR_WEAK",
+        "VALID_FLOW_IMPROVES",
+        "FLOW_PERSISTS_WITHOUT_BREAKOUT",
+        "LATER_PRICE_RESPONSE",
+        "ACCEPTANCE_IMPROVES",
+        "PRICE_HOLDS_AFTER_RESPONSE"
+      ],
+      "structural_intent": "Force flow to lead price across time instead of allowing flow and price wake to coexist in the same impulse."
+    },
+    {
+      "id": "K04_EFFORT_NO_PROGRESS_THEN_EFFICIENCY_FLIP",
+      "sequence": [
+        "EFFORT_BUILDS",
+        "PRICE_PROGRESS_REMAINS_WEAK",
+        "EFFORT_PERSISTS",
+        "PRICE_RESPONSE_EFFICIENCY_FLIPS_POSITIVE",
+        "ACCEPTANCE_IMPROVES",
+        "EFFICIENCY_REMAINS_CONSTRUCTIVE"
+      ],
+      "structural_intent": "Search for delayed conversion of effort into price instead of treating high effort itself as bullish."
+    },
+    {
+      "id": "K05_COMPRESSION_HIGHER_LOW_BREAK_RETEST",
+      "sequence": [
+        "RANGE_COMPRESSION",
+        "HIGHER_LOW_SEQUENCE",
+        "PARTICIPATION_WAKE",
+        "FRESH_PRICE_PROGRESS",
+        "RETEST_WITHOUT_STRUCTURE_FAILURE",
+        "RENEWED_PROGRESS_OR_HOLD"
+      ],
+      "structural_intent": "Require structure to form before the breakout and survive a retest after it."
+    },
+    {
+      "id": "K06_RISE_PULLBACK_BASE_REACCEL",
+      "sequence": [
+        "PRIOR_RISE",
+        "MEASURABLE_PULLBACK",
+        "BASE_OR_CONTRACTION",
+        "PARTICIPATION_RETURNS",
+        "REACCELERATION",
+        "REACCELERATION_HOLDS"
+      ],
+      "structural_intent": "Model a continuation cycle explicitly rather than mixing prior-rise, pullback, and wake into one precondition."
+    },
+    {
+      "id": "K07_SELL_EXHAUSTION_CONTROL_TRANSFER",
+      "sequence": [
+        "SELL_PRESSURE_PRESENT",
+        "DOWNSIDE_RESPONSE_WEAKENS",
+        "LOW_STABILIZES",
+        "BUY_FLOW_TURNS",
+        "HIGHER_LOW_OR_RECLAIM",
+        "ACCEPTED_PRICE_PROGRESS"
+      ],
+      "structural_intent": "Make the change of control from sellers to buyers the center of the formula."
+    },
+    {
+      "id": "K08_WAKE_PULLBACK_SECOND_WAVE_HOLD",
+      "sequence": [
+        "FRESH_WAKE",
+        "FIRST_IMPULSE",
+        "CONTROLLED_GIVEBACK",
+        "SECOND_WAKE",
+        "SECOND_IMPULSE_EXCEEDS_FIRST_RESPONSE",
+        "SECOND_IMPULSE_HOLDS"
+      ],
+      "structural_intent": "Replace V11 J08 with a true two-wave state machine; V11 did not explicitly require the pullback/giveback stage."
+    }
+  ],
+  "evaluation_contract": {
+    "governed_blocks": "UNCHANGED_10_3_4",
+    "fees": "UNCHANGED_FROM_V11",
+    "support_gate": "UNCHANGED_FROM_V11",
+    "quantile_gate": "UNCHANGED_FROM_V11",
+    "outcome_definition": "UNCHANGED_FROM_V11",
+    "data_access": "NEXT_EXECUTION_MUST_USE_DURABLE_FEATURE_CACHE; DIRECT_RAW_REREAD_NOT_ALLOWED_BY_FORMULA_RUNNER"
+  }
+}
