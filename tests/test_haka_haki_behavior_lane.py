@@ -1,3 +1,5 @@
+import math
+
 from a1clean.formula_research.haka_haki_behavior_lane import enrich_formation_chronology, formation_window_summary
 
 
@@ -20,7 +22,7 @@ def test_chronology_preserves_price_and_formation_together() -> None:
     assert rows[0]["haki"] == 400.0
     assert rows[1]["haka"] == 500.0
     assert rows[1]["haki"] == 700.0
-    assert rows[1]["price_delta_pct"] == 1.0
+    assert math.isclose(float(rows[1]["price_delta_pct"]), 1.0, rel_tol=0.0, abs_tol=1e-12)
     assert rows[1]["formation_coverage_fraction"] == 1.0
 
 
