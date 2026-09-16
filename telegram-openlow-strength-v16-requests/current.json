@@ -1,0 +1,7 @@
+{
+  "schema": "A1_TELEGRAM_OPENLOW_STRENGTH_V16_REQUEST_V1",
+  "enabled": true,
+  "run_revision": 1,
+  "source": "Raw Des 02-31-2024.csv",
+  "data_access": "DURABLE_CACHE_ONLY_NO_RAW_REREAD"
+}
