@@ -1,0 +1,33 @@
+{
+  "schema": "A1_MINUTE_BEHAVIOR_CENSUS_V21_REQUEST",
+  "enabled": true,
+  "requested_at": "2026-09-17",
+  "purpose": "Exhaustively read every governed non-OOS ticker-day at every cached session bar/minute before higher-level motif translation.",
+  "reading_contract": {
+    "every_ticker_day": true,
+    "every_cached_session_bar": true,
+    "publication_slot_filter": false,
+    "preserve_source_order": true,
+    "preserve_exact_first_last_and_state_run_times": true,
+    "read_price_and_formation_together": true,
+    "volume_and_value_as_participation_not_automatic_direction": true,
+    "validated_nbss_when_available": true,
+    "source_bound_haka_haki_only": true,
+    "missing_never_zero": true,
+    "future_outcome_defines_current_state": false,
+    "reserved_oos_march_2025": "UNTOUCHED"
+  },
+  "current_proven_haka_haki_scope": {
+    "source_name": "Raw Des 02-31-2024.csv",
+    "source_drive_id": "1wvBmhpQIV-evJJOPN_g8nks3KZBzmVHC",
+    "source_sha256": "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "generation_id": "BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01"
+  },
+  "unproven_lanes": [
+    "separate_NFSS_field_when_not_bound",
+    "broker_participant_gross_buy_sell_net",
+    "tick_time_and_trade",
+    "L1_L2_orderbook_queue",
+    "financial_issuer_sector_context_without_causal_timestamp"
+  ]
+}
