@@ -160,3 +160,49 @@ def test_strong_signals_are_starred_and_kept():
     text = render_report(_payload("TP2", True), strength_only=True)
     assert "03 DEC" in text
     assert "★" in text
+
+
+def test_forward_path_separates_a_rung_miss_that_still_ended_up():
+    """A FAIL is only a rung that went untouched. It must not be reported as a
+    loss unless the path says so, which is exactly what the owner asked."""
+    from a1clean.formula_research.claude_mg_openlow_strength_v1 import _forward_path
+
+    drifted_up = _forward_path(100.0, [
+        {"high": 103.0, "low": 99.0, "close": 102.0},
+        {"high": 104.0, "low": 101.0, "close": 103.0},
+    ])
+    assert drifted_up["eod_pct"] == pytest.approx(3.0)
+    assert drifted_up["mae_pct"] == pytest.approx(-1.0)
+    assert drifted_up["mfe_pct"] == pytest.approx(4.0)
+
+    collapsed = _forward_path(100.0, [
+        {"high": 101.0, "low": 95.0, "close": 96.0},
+        {"high": 96.0, "low": 90.0, "close": 91.0},
+    ])
+    assert collapsed["eod_pct"] == pytest.approx(-9.0)
+    assert collapsed["mae_pct"] == pytest.approx(-10.0)
+
+
+def test_drawdown_before_peak_is_measured_up_to_the_best_price_only():
+    from a1clean.formula_research.claude_mg_openlow_strength_v1 import _forward_path
+
+    path = _forward_path(100.0, [
+        {"high": 101.0, "low": 96.0, "close": 97.0},   # dip before the run
+        {"high": 112.0, "low": 100.0, "close": 111.0},  # the peak
+        {"high": 111.0, "low": 80.0, "close": 81.0},    # collapse after the peak
+    ])
+    # The holder endured -4% to reach +12%. The -20% came afterwards and must not
+    # be charged against the drawdown-to-peak figure.
+    assert path["mae_before_peak_pct"] == pytest.approx(-4.0)
+    assert path["mae_pct"] == pytest.approx(-20.0)
+    assert path["mfe_pct"] == pytest.approx(12.0)
+
+
+def test_quantile_returns_a_value_the_sample_actually_contains():
+    from a1clean.formula_research.claude_mg_openlow_strength_v1 import _quantile
+
+    sample = [-5.0, -1.0, 0.0, 2.0, 9.0]
+    assert _quantile(sample, 0.50) == 0.0
+    assert _quantile(sample, 0.10) == -5.0
+    assert _quantile(sample, 0.90) == 9.0
+    assert _quantile([], 0.5) is None

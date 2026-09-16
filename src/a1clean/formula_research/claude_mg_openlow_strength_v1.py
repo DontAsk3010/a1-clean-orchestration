@@ -168,6 +168,55 @@ def _mean(values: Sequence[float | None]) -> float | None:
     return sum(clean) / len(clean) if clean else None
 
 
+def _quantile(values: Sequence[float], q: float) -> float | None:
+    """Nearest-rank quantile. Small samples must not be smoothed into a number
+    the data never produced."""
+    clean = sorted(v for v in values if v is not None)
+    if not clean:
+        return None
+    idx = int(round(q * (len(clean) - 1)))
+    return clean[idx]
+
+
+def _forward_path(entry_price: float, forward: Sequence[Mapping[str, Any]]) -> dict[str, float]:
+    """What the price actually did after the signal, measured from the signal price.
+
+    A rung result answers only "was the target touched". It cannot say whether a
+    signal that missed its target drifted sideways or lost money, and the owner's
+    question is exactly that. Four numbers answer it:
+
+      mfe_pct             best price reached after the signal
+      mae_pct             worst price reached after the signal
+      mae_before_peak_pct worst drawdown endured BEFORE that best price, i.e. what
+                          a holder had to sit through to see the good outcome
+      eod_pct             last close of the same day against the signal price
+
+    All are same-date evaluation of bars strictly after the signal bar, used as
+    outcome labels only; none of them is readable at signal time.
+    """
+    run_min = entry_price
+    best = entry_price
+    mae_before_peak = 0.0
+    last_close = entry_price
+    for bar in forward:
+        low = bar.get("low")
+        if low is not None:
+            run_min = min(run_min, float(low))
+        high = bar.get("high")
+        if high is not None and float(high) > best:
+            best = float(high)
+            mae_before_peak = (run_min / entry_price - 1.0) * 100.0
+        close = bar.get("close")
+        if close is not None:
+            last_close = float(close)
+    return {
+        "mfe_pct": (best / entry_price - 1.0) * 100.0,
+        "mae_pct": (run_min / entry_price - 1.0) * 100.0,
+        "mae_before_peak_pct": mae_before_peak,
+        "eod_pct": (last_close / entry_price - 1.0) * 100.0,
+    }
+
+
 def analyse(
     source_name: str,
     *,
@@ -254,6 +303,7 @@ def analyse(
                 fwd_highs = [float(b["high"]) for b in forward if b.get("high") is not None]
                 max_after = max(fwd_highs) if fwd_highs else price
                 max_chg_after = (max_after / prev_close - 1.0) * 100.0
+                path = _forward_path(price, forward)
 
                 hit_tp1 = max_after >= tp1_price
                 hit_tp2 = bool(tp2_price is not None and max_after >= tp2_price)
@@ -272,6 +322,15 @@ def analyse(
                         "tp2_price": tp2_price,
                         "result": "TP2" if hit_tp2 else ("TP1" if hit_tp1 else "FAIL"),
                         "max_chg_after_pct": max_chg_after,
+                        # Downside, measured from the SIGNAL PRICE -- the price a
+                        # reader of this feed would actually be looking at. Without
+                        # these, "FAIL" says only that a rung went untouched and says
+                        # nothing about whether the signal lost money.
+                        "mfe_pct": path["mfe_pct"],
+                        "mae_pct": path["mae_pct"],
+                        "mae_before_peak_pct": path["mae_before_peak_pct"],
+                        "eod_pct": path["eod_pct"],
+                        "eod_positive": path["eod_pct"] > 0.0,
                         f"reached_{int(strength_target_pct)}pct": reached_strength,
                         "features": _signal_features(bars, t, prior_range),
                         "future_data_used_for_signal": False,
@@ -316,6 +375,32 @@ def analyse(
             "mean_prior_day_range_pct": _mean([s["features"]["prior_day_range_pct"] for s in group]),
         }
 
+    def outcome_block(group: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+        """Was it minus? Answered per group, not asserted."""
+        if not group:
+            return {"n": 0}
+        eod = [s["eod_pct"] for s in group]
+        mae = [s["mae_pct"] for s in group]
+        return {
+            "n": len(group),
+            "eod_positive": sum(1 for v in eod if v > 0.0),
+            "eod_flat": sum(1 for v in eod if v == 0.0),
+            "eod_negative": sum(1 for v in eod if v < 0.0),
+            "p_eod_positive": sum(1 for v in eod if v > 0.0) / len(eod),
+            "eod_q10_pct": _quantile(eod, 0.10),
+            "eod_q25_pct": _quantile(eod, 0.25),
+            "eod_median_pct": _quantile(eod, 0.50),
+            "eod_q75_pct": _quantile(eod, 0.75),
+            "eod_q90_pct": _quantile(eod, 0.90),
+            "eod_mean_pct": _mean(eod),
+            "mae_median_pct": _quantile(mae, 0.50),
+            "mae_q10_pct": _quantile(mae, 0.10),
+            "mae_before_peak_median_pct": _quantile(
+                [s["mae_before_peak_pct"] for s in group], 0.50
+            ),
+            "mfe_median_pct": _quantile([s["mfe_pct"] for s in group], 0.50),
+        }
+
     total = len(all_signals)
     return {
         "schema": "A1_CLAUDE_MG_OPENLOW_STRENGTH_V1",
@@ -333,6 +418,16 @@ def analyse(
             "tp2_hits": sum(1 for s in all_signals if s["result"] == "TP2"),
             "reached_strength": len(strong),
             "p_reach_strength_given_signal": (len(strong) / total) if total else None,
+        },
+        "outcome": {
+            "note": (
+                "Measured from the signal price on same-date forward bars, label-only. "
+                "A FAIL result means the next rung went untouched; it does NOT by itself "
+                "mean the signal ended negative. These blocks separate the two."
+            ),
+            "all_signals": outcome_block(all_signals),
+            "tp1_or_better": outcome_block([s for s in all_signals if s["result"] in ("TP1", "TP2")]),
+            "rung_fail": outcome_block([s for s in all_signals if s["result"] == "FAIL"]),
         },
         "strength_contrast": {
             "note": (
@@ -405,9 +500,14 @@ def render_report(payload: Mapping[str, Any], *, strength_only: bool) -> str:
             tp2 = _money(s.get("tp2_price"))
             mark = {"TP2": "TP2✅", "TP1": "TP1✅", "FAIL": "FAIL"}[s["result"]]
             flag = " ★" if s[key] else ""
+            eod = s.get("eod_pct")
+            mae = s.get("mae_pct")
+            tail = ""
+            if eod is not None and mae is not None:
+                tail = f" | EOD {eod:+6.2f}% | MAE {mae:+6.2f}%"
             lines.append(
                 f"{s['slot']} {s['ticker']:<5}| {price:>8} | {s['chg_pct']:+6.2f}% | "
-                f"{tp1:>8} | {tp2:>8} | {mark}{flag}"
+                f"{tp1:>8} | {tp2:>8} | {mark}{flag}{tail}"
             )
         lines.append("")
 
@@ -417,6 +517,34 @@ def render_report(payload: Mapping[str, Any], *, strength_only: bool) -> str:
         f"tp2={totals.get('tp2_hits')} reached≥{target}%={totals.get('reached_strength')} "
         f"P(≥{target}%|signal)={totals.get('p_reach_strength_given_signal')}"
     )
+
+    outcome = payload.get("outcome") or {}
+    if outcome:
+        lines.append("")
+        lines.append("--- DID IT END MINUS? (from signal price, same day) ---")
+        for label, block_key in (
+            ("ALL SIGNALS", "all_signals"),
+            ("TP1 OR BETTER", "tp1_or_better"),
+            ("RUNG FAIL", "rung_fail"),
+        ):
+            block = outcome.get(block_key) or {}
+            if not block.get("n"):
+                continue
+            lines.append(
+                f"{label:<14} n={block['n']:<4} EOD+ {block['eod_positive']:<4} "
+                f"EOD0 {block['eod_flat']:<4} EOD- {block['eod_negative']:<4} "
+                f"P(+)={block['p_eod_positive']:.3f}"
+            )
+            lines.append(
+                f"{'':<14} EOD Q10 {block['eod_q10_pct']:+6.2f}%  Q25 {block['eod_q25_pct']:+6.2f}%  "
+                f"MED {block['eod_median_pct']:+6.2f}%  Q75 {block['eod_q75_pct']:+6.2f}%  "
+                f"Q90 {block['eod_q90_pct']:+6.2f}%"
+            )
+            lines.append(
+                f"{'':<14} MAE MED {block['mae_median_pct']:+6.2f}%  Q10 {block['mae_q10_pct']:+6.2f}%  "
+                f"MAE-before-peak MED {block['mae_before_peak_median_pct']:+6.2f}%  "
+                f"MFE MED {block['mfe_median_pct']:+6.2f}%"
+            )
     return "\n".join(lines)
 
 

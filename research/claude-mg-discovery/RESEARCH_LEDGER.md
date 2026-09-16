@@ -1119,3 +1119,43 @@ slot is reported whether or not anything screened**.
   `claude-mg-openlow-mining-requests/current.json`,
   `.github/workflows/claude-mg-openlow-mining.yml`; validation run
   `https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35106396044`.
+
+## Entry 015 — The reports could not say whether a FAIL lost money
+
+Owner question: "hasilnya msih bnyak fail itu minus ya" — the December feed shows
+many FAIL rows, are those losses?
+
+They cannot be answered from the runs published so far, and that is a defect in my
+reporting, not an open interpretation. `claude_mg_openlow_strength_v1` recorded only
+whether the next ladder rung was touched. `FAIL` therefore covered two completely
+different outcomes without distinguishing them: a signal that drifted sideways or
+still closed higher without reaching the rung, and a signal that reversed and ended
+below the price shown in the feed. Every prior December and January number in this
+lane — 51.81%, 47.27%, the 22.55% base — is a *touch* probability. None of them is a
+profit-and-loss statement, and none should have been read as one.
+
+CLAUDE.md requires positive net MFE rate, MAE, pre-peak MAE and the net MFE quantiles
+for every candidate. My candidate reported none of them. That requirement existed
+before this question was asked; the gap was mine.
+
+Correction, this commit:
+
+- `_forward_path()` measures, from the SIGNAL PRICE on same-date forward bars,
+  label-only: `mfe_pct`, `mae_pct`, `mae_before_peak_pct` (the drawdown endured up to
+  the best price, not the collapse after it) and `eod_pct`.
+- `_quantile()` is nearest-rank, so a small group never reports a value the sample
+  never produced.
+- Each signal now carries those four numbers; the report prints `EOD` and `MAE` per
+  row and a summary split three ways: all signals, TP1-or-better, and RUNG FAIL.
+- Request `CLAUDE_MG_OPENLOW_STRENGTH_V1_DEC2024_DOWNSIDE` replays December with the
+  gates unchanged (min_chg 7.0, max_bar_index 10, min_prior_day_range 7.0). Nothing is
+  retuned; only the measurement is added.
+
+Prediction recorded before the run, so it can be wrong on the record: signals entered
+at +7% to +10% intraday sit near the top of that day's range, so I expect the RUNG FAIL
+group to have a clearly negative Q25 and a median near or below zero. If that holds,
+the family's "51.81%" is a weaker result than it reads, because reaching 10% is not the
+same as being a tradeable entry, and the frozen gate will need to be judged again on
+net outcome rather than on touch probability.
+
+Status: RESEARCH_ONLY. No promotion. March 2025 untouched.
