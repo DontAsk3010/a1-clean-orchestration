@@ -1159,3 +1159,49 @@ same as being a tradeable entry, and the frozen gate will need to be judged agai
 net outcome rather than on touch probability.
 
 Status: RESEARCH_ONLY. No promotion. March 2025 untouched.
+
+## Entry 016 — The answer is yes, and it invalidates the family
+
+Run 35109991501, commit 1457d89, `Raw Des 02-31-2024.csv`, gates frozen (min_chg 7.0,
+max_bar_index 10, min_prior_day_range 7.0). Measured from the signal price, same-date
+forward bars, label-only.
+
+```
+ALL SIGNALS    n=166  EOD+ 30   EOD0 42   EOD- 94   P(+)=0.181
+               EOD Q10 -11.89%  Q25  -7.91%  MED  -3.62%  Q75  +0.00%  Q90  +8.15%
+               MAE MED  -7.14%  Q10 -14.29%  MAE-before-peak MED  +0.00%  MFE MED  +0.00%
+TP1 OR BETTER  n=57   EOD+ 27   EOD0 2    EOD- 28   P(+)=0.474
+               EOD Q10 -10.75%  Q25  -5.31%  MED  +0.00%  Q75  +9.34%  Q90 +16.39%
+               MAE MED  -5.80%  Q10 -13.57%  MAE-before-peak MED  -0.75%  MFE MED  +9.62%
+RUNG FAIL      n=109  EOD+ 3    EOD0 40   EOD- 66   P(+)=0.028
+               EOD Q10 -11.74%  Q25  -8.33%  MED  -4.73%  Q75  +0.00%  Q90  +0.00%
+               MAE MED  -7.14%  Q10 -14.29%  MAE-before-peak MED  +0.00%  MFE MED  +0.00%
+```
+
+The Entry 015 prediction (negative Q25 in the FAIL group) was right but far too mild.
+The problem is not the FAIL group, it is the family.
+
+**Median MFE is +0.00%.** More than half of the 166 signals never traded above the price
+printed in the feed, not once, for the rest of the day. Median MAE is -7.14%. So the
+typical signal goes nowhere up and -7% down.
+
+That exposes why 51.81% was wrong. `reached_10pct` compared the forward high against the
+PREVIOUS CLOSE, and the ignition gate requires the ticker to be up at least 7% already,
+with many firing at +10% or more. Such a signal scored as "reached 10%" without moving a
+tick. The statistic measured the entry condition, not the outcome. Both the December
+51.81% and the January 47.27% are void as performance claims; they were never a
+profit-and-loss statement and the out-of-sample replay validated a metric that could not
+fail.
+
+H15 status: INVALIDATED_ON_NET_OUTCOME. Not tradeable. No promotion, no publication.
+
+What survives, and it is thin: the TP1-OR-BETTER subset (n=57) has median MFE +9.62% with
+median drawdown-to-peak of only -0.75%. But that subset is defined by its own outcome and
+cannot be selected in advance, so it is a description, not a formula. Its EOD split is
+27 up / 28 down, i.e. the move does not hold to the close even there.
+
+Consequence for method: every future candidate in this lane reports net outcome from the
+signal price first (P(+), EOD quantiles, MAE, MFE) and only then any touch statistic. A
+touch statistic whose threshold overlaps the entry condition is not evidence.
+
+Status: RESEARCH_ONLY. March 2025 untouched.

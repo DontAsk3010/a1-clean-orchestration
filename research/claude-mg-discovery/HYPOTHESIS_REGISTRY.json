@@ -228,9 +228,18 @@
         "degenerate control: high == low ticker-days excluded and counted"
       ],
       "data_dependency": "OHLC at 1-minute bar resolution plus the previous day's close and previous day's range. No flow dependency, so unaffected by NBSS availability -- which also means it sidesteps the SOURCE SEMANTIC LOCK that constrains the absorption candidates.",
-      "status": "VALIDATED_OUT_OF_SAMPLE",
+      "status": "INVALIDATED_ON_NET_OUTCOME",
       "priority": "high",
-      "implementation": "src/a1clean/formula_research/claude_mg_openlow_strength_v1.py. DISCOVERY December 2024 (run 35105451803): 166 signals, 86 reached +10%, P = 51.81% against a 22.55% ungated base rate. VALIDATION January 2025 (run 35106396044) with gates FROZEN and January never used to derive them: 165 signals, 78 reached +10%, P = 47.27%. A 4.5pp decay with near-identical signal volume is not the collapse an overfit gate produces. CAVEATS RECORDED: recall is 30.6% so two in three ten-percent movers are missed; and the bar-index gate makes this a morning-weighted family, which is why it is an Open=Low family rather than MULAI GENIT, whose governing definition holds that 'early' means development stage and not a clock. Public Telegram registration still requires Branch 13 governance; RESEARCH_ONLY until then. See RESEARCH_LEDGER.md Entries 011, 012, 014."
+      "implementation": "src/a1clean/formula_research/claude_mg_openlow_strength_v1.py. DISCOVERY December 2024 (run 35105451803): 166 signals, 86 reached +10%, P = 51.81% against a 22.55% ungated base rate. VALIDATION January 2025 (run 35106396044) with gates FROZEN and January never used to derive them: 165 signals, 78 reached +10%, P = 47.27%. A 4.5pp decay with near-identical signal volume is not the collapse an overfit gate produces. CAVEATS RECORDED: recall is 30.6% so two in three ten-percent movers are missed; and the bar-index gate makes this a morning-weighted family, which is why it is an Open=Low family rather than MULAI GENIT, whose governing definition holds that 'early' means development stage and not a clock. Public Telegram registration still requires Branch 13 governance; RESEARCH_ONLY until then. See RESEARCH_LEDGER.md Entries 011, 012, 014.",
+      "invalidation": {
+        "run_id": "35109991501",
+        "commit": "1457d89",
+        "source": "Raw Des 02-31-2024.csv",
+        "gates_unchanged": true,
+        "finding": "The 51.81% figure was a TOUCH probability, not an outcome. Measured from the signal price on the same day: median MFE is +0.00%, meaning more than half of the 166 signals never traded above the price shown in the feed at all. 94 of 166 closed below the signal price and only 30 closed above it (P(+)=0.181), with median EOD -3.62% and Q25 -7.91%. The RUNG FAIL group is worse: 3 of 109 closed positive. The 51.81% was inflated because reached_10pct compared the forward high against the PREVIOUS CLOSE, so any signal already at or above +10% when it fired counted as a success without moving a single tick.",
+        "supersedes_claim": "P(reach 10%) = 51.81% December / 47.27% January",
+        "tradeable": false
+      }
     }
   ]
 }
