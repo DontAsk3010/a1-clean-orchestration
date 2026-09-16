@@ -1,0 +1,6 @@
+{
+  "schema": "A1_TELEGRAM_MG_OPEN_LADDER_V13_REQUEST_V1",
+  "enabled": true,
+  "run_revision": 1,
+  "prior_days": 10
+}
