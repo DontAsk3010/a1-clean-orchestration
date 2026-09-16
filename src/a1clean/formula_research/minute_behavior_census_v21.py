@@ -82,13 +82,50 @@ def _activity_relation(volume_change: float | None, value_change: float | None, 
     )
 
 
+def _empty_summary(*, allow_haka_haki: bool) -> dict[str, Any]:
+    return {
+        "rows": 0,
+        "session_evidence_status": "NO_SESSION_ELIGIBLE_BARS",
+        "first_timestamp": None,
+        "last_timestamp": None,
+        "first_open": None,
+        "first_close": None,
+        "final_close": None,
+        "running_high": None,
+        "running_low": None,
+        "day_return_pct": None,
+        "total_volume": 0.0,
+        "total_trade_value": 0.0,
+        "flow_rows": 0,
+        "flow_coverage_fraction": None,
+        "positive_flow_rows": 0,
+        "negative_flow_rows": 0,
+        "nbss_sum": None,
+        "abs_nbss_sum": None,
+        "haka_haki_proven_source_scope": allow_haka_haki,
+        "haka_haki_rows": 0,
+        "haka_haki_coverage_fraction": None,
+        "haka_sum": None,
+        "haki_sum": None,
+        "relation_state_counts": {},
+        "activity_relation_counts": {},
+        "price_direction_counts": {},
+        "flow_direction_counts": {},
+        "haka_haki_reconstruction_status_counts": {},
+        "relation_transition_count": 0,
+        "first_relation_state": None,
+        "last_relation_state": None,
+        "minute_evidence_digest_sha256": hashlib.sha256().hexdigest(),
+    }
+
+
 def scan_ticker_day(
     bars: Sequence[Mapping[str, Any]],
     *,
     allow_haka_haki: bool,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     if not bars:
-        return ({"rows": 0}, [])
+        return (_empty_summary(allow_haka_haki=allow_haka_haki), [])
 
     first_open = _f(bars[0].get("open"))
     first_close = _f(bars[0].get("close"))
@@ -276,6 +313,7 @@ def scan_ticker_day(
 
     summary = {
         "rows": len(bars),
+        "session_evidence_status": "AVAILABLE",
         "first_timestamp": first_timestamp,
         "last_timestamp": last_timestamp,
         "first_open": first_open,
@@ -324,7 +362,10 @@ def build_report(
 
     sources = governed_sources_from_durable_cache()
     global_digest = hashlib.sha256()
-    counters = {b: {"ticker_days": 0, "minute_rows": 0, "relation_runs": 0} for b in BLOCKS}
+    counters = {
+        b: {"ticker_days": 0, "zero_session_ticker_days": 0, "minute_rows": 0, "relation_runs": 0}
+        for b in BLOCKS
+    }
     relation_counts = {b: Counter() for b in BLOCKS}
     transition_counts = {b: Counter() for b in BLOCKS}
     source_accounting: list[dict[str, Any]] = []
@@ -345,6 +386,7 @@ def build_report(
 
             src_digest = hashlib.sha256()
             src_ticker_days = 0
+            src_zero_session_ticker_days = 0
             src_minute_rows = 0
             src_first_timestamp: str | None = None
             src_last_timestamp: str | None = None
@@ -352,8 +394,6 @@ def build_report(
 
             for packet in v12r._iter_cached(source):
                 bars = [dict(x) for x in packet.get("bars", [])]
-                if not bars:
-                    continue
                 ticker = str(packet.get("ticker") or "")
                 date = str(packet.get("date") or "")
                 summary, runs = scan_ticker_day(bars, allow_haka_haki=allow_haka)
@@ -362,12 +402,16 @@ def build_report(
                 counters[block]["ticker_days"] += 1
                 counters[block]["minute_rows"] += int(summary["rows"])
                 counters[block]["relation_runs"] += len(runs)
+                if int(summary["rows"]) == 0:
+                    src_zero_session_ticker_days += 1
+                    counters[block]["zero_session_ticker_days"] += 1
 
                 first_ts = str(summary.get("first_timestamp") or "")
                 last_ts = str(summary.get("last_timestamp") or "")
-                if src_first_timestamp is None:
+                if first_ts and src_first_timestamp is None:
                     src_first_timestamp = first_ts
-                src_last_timestamp = last_ts
+                if last_ts:
+                    src_last_timestamp = last_ts
 
                 for state, n in dict(summary.get("relation_state_counts", {})).items():
                     relation_counts[block][state] += int(n)
@@ -390,7 +434,7 @@ def build_report(
                 prev_day = prior_day_by_ticker.get(ticker)
                 gap_pct = None
                 cross_day_key = None
-                if prev_day is not None:
+                if prev_day is not None and int(summary["rows"]) > 0:
                     gap_pct = _pct(_f(summary.get("first_open")), _f(prev_day.get("final_close")))
                     cross_day_key = f"{prev_day.get('last_relation_state')} -> {summary.get('first_relation_state')}"
                     cross_day_transition_counts[cross_day_key] += 1
@@ -435,18 +479,20 @@ def build_report(
                     if tr_fh is not None:
                         _write_jsonl_gz_line(tr_fh, run_record)
 
-                prior_day_by_ticker[ticker] = {
-                    "source": source,
-                    "date": date,
-                    "final_close": summary.get("final_close"),
-                    "last_relation_state": summary.get("last_relation_state"),
-                }
+                if int(summary["rows"]) > 0:
+                    prior_day_by_ticker[ticker] = {
+                        "source": source,
+                        "date": date,
+                        "final_close": summary.get("final_close"),
+                        "last_relation_state": summary.get("last_relation_state"),
+                    }
 
                 packet_digest_record = {
                     "source": source,
                     "ticker": ticker,
                     "date": date,
                     "rows": summary["rows"],
+                    "session_evidence_status": summary.get("session_evidence_status"),
                     "first_timestamp": first_ts,
                     "last_timestamp": last_ts,
                     "minute_evidence_digest_sha256": summary["minute_evidence_digest_sha256"],
@@ -464,6 +510,7 @@ def build_report(
                     "generation_id": src.get("generation_id"),
                     "catalog_ticker_days": int(src.get("ticker_days", 0)),
                     "processed_ticker_days": src_ticker_days,
+                    "zero_session_ticker_days": src_zero_session_ticker_days,
                     "processed_minute_rows": src_minute_rows,
                     "first_processed_timestamp": src_first_timestamp,
                     "last_processed_timestamp": src_last_timestamp,
@@ -483,6 +530,7 @@ def build_report(
         raise AssertionError("TICKER_DAY_ACCOUNTING_MISMATCH")
 
     total_ticker_days = sum(int(counters[b]["ticker_days"]) for b in BLOCKS)
+    total_zero_session_ticker_days = sum(int(counters[b]["zero_session_ticker_days"]) for b in BLOCKS)
     total_minute_rows = sum(int(counters[b]["minute_rows"]) for b in BLOCKS)
     total_relation_runs = sum(int(counters[b]["relation_runs"]) for b in BLOCKS)
 
@@ -496,6 +544,7 @@ def build_report(
             "reserved_oos_untouched": v11.RESERVED_OOS,
             "every_ticker_day_processed": True,
             "every_cached_session_bar_processed": True,
+            "zero_session_ticker_days_preserved_as_unknown_evidence": True,
             "publication_slot_filter_used": False,
             "source_order_preserved": True,
         },
@@ -519,6 +568,7 @@ def build_report(
         "counters": counters,
         "totals": {
             "ticker_days": total_ticker_days,
+            "zero_session_ticker_days": total_zero_session_ticker_days,
             "minute_rows": total_minute_rows,
             "relation_runs": total_relation_runs,
         },
@@ -537,6 +587,7 @@ def build_report(
             "this_is_behavior_census_not_signal_formula": True,
             "no_fixed_price_or_flow_threshold_used_for_relation_states": True,
             "physical_zero_not_assumed_available_flow": True,
+            "zero_session_packet_not_dropped": True,
             "haka_haki_not_used_outside_proven_source_contract": True,
             "future_outcome_not_used_to_define_current_state": True,
             "later_outcome_evaluation_not_performed_in_this_census": True,
