@@ -1,0 +1,58 @@
+name: Windows Telegram MG V9 OOS Replay
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - formula-packs/MG_V9_SURVIVOR_PACK.json
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    name: Replay frozen V9 survivors on untouched OOS
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact formula revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Verify Drive credential bindings
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($path in @($env:A1_DRIVE_READER_CREDENTIALS, $env:A1_DRIVE_WRITER_CREDENTIALS)) {
+            if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'Drive credential binding missing.' }
+          }
+
+      - name: Install compile test
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[test]'
+          py -3.11 -m py_compile src/a1clean/formula_research/telegram_mg_v9_oos_replay.py
+          if ($LASTEXITCODE -ne 0) { throw 'MG_V9_OOS_COMPILE_FAILED' }
+
+      - name: Replay March untouched OOS
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & py -3.11 -m a1clean.formula_research.telegram_mg_v9_oos_replay `
+            --formula-pack 'formula-packs/MG_V9_SURVIVOR_PACK.json' `
+            --prior-days 10 `
+            --buy-fee-pct 0.15 `
+            --sell-fee-pct 0.25 `
+            --output 'telegram-mg-v9-oos-replay.json'
+          if ($LASTEXITCODE -ne 0) { throw "MG_V9_OOS_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Upload OOS Telegram replay
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-mg-v9-oos-replay-${{ github.run_id }}
+          path: telegram-mg-v9-oos-replay.json
+          if-no-files-found: error
+          retention-days: 30
