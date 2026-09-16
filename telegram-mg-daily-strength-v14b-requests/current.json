@@ -1,0 +1,9 @@
+{
+  "schema": "A1_TELEGRAM_MG_DAILY_STRENGTH_V14B_REQUEST_V1",
+  "enabled": true,
+  "run_revision": 1,
+  "source": "Raw Des 02-31-2024.csv",
+  "daily_open_low_scan_all_dates": true,
+  "strong10_cohort": "EXACT_396_CASES",
+  "march_2025_oos_untouched": true
+}
