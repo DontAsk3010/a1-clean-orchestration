@@ -12,7 +12,7 @@ from typing import Any, Iterable, Mapping, Sequence
 from . import telegram_mg_question_driven_v10 as v10
 from . import telegram_mg_sequence_v11 as v11
 from . import telegram_mg_structure_v12_runner as v12r
-from .dual_lane_behavior_v1_cached import _governed_sources_from_durable_cache
+from .durable_cache_catalog import governed_sources_from_durable_cache as _governed_sources_from_durable_cache
 from .telegram_mg_replay import _is_publication_slot
 
 SCHEMA = "A1_DUAL_LANE_MULTI_LAYER_BEHAVIOR_MINER_V2"
@@ -398,7 +398,6 @@ def build_report(*, prior_days: int = 20, buy_fee: float = 0.15, sell_fee: float
         raise AssertionError("RESERVED_OOS_MUST_REMAIN_OUTSIDE_DEVELOPMENT")
     sources = _governed_sources_from_durable_cache()
 
-    # ticker -> slot -> prior snapshots; only completed earlier days enter baseline.
     baseline: dict[str, dict[str, deque[dict[str, float | None]]]] = defaultdict(lambda: defaultdict(lambda: deque(maxlen=prior_days)))
     motif_outcomes = {b: defaultdict(list) for b in BLOCKS}
     motif_examples = {b: defaultdict(list) for b in BLOCKS}
@@ -434,7 +433,6 @@ def build_report(*, prior_days: int = 20, buy_fee: float = 0.15, sell_fee: float
                 counters[block]["publication_slots"] += 1
                 calibrated.append(s)
 
-            # Mine compressed relation sequences. Outcomes are attached only after the causal sequence exists.
             rel_seq = _compress_relation_sequence(calibrated)
             if rel_seq:
                 relation_to_last_index: dict[str, int] = {}
@@ -456,7 +454,6 @@ def build_report(*, prior_days: int = 20, buy_fee: float = 0.15, sell_fee: float
                     if len(motif_examples[block][key]) < 3:
                         motif_examples[block][key].append({"source": source, "ticker": ticker, "date": date, "end_timestamp": calibrated[end_i]["timestamp"]})
 
-            # Near-twin index: same three-step PRICE direction path, different formation signature.
             for j in range(2, len(calibrated)):
                 win = calibrated[j - 2 : j + 1]
                 price_sig = ">".join(str(x["price"]["direction"]) for x in win)
@@ -493,7 +490,6 @@ def build_report(*, prior_days: int = 20, buy_fee: float = 0.15, sell_fee: float
                     ],
                 })
 
-            # Baseline update happens only after this ticker-day is fully processed: no same-day future leakage.
             for s in calibrated:
                 point: dict[str, float | None] = {}
                 point.update({k: _f(s["price"].get(k)) for k in PRICE_METRICS})
