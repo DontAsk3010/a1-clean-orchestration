@@ -4,11 +4,17 @@
   "branch": "research/claude-mg-discovery",
   "prepared": "2026-09-15",
   "scope": "Telegram A / EARLY_POTENTIAL / MULAI GENIT (MG) only",
-  "non_negotiable_rules_inherited_from": ["CLAUDE.md", "plans/formula/current-clean-formula-research-v1.json"],
+  "non_negotiable_rules_inherited_from": [
+    "CLAUDE.md",
+    "plans/formula/current-clean-formula-research-v1.json"
+  ],
   "discovery_source": "Raw Des 02-31-2024.csv",
-  "validation_sources": ["Raw Jan 01-31-2025.csv", "Raw Feb 03-28-2025.csv"],
+  "validation_sources": [
+    "Raw Jan 01-31-2025.csv",
+    "Raw Feb 03-28-2025.csv"
+  ],
   "untouched_oos_source": "Raw Maret 03-31-2025.csv",
-  "notes": "Every hypothesis below targets a data dimension or open problem identified in RESEARCH_AUDIT.md section 3/4/5 as underused or unresolved by the existing V2-V8d GPT lane, rather than re-testing what that lane already tried. None have been executed yet -- this is a discovery-stage backlog, not a results table. Data fields per README.md/CLAUDE.md: trade_value=RAW_Aux2 (TRADE_VALUE_1M); nbss=RAW_OpenInterest (NBSS_VALUE_1M, not futures open interest); HAKA=(trade_value+nbss)/2; HAKI=(trade_value-nbss)/2. Missing/unproven fields must resolve to UNKNOWN/UNAVAILABLE, never zero.",
+  "notes": "Every hypothesis below targets a data dimension or open problem identified in RESEARCH_AUDIT.md section 3/4/5 as underused or unresolved by the existing V2-V8d GPT lane, rather than re-testing what that lane already tried. None have been executed yet -- this is a discovery-stage backlog, not a results table. Data fields per README.md/CLAUDE.md: trade_value=RAW_Aux2 (TRADE_VALUE_1M); nbss=RAW_OpenInterest (NBSS_VALUE_1M, not futures open interest); HAKA=(trade_value+nbss)/2; HAKI=(trade_value-nbss)/2. Missing/unproven fields must resolve to UNKNOWN/UNAVAILABLE, never zero. | 2026-09-16: H04 marked EXECUTED_METRICS_UNREAD (run 35070450297; artifact unreadable from the analysis context due to egress policy). H12 added after reading the Branch 07 handbook and the governed December replay: the MG family is intraday with dynamic per-snapshot targets, so H04's daily shape is superseded rather than merely underperforming. No performance claim is made for either until a run's log is actually read.",
   "hypotheses": [
     {
       "id": "H01",
@@ -60,9 +66,9 @@
         "nbss_accel_w = median(nbss_to_value, most recent half of window w) / median(nbss_to_value, earlier half of window w), only where flow_available is True on all contributing days else UNKNOWN"
       ],
       "data_dependency": "trade_value (Aux2) and nbss (OpenInterest) fields, availability-gated per formula_replay.py flow_available logic",
-      "status": "CODE_READY_AWAITING_EXECUTION",
+      "status": "EXECUTED_METRICS_UNREAD",
       "priority": "medium",
-      "implementation": "src/a1clean/formula_research/claude_absorption_wake_v1.py (flow_persistence_ratio + absorption_streak_days), tested against synthetic fixtures in tests/test_claude_absorption_wake_v1.py. Not yet run against real governed data -- blocked on GitHub push authorization for this session, see RESEARCH_LEDGER.md entry 002."
+      "implementation": "src/a1clean/formula_research/claude_absorption_wake_v1.py (flow_persistence_ratio + absorption_streak_days), tested in tests/test_claude_absorption_wake_v1.py. EXECUTED against real governed data: GitHub Actions run 35070450297 on the self-hosted Windows runner, December 2024 (Raw Des 02-31-2024.csv), conclusion success, pass=true. Its metrics remain UNREAD -- not zero, not inferred -- because the result artifact's blob host is refused by the analysis context's egress proxy. See RESEARCH_LEDGER.md Entry 003. Superseded in shape by H12: this daily formulation cannot satisfy the governed intraday MG output contract."
     },
     {
       "id": "H05",
@@ -155,6 +161,24 @@
       "data_dependency": "RAW OHLC plus an externally-verifiable, publicly documented IDX price-limit percentage rule; status may resolve to UNAVAILABLE",
       "status": "PROPOSED",
       "priority": "lowest"
+    },
+    {
+      "id": "H12",
+      "family": "contract-shaped composite (multi-day precursor + intraday ignition)",
+      "title": "MG requires a multi-day absorption precursor to meet an intraday ignition carrying dynamically derived targets",
+      "causal_rationale": "Two independent facts force this shape. (1) Branch 07 Formula Research Handbook (Drive 1sQu0l2qwvsjItmBycRh3siMajKEQknHOMBLlBQd3I-Q) section 3 fixes EARLY_POTENTIAL / MULAI GENIT as publishing CODE|PRICE|CHG%|TP-1|TP-2 every 5 minutes with per-snapshot dynamic targets, so a candidate measured in days cannot satisfy the contract regardless of how well it scores. (2) The governed full-December replay (Drive 12uivFUAhM-H01ANXQbjdPmi8qCMOyMQ-, 16,929 ticker-days) shows every standalone component except F02A SELL_RESILIENCE carrying negative mean forward return, with F05A SESSION_OPEN_RECOVERY the worst -- so the edge, if any, is not in an isolated ignition trigger but in the conjunction of prior-state context with a same-day constructive path. The testable claim is that conditioning an intraday ignition on a multi-day absorption precursor separates it from the negative standalone baseline.",
+      "proposed_features": [
+        "absorption_streak_days: consecutive prior days where trailing return is below its learned cutoff while flow persistence is above its learned cutoff (days < D only)",
+        "intraday constructive run: consecutive most-recent bars making higher lows within day D, bars 0..t only",
+        "close_location within the day-so-far range at the snapshot bar",
+        "volatility_unit_pct: median prior-window daily range, the scale for both targets",
+        "tp1/tp2 = price + learned quantile multiple * volatility_unit, multiples learned from the realized favourable-excursion distribution on discovery",
+        "ten failure/lookalike gates counted rather than silently dropped: stale_or_partial_data, no_precursor_context, absorption_streak_too_short, thin_liquidity, mature_chase, one_bar_spike_no_continuation, effort_without_response, rejection_giveback, unstable_path, no_remaining_room"
+      ],
+      "data_dependency": "OHLC plus trade_value (RAW_Aux2) and nbss (RAW_OpenInterest) at base bar resolution, availability-gated by formula_replay.packet_to_formula_bars where a physical NBSS zero yields flow_available=False and is therefore UNKNOWN, never neutral. Canonical VWAP is not synthesized and any VWAP-dependent variant stays UNKNOWN.",
+      "status": "CODE_READY_AWAITING_EXECUTION",
+      "priority": "high",
+      "implementation": "src/a1clean/formula_research/claude_mg_intraday_v2.py, 12 unit tests in tests/test_claude_mg_intraday_v2.py including an explicit leakage test that runs identical history against two opposite futures and requires the fired bar and every published field to match. Forward horizons are regular bars 5/15/30/60, the same axis as the GPT lane's December replay, so the lanes compare head-to-head. Queued as GitHub Actions run 35089709020; no metric exists yet and none is claimed. See RESEARCH_LEDGER.md Entry 005."
     }
   ]
 }
