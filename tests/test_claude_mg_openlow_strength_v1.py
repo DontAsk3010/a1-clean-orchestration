@@ -6,6 +6,7 @@ from a1clean.formula_research.claude_mg_openlow_strength_v1 import (
     DEFAULT_RUNGS,
     _day_frame,
     _hhmm,
+    _slot_hhmm,
     _money,
     _next_rungs,
     _reject_oos_source,
@@ -114,7 +115,8 @@ def _payload(result, reached):
                 "strength_count": int(reached),
                 "signals": [
                     {
-                        "time": "09:10",
+                        "slot": "09:10",
+                        "first_detectable_time": "09:12",
                         "ticker": "AGRO",
                         "price": 234.0,
                         "chg_pct": 3.54,
@@ -138,10 +140,20 @@ def test_report_matches_the_owner_header_and_row_shape():
     assert "TP1✅" in text
 
 
-def test_strength_only_report_drops_days_with_no_strong_signal():
+def test_a_day_with_no_qualifying_signal_renders_the_governed_zero_match_symbol():
+    """Sub-Sub Master section 7: a valid scan with zero results renders ========
+    rather than vanishing, so a real zero cannot be confused with a failure."""
     text = render_report(_payload("TP1", False), strength_only=True)
-    assert "03 DEC" not in text
+    assert "03 DEC" in text
+    assert "========" in text
     assert "STRONG≥10% ONLY" in text
+
+
+def test_displayed_time_is_the_publication_slot_not_the_bar_minute():
+    assert _slot_hhmm("2024-12-03 09:01:00") == "09:00"
+    assert _slot_hhmm("2024-12-03 09:07:00") == "09:05"
+    assert _slot_hhmm("2024-12-03 10:59:00") == "10:55"
+    assert _slot_hhmm(None) == "??:??"
 
 
 def test_strong_signals_are_starred_and_kept():

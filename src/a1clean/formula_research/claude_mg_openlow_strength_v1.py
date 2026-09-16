@@ -109,6 +109,17 @@ def _day_frame(bars: Sequence[Mapping[str, Any]]) -> dict[str, Any] | None:
     }
 
 
+def _slot_hhmm(timestamp: str | None, minutes: int = 5) -> str:
+    """Telegram Sub-Sub Master section 4/7: for periodic snapshot output the
+    displayed HH:MM is the PUBLICATION SLOT identity, not the bar minute. A
+    signal may become true between slots; the next snapshot publishes it."""
+    raw = _hhmm(timestamp)
+    if raw == "??:??":
+        return raw
+    hour, minute = raw.split(":")
+    return f"{hour}:{(int(minute) // minutes) * minutes:02d}"
+
+
 def _hhmm(timestamp: str | None) -> str:
     if not timestamp or " " not in timestamp:
         return "??:??"
@@ -250,7 +261,8 @@ def analyse(
 
                 by_date[date]["signals"].append(
                     {
-                        "time": _hhmm(bar.get("timestamp")),
+                        "slot": _slot_hhmm(bar.get("timestamp")),
+                        "first_detectable_time": _hhmm(bar.get("timestamp")),
                         "ticker": _ticker,
                         "price": price,
                         "chg_pct": chg,
@@ -270,7 +282,7 @@ def analyse(
     all_signals: list[Mapping[str, Any]] = []
     for date in sorted(by_date):
         entry = by_date[date]
-        signals = sorted(entry["signals"], key=lambda s: (s["time"], s["ticker"]))
+        signals = sorted(entry["signals"], key=lambda s: (s["slot"], s["ticker"]))
         all_signals.extend(signals)
         days_out.append(
             {
@@ -373,14 +385,20 @@ def render_report(payload: Mapping[str, Any], *, strength_only: bool) -> str:
 
     for day in payload.get("days", []):
         signals = [s for s in day["signals"] if s[key]] if strength_only else day["signals"]
-        if strength_only and not signals:
-            continue
         parts = day["date"].split("-")
         label = f"{parts[2]} {months.get(parts[1], parts[1])}"
         lines.append(
             f"{label} | OPEN=LOW SCOUT {day['scout_count']} | SIGNAL {day['signal_count']} "
             f"| TP1 {day['tp1_count']} | TP2 {day['tp2_count']} | ≥{target}% {day['strength_count']}"
         )
+        if not signals:
+            # Telegram Sub-Sub Master section 7: a valid scan with zero results
+            # renders this symbol. It must never be used to disguise a feed,
+            # scanner, bridge or delivery failure -- this run completed, so the
+            # zero is a real zero.
+            lines.append("========")
+            lines.append("")
+            continue
         for s in signals:
             price = _money(s.get("price"))
             tp1 = _money(s.get("tp1_price"))
@@ -388,7 +406,7 @@ def render_report(payload: Mapping[str, Any], *, strength_only: bool) -> str:
             mark = {"TP2": "TP2✅", "TP1": "TP1✅", "FAIL": "FAIL"}[s["result"]]
             flag = " ★" if s[key] else ""
             lines.append(
-                f"{s['time']} {s['ticker']:<5}| {price:>8} | {s['chg_pct']:+6.2f}% | "
+                f"{s['slot']} {s['ticker']:<5}| {price:>8} | {s['chg_pct']:+6.2f}% | "
                 f"{tp1:>8} | {tp2:>8} | {mark}{flag}"
             )
         lines.append("")

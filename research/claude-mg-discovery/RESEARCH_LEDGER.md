@@ -980,3 +980,68 @@ stays absent.
 - **Paths**: run
   `https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35105451803`;
   artifact `claude-mg-openlow-strength-35105451803` (ID `10450401781`).
+
+---
+
+## Entry 013 — 2026-09-16 — Telegram Sub-Sub Master read at last. Three output-contract errors found in my own work.
+
+Owner challenged whether I actually understood the Telegram report contract.
+I did not. Every report built in this lane so far took its format from a single
+summary line in the Branch 07 handbook §3. The real output contract lives in
+Branch 13, in **`00_A1_CLEAN_TELEGRAM_SUB_SUB_MASTER_HANDBOOK_ACTIVE_20260910`**
+(Drive `1qmnjMH4q-8USALhndTz2CAGaGihD7Orhk9lcm-5HqbM`, `VERSION 20260910 V1`),
+which Entry 003 recorded as unread and which I then failed to go read for ten
+further entries. Now read in full to `END`.
+
+### Error 1 — displayed time was the bar minute, not the publication slot
+
+§4: *"For periodic snapshot outputs, displayed HH:MM is the governed
+AS_OF/publication-slot identity."* §7: *"A signal may become true between
+publication slots. The next Telegram snapshot publishes the latest validated
+state; the slot time does not necessarily equal first-detectable signal time."*
+
+Every report I produced showed raw bar minutes — `09:01`, `09:03`, `10:55`.
+Fixed: rows now render the **5-minute slot**, while the JSON retains
+`first_detectable_time` alongside `slot` so the distinction §7 draws is
+preserved as evidence rather than collapsed.
+
+### Error 2 — zero-match days were silently omitted
+
+§7: a valid zero-match renders `========`, and *"must never disguise feed
+failure, stale data, scanner failure, bridge failure or Telegram delivery
+failure."*
+
+The December feed (Entry 010) simply dropped the 12 dates that published
+nothing. A reader could not distinguish "scan ran, genuinely nothing qualified"
+from "the system was down" — precisely the confusion §7 forbids. Fixed: a day
+with no qualifying rows now renders `========`.
+
+### Error 3 — my own gate contradicts the MG definition
+
+§6: *"'Early' in MULAI GENIT refers to development stage, not a fixed morning
+clock."*
+
+Entry 012's `max_bar_index 10` gate is empirically the strongest separator and
+lifts precision to 51.81% — but it effectively turns MG into a morning-only
+family, which the governing definition explicitly rejects. **Recording this
+rather than keeping quiet because the number is good.** The separator is real;
+the *implementation* as a clock gate is not contract-compliant. It should be
+re-expressed as a development-stage condition (bars since the day's first
+qualifying state, or progress achieved per unit of elapsed session) that
+captures the same behaviour without imposing a clock. Until then the 51.81%
+figure carries this caveat.
+
+### Confirmed correct
+
+`CODE | PRICE | CHG% | TP-1 | TP-2` (§6A), **no TP-3 in automatic MG** (§6A),
+TP values not computed Telegram-side (§6A), no silent zero substitution (§3),
+and availability distinct from value. Also newly learned and not yet used:
+§6B–§6E give the other four Jalur A families their own distinct column
+contracts (SIAP GAS adds ENTRY/SL/HOLD, MAU NGACIR adds ENTRY/SL, NGINTIP ARA
+is `CODE | PRICE | CHG% | PRIO | SL`, MAU NEMPEL is `CODE | PRIO | PRICE | SL |
+STATUS` with no TP at all).
+
+- **Result**: **CONTRACT ERRORS CORRECTED (2 of 3).** Error 3 is a design
+  conflict recorded openly, not silently retained.
+- **Paths**: `src/a1clean/formula_research/claude_mg_openlow_strength_v1.py`,
+  `tests/test_claude_mg_openlow_strength_v1.py`.
