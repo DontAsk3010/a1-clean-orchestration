@@ -1,0 +1,9 @@
+{
+  "schema": "A1_TELEGRAM_OPENLOW_V18_REQUEST_V1",
+  "enabled": true,
+  "entry_budget_idr": 5000000,
+  "entry_policy": "per_new_signal_episode",
+  "exit_policy": "first_5min_invalidation_else_eod",
+  "data_access": "durable_cache_only_no_raw_reread",
+  "run_revision": 1
+}
