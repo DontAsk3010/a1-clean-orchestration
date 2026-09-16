@@ -262,3 +262,121 @@ left unedited above, as required.
   `https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35070450297`;
   artifact `claude-mg-absorption-wake-v1-35070450297` (ID `10439505834`);
   code/workflow/request paths unchanged from Entry 002.
+
+---
+
+## Entry 004 — 2026-09-16 — Drive authority + GPT-lane December evidence read; two Entry 003 gaps closed, one architectural mismatch found
+
+Owner granted Drive search access to locate material relevant to this lane.
+Read, in full to `END`: **`00_A1_CLEAN_FORMULA_RESEARCH_HANDBOOK_ACTIVE`**
+(Drive ID `1sQu0l2qwvsjItmBycRh3siMajKEQknHOMBLlBQd3I-Q`, `VERSION: 20260915 V1`)
+— the Branch 07 handbook required by Master §9A step 4, which Entry 003
+recorded as unread. Also read in full the GPT lane's governed December replay
+result `CANDIDATE_FORMULA_REPLAY__FORMULA_REPLAY_FULL_DES2024_20260915_01.json`
+(Drive ID `12uivFUAhM-H01ANXQbjdPmi8qCMOyMQ-`, schema
+`A1_CANDIDATE_FORMULA_CAUSAL_REPLAY_RESULT_V1`, status
+`RESEARCH_RESULT_NOT_CANONICAL`).
+
+### Entry 003 gap 1 (lane unregistered) — REFRAMED, not a defect of this lane
+
+The Branch 07 handbook §3 names the **CURRENT PRIMARY FAMILY = EARLY_POTENTIAL /
+👀 MULAI GENIT**, with output contract `CODE | PRICE | CHG% | TP-1 | TP-2`,
+first snapshot 09:00 WIB then **every 5 minutes**, TP-1/TP-2 dynamic per
+snapshot and never Telegram-side. So MG is the governed primary target, and
+this lane is aimed at the right family. What remains true is that
+`research/claude-mg-discovery` is still not named in Drive governance (§8 names
+only `formula/current-clean-research-v1`); the lane's *subject* is governed,
+its *branch* is not yet registered.
+
+### Entry 003 gap 2 (missing behavior-to-formula specification) — CLOSED, was overstated
+
+Entry 003 implied a completed behavior atlas was owed first. That was wrong in
+context. Current Execution shows Machine 1 semantic reading is only at 123/892
+ticker paths for 2024-12-02 alone, and the 20260915 override authorizes formula
+research explicitly **without waiting for Machine 1**. Branch 07 handbook §11
+states candidates are "derived from handbook behavior requirements and current
+internal candidate-state evidence" — i.e. the specification source is handbook
+§4 **REQUIRED MG RESEARCH DOMAINS** plus F01–F06 replay evidence, not a
+finished atlas. Handbook §4 domains: prior state; initiation quality;
+multi-bar/path persistence; price/high-low lifecycle; participation/activity;
+effort-versus-response; volatility/range development; progress retention;
+extension/remaining room; tradability/liquidity; valid flow; market/sector
+context where source-supported; proven microstructure only when physically
+available. Required failure/lookalike controls: one-bar spike without
+continuation; mature/high-CHG chase; large effort with poor response;
+rejection/giveback; thin-liquidity jump; unstable path; stale/partial/invalid
+data.
+
+### Entry 003 gap 3 (NBSS eligibility) — CLOSED, exact governed policy located
+
+The December replay binds it explicitly:
+`flow_availability_policy = SOURCE_SCOPED_HISTORICAL_SEMANTICS_PLUS_ROW_NBSS_NONZERO_POPULATION_PROOF;`
+`PHYSICAL_ZERO_REMAINS_UNKNOWN_UNTIL_INDEPENDENT_AVAILABILITY_IS_BOUND`, with
+field mapping `nbss = RAW_OPENINT_PHYSICAL`, `trade_value = RAW_AUX2_PHYSICAL`.
+A physical NBSS zero is **UNKNOWN**, not a real zero. Claude's
+`claude_absorption_wake_v1` leans on NBSS flow persistence and must be audited
+against this rule before any metric it produces is treated as meaningful; if it
+reads physical zeros as genuine low flow, its absorption leg is measuring an
+availability artifact, not behavior.
+
+### NEW FINDING — architectural mismatch between this lane's candidate and the MG contract
+
+The governed MG family is **intraday**: published every 5 minutes from 09:00
+WIB, with per-snapshot dynamic TP-1/TP-2. The GPT lane's replay matches that
+shape — `forward_horizons_regular_bars: [5, 15, 30, 60]`, evaluated on
+1,350,134 eligible regular-session rows. Claude's Absorption-Then-Wake v1 is a
+**daily** construct (`precursor_window_days=8`, `horizons_days=1,3,5,8`) and
+emits no TP-1/TP-2 at all. A multi-day precursor is legitimate and expected
+(handbook §4 "prior state"), and F06 already occupies that role, but a
+candidate whose ignition and outcome are measured in days cannot satisfy a
+5-minute snapshot publication contract as written. **This is the most material
+problem found so far, and it is structural, not a threshold-tuning issue.**
+
+### GPT-lane December baseline now available to this lane as control evidence
+
+Same source as Claude's own run (`Raw Des 02-31-2024.csv`, Drive ID
+`1wvBmhpQIV-evJJOPN_g8nks3KZBzmVHC`, sha256 `5bddb43f...4712c`), generation
+`BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01`, 16,929 ticker-day packets,
+1,621,335 raw rows, `winner_only_filter_used: false`,
+`future_data_used_for_candidate_state: false`. Positive-forward-rate and mean
+forward return by component (5 / 15 / 30 / 60 regular bars):
+
+| component | pos rate 5→60 | mean fwd return |
+|---|---|---|
+| F01A BUY_STALL_BASIC | 21.4% → 30.9% | negative at every horizon |
+| F01B BUY_STALL_STALE_HIGH_EFFORT | 22.7% → 31.7% | negative at every horizon |
+| F02A SELL_RESILIENCE_BASIC | 32.0% → 35.6% | **positive at 5/15/30**, negative at 60 |
+| F03A NEW_HIGH_EVENT | 21.7% → 30.8% | negative (≈ −0.0025 to −0.0028) |
+| F04A EARLY_STRENGTH_RETAINED | 12.6% → 25.1% | negative (≈ −0.0033 to −0.0036) |
+| F04B LATE_LIFT | 10.6% → 23.0% | negative |
+| F05A SESSION_OPEN_RECOVERY | 16.9% → 26.3% | **worst** (≈ −0.0046 to −0.0053) |
+
+Reading: every standalone component except F02A SELL_RESILIENCE has negative
+mean forward return on the full universe — empirical support for handbook §9's
+refusal to accept standalone BUY_STALL / NEW_HIGH / EARLY_STRENGTH / RECOVERY
+as MG. F05A SESSION_OPEN_RECOVERY being the worst is a direct warning for any
+"decline → stabilise → ignition" shape, which is close to Claude's H04 recovery
+framing. F02A's mild positive edge is the only standalone signal pointing the
+right way and deserves attention as a *component*, not as MG.
+
+Availability gaps in that same evidence, recorded as UNKNOWN and not zero:
+`F02B_SELL_RESILIENCE_ACCEPTANCE_RENEWAL` and `F05B_CANONICAL_VWAP_RECOVERY`
+are **100% UNKNOWN** across all 1,350,134 rows (VWAP is not synthesized);
+`F04B_LATE_LIFT` is 84% UNKNOWN; `F04A` 25% UNKNOWN; `F05A` 10% UNKNOWN. Any
+Claude-side union/intersection against these components must carry the UNKNOWN
+mass explicitly rather than treating it as FALSE.
+
+- **Result**: **AUTHORITY AND BASELINE ESTABLISHED — CANDIDATE SHAPE IN
+  QUESTION.** No Claude formula metric is claimed here; Entry 003's run metrics
+  remain UNAVAILABLE.
+- **Next step**: decide the candidate's time base before spending another
+  governed run. Either re-express absorption-then-wake as a multi-day precursor
+  feeding a **5-minute intraday ignition + dynamic TP-1/TP-2**, matching the MG
+  contract, or keep the daily version explicitly as a non-MG swing-context
+  study and say so. Then audit the NBSS physical-zero handling, and compare
+  Claude candidates against the F01–F06 table above as failure controls and
+  near-twin evidence rather than re-deriving them.
+- **Paths**: Branch 07 handbook `1sQu0l2qwvsjItmBycRh3siMajKEQknHOMBLlBQd3I-Q`;
+  December replay `12uivFUAhM-H01ANXQbjdPmi8qCMOyMQ-`; Branch 07 workspace
+  `1ePhRnCs0ZnsgI-_kf19lhFpOr4C93D4H`; audit/readback
+  `1uQKSZD8KbOZ2j3moyZiH1EuJPlEhEAuC`.
