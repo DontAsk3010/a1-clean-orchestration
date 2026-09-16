@@ -71,17 +71,19 @@ jobs:
             --report-output 'claude-openlow-mining-report.txt' `
             --feed-output 'claude-openlow-screening-feed.txt' `
             --from-time '09:00' `
-            --slot-minutes 5
+            --slot-minutes 5 `
+            --capital-per-signal $req.capital_per_signal
           if ($LASTEXITCODE -ne 0) { throw "CLAUDE_OPENLOW_MINING_RUN_FAILED:$LASTEXITCODE" }
 
       - name: Print mining report to log
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
+          Write-Host '===== OPEN=LOW SCREENING FEED (contoh 2 hari pertama) ====='
+          Get-Content -LiteralPath 'claude-openlow-screening-feed.txt' -Encoding UTF8 -TotalCount 160 | Write-Host
+          Write-Host '(feed lengkap ada di artifact; log dipotong supaya blok mining di bawah ini terbaca)'
           Write-Host '===== OPEN=LOW PATTERN MINING ====='
           Get-Content -LiteralPath 'claude-openlow-mining-report.txt' -Encoding UTF8 | Write-Host
-          Write-Host '===== OPEN=LOW SCREENING FEED (per day, per 5-min slot from 09:00) ====='
-          Get-Content -LiteralPath 'claude-openlow-screening-feed.txt' -Encoding UTF8 | Write-Host
           Write-Host '===== END ====='
 
       - name: Upload artifacts

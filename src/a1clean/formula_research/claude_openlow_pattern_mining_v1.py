@@ -60,9 +60,12 @@ from ..pattern_discovery.source_reader import GovernedSourceReader
 from ..google_drive import build_drive_api
 from .formula_replay import packet_to_formula_bars
 from .claude_mg_openlow_strength_v1 import (
+    DEFAULT_CAPITAL_PER_SIGNAL,
     MIN_BARS,
     _day_frame,
+    _forward_path,
     _hhmm,
+    _position,
     _reject_oos_source,
     _signal_features,
     _slot_hhmm,
@@ -107,7 +110,13 @@ def _bucket_of(value: float | None, edges: Sequence[float]) -> int | None:
     return len(edges)
 
 
-def _collect(source_name: str, *, min_chg_pct: float, strength_target_pct: float) -> list[dict[str, Any]]:
+def _collect(
+    source_name: str,
+    *,
+    min_chg_pct: float,
+    strength_target_pct: float,
+    capital: float = DEFAULT_CAPITAL_PER_SIGNAL,
+) -> list[dict[str, Any]]:
     api = build_drive_api(read_write=False)
     reader = GovernedSourceReader(api, source_name=source_name)
 
@@ -152,6 +161,9 @@ def _collect(source_name: str, *, min_chg_pct: float, strength_target_pct: float
                 forward = bars[t + 1 :]
                 highs = [float(b["high"]) for b in forward if b.get("high") is not None]
                 max_after = max(highs) if highs else price
+                path = _forward_path(price, forward)
+                pos = _position(price, capital)
+                shares = pos["shares"] if pos else 0.0
                 rows.append(
                     {
                         "ticker": ticker,
@@ -168,6 +180,17 @@ def _collect(source_name: str, *, min_chg_pct: float, strength_target_pct: float
                         "prior_day_return_pct": prior_ret,
                         "reached_target": (max_after / prev_close - 1.0) * 100.0 >= strength_target_pct,
                         "max_chg_after_pct": (max_after / prev_close - 1.0) * 100.0,
+                        # Outcome in rupiah, from the signal price, exiting at the
+                        # same-day close. No target and no exit cleverness: a cell
+                        # that is positive here is profitable on its own merits.
+                        "eod_pct": path["eod_pct"],
+                        "mfe_pct": path["mfe_pct"],
+                        "mae_pct": path["mae_pct"],
+                        "lots": pos["lots"] if pos else 0.0,
+                        "cost_rp": pos["cost"] if pos else 0.0,
+                        "pl_eod_rp": shares * (path["eod_price"] - price),
+                        "max_profit_rp": shares * (path["best_price"] - price),
+                        "tradeable": pos is not None,
                         # The feed republishes while a ticker still qualifies; the
                         # outcome study collapses to the first appearance so one
                         # opportunity cannot count as many. Same rows, two readings.
@@ -192,6 +215,7 @@ def _profile(rows: Sequence[Mapping[str, Any]], feature: str, buckets: int) -> d
         group = grouped[b]
         hit = sum(1 for r in group if r["reached_target"])
         vals = [r[feature] for r in group if r.get(feature) is not None]
+        pls = [r["pl_eod_rp"] for r in group]
         out.append(
             {
                 "bucket": b,
@@ -199,6 +223,9 @@ def _profile(rows: Sequence[Mapping[str, Any]], feature: str, buckets: int) -> d
                 "range_low": min(vals) if vals else None,
                 "range_high": max(vals) if vals else None,
                 "p_reach_target": hit / len(group) if group else None,
+                "mean_pl_rp": sum(pls) / len(pls) if pls else None,
+                "total_pl_rp": sum(pls),
+                "p_profitable": sum(1 for v in pls if v > 0) / len(pls) if pls else None,
             }
         )
     return {"usable": True, "edges": edges, "buckets": out}
@@ -213,6 +240,7 @@ def _mine_cells(
     max_combo: int,
 ) -> list[dict[str, Any]]:
     base_rate = sum(1 for r in rows if r["reached_target"]) / len(rows) if rows else 0.0
+    base_mean_pl = sum(r["pl_eod_rp"] for r in rows) / len(rows) if rows else 0.0
     edge_map = {
         f: _quantile_edges([r[f] for r in rows if r.get(f) is not None], buckets) for f in features
     }
@@ -231,6 +259,8 @@ def _mine_cells(
                     continue
                 hit = sum(1 for r in group if r["reached_target"])
                 p = hit / len(group)
+                pls = [r["pl_eod_rp"] for r in group]
+                mean_pl = sum(pls) / len(pls)
                 ranges = {}
                 for f in combo:
                     vals = [r[f] for r in group if r.get(f) is not None]
@@ -241,10 +271,18 @@ def _mine_cells(
                         "support": len(group),
                         "p_reach_target": p,
                         "lift_pp": (p - base_rate) * 100.0,
+                        "mean_pl_rp": mean_pl,
+                        "total_pl_rp": sum(pls),
+                        "p_profitable": sum(1 for v in pls if v > 0) / len(pls),
+                        "mean_pl_lift_rp": mean_pl - base_mean_pl,
+                        "mean_max_profit_rp": sum(r["max_profit_rp"] for r in group) / len(group),
                         "feature_ranges": ranges,
                     }
                 )
-    cells.sort(key=lambda c: (c["p_reach_target"], c["support"]), reverse=True)
+    # Ranked by money per signal. Entry 016 established that a touch statistic
+    # whose threshold overlaps the entry condition cannot fail, so ranking on
+    # P(reach target) would rediscover the same illusion in cell form.
+    cells.sort(key=lambda c: (c["mean_pl_rp"], c["support"]), reverse=True)
     return cells
 
 
@@ -257,9 +295,15 @@ def analyse(
     min_support: int,
     max_combo: int,
     top_cells: int,
+    capital: float = DEFAULT_CAPITAL_PER_SIGNAL,
 ) -> dict[str, Any]:
     _reject_oos_source(source_name)
-    rows = _collect(source_name, min_chg_pct=min_chg_pct, strength_target_pct=strength_target_pct)
+    rows = _collect(
+        source_name,
+        min_chg_pct=min_chg_pct,
+        strength_target_pct=strength_target_pct,
+        capital=capital,
+    )
     if not rows:
         return {
             "schema": "A1_CLAUDE_OPENLOW_PATTERN_MINING_V1",
@@ -285,6 +329,9 @@ def analyse(
         "signals": len(study),
         "published_rows_all_bars": len(rows),
         "base_rate_p_reach_target": base_rate,
+        "capital_per_signal": capital,
+        "base_mean_pl_rp": (sum(r["pl_eod_rp"] for r in study) / len(study)) if study else None,
+        "base_total_pl_rp": sum(r["pl_eod_rp"] for r in study),
         "decile_profiles": {f: _profile(study, f, buckets) for f in FEATURES},
         "top_cells": cells[:top_cells],
         "cells_meeting_support": len(cells),
@@ -339,13 +386,29 @@ def render_screening_feed(
             if not hits:
                 lines.append(f"[{slot}] ========")
                 continue
+            # One CODE per slot. A 5-minute slot contains five 1-minute bars, so
+            # a ticker that still qualifies on each of them produced five identical
+            # rows in the first run's feed. The Telegram contract publishes a
+            # ticker once per snapshot, and the state that snapshot reports is the
+            # LAST bar inside it, so later bars replace earlier ones.
+            latest: dict[str, Mapping[str, Any]] = {}
+            for h in hits:
+                prior = latest.get(h["ticker"])
+                if prior is None or h["first_detectable_time"] >= prior["first_detectable_time"]:
+                    latest[h["ticker"]] = h
             body = "  ".join(
                 f"{h['ticker']} {round(h['price']):,}".replace(",", ".") + f" {h['chg_at_signal_pct']:+.2f}%"
-                for h in sorted(hits, key=lambda x: x["ticker"])
+                for h in sorted(latest.values(), key=lambda x: x["ticker"])
             )
             lines.append(f"[{slot}] {body}")
         lines.append("")
     return "\n".join(lines)
+
+
+def _rp(value: float) -> str:
+    whole = int(round(abs(value)))
+    body = f"{whole:,}".replace(",", ".")
+    return f"-{body}" if value < 0 else body
 
 
 def render(payload: Mapping[str, Any], *, top_cells: int) -> str:
@@ -353,25 +416,30 @@ def render(payload: Mapping[str, Any], *, top_cells: int) -> str:
         return f"(no signals for {payload.get('source_name')} — nothing to mine)"
     base = payload["base_rate_p_reach_target"]
     target = payload["strength_target_pct"]
+    cap = payload.get("capital_per_signal") or 0.0
     lines = [
         f"OPEN=LOW PATTERN MINING — {payload['source_name']}",
         f"signals={payload['signals']}  base P(reach {target:.0f}%)={base:.3f}  "
         f"cells meeting support={payload['cells_meeting_support']}",
+        f"ENTRY Rp{_rp(cap)} per sinyal, keluar di close hari itu. "
+        f"Base rata-rata P/L={_rp(payload.get('base_mean_pl_rp') or 0.0)}  "
+        f"total={_rp(payload.get('base_total_pl_rp') or 0.0)}",
         "",
-        "--- SHAPE OF EACH FEATURE (decile buckets) ---",
+        "--- BENTUK TIAP FITUR (bucket desil, hasil dalam rupiah) ---",
     ]
     for feature, prof in payload["decile_profiles"].items():
         if not prof.get("usable"):
             lines.append(f"{feature}: UNUSABLE ({prof.get('reason')}, n={prof.get('n')})")
             continue
-        cells = "  ".join(
-            f"[{b['range_low']:.2f}..{b['range_high']:.2f}] n={b['n']} p={b['p_reach_target']:.2f}"
-            for b in prof["buckets"]
-        )
         lines.append(f"{feature}:")
-        lines.append(f"  {cells}")
+        for b in prof["buckets"]:
+            lines.append(
+                f"  [{b['range_low']:>10.2f} .. {b['range_high']:>10.2f}]  n={b['n']:>5}  "
+                f"untung={b['p_profitable']:.2f}  rata2 P/L={_rp(b['mean_pl_rp']):>12}  "
+                f"total={_rp(b['total_pl_rp']):>14}"
+            )
     lines.append("")
-    lines.append(f"--- TOP RECURRING CELLS (support >= {payload['min_support']}) ---")
+    lines.append(f"--- CELL BERULANG TERBAIK, diurut rata-rata rupiah (support >= {payload['min_support']}) ---")
     for c in payload["top_cells"][:top_cells]:
         spec = "  ".join(
             f"{f}=[{c['feature_ranges'][f][0]:.2f}..{c['feature_ranges'][f][1]:.2f}]"
@@ -379,8 +447,11 @@ def render(payload: Mapping[str, Any], *, top_cells: int) -> str:
             if c["feature_ranges"].get(f)
         )
         lines.append(
-            f"n={c['support']:>4}  p={c['p_reach_target']:.3f}  lift={c['lift_pp']:+.1f}pp  {spec}"
+            f"n={c['support']:>4}  untung={c['p_profitable']:.3f}  "
+            f"rata2 P/L={_rp(c['mean_pl_rp']):>12}  total={_rp(c['total_pl_rp']):>14}  "
+            f"vs base={_rp(c['mean_pl_lift_rp']):>12}"
         )
+        lines.append(f"        {spec}")
     return "\n".join(lines)
 
 
@@ -416,6 +487,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         args.source_name,
         min_chg_pct=args.min_chg_pct,
         strength_target_pct=args.strength_target_pct,
+        capital=args.capital_per_signal,
         buckets=args.buckets,
         min_support=args.min_support,
         max_combo=args.max_combo,

@@ -23,6 +23,11 @@ def _row(chg, bar, prior_range, reached, **kw):
         "price": 500.0,
         "prior_day_return_pct": 1.0,
         "reached_target": reached,
+        # Mining ranks on money now, so every row carries a rupiah result.
+        # The default ties it to the label only so existing shape tests stay
+        # readable; tests about money set it explicitly.
+        "pl_eod_rp": 250_000.0 if reached else -150_000.0,
+        "max_profit_rp": 400_000.0 if reached else 50_000.0,
     }
     base.update(kw)
     return base
@@ -136,3 +141,68 @@ def test_several_tickers_share_one_slot_rather_than_taking_a_line_each():
     }
     line = [l for l in render_screening_feed(payload).splitlines() if l.startswith("[09:00]")][0]
     assert line.index("AAAA") < line.index("BBBB")  # sorted within the slot
+
+
+def test_a_slot_publishes_each_code_once_not_once_per_minute_bar():
+    """A 5-minute slot holds five 1-minute bars. The first run's feed printed
+    'AKRA ... AKRA ... AKRA' because every qualifying bar became its own entry;
+    the contract publishes one CODE per snapshot."""
+    from a1clean.formula_research.claude_openlow_pattern_mining_v1 import render_screening_feed
+
+    payload = {
+        "source_name": "Raw Des 02-31-2024.csv",
+        "signal_rows": [
+            {"date": "2024-12-03", "slot": "09:00", "ticker": "AKRA", "price": 1270.0,
+             "chg_at_signal_pct": 3.67, "first_detectable_time": "09:01"},
+            {"date": "2024-12-03", "slot": "09:00", "ticker": "AKRA", "price": 1275.0,
+             "chg_at_signal_pct": 4.08, "first_detectable_time": "09:04"},
+            {"date": "2024-12-03", "slot": "09:00", "ticker": "AWAN", "price": 326.0,
+             "chg_at_signal_pct": 4.49, "first_detectable_time": "09:02"},
+        ],
+    }
+    text = render_screening_feed(payload)
+    slot_line = next(ln for ln in text.splitlines() if ln.startswith("[09:00]"))
+    assert slot_line.count("AKRA") == 1
+    assert slot_line.count("AWAN") == 1
+    # The snapshot reports the state at its last bar, so 1.275 wins over 1.270.
+    assert "1.275" in slot_line and "1.270" not in slot_line
+
+
+def test_cells_are_ranked_by_money_not_by_touch_probability():
+    """Entry 016: a touch threshold that overlaps the entry condition cannot
+    fail. Ranking cells on P(reach target) would rediscover that illusion in
+    cell form, so the ranking key must be rupiah."""
+    from a1clean.formula_research.claude_openlow_pattern_mining_v1 import _mine_cells
+
+    rows = []
+    # Group A: always "reaches target" but bleeds money -- the Entry 016 trap.
+    # Values are spread, not repeated: a bucketer fed one constant per group
+    # collapses both into a single cell and the test would prove nothing.
+    for i in range(30):
+        rows.append(_row(8.0 + i * 0.1, 1 + i % 3, 9.0, True,
+                         pl_eod_rp=-400_000.0, max_profit_rp=0.0))
+    # Group B: reaches target less often but actually pays.
+    for i in range(30):
+        rows.append(_row(3.0 + i * 0.1, 11 + i % 3, 4.0, False,
+                         pl_eod_rp=350_000.0, max_profit_rp=600_000.0))
+
+    cells = _mine_cells(rows, ("chg_at_signal_pct", "bar_index"), buckets=2,
+                        min_support=10, max_combo=2)
+    assert cells, "expected at least one cell to clear the support floor"
+    best = cells[0]
+    assert best["mean_pl_rp"] > 0
+    # The money-losing group scores a perfect touch rate and must still lose.
+    assert best["p_reach_target"] < 1.0
+    assert best["p_profitable"] == 1.0
+
+
+def test_a_bucket_reports_what_it_paid_not_only_how_often_it_touched():
+    from a1clean.formula_research.claude_openlow_pattern_mining_v1 import _profile
+
+    rows = [_row(1.0 + i * 0.5, 5, 5.0, i > 10, pl_eod_rp=(i - 10) * 50_000.0) for i in range(20)]
+    prof = _profile(rows, "chg_at_signal_pct", 2)
+    assert prof["usable"]
+    for bucket in prof["buckets"]:
+        assert "mean_pl_rp" in bucket and "p_profitable" in bucket and "total_pl_rp" in bucket
+    lo, hi = prof["buckets"][0], prof["buckets"][-1]
+    assert lo["mean_pl_rp"] < hi["mean_pl_rp"]
