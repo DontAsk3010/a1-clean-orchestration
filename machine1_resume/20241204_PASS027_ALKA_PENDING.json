@@ -1,0 +1,44 @@
+{
+  "role": "NON_AUTHORITATIVE_CONTINUITY_MARKER",
+  "authority_note": "Drive atomic checkpoint and Dispatch Registry remain authoritative. This file must never advance a checkpoint by itself.",
+  "trading_date": "2024-12-04",
+  "worker_id": "M1_20241204_20260914_CHAT02",
+  "latest_verified_at_creation": "PASS027_DATE04",
+  "last_verified_ticker": "ALII",
+  "completed_ticker_context_paths": 27,
+  "actual_source_rows_read": 3103,
+  "next_exact_resume": {
+    "ticker": "ALKA",
+    "semantic_bundle": "Raw Des 02-31-2024__SEMANTIC_0009.jsonl",
+    "bundle_line_number": 216,
+    "source_row_first": 60396,
+    "source_row_last": 60415,
+    "physical_line_first": 60397,
+    "physical_line_last": 60416,
+    "actual_rows": 20,
+    "first_clock_time": "09:00:00",
+    "last_clock_time": "16:13:00"
+  },
+  "canonical_source": {
+    "name": "Raw Des 02-31-2024.csv",
+    "drive_id": "1wvBmhpQIV-evJJOPN_g8nks3KZBzmVHC",
+    "md5": "b8d42b35c90d2dff8b18ae4e1734523b",
+    "sha256": "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "generation_id": "BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01"
+  },
+  "github_evidence_run": {
+    "run_id": 35098031693,
+    "job_id": 104800158743,
+    "artifact_name": "machine1-alka-20241204-evidence",
+    "state_at_marker_creation": "QUEUED"
+  },
+  "resume_rule": [
+    "First perform fresh Drive concurrency check for date 2024-12-04.",
+    "If PASS028 or newer exists, do not reread or write ALKA; follow newest next_exact_resume.",
+    "If latest remains PASS027, inspect GitHub run 35098031693.",
+    "Only a successful artifact with exact canonical source hashes and 20/20 ALKA rows may be used.",
+    "Validate all bars and semantic behavior before any write.",
+    "Fresh concurrency check immediately before persistence.",
+    "Checkpoint writes last; no next ticker before ALKA is durable/readback PASS."
+  ]
+}
