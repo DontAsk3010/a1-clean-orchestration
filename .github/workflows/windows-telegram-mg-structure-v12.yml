@@ -49,7 +49,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           py -3.11 -m pip install -e '.[test]'
           if ($LASTEXITCODE -ne 0) { throw 'MG_V12_INSTALL_FAILED' }
-          py -3.11 -m py_compile src/a1clean/formula_research/telegram_mg_structure_v12.py src/a1clean/formula_research/telegram_mg_structure_v12_runner.py
+          py -3.11 -m py_compile src/a1clean/formula_research/telegram_mg_structure_v12.py src/a1clean/formula_research/telegram_mg_structure_v12_runner.py src/a1clean/formula_research/telegram_mg_structure_v12_runner_parallel.py
           if ($LASTEXITCODE -ne 0) { throw 'MG_V12_COMPILE_FAILED' }
 
       - name: Run V12 and persist normalized cache
@@ -57,7 +57,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $req = $env:A1_MG_V12_REQUEST_JSON | ConvertFrom-Json
-          & py -3.11 -m a1clean.formula_research.telegram_mg_structure_v12_runner `
+          & py -3.11 -m a1clean.formula_research.telegram_mg_structure_v12_runner_parallel `
             --output 'telegram-mg-structure-v12-result.json' `
             --prior-days ([string][int]$req.prior_days) `
             --buy-fee-pct ([string][double]$req.execution.buy_fee_pct) `
