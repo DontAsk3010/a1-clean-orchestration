@@ -1,0 +1,21 @@
+{
+  "schema": "A1_DUAL_LANE_BEHAVIOR_V2_REQUEST",
+  "enabled": true,
+  "research_scope": "GOVERNED_NON_OOS_FULL_UNIVERSE",
+  "start_from_earliest_available": "2024-12-02",
+  "prior_days": 20,
+  "execution": {
+    "buy_fee_pct": 0.15,
+    "sell_fee_pct": 0.25
+  },
+  "requirements": {
+    "price_behavior_required": true,
+    "formation_behavior_required": true,
+    "automatic_sequence_mining": true,
+    "same_price_near_twin_formation_comparison": true,
+    "reserved_march_2025_oos_untouched": true,
+    "future_state_leakage_forbidden": true,
+    "missing_flow_never_zero": true,
+    "unproven_haka_haki_forbidden": true
+  }
+}
