@@ -558,3 +558,55 @@ from that, and it is explicitly NOT treated as a result here.
   `https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35089709020`;
   artifact `claude-mg-intraday-v2-35089709020` (ID `10445226948`);
   `src/a1clean/formula_research/claude_mg_intraday_v2.py`.
+
+---
+
+## Entry 007 — 2026-09-16 — Owner-posed hypotheses H13/H14 built: open extremes and rung escalation
+
+Owner directed two concrete claims to be tested against real market data rather
+than argued: does `Open == Low` reliably resolve up (and `Open == High` down),
+and does strength escalate in rungs — 3.5% confirming 5%, then 5% pushed
+through 5.7% confirming 12%.
+
+- **Module**: `src/a1clean/formula_research/claude_open_extreme_ladder_v1.py`,
+  8 unit tests, full suite **209 passing**, `compileall` clean.
+- **Two methodological decisions that determine whether this can be a formula
+  at all**:
+  1. **`Open == Low` is split into two separate measurements.** The hindsight
+     form (open equals the day's *final* low) is knowable only after the close;
+     it is a research label and the Master's causality contract forbids it as an
+     executable input. The causal form (at this snapshot price has never traded
+     below the open) is knowable live at every 5-minute slot and is the only
+     tradable reading. Conflating the two would manufacture an edge that cannot
+     be traded, so the output labels them explicitly and never merges them.
+  2. **Every conditional is reported beside the unconditional full-universe
+     baseline, with lift in percentage points.** The question asked was "is it
+     *sure* to go up" — that can only be answered as a probability against the
+     base rate. A 60% up-rate is worthless if the universe runs at 59%.
+- **Degenerate-day control**: a ticker-day with `high == low` satisfies
+  `Open == Low` trivially while representing no trading at all. These are
+  counted and excluded, and the excluded count is published so the exclusion is
+  visible rather than silent.
+- **Ladder design**: rungs are measured against the **previous day's close**, matching
+  the CHG% the MG output contract publishes. The ladder is deliberately denser
+  than the owner's cited rungs — `1,2,3,3.5,4,5,5.7,7,10,12,15,20,25` — so that
+  a genuine step shows up as a break in the curve rather than being assumed by
+  only sampling the levels the hypothesis names. Measured both unconditionally
+  and conditioned on a **strong cross** (crossing bar closes in the upper half
+  of its own range with value expansion against prior bars), which is the
+  operational reading of "kuat tembus" and is judged only at the crossing bar so
+  no forward information enters the condition. Retention
+  (`P(close at or beyond rung | reached)`) separates a level that holds from one
+  merely touched. Mirror ladder measured downward.
+- **Why this also matters for Entry 006's broken targets**: if rung transition
+  probabilities sit materially above base rate, the rungs are behavioural levels
+  the market respects, and TP-1/TP-2 can be derived from them. That is a
+  market-derived target in the sense Master §20A.6 demands, and a far better
+  replacement for the quantile-of-MFE derivation that Entry 006 found produced
+  trivially close targets.
+- **Result**: **CODE_READY — AWAITING GOVERNED RUN.** No claim is made about
+  either hypothesis. They may well fail; the December numbers decide.
+- **Paths**: `src/a1clean/formula_research/claude_open_extreme_ladder_v1.py`,
+  `tests/test_claude_open_extreme_ladder_v1.py`,
+  `claude-mg-open-extreme-ladder-requests/current.json`,
+  `.github/workflows/claude-mg-open-extreme-ladder.yml`.

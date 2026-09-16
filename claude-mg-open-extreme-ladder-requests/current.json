@@ -1,0 +1,11 @@
+{
+  "schema": "A1_CLAUDE_OPEN_EXTREME_LADDER_REQUEST_V1",
+  "request_id": "CLAUDE_OPEN_EXTREME_LADDER_V1_DES2024",
+  "enabled": true,
+  "authorization_phrase": "AUTHORIZE_CLAUDE_OPEN_EXTREME_LADDER_V1",
+  "source_name": "Raw Des 02-31-2024.csv",
+  "oos_policy": "MARCH_2025_UNTOUCHED",
+  "up_ladder": "1,2,3,3.5,4,5,5.7,7,10,12,15,20,25",
+  "down_ladder": "1,2,3,3.5,4,5,5.7,7,10,12,15,20,25",
+  "notes": "Owner-posed hypotheses, measured rather than argued: (A) is Open==Low reliably followed by an up move, (B) is Open==High reliably followed by a down move, (C) does strength escalate in rungs -- 3.5 to 5, then 5 through 5.7 to 12. Every conditional is reported beside the unconditional full-universe baseline and its lift in percentage points, because a conditional rate means nothing without the base rate. Open==Low is measured in two separate forms: the hindsight label (open equals the day's final low, not executable) and the causal form (at this snapshot price has never traded below the open, which is executable at each 5-minute publication slot). Degenerate flat days where high==low are counted and excluded, since an untraded day satisfies Open==Low trivially without representing strength. Rungs are measured against the previous day's close, matching the CHG% the MG output contract publishes."
+}

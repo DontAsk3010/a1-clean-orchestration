@@ -1,0 +1,103 @@
+name: Claude MG Open-Extreme Ladder V1
+
+on:
+  push:
+    branches:
+      - research/claude-mg-discovery
+    paths:
+      - claude-mg-open-extreme-ladder-requests/current.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-claude-mg-open-extreme-ladder
+  cancel-in-progress: true
+
+jobs:
+  analyse:
+    name: Measure open-extreme and rung-escalation hypotheses
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate request
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'claude-mg-open-extreme-ladder-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_CLAUDE_OPEN_EXTREME_LADDER_REQUEST_V1') { throw 'Unsupported request schema.' }
+          if ($req.enabled -ne $true) { throw 'Request disabled.' }
+          if ($req.authorization_phrase -ne 'AUTHORIZE_CLAUDE_OPEN_EXTREME_LADDER_V1') { throw 'Authorization phrase required.' }
+          if ($req.source_name -match '(?i)mar(et)?') { throw 'Refusing source name that may be the reserved March 2025 OOS month.' }
+
+      - name: Verify Drive bindings
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($path in @($env:A1_DRIVE_READER_CREDENTIALS)) {
+            if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'Drive credential binding missing.' }
+          }
+
+      - name: Install compile test
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[test]'
+          if ($LASTEXITCODE -ne 0) { throw 'INSTALL_FAILED' }
+          py -3.11 -m compileall -q src tests
+          if ($LASTEXITCODE -ne 0) { throw 'COMPILE_FAILED' }
+          py -3.11 -m pytest -q
+          if ($LASTEXITCODE -ne 0) { throw 'TESTS_FAILED' }
+
+      - name: Run open-extreme ladder analysis
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'claude-mg-open-extreme-ladder-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          & py -3.11 -m a1clean.formula_research.claude_open_extreme_ladder_v1 `
+            --source-name $req.source_name `
+            --up-ladder $req.up_ladder `
+            --down-ladder $req.down_ladder `
+            --output 'claude-mg-open-extreme-ladder-result.json'
+          if ($LASTEXITCODE -ne 0) { throw "CLAUDE_OPEN_EXTREME_LADDER_RUN_FAILED:$LASTEXITCODE" }
+
+      # Printed into the log as well as the artifact: artifact blob storage is
+      # not reachable from every analysis context, and an unreadable result
+      # cannot be judged.
+      - name: Print result summary to log
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $r = Get-Content -LiteralPath 'claude-mg-open-extreme-ladder-result.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          Write-Host '===== CLAUDE OPEN-EXTREME LADDER RESULT ====='
+          Write-Host "source=$($r.source_name) tickers=$($r.ticker_count) ticker_days_seen=$($r.ticker_days_seen) evaluated=$($r.ticker_days_evaluated) degenerate_excluded=$($r.degenerate_flat_days_excluded)"
+          Write-Host '--- unconditional baseline (all eligible ticker-days) ---'
+          $r.unconditional_baseline | ConvertTo-Json -Depth 6 | Write-Host
+          Write-Host '--- hindsight: open == low ---'
+          $r.hindsight_open_equals_low | ConvertTo-Json -Depth 6 | Write-Host
+          Write-Host '--- hindsight: open == high ---'
+          $r.hindsight_open_equals_high | ConvertTo-Json -Depth 6 | Write-Host
+          Write-Host '--- hindsight: open == low AND high (non-degenerate) ---'
+          $r.hindsight_open_equals_low_and_high | ConvertTo-Json -Depth 6 | Write-Host
+          Write-Host '--- causal: low-so-far == open ---'
+          $r.causal_open_is_low_so_far | ConvertTo-Json -Depth 6 | Write-Host
+          Write-Host '--- causal: high-so-far == open ---'
+          $r.causal_open_is_high_so_far | ConvertTo-Json -Depth 6 | Write-Host
+          Write-Host '--- UP rung escalation ---'
+          $r.up_rung_escalation | ConvertTo-Json -Depth 6 | Write-Host
+          Write-Host '--- DOWN rung escalation ---'
+          $r.down_rung_escalation | ConvertTo-Json -Depth 6 | Write-Host
+          Write-Host '===== END RESULT ====='
+
+      - name: Upload result artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-mg-open-extreme-ladder-${{ github.run_id }}
+          path: claude-mg-open-extreme-ladder-result.json
+          if-no-files-found: error
+          retention-days: 30

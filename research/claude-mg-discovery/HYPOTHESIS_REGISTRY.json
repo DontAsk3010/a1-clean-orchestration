@@ -14,7 +14,7 @@
     "Raw Feb 03-28-2025.csv"
   ],
   "untouched_oos_source": "Raw Maret 03-31-2025.csv",
-  "notes": "Every hypothesis below targets a data dimension or open problem identified in RESEARCH_AUDIT.md section 3/4/5 as underused or unresolved by the existing V2-V8d GPT lane, rather than re-testing what that lane already tried. None have been executed yet -- this is a discovery-stage backlog, not a results table. Data fields per README.md/CLAUDE.md: trade_value=RAW_Aux2 (TRADE_VALUE_1M); nbss=RAW_OpenInterest (NBSS_VALUE_1M, not futures open interest); HAKA=(trade_value+nbss)/2; HAKI=(trade_value-nbss)/2. Missing/unproven fields must resolve to UNKNOWN/UNAVAILABLE, never zero. | 2026-09-16: H04 marked EXECUTED_METRICS_UNREAD (run 35070450297; artifact unreadable from the analysis context due to egress policy). H12 added after reading the Branch 07 handbook and the governed December replay: the MG family is intraday with dynamic per-snapshot targets, so H04's daily shape is superseded rather than merely underperforming. No performance claim is made for either until a run's log is actually read. | 2026-09-16 (later): H12 TESTED_FAILED_ON_DISCOVERY on December 2024 (run 35089709020). The contract-shaped candidate does not beat the existing standalone baseline. Validation data deliberately NOT spent.",
+  "notes": "Every hypothesis below targets a data dimension or open problem identified in RESEARCH_AUDIT.md section 3/4/5 as underused or unresolved by the existing V2-V8d GPT lane, rather than re-testing what that lane already tried. None have been executed yet -- this is a discovery-stage backlog, not a results table. Data fields per README.md/CLAUDE.md: trade_value=RAW_Aux2 (TRADE_VALUE_1M); nbss=RAW_OpenInterest (NBSS_VALUE_1M, not futures open interest); HAKA=(trade_value+nbss)/2; HAKI=(trade_value-nbss)/2. Missing/unproven fields must resolve to UNKNOWN/UNAVAILABLE, never zero. | 2026-09-16: H04 marked EXECUTED_METRICS_UNREAD (run 35070450297; artifact unreadable from the analysis context due to egress policy). H12 added after reading the Branch 07 handbook and the governed December replay: the MG family is intraday with dynamic per-snapshot targets, so H04's daily shape is superseded rather than merely underperforming. No performance claim is made for either until a run's log is actually read. | 2026-09-16 (later): H12 TESTED_FAILED_ON_DISCOVERY on December 2024 (run 35089709020). The contract-shaped candidate does not beat the existing standalone baseline. Validation data deliberately NOT spent. | 2026-09-16: H13 and H14 added from owner-posed hypotheses (open extremes, rung escalation). Both are measured against the unconditional baseline with explicit lift; neither is assumed. H14, if confirmed, supplies the market-derived TP levels that H12's quantile approach failed to.",
   "hypotheses": [
     {
       "id": "H01",
@@ -179,6 +179,40 @@
       "status": "TESTED_FAILED_ON_DISCOVERY",
       "priority": "high",
       "implementation": "src/a1clean/formula_research/claude_mg_intraday_v2.py, 12 unit tests in tests/test_claude_mg_intraday_v2.py including an explicit leakage test that runs identical history against two opposite futures and requires the fired bar and every published field to match. Forward horizons are regular bars 5/15/30/60, the same axis as the GPT lane's December replay, so the lanes compare head-to-head. Queued as GitHub Actions run 35089709020; no metric exists yet and none is claimed. See RESEARCH_LEDGER.md Entry 005. EXECUTED: run 35089709020, December 2024, 936 tickers, 9m40s, success. RESULT: FAIL. forward_q25_pct negative in every grid cell and forward_q50_pct exactly 0.0 in many, far below CLAUDE.md's stated quality bar. At the grid-selected min_streak=4 (109 signals) the candidate is beaten by the simple standalone F02A SELL_RESILIENCE on both mean forward return and positive rate at 5 bars, and only clearly beats F05A SESSION_OPEN_RECOVERY, the worst component in the corpus. The single encouraging structure is a monotone dose-response with streak length (15b mean -0.294 -> +0.161 as min_streak goes 1 -> 5), but that rests on 36-48 events across 6 dates and is confounded with shrinking sample, so it is recorded as a lead, not a finding. Three of my own design defects were exposed: TP multiples learned from the unconditional bar pool rather than qualifying signals (tp1_vol_multiple=0.196, making targets trivially close and tp1_hit_rate near-tautological); date coverage only 6-10 of December's ~20 trading days because the 8-day precursor window makes the first third of the month unreachable; and a lopsided conjunction where absorption_streak_too_short causes 493k-650k rejections versus tens of thousands for all intraday gates combined. See RESEARCH_LEDGER.md Entry 006. Do NOT replay these frozen thresholds on Jan/Feb until the TP derivation is fixed."
+    },
+    {
+      "id": "H13",
+      "family": "open-extreme (owner-posed)",
+      "title": "Open == Low implies an up resolution; Open == High implies a down resolution",
+      "causal_rationale": "Owner's direct observation. The claim is that a day which never trades below its open is displaying one-directional demand and resolves upward, and the mirror for Open == High. Two things decide whether this can ever become a formula. First, the form: 'open equals the day's FINAL low' is a hindsight label knowable only after the close and is forbidden as an executable input by the Master's causality contract, whereas 'price has not traded below the open up to this snapshot' is knowable live and is the only tradable reading -- the two are measured separately and never conflated. Second, the base rate: the pattern is only informative to the extent it beats the unconditional full-universe rate, so every conditional is reported beside that baseline with an explicit lift in percentage points. A degenerate day where high == low satisfies Open == Low trivially without any trading occurring; those are counted and excluded so the exclusion is visible rather than silent.",
+      "proposed_features": [
+        "hindsight: day_open <= day_low (label only, never an input)",
+        "hindsight: day_open >= day_high (label only, never an input)",
+        "causal: low_so_far == day_open at snapshot t (executable at each 5-minute slot)",
+        "causal: high_so_far == day_open at snapshot t",
+        "degenerate control: high == low excluded and counted"
+      ],
+      "data_dependency": "OHLC at base bar resolution plus the previous day's close for CHG% basis. No flow dependency, so this hypothesis is unaffected by NBSS availability.",
+      "status": "CODE_READY_AWAITING_EXECUTION",
+      "priority": "high",
+      "implementation": "src/a1clean/formula_research/claude_open_extreme_ladder_v1.py, tests in tests/test_claude_open_extreme_ladder_v1.py."
+    },
+    {
+      "id": "H14",
+      "family": "rung escalation (owner-posed)",
+      "title": "Strength escalates in rungs: breaking 3.5% confirms 5%, and pushing 5% through 5.7% confirms 12%",
+      "causal_rationale": "Owner's direct observation that intraday strength is not continuous but steps through levels the market respects. Stated as a measurable conditional: given a ticker-day first touched rung R_k, what is P(it later touches R_k+1)? Measured against the previous day's close to match the CHG% the MG contract publishes, over a ladder dense enough to show the whole curve (1,2,3,3.5,4,5,5.7,7,10,12,15,20,25) rather than only the owner's cited rungs, so that any genuine step is visible as a break in the curve instead of being assumed. Also measured conditioned on the crossing bar being a STRONG cross -- closing in the upper half of its own range with value expansion against the prior bars -- which is the operational reading of 'kuat tembus' and is judged only at the crossing bar so no forward information enters the condition. Retention P(close at or beyond the rung | reached it) separates a level that holds from one that is merely touched. If the conditional probabilities are materially above base rate, the rungs are behavioural levels and TP-1/TP-2 can be derived from them -- targets born from observed market structure as Master section 20A.6 requires, replacing the failed quantile-of-MFE derivation recorded in ledger Entry 006. The mirror ladder is measured downward on lows.",
+      "proposed_features": [
+        "first-touch bar index per rung, per ticker-day, level = prev_close * (1 +/- rung/100)",
+        "P(reach next rung | reached this rung), temporally ordered by construction",
+        "P(reach next rung | reached AND strong cross at the crossing bar)",
+        "P(day closes at or beyond the rung | reached it) as a retention measure",
+        "median bars between consecutive rung touches"
+      ],
+      "data_dependency": "OHLC at base bar resolution, previous day's close, and trade_value for the strength condition. Where flow is unproven the strength test falls back to price alone rather than reading a physical zero as real.",
+      "status": "CODE_READY_AWAITING_EXECUTION",
+      "priority": "high",
+      "implementation": "src/a1clean/formula_research/claude_open_extreme_ladder_v1.py, tests in tests/test_claude_open_extreme_ladder_v1.py. If confirmed, feeds the TP derivation that Entry 006 found broken."
     }
   ]
 }
