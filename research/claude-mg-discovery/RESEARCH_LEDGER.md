@@ -1205,3 +1205,42 @@ signal price first (P(+), EOD quantiles, MAE, MFE) and only then any touch stati
 touch statistic whose threshold overlaps the entry condition is not evidence.
 
 Status: RESEARCH_ONLY. March 2025 untouched.
+
+## Entry 017 — The family in rupiah: minus Rp17.678.396
+
+Run 35118664108, commit 71afabd, `Raw Des 02-31-2024.csv`, gates frozen. Owner's
+report contract: every signal bought for Rp5.000.000 independently, whole IDX lots,
+exit at the target touched or else the same-day close.
+
+```
+SINYAL DIBELI      : 166  (untung 58 / rugi 66 / impas 42)
+MODAL TERPAKAI     : 825.274.000
+PROFIT/LOSS BERSIH : -17.678.396
+MAX PROFIT (jual pas di high): 31.734.800
+RETURN ATAS MODAL  : -2,14%
+```
+
+Only two of eighteen trading days close positive (11 DEC +326.400, 16 DEC +292.540).
+The worst single position is POLU 18 DEC, entered at 2.660 and closed at 1.735:
+-Rp1.665.000 on one Rp5 juta buy.
+
+Three structural facts the rupiah view exposes that the percentage view hid:
+
+1. **42 signals are exactly flat.** These are locked instruments where the price never
+   moved again after the signal bar. They are not neutral: they consume Rp5 juta of
+   capital and return nothing, so they dilute the winners without appearing as losses.
+2. **The cheap-stock rows lose hardest in rupiah.** A move of one tick on a Rp6 stock
+   is -16,7%, and at 8.333 lots that is -Rp833.300. The ladder rungs are percentage
+   rungs, so on a Rp6 stock TP-1 and TP-2 round to the same price and the target
+   carries no distance at all. Signals below roughly Rp50 should never have been
+   emitted by a percentage-target family.
+3. **MAX PROFIT is +31.734.800 against a realised -17.678.396.** The favourable
+   excursion exists; the exit rule captures none of it net. But MFE median is +0,00%,
+   so that 31,7 juta is concentrated in a minority of names, not spread across the set.
+
+The direction this closes: entering after a ticker is already up 7% is buying the top
+of the move. The direction it opens: the precursor work CLAUDE.md asks for -- conditions
+BEFORE ignition -- plus a hard price floor, since the sub-Rp50 tier is structurally
+incompatible with percentage targets.
+
+Status: RESEARCH_ONLY. H15 remains INVALIDATED_ON_NET_OUTCOME. March 2025 untouched.
