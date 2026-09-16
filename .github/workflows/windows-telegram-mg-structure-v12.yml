@@ -1,0 +1,74 @@
+name: Windows Telegram MG Structure V12
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - telegram-mg-structure-v12-requests/current.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-telegram-mg-structure-v12
+  cancel-in-progress: true
+
+jobs:
+  study:
+    name: Run V12 structure rewrite with durable local cache
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact research revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate request
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'telegram-mg-structure-v12-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_TELEGRAM_MG_STRUCTURE_V12_REQUEST_V1') { throw 'Unsupported V12 request schema.' }
+          if ($req.enabled -ne $true) { throw 'V12 request not enabled.' }
+          $json = $req | ConvertTo-Json -Compress -Depth 20
+          "A1_MG_V12_REQUEST_JSON=$json" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify Drive credential bindings
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($path in @($env:A1_DRIVE_READER_CREDENTIALS, $env:A1_DRIVE_WRITER_CREDENTIALS)) {
+            if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'Drive credential binding missing.' }
+          }
+
+      - name: Compile V12
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[test]'
+          if ($LASTEXITCODE -ne 0) { throw 'MG_V12_INSTALL_FAILED' }
+          py -3.11 -m py_compile src/a1clean/formula_research/telegram_mg_structure_v12.py src/a1clean/formula_research/telegram_mg_structure_v12_runner.py
+          if ($LASTEXITCODE -ne 0) { throw 'MG_V12_COMPILE_FAILED' }
+
+      - name: Run V12 and persist normalized cache
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = $env:A1_MG_V12_REQUEST_JSON | ConvertFrom-Json
+          & py -3.11 -m a1clean.formula_research.telegram_mg_structure_v12_runner `
+            --output 'telegram-mg-structure-v12-result.json' `
+            --prior-days ([string][int]$req.prior_days) `
+            --buy-fee-pct ([string][double]$req.execution.buy_fee_pct) `
+            --sell-fee-pct ([string][double]$req.execution.sell_fee_pct) `
+            --min-support ([string][int]$req.min_support)
+          if ($LASTEXITCODE -ne 0) { throw "MG_V12_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Upload V12 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-mg-structure-v12-${{ github.run_id }}
+          path: telegram-mg-structure-v12-result.json
+          if-no-files-found: error
+          retention-days: 30
