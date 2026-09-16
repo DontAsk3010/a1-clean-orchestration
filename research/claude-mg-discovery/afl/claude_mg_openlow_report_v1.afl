@@ -1,0 +1,95 @@
+_SECTION_BEGIN("MG OPEN=LOW REPORT V1 - RESEARCH ONLY");
+//=============================================================================
+//  Daftar transaksi dalam format kontrak owner:
+//      SAHAM | ENTRY Rp5 jt | EXIT | PROFIT/LOSS | MAX PROFIT
+//  plus HARI dan JAM.
+//
+//  FILE INI OPSIONAL. Tab Trades bawaan AmiBroker sudah memuat semuanya
+//  (Symbol, Price, Ex.Price, Profit, MFE) asal "Show MAE/MFE" dicentang di
+//  Settings > Report. Pakai file ini hanya kalau Anda mau outputnya langsung
+//  tersusun seperti kontrak, tanpa menata kolom sendiri.
+//
+//  KENAPA TIDAK ADA printf DI SINI
+//  Error 61 "The number of format specifier(s) (%) does not match the number
+//  of arguments passed" muncul karena printf menghitung setiap tanda % di
+//  dalam teks sebagai penentu format. Satu tanda % yang tidak digandakan,
+//  misalnya di dalam HTML seperti width=50% atau saat menulis persen, sudah
+//  cukup membuat hitungannya meleset dan seluruh backtest berhenti.
+//  File ini memakai penggabungan teks dan NumToStr, tanpa satu pun penentu
+//  format, sehingga Error 61 tidak mungkin terjadi.
+//=============================================================================
+
+#include_once "claude_mg_openlow_backtest_v1.afl"
+
+SetCustomBacktestProc("");
+
+if ( Status("action") == actionPortfolio )
+{
+    bo = GetBacktesterObject();
+    bo.Backtest();                       // jalankan backtest bawaan dulu
+
+    TotalPL   = 0;
+    TotalMax  = 0;
+    TotalCost = 0;
+    Untung    = 0;
+    Rugi      = 0;
+    Impas     = 0;
+
+    _TRACE("SAHAM | ENTRY | EXIT | PROFIT/LOSS | MAX PROFIT");
+
+    for ( trade = bo.GetFirstTrade(); trade; trade = bo.GetNextTrade() )
+    {
+        EntryRp = trade.EntryPrice * trade.Shares;
+        PL      = trade.GetProfit();
+
+        // GetMFE mengembalikan excursion terbaik dalam persen terhadap entry.
+        MaxPL   = trade.GetMFE() / 100 * EntryRp;
+
+        TotalPL   = TotalPL   + PL;
+        TotalMax  = TotalMax  + MaxPL;
+        TotalCost = TotalCost + EntryRp;
+
+        if ( PL > 0 )      Untung = Untung + 1;
+        else if ( PL < 0 ) Rugi   = Rugi   + 1;
+        else               Impas  = Impas  + 1;
+
+        baris = trade.Symbol
+              + " | " + DateTimeToStr( trade.EntryDateTime )
+              + " | " + NumToStr( trade.EntryPrice, 1.0 )
+              + " | " + NumToStr( trade.ExitPrice,  1.0 )
+              + " | " + NumToStr( PL,    1.0 )
+              + " | " + NumToStr( MaxPL, 1.0 );
+
+        _TRACE( baris );
+    }
+
+    Total = Untung + Rugi + Impas;
+    _TRACE( "" );
+    _TRACE( "SINYAL DIBELI      : " + NumToStr( Total, 1.0 )
+          + "  (untung " + NumToStr( Untung, 1.0 )
+          + " / rugi "   + NumToStr( Rugi,   1.0 )
+          + " / impas "  + NumToStr( Impas,  1.0 ) + ")" );
+    _TRACE( "MODAL TERPAKAI     : " + NumToStr( TotalCost, 1.0 ) );
+    _TRACE( "PROFIT/LOSS BERSIH : " + NumToStr( TotalPL,   1.0 ) );
+    _TRACE( "MAX PROFIT         : " + NumToStr( TotalMax,  1.0 ) );
+
+    if ( TotalCost > 0 )
+        _TRACE( "RETURN ATAS MODAL  : "
+              + NumToStr( TotalPL / TotalCost * 100, 1.2 ) );
+}
+
+//=============================================================================
+//  CARA PAKAI
+//  1. Simpan claude_mg_openlow_backtest_v1.afl dan file ini di folder yang
+//     sama, di Formulas\Custom.
+//  2. Buka DebugView (Sysinternals) atau Tools > Output Debug, supaya _TRACE
+//     terbaca. Kalau tidak mau pakai DebugView, lewati file ini dan pakai
+//     tab Trades bawaan, isinya sama.
+//  3. Analysis > pilih formula ini > BACKTEST.
+//
+//  CATATAN VERSI
+//  trade.GetMFE() tersedia di AmiBroker versi custom backtester generasi
+//  kedua. Kalau versi Anda menolaknya, hapus baris MaxPL dan pakai kolom MFE
+//  di tab Trades bawaan; angkanya sama.
+//=============================================================================
+_SECTION_END();

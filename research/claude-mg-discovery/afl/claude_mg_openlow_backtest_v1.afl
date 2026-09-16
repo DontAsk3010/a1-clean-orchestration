@@ -107,9 +107,12 @@ SellPrice = IIf(HitTP1, Min(TP1, H), C);
 Buy  = ExRem(Buy, Sell);
 Sell = ExRem(Sell, Buy);
 
-//--- Kolom tambahan di daftar transaksi ------------------------------------
-// Muncul di tab Trades laporan Backtest.
-SetCustomBacktestProc("");
+//--- Kolom tambahan kalau formula ini dijalankan sebagai Exploration --------
+// Backtest TIDAK memerlukan custom report. Tab Trades bawaan sudah memuat
+// Symbol, Price (entry), Ex.Price (exit), Profit dan MFE.
+// Baris SetCustomBacktestProc dihapus: nilainya kosong sehingga tidak berguna,
+// tetapi kehadirannya bisa membuat AmiBroker masuk ke jalur custom backtest
+// dan menjalankan kode report milik formula lain.
 AddColumn(TP1, "TP-1", 1.0);
 AddColumn(Chg, "CHG% saat entry", 1.2);
 Filter = Buy;

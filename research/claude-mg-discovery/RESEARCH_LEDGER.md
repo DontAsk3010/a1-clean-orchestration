@@ -1399,3 +1399,40 @@ Keduanya diverifikasi: paren dan brace seimbang, tiap statement tertutup,
 kolom kontrak ada, screener tidak lagi mendefinisikan Buy/Sell.
 
 Status: RESEARCH_ONLY.
+
+## Entry 021 — AFL Error 61 pada custom report, dan pemicunya di file saya
+
+Owner melaporkan backtest berhenti dengan:
+
+```
+printf( "<td nowrap>%.1f%%</td>", Chg );
+Error 61. The number of format specifier(s) (%) does not match the number of
+arguments passed.
+```
+
+Kode itu tidak ada di file mana pun yang saya kirim; diverifikasi dengan grep,
+tidak ada `printf`, `<td`, atau `nowrap`. Itu blok custom report milik formula
+lain.
+
+Namun pemicunya ada pada saya. `claude_mg_openlow_backtest_v1.afl` memuat
+`SetCustomBacktestProc("")`. Nilainya kosong sehingga tidak berguna, tetapi
+kehadirannya mengaktifkan jalur custom backtest, dan pada jalur itu AmiBroker
+menjalankan prosedur report yang terpasang. Baris itu dihapus.
+
+Sebab Error 61 secara umum: `printf` menghitung setiap `%` di dalam teks
+sebagai penentu format. Satu `%` yang tidak digandakan sudah cukup membuat
+hitungan meleset dan menghentikan seluruh backtest, meskipun `%%` di tempat
+lain sudah benar. Umum terjadi pada teks HTML seperti `width=50%`.
+
+Ditambahkan `claude_mg_openlow_report_v1.afl`, opsional, yang mencetak daftar
+transaksi dalam format kontrak owner. File itu tidak memakai `printf` sama
+sekali, melainkan penggabungan teks dengan `NumToStr`, sehingga Error 61 tidak
+mungkin muncul secara konstruksi. Diverifikasi: tidak ada `printf` dan tidak
+ada karakter `%` di bagian kode.
+
+Dicatat jujur di dalam file: tab Trades bawaan sebenarnya sudah memuat semua
+kolom yang diminta bila "Show MAE/MFE" dicentang, jadi file report ini tidak
+wajib. Juga dicatat bahwa `trade.GetMFE()` bergantung versi custom backtester;
+kalau ditolak, kolom MFE bawaan memberi angka yang sama.
+
+Status: RESEARCH_ONLY.
