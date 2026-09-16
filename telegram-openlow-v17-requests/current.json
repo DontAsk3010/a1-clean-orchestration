@@ -1,0 +1,9 @@
+{
+  "schema": "A1_TELEGRAM_OPENLOW_V17_REQUEST_V1",
+  "enabled": true,
+  "formula": "OL_G_FROZEN_HIGH_PROGRESS",
+  "frozen_from": "DECEMBER_2024_ONLY",
+  "entry_budget_idr": 5000000,
+  "repeat_policy": "every_5min_while_active",
+  "data_access": "durable_cache_only_no_raw_reread"
+}
