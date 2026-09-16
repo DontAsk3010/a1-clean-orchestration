@@ -105,10 +105,25 @@ jobs:
           }
           Write-Host '===== END SUMMARY ====='
 
+      # Renders the governed run's own signals into the Branch 07 output
+      # contract (CODE | PRICE | CHG% | TP-1 | TP-2). Presentation only: every
+      # value is read from the result JSON, nothing is recomputed here.
+      - name: Render MG output-contract rows from real signals
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & py -3.11 -m a1clean.formula_research.claude_mg_telegram_format `
+            --result 'claude-mg-intraday-v2-result.json' `
+            --max-slots 12 `
+            --output 'claude-mg-intraday-v2-telegram-preview.txt'
+          if ($LASTEXITCODE -ne 0) { throw "CLAUDE_MG_TELEGRAM_RENDER_FAILED:$LASTEXITCODE" }
+
       - name: Upload result artifact
         uses: actions/upload-artifact@v4
         with:
           name: claude-mg-intraday-v2-${{ github.run_id }}
-          path: claude-mg-intraday-v2-result.json
+          path: |
+            claude-mg-intraday-v2-result.json
+            claude-mg-intraday-v2-telegram-preview.txt
           if-no-files-found: error
           retention-days: 30

@@ -1,6 +1,6 @@
 {
   "schema": "A1_CLAUDE_MG_INTRADAY_REQUEST_V2",
-  "request_id": "CLAUDE_MG_INTRADAY_V2_DES2024_DISCOVERY",
+  "request_id": "CLAUDE_MG_INTRADAY_V2_DES2024_DISCOVERY_R2",
   "enabled": true,
   "authorization_phrase": "AUTHORIZE_CLAUDE_MG_INTRADAY_V2_DISCOVERY",
   "phase": "discover",
@@ -9,5 +9,5 @@
   "horizons_bars": "5,15,30,60",
   "precursor_window_days": 8,
   "min_streak_grid": "1,2,3,4,5",
-  "notes": "Claude-owned, independent of the GPT lane. V2 replaces v1's daily construct with the governed MG shape: multi-day absorption precursor (causal, days < D only) feeding an intraday snapshot ignition with dynamic TP-1/TP-2, per Branch 07 Formula Research Handbook 1sQu0l2qwvsjItmBycRh3siMajKEQknHOMBLlBQd3I-Q section 3. Forward horizons are regular bars 5/15/30/60 to stay head-to-head comparable with the GPT lane's governed December replay 12uivFUAhM-H01ANXQbjdPmi8qCMOyMQ-. All cut-points including the TP volatility multiples are learned from this discovery source only and frozen for later validation. Physical NBSS zero stays UNKNOWN, never neutral."
+  "notes": "Claude-owned, independent of the GPT lane. V2 replaces v1's daily construct with the governed MG shape: multi-day absorption precursor (causal, days < D only) feeding an intraday snapshot ignition with dynamic TP-1/TP-2, per Branch 07 Formula Research Handbook 1sQu0l2qwvsjItmBycRh3siMajKEQknHOMBLlBQd3I-Q section 3. Forward horizons are regular bars 5/15/30/60 to stay head-to-head comparable with the GPT lane's governed December replay 12uivFUAhM-H01ANXQbjdPmi8qCMOyMQ-. All cut-points including the TP volatility multiples are learned from this discovery source only and frozen for later validation. Physical NBSS zero stays UNKNOWN, never neutral. | R2 re-run: the discovery output now carries the selected thresholds' own signals so the Branch 07 output contract (CODE | PRICE | CHG% | TP-1 | TP-2) can be rendered from the real run instead of illustrated. The rendering is presentation only and recomputes nothing. The underlying candidate still FAILED on December per RESEARCH_LEDGER.md Entry 006 -- this re-run demonstrates the pipeline end to end, not a working formula."
 }

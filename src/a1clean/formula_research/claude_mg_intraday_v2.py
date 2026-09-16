@@ -608,7 +608,7 @@ def discover(
         )
         q25 = summary.get(primary, {}).get("forward_q25_pct")
         if q25 is not None and (best is None or q25 > best["q25"]):
-            best = {"q25": q25, "thresholds": thresholds}
+            best = {"q25": q25, "thresholds": thresholds, "signals": signals}
 
     if best is None:
         raise SystemExit("NO_MIN_STREAK_CANDIDATE_PRODUCED_EVALUABLE_SIGNALS_ON_DISCOVERY")
@@ -620,6 +620,9 @@ def discover(
         "ticker_count": len(ticker_sessions),
         "forward_horizons_regular_bars": list(horizons_bars),
         "learned_thresholds": best["thresholds"].as_dict(),
+        # Carried so the published contract rows can be rendered from the real
+        # run rather than reconstructed or illustrated.
+        "signals_for_selected_thresholds": best["signals"],
         "min_streak_grid_results": grid_results,
         "future_data_used_for_candidate_state": False,
         "outcome_is_evaluation_only_not_formula_input": True,
