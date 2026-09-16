@@ -1,4 +1,4 @@
-name: Machine1 Next Chunk Evidence Extract
+name: Machine1 FOLK-GGRM Evidence Extract
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  extract-next-chunk:
+  extract-governed-block:
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 30
     env:
@@ -28,26 +28,16 @@ jobs:
           expected_md5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
           expected_sha256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
           specs = {
-              'BNGA': {'first':269754,'last':270034,'count':281,'first_time':'09:00:00','last_time':'16:11:00'},
-              'BNII': {'first':267246,'last':267298,'count':53,'first_time':'09:00:00','last_time':'16:13:00'},
-              'BNLI': {'first':268315,'last':268389,'count':75,'first_time':'09:00:00','last_time':'16:02:00'},
-              'BOAT': {'first':275677,'last':276003,'count':327,'first_time':'09:00:00','last_time':'16:13:00'},
-              'BOBA': {'first':274268,'last':274318,'count':51,'first_time':'09:02:00','last_time':'16:00:00'},
-              'BOGA': {'first':275054,'last':275060,'count':7,'first_time':'09:09:00','last_time':'14:19:00'},
-              'BOLA': {'first':280984,'last':281003,'count':20,'first_time':'09:12:00','last_time':'16:00:00'},
-              'BOLT': {'first':282066,'last':282325,'count':260,'first_time':'09:00:00','last_time':'16:05:00'},
-              'BPFI': {'first':281500,'last':281510,'count':11,'first_time':'09:37:00','last_time':'16:00:00'},
-              'BPII': {'first':281740,'last':281745,'count':6,'first_time':'09:14:00','last_time':'16:11:00'},
-              'BPTR': {'first':286861,'last':286881,'count':21,'first_time':'09:00:00','last_time':'14:15:00'},
-              'BRAM': {'first':286659,'last':286668,'count':10,'first_time':'10:23:00','last_time':'15:37:00'},
-              'BREN': {'first':287614,'last':287931,'count':318,'first_time':'09:00:00','last_time':'16:14:00'},
-              'BRIS': {'first':293675,'last':293998,'count':324,'first_time':'08:59:00','last_time':'16:14:00'},
-              'BRMS': {'first':299824,'last':300157,'count':334,'first_time':'09:00:00','last_time':'16:14:00'},
-              'BRNA': {'first':299386,'last':299414,'count':29,'first_time':'09:06:00','last_time':'16:04:00'},
-              'BRPT': {'first':305927,'last':306261,'count':335,'first_time':'08:59:00','last_time':'16:14:00'},
-              'BSBK': {'first':311773,'last':312098,'count':326,'first_time':'09:00:00','last_time':'16:14:00'},
-              'BSDE': {'first':315182,'last':315485,'count':304,'first_time':'09:00:00','last_time':'16:14:00'},
-              'BSIM': {'first':314412,'last':314427,'count':16,'first_time':'09:14:00','last_time':'15:43:00'},
+              'FOLK': {'first':559711,'last':559723,'count':13,'first_time':'09:00:00','last_time':'16:08:00'},
+              'FOOD': {'first':559475,'last':559481,'count':7,'first_time':'09:41:00','last_time':'16:00:00'},
+              'FORU': {'first':560044,'last':560104,'count':61,'first_time':'09:02:00','last_time':'16:00:00'},
+              'FPNI': {'first':564189,'last':564227,'count':39,'first_time':'09:00:00','last_time':'16:13:00'},
+              'FUJI': {'first':561826,'last':561948,'count':123,'first_time':'09:00:00','last_time':'16:01:00'},
+              'FWCT': {'first':565940,'last':566071,'count':132,'first_time':'09:00:00','last_time':'16:13:00'},
+              'GDST': {'first':567699,'last':567761,'count':63,'first_time':'09:00:00','last_time':'16:02:00'},
+              'GDYR': {'first':567217,'last':567223,'count':7,'first_time':'09:17:00','last_time':'16:09:00'},
+              'GEMS': {'first':571689,'last':571915,'count':227,'first_time':'09:01:00','last_time':'16:09:00'},
+              'GGRM': {'first':574285,'last':574460,'count':176,'first_time':'09:00:00','last_time':'16:11:00'},
           }
           if not raw.is_file(): raise SystemExit(f'RAW_MISSING: {raw}')
           md5=hashlib.md5(); sha256=hashlib.sha256()
@@ -64,7 +54,7 @@ jobs:
                   t=row.get('RAW_TICKER')
                   if t in hits and row.get('RAW_DATETIME_ISO','').startswith('2024-12-03'):
                       hits[t].append((source_row,row))
-          out=pathlib.Path('machine1_next_chunk_evidence'); out.mkdir(exist_ok=True)
+          out=pathlib.Path('machine1_folk_ggrm_evidence'); out.mkdir(exist_ok=True)
           manifest=[]
           for ticker,s in specs.items():
               arr=hits[ticker]; rows=[n for n,_ in arr]
@@ -79,13 +69,13 @@ jobs:
               manifest.append({k:packet[k] for k in ['ticker','trading_date','source_row_first','source_row_last','data_rows','first_datetime','last_datetime']})
               print(f'{ticker}_PACKET_PASS rows={len(arr)} source_rows={rows[0]}-{rows[-1]} first={first_dt} last={last_dt}')
           (out/'CHUNK_MANIFEST.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
-          '@ | Set-Content -LiteralPath extract_next_chunk.py -Encoding UTF8
-          py -3.11 extract_next_chunk.py
+          '@ | Set-Content -LiteralPath extract_folk_ggrm.py -Encoding UTF8
+          py -3.11 extract_folk_ggrm.py
 
-      - name: Upload evidence chunk
+      - name: Upload evidence block
         uses: actions/upload-artifact@v4
         with:
-          name: machine1-next-chunk-20241203-evidence
-          path: machine1_next_chunk_evidence/
+          name: machine1-folk-ggrm-20241203-evidence
+          path: machine1_folk_ggrm_evidence/
           if-no-files-found: error
           retention-days: 7
