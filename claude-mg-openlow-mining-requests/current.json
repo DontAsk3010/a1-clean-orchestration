@@ -1,0 +1,15 @@
+{
+  "schema": "A1_CLAUDE_OPENLOW_MINING_REQUEST_V1",
+  "request_id": "CLAUDE_OPENLOW_MINING_V1_DES2024",
+  "enabled": true,
+  "authorization_phrase": "AUTHORIZE_CLAUDE_OPENLOW_MINING_V1",
+  "source_name": "Raw Des 02-31-2024.csv",
+  "oos_policy": "MARCH_2025_UNTOUCHED",
+  "min_chg_pct": 3.5,
+  "strength_target_pct": 10.0,
+  "buckets": 5,
+  "min_support": 25,
+  "max_combo": 3,
+  "top_cells": 40,
+  "notes": "Owner directive: stop guessing formulas and instead sort, group, and let the recurring patterns define the boundaries. Every earlier candidate in this lane was a guess then tested, which is exactly the shape CLAUDE.md warns against -- do not collapse rich continuous data into boolean markers before the empirical separation is understood. This module proposes no rule. It takes every Open=Low signal, measures a continuous feature vector at signal time, buckets the population, and reports where the 10% outcome actually concentrates: decile profiles exposing the SHAPE of each relationship, then 2-way and 3-way cell mining over combinations, keeping only cells that clear a support floor. Boundaries are read off the cells that both recur and separate, so they are an output rather than an input. Price tier and prior-day return are included because IDX behaviour differs sharply across price bands and no earlier entry accounted for that. Cells mined on one source are not a validated filter; support is reported so thin cells can be discounted on sight."
+}

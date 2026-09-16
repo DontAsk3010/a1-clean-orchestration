@@ -1045,3 +1045,77 @@ STATUS` with no TP at all).
   conflict recorded openly, not silently retained.
 - **Paths**: `src/a1clean/formula_research/claude_mg_openlow_strength_v1.py`,
   `tests/test_claude_mg_openlow_strength_v1.py`.
+
+---
+
+## Entry 014 — 2026-09-16 — JANUARY VALIDATION HOLDS. Open=Low becomes the lane's working family; method switches from guess-then-test to sort-and-group.
+
+### Part A — out-of-sample validation PASSED
+
+Run `35106396044` (commit `631d49f`), January 2025, **frozen gates replayed
+unchanged** (`min_chg 7.0`, `max_bar_index 10`, `min_prior_day_range 7.0`).
+Nothing was retuned; January was never used to derive them.
+
+| | December (in-sample) | **January (out-of-sample)** | ungated base |
+|---|---|---|---|
+| signals | 166 | **165** | 1,246 |
+| reached ≥10% | 86 | **78** | 281 |
+| **P(reach 10%)** | 51.81% | **47.27%** | **22.55%** |
+
+**−4.5pp decay, near-identical signal volume, still more than double base rate.**
+That is not the collapse an overfit gate produces. The January contrast also
+holds the same direction: reached-10% group carries `prior_day_range` 16.34% vs
+11.47% and `chg_at_signal` 11.52% vs 9.10%.
+
+**This is the first validated result in the lane.** Entries 006, 008 and 011
+were failures or leads; this one survived a genuine out-of-sample replay.
+
+### Part B — owner directive: Open=Low becomes the family, and the method changes
+
+Owner's instruction: if MG cannot be found, use Open=Low, which demonstrably
+produces early-session signals with profit potential; my job is to **sort and
+group**, and let the recurring patterns define the screening boundaries.
+
+Two consequences:
+
+1. **The Entry 013 contract conflict dissolves.** `max_bar_index` violated MG's
+   rule that "early" means development stage, not a morning clock — but only
+   because it was being forced into MG. As its own research family, Open=Low is
+   not bound by MG's definition. Registering it as a *public* Telegram family
+   still requires Branch 13 governance; it stays RESEARCH_ONLY until then.
+2. **The method was wrong and is now corrected.** Every candidate so far was a
+   guess I then tested. `CLAUDE.md` warns against exactly that: do not collapse
+   rich continuous data into boolean markers before the empirical separation is
+   understood. New module `claude_openlow_pattern_mining_v1` proposes no rule —
+   it buckets the population and reports where the outcome concentrates, so
+   boundaries are an **output**, not an input. Decile profiles expose the *shape*
+   of each relationship (monotone, threshold, U-shaped, flat), which a mean
+   difference cannot distinguish — that is why Entry 011's mean contrast was a
+   weak instrument. Then 2-way and 3-way cells are mined with a support floor,
+   ranked by lift. Price tier and prior-day return are added because IDX
+   behaviour differs sharply across price bands and no earlier entry accounted
+   for that.
+
+### Part C — scope corrected to the operational unit
+
+Owner corrected my scope mid-build: the unit is **per day, per ticker, per
+1-minute bar**, published on the **5-minute slot grid from 09:00**, and **every
+slot is reported whether or not anything screened**.
+
+- Evaluation now runs on **every** 1-minute bar. The earlier "one signal per
+  ticker-day" was month-study logic and is now a flag (`first_for_ticker_day`),
+  not a `break` — the feed shows every qualifying bar while the outcome study
+  still collapses per ticker-day so one opportunity cannot count as many. Same
+  rows, two readings.
+- `render_screening_feed` emits the **complete slot grid** from 09:00 through
+  the last observed slot. An empty slot renders `========`, which is both the
+  owner's requirement and Telegram Sub-Sub Master §7: a valid zero-match must
+  never be indistinguishable from an outage.
+
+- **Result**: **VALIDATED GATE (Part A) + METHOD AND SCOPE CORRECTED (B, C).**
+  Mining run not yet executed; no boundary is claimed from it.
+- **Paths**: `src/a1clean/formula_research/claude_openlow_pattern_mining_v1.py`,
+  `tests/test_claude_openlow_pattern_mining_v1.py`,
+  `claude-mg-openlow-mining-requests/current.json`,
+  `.github/workflows/claude-mg-openlow-mining.yml`; validation run
+  `https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35106396044`.
