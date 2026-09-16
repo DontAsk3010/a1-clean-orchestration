@@ -48,6 +48,7 @@ from __future__ import annotations
 import argparse
 import json
 import statistics
+import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -322,6 +323,20 @@ def analyse(
     }
 
 
+def _print_utf8(text: str) -> None:
+    """Print without letting a narrow console codec kill a finished analysis."""
+    stream = sys.stdout
+    try:
+        stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
+    except (AttributeError, ValueError):
+        pass
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        encoding = getattr(stream, "encoding", None) or "ascii"
+        print(text.encode(encoding, errors="replace").decode(encoding, errors="replace"))
+
+
 def _money(value: float | None) -> str:
     """IDX prices print with a dot thousands separator; absent stays visible."""
     if value is None:
@@ -395,13 +410,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     Path(args.output).write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     full = render_report(payload, strength_only=False)
-    print(full)
+    # Results are persisted BEFORE anything is printed. The console is not a
+    # reliable sink -- a Windows runner's cp1252 stdout cannot encode the report's
+    # emoji, and a crash there would otherwise destroy a completed analysis.
     if args.report_output:
         Path(args.report_output).write_text(full + "\n", encoding="utf-8")
     if args.strength_report_output:
         Path(args.strength_report_output).write_text(
             render_report(payload, strength_only=True) + "\n", encoding="utf-8"
         )
+
+    _print_utf8(full)
     return 0
 
 
