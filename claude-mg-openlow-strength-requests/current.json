@@ -1,0 +1,12 @@
+{
+  "schema": "A1_CLAUDE_MG_OPENLOW_STRENGTH_REQUEST_V1",
+  "request_id": "CLAUDE_MG_OPENLOW_STRENGTH_V1_DES2024",
+  "enabled": true,
+  "authorization_phrase": "AUTHORIZE_CLAUDE_MG_OPENLOW_STRENGTH_V1",
+  "source_name": "Raw Des 02-31-2024.csv",
+  "oos_policy": "MARCH_2025_UNTOUCHED",
+  "min_chg_pct": 3.5,
+  "rungs": "3.5,5,5.7,7,10,12,15,20,25",
+  "strength_target_pct": 10.0,
+  "notes": "Owner's construction: Open==Low as a SCOUT, with a signal raised only once the ticker is also already up by at least min_chg_pct on the day. Ledger Entry 008 found no edge in Open==Low ALONE (causal form 34.33% against a 35.03% base rate); that result stands and is not what this tests, because scout AND ignition is a different conditional that nothing measured so far speaks to. Targets are the next rungs up the measured ladder from Entry 008 rather than a volatility quantile, which is what produced the trivially close targets recorded in Entry 006. The owner's real question -- which tickers are genuinely strong enough to carry past 10% -- is treated as its own labelled outcome and contrasted against the rest on features observable at signal time only, so any separation found is a lead for a stricter gate rather than an assumed filter."
+}

@@ -794,3 +794,77 @@ never drift from the researched candidate — only the emission policy differs.
   `tests/test_claude_mg_daily_feed_v1.py`,
   `claude-mg-daily-feed-requests/current.json`,
   `.github/workflows/claude-mg-daily-feed.yml`.
+
+---
+
+## Entry 010 — 2026-09-16 — Full-month feed executed; Open=Low scout + ignition built to chase the 10% question
+
+### Part A — feed result (run `35101362991`, artifact `10448976786`)
+
+936 tickers, **19 trading dates in source, only 7 produced any publication**,
+5,397 qualifying bars. Per-day:
+
+| date | slots | tickers |
+|---|---|---|
+| 12-18 | 54 | 4 — BBYB, BIRD, CMRY, TCPI |
+| 12-19 | 13 | 2 — CTRA, PALM |
+| 12-20 | 50 | 14 |
+| 12-23 | 64 | 26 |
+| 12-24 | 64 | 21 |
+| 12-27 | 52 | 14 |
+| 12-30 | 64 | 28 |
+
+**Dec 2–17 published nothing at all.** This is Entry 006 defect #2 confirmed
+concretely: the 8-day precursor window plus the streak walk-back make the first
+third of the month structurally unreachable. A feed that is silent on 12 of 19
+days is not a usable feed.
+
+**Pre-open exists and is now quantified**: 6,918 rows, exactly **one row per
+ticker-day**, present on **all 19 dates**, earliest observed **08:58–08:59**.
+Counted as source evidence, not published — the contract starts at the first
+automatic snapshot and these gates were never researched against pre-open
+mechanics.
+
+### Part B — owner's construction, and why the Entry 008 null does not refute it
+
+Owner supplied a target report format and a sharper research question: use
+Open=Low as a **scout**, raise a signal only once the ticker is *also* already
+up meaningfully on the day, and find the tickers genuinely strong enough to
+carry past **+10%**.
+
+**Entry 008's null result was for `Open == Low` ALONE** (causal form 34.33%
+against a 35.03% base rate). That stands. But `scout AND chg >= X` is a
+different conditional, and nothing measured so far speaks to it. Treating the
+solo null as refuting the combined form would be a reasoning error, so the
+combination is tested rather than dismissed.
+
+New module `claude_mg_openlow_strength_v1`:
+
+- **Scout**: causal `low_so_far >= day_open` — price has never traded below the
+  open up to this bar. Degenerate `high == low` days excluded and counted.
+- **Ignition**: first bar where the scout holds *and* `chg >= min_chg_pct`
+  (default 3.5%). One signal per ticker-day, matching the requested report.
+- **Targets are ladder rungs, not volatility quantiles.** TP-1/TP-2 are the next
+  two rungs above the current change on the measured ladder from Entry 008
+  (3.5/5/5.7/7/10/12/15/20/25). This directly replaces the derivation that
+  produced Entry 009's TP-1 equal to its own entry price.
+- **The 10% question is its own labelled outcome**, not a distant target:
+  `reached_10pct` is recorded per signal, and the reached group is contrasted
+  against the rest on features observable **at signal time only** — change at
+  signal, bar index, value expansion, close location, day range so far,
+  prior-day range. A separation there is a *lead* for a stricter gate; the
+  module does not assume one exists.
+- Two reports emitted: the full replay in the owner's format, and a
+  strength-only report containing just the ≥10% signals.
+- Causality enforced: scout and ignition read bars `0..t` plus the prior close;
+  target hits and the 10% label read only bars after `t`, same date, and never
+  re-enter a gate. Unit-tested that a wild future bar cannot alter signal-time
+  features.
+
+- **Result**: **CODE_READY — AWAITING GOVERNED RUN.** 12 new tests, full suite
+  **236 passing**, `compileall` clean. No claim is made about whether the
+  combined scout+ignition carries an edge, nor about what fraction reaches 10%.
+- **Paths**: `src/a1clean/formula_research/claude_mg_openlow_strength_v1.py`,
+  `tests/test_claude_mg_openlow_strength_v1.py`,
+  `claude-mg-openlow-strength-requests/current.json`,
+  `.github/workflows/claude-mg-openlow-strength.yml`.
