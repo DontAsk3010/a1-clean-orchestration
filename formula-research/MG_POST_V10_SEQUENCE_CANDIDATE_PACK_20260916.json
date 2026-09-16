@@ -1,0 +1,143 @@
+{
+  "schema": "A1_MG_POST_V10_SEQUENCE_CANDIDATE_PACK_V1",
+  "status": "RESEARCH_ONLY_NOT_CANONICAL",
+  "date_wib": "2026-09-16",
+  "source_evidence": {
+    "v9b_run_id": 35039581548,
+    "v9b_strict_survivor_count": 0,
+    "v10_run_id": 35043826259,
+    "v10_artifact_id": 10428404611,
+    "v10_question_count": 16,
+    "v10_formula_space": 112,
+    "v10_ticker_days_scanned": 285409,
+    "v10_publication_slots_scanned": 5925332,
+    "v10_strict_survivor_count": 0,
+    "march_2025_oos_touched": false,
+    "diagnostic": {
+      "least_bad_worst_block_q25_pair": "Q06_SIDEWAYS_MONEY_BUILDS__I06_ACCELERATION_AND_ACCEPTANCE",
+      "least_bad_worst_block_q25_pct": -1.3892250880366386,
+      "higher_positive_rate_lead_pair": "Q10_SHAKEOUT_THEN_BUYERS_RETURN__I05_VALUE_VOLUME_FLOW_WAKE",
+      "higher_positive_rate_by_block": {
+        "DISCOVERY": 0.363441372735939,
+        "VALIDATION_A": 0.3923398328690808,
+        "VALIDATION_B": 0.45521934621460686
+      },
+      "interpretation": "I05-like participation/flow wake contributes breadth/positive-rate, while I06-like acceleration+acceptance contributes comparatively better downside-quantile behavior. Next research must encode I05-like wake -> later I06-like response/acceptance -> retention, not pairwise coexistence."
+    }
+  },
+  "governed_blocks": {
+    "discovery": [
+      "Raw Des 02-31-2024.csv",
+      "Raw Jan 01-31-2025.csv",
+      "Raw Feb 03-28-2025.csv",
+      "Raw April 01-30-2025.csv",
+      "Raw Mei 01-30-2025.csv",
+      "Raw Juni 02-30-2025.csv",
+      "Raw Juli 01-31-2025.csv",
+      "Raw Agust 01-29-2025.csv",
+      "Raw Sep 01-30-2025.csv",
+      "Raw Oct 01-31-2025.csv"
+    ],
+    "validation_a": [
+      "Raw Nov 03-29-2025.csv",
+      "Raw Des 01-31-2025.csv",
+      "Raw Jan 01-30-2026.csv"
+    ],
+    "validation_b": [
+      "Raw Feb 02-27-2026.csv",
+      "Raw Mar 02-31-2026.csv",
+      "Raw Apr 01-30-2026.csv",
+      "Raw Mei 01-29-2026.csv"
+    ],
+    "reserved_oos": ["Raw Maret 03-31-2025.csv"]
+  },
+  "universal_sequence_contract": {
+    "stages": ["PRECONDITION", "WAKE", "RESPONSE_ACCEPTANCE", "RETENTION"],
+    "first_signal_time": "first publication snapshot where all required stages are causally complete",
+    "same_snapshot_coexistence_is_not_sequence": true,
+    "continuous_features_preserved": true,
+    "future_bars_in_formula_state": false,
+    "missing_as_zero": false,
+    "reserved_oos_for_tuning": false
+  },
+  "candidates": [
+    {
+      "formula_id": "J01_QUIET_MONEY_WAKE_RESPONSE_RETENTION",
+      "precondition": ["prior range contracts", "trade value builds", "price progress remains contained"],
+      "wake": ["same-clock value ratio > prior-days median", "same-clock volume ratio > prior-days median", "valid flow improves when available"],
+      "response_acceptance": ["later publication slot shows value/volume acceleration", "path improves versus same-clock baseline", "close location improves versus same-clock baseline"],
+      "retention": ["subsequent publication slot does not surrender accepted progress", "participation remains above same-clock baseline"],
+      "anti_false_break": ["reject one-slot spike", "reject stale/extended state", "reject poor effort-to-response"],
+      "evidence_anchor": ["Q06_SIDEWAYS_MONEY_BUILDS", "Q07_SIDEWAYS_VOLUME_BUILDS", "I05_VALUE_VOLUME_FLOW_WAKE", "I06_ACCELERATION_AND_ACCEPTANCE"]
+    },
+    {
+      "formula_id": "J02_SHAKEOUT_FLOW_RECLAIM_HOLD",
+      "precondition": ["recent lower-low/shakeout", "close-location recovery", "NBSS/positive-flow or absorption-like evidence improves"],
+      "wake": ["value/volume/flow wake precedes or accompanies first reclaim attempt"],
+      "response_acceptance": ["later slot reclaims prior reference and closes in accepted location", "acceleration remains constructive"],
+      "retention": ["reclaim is held into next publication slot", "no dominant giveback"],
+      "anti_false_break": ["reject reclaim failure", "reject wick-only high", "reject flow collapse"],
+      "evidence_anchor": ["Q10_SHAKEOUT_THEN_BUYERS_RETURN", "I05_VALUE_VOLUME_FLOW_WAKE", "I06_ACCELERATION_AND_ACCEPTANCE"]
+    },
+    {
+      "formula_id": "J03_FLOW_LEADS_DELAYED_PRICE_RESPONSE",
+      "precondition": ["multi-day positive/improving valid NBSS while price is contained or weak", "no fresh breakout yet"],
+      "wake": ["flow/value wakes first"],
+      "response_acceptance": ["price response appears in a later causal stage, not merely same snapshot", "fresh progress accepted"],
+      "retention": ["flow stays supportive or price holds after response"],
+      "anti_false_break": ["reject flow-positive/no-response lookalikes", "reject stale breakout"],
+      "evidence_anchor": ["Q02_PRICE_DOWN_NBSS_IMPROVES", "Q08_SIDEWAYS_BUY_FLOW_BUILDS", "Q16_REPEATED_POSITIVE_NBSS_NO_BREAKOUT_YET"]
+    },
+    {
+      "formula_id": "J04_EFFORT_RESPONSE_FLIP",
+      "precondition": ["high/rising effort with weak price progress"],
+      "wake": ["effort remains elevated rather than disappearing"],
+      "response_acceptance": ["price progress per unit effort improves in later slot", "close location and path improve"],
+      "retention": ["response efficiency stays positive for the next publication slot"],
+      "anti_false_break": ["reject continued high effort with no displacement", "reject one-wick response"],
+      "evidence_anchor": ["Q03_PRICE_DOWN_VALUE_ABSORBED", "Q14_VALUE_RISE_PRICE_PROGRESS_WEAK", "Q15_VOLUME_RISE_PRICE_PROGRESS_WEAK"]
+    },
+    {
+      "formula_id": "J05_HIGHER_LOW_COMPRESSION_EXPANSION",
+      "precondition": ["higher-low sequence", "range compression"],
+      "wake": ["participation rises from same-clock baseline"],
+      "response_acceptance": ["range expands only after compression", "fresh price progress closes acceptably"],
+      "retention": ["new progress survives next publication slot"],
+      "anti_false_break": ["reject immediate return into prior compressed range"],
+      "evidence_anchor": ["Q05_LOW_STOPS_FALLING_FLOW_IMPROVES", "Q06_SIDEWAYS_MONEY_BUILDS", "I06_ACCELERATION_AND_ACCEPTANCE"]
+    },
+    {
+      "formula_id": "J06_RISE_PULLBACK_BASE_REACCELERATION",
+      "precondition": ["prior rise", "measurable pullback", "base duration and contraction after pullback"],
+      "wake": ["same-clock participation/value resumes"],
+      "response_acceptance": ["renewed progress/high appears after base", "acceptance improves"],
+      "retention": ["renewed high is held", "remaining-room filter not exhausted"],
+      "anti_false_break": ["reject late chase", "reject failed renewed high"],
+      "evidence_anchor": ["multi-day rise-pullback-base direction from active handoff"]
+    },
+    {
+      "formula_id": "J07_SELL_EXHAUSTION_BUY_TURN",
+      "precondition": ["selling/negative flow exists but downside response weakens", "lows stabilize"],
+      "wake": ["positive-flow/value transition begins"],
+      "response_acceptance": ["higher-low plus fresh path improvement", "acceptance strengthens"],
+      "retention": ["no renewed lower-low after turn"],
+      "anti_false_break": ["reject temporary pause before renewed breakdown"],
+      "evidence_anchor": ["Q04_SELLING_PRESENT_PRICE_STOPS_FALLING", "Q05_LOW_STOPS_FALLING_FLOW_IMPROVES"]
+    },
+    {
+      "formula_id": "J08_TWO_WAVE_RELOAD",
+      "precondition": ["first fresh same-clock wake occurs"],
+      "wake": ["initial activity/price impulse"],
+      "response_acceptance": ["controlled pause or pullback holds constructive range position", "second acceleration produces renewed progress"],
+      "retention": ["second-wave progress persists into next publication slot"],
+      "anti_false_break": ["reject first-spike-only setup", "reject deep giveback", "reject no-second-wave state"],
+      "evidence_anchor": ["active-handoff persistence and false-ignition requirements"]
+    }
+  ],
+  "strict_gate": {
+    "min_support": "governed/default >=40 unless newer authority changes",
+    "q25_net_mfe_positive_all_three_blocks": true,
+    "median_net_mfe_positive_all_three_blocks": true,
+    "march_oos_must_remain_untouched_until_frozen_survivor": true
+  }
+}
