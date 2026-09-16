@@ -1,0 +1,37 @@
+{
+  "schema": "A1_MG_DURABLE_FEATURE_CACHE_POLICY_V1",
+  "status": "ACTIVE_RESEARCH_INFRASTRUCTURE_LOCK",
+  "date_wib": "2026-09-16",
+  "purpose": "Prevent repeated full RAW rereads when formula logic changes or a formula run fails.",
+  "rules": {
+    "raw_is_ingested_once_per_source_fingerprint": true,
+    "derived_feature_cache_is_durable": true,
+    "future_formula_versions_must_read_cache_not_raw": true,
+    "future_formula_runner_must_fail_if_required_cache_missing": true,
+    "silent_raw_fallback_is_forbidden": true,
+    "cache_rebuild_allowed_only_if_source_fingerprint_or_cache_schema_changes": true,
+    "completed_source_shards_must_not_be_rebuilt_after_partial_failure": true,
+    "reserved_march_2025_oos_must_remain_excluded_until_governed_release": true,
+    "missing_values_must_remain_missing_not_zero": true
+  },
+  "cache_unit": "one governed source/month per durable shard",
+  "minimum_cached_payload": [
+    "source identity and fingerprint",
+    "ticker and trading date",
+    "normalized session-eligible bar primitives needed for later formula evaluation",
+    "publication-slot prefix features",
+    "daily behavior features",
+    "flow availability/mechanism eligibility state",
+    "outcome-evaluation primitives per publication slot sufficient to calculate governed entry/MFE/MAE/EOD without reopening RAW"
+  ],
+  "manifest_requirements": [
+    "cache schema version",
+    "source fingerprint",
+    "ticker-day count",
+    "row/publication-slot accounting",
+    "shard digest",
+    "created timestamp",
+    "complete flag"
+  ],
+  "current_v11_note": "The already-running V11 checkout predates this lock and is not restarted. Its current execution remains untouched. This policy governs subsequent formula executions and cache bootstrap work."
+}
