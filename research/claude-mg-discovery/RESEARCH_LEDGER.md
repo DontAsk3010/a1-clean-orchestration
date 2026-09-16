@@ -450,3 +450,111 @@ the contract is precisely where the difficulty lies.
   `tests/test_claude_mg_intraday_v2.py`,
   `claude-mg-intraday-v2-requests/current.json`,
   `.github/workflows/claude-mg-intraday-v2.yml`.
+
+---
+
+## Entry 006 — 2026-09-16 — V2 EXECUTED on December 2024. Result: FAIL on discovery. Does not beat the existing baseline.
+
+First Claude-lane entry carrying real measured numbers, read directly from the
+job log (not the artifact, not the green tick).
+
+- **Run**: `35089709020`, job `104772866508`, workflow
+  `.github/workflows/claude-mg-intraday-v2.yml`, commit
+  `f96ff85299644558b2f819ac484924f556b1bd2c`. Runner `A1-WINDOWS-COMPUTE`
+  (`[self-hosted, windows, x64, a1-clean-parity]`). Queued 11:19:41Z, started
+  11:50:49Z once the runner came online, module ran 11:51:30Z → 12:01:10Z
+  (9m40s), conclusion `success`. Artifact `10445226948`. Guards all passed:
+  request schema, authorization phrase, March-refusal, Drive binding, and the
+  full 201-test suite green **on the runner**.
+- **Source**: `Raw Des 02-31-2024.csv`, 936 tickers, phase `discover`,
+  `precursor_window_days=8`, horizons `5,15,30,60` regular bars,
+  `min_streak_grid=1..5`. `future_data_used_for_candidate_state: false`,
+  `winner_only_filter_used: false`.
+- **Learned thresholds (frozen)**: `dormant_return_cutoff_pct=-1.6949`,
+  `flow_persistence_cutoff_ratio=0.92989`, `min_absorption_streak_days=4`
+  (grid-selected), `chg_chase_cutoff_pct=3.3210`, `close_location_cutoff=0.4`,
+  `min_day_trade_value=206,853,500`, `tp1_vol_multiple=0.19607`,
+  `tp2_vol_multiple=0.39651`.
+
+### Measured outcome by min_streak (signals / mean forward return % / positive rate)
+
+| min_streak | signals | tickers | dates | 5b mean / pos | 15b mean / pos | 30b mean / pos | 60b mean / pos |
+|---|---|---|---|---|---|---|---|
+| 1 | 563 | 262 | 10 | −0.266 / 21.98% | −0.294 / 23.66% | −0.375 / 26.62% | −0.453 / 26.48% |
+| 2 | 346 | 186 | 9 | −0.338 / 19.70% | −0.288 / 24.67% | −0.307 / 26.92% | −0.360 / 26.27% |
+| 3 | 203 | 123 | 8 | −0.345 / 20.71% | −0.261 / 26.34% | −0.379 / 30.29% | −0.347 / 28.28% |
+| 4 | 109 | 73 | 7 | −0.217 / 22.64% | −0.049 / 28.57% | −0.154 / 34.41% | −0.049 / 28.40% |
+| 5 | 50 | 33 | 6 | −0.045 / 29.17% | **+0.161** / 29.55% | **+0.119** / 42.50% | **+0.038** / 27.78% |
+
+### Verdict against the governed bar — FAIL
+
+`CLAUDE.md` states a formula near 55–59% positive rate with negative Q25 is not
+a high-quality MG answer. This candidate is far below that bar:
+**`forward_q25_pct` is negative in every single cell of the grid**, and
+`forward_q50_pct` is exactly `0.0` in many cells — the median signal produces
+no price move at all.
+
+Head-to-head against the GPT lane's December baseline on the **same source**
+(Entry 004; their means converted from fraction to percent):
+
+| | 5 bars | 60 bars |
+|---|---|---|
+| F02A SELL_RESILIENCE | **+0.094% / 32.03%** | −0.016% / 35.60% |
+| F01A BUY_STALL | −0.133% / 21.42% | −0.161% / 30.86% |
+| F05A SESSION_OPEN_RECOVERY | −0.498% / 16.93% | −0.456% / 26.27% |
+| **Claude v2, streak=4 (learned)** | −0.217% / 22.64% | −0.049% / 28.40% |
+
+At the grid-selected `min_streak=4`, v2 is **beaten decisively by the simple
+standalone F02A SELL_RESILIENCE** on both mean return and positive rate at 5
+bars, is roughly level with F01A BUY_STALL, and only clearly beats F05A — the
+worst component in the corpus. A candidate combining a multi-day precursor, an
+intraday ignition and ten failure gates that cannot beat one standalone
+component is not carrying its complexity.
+
+### The one genuine lead: dose-response with streak length
+
+Mean forward return improves monotonically with `min_streak` at the longer
+horizons — 15 bars: −0.294 → −0.288 → −0.261 → −0.049 → **+0.161**; 60 bars:
+−0.453 → −0.360 → −0.347 → −0.049 → **+0.038**. That is the direction H12
+predicted, and it is the only encouraging structure in the run.
+
+**It is not yet evidence.** It is confounded with shrinking sample: streak=5
+rests on 36–48 evaluable events across **6 dates**. Nothing may be concluded
+from that, and it is explicitly NOT treated as a result here.
+
+### Three design defects this run exposed (mine, not the data's)
+
+1. **TP multiples are learned from the wrong population.** `tp1_vol_multiple`
+   came out at 0.196 — targets sit roughly a fifth of one daily range above
+   price, far too close to be a real trader objective. The multiples are
+   quantiles of the MFE distribution over *every* snapshot bar, which is
+   dominated by do-nothing bars, instead of over *qualifying signals*. This
+   also makes `tp1_hit_rate` (~50% at 60 bars) near-tautological rather than
+   independent evidence, so **no TP hit-rate in this entry should be read as
+   performance**.
+2. **Date coverage is only 6–10 of December's ~20 trading days.** The
+   8-day precursor window plus the streak walk-back mean no signal can fire
+   before roughly day index 9, so half the month is structurally unreachable.
+   Discovery is effectively running on half a month.
+3. **The conjunction is lopsided.** `absorption_streak_too_short` accounts for
+   493k–650k rejections against tens of thousands for every intraday gate
+   combined. The precursor does ~95% of the filtering; the intraday ignition
+   is a light touch on top, not the balanced conjunction the design intended.
+   `no_remaining_room` (2–65) and `unstable_path` (13–313) are nearly inert.
+
+- **Result**: **FAIL on discovery.** No promotion, no validation run, no
+  Telegram anything. Thresholds are frozen in the artifact but must NOT be
+  replayed on Jan/Feb as they stand — spending governed validation data on a
+  candidate with a known-broken target derivation would waste the untouched
+  period.
+- **Next step, in order**: (a) re-derive TP multiples from the qualifying-signal
+  MFE distribution and re-run discovery; (b) shorten or stagger the precursor
+  window so the whole month is reachable; (c) test the streak dose-response as
+  its own hypothesis on a longer span, since one month cannot separate it from
+  small-sample noise; (d) treat F02A SELL_RESILIENCE as a component to
+  incorporate rather than a rival to beat — it is the only standalone signal in
+  the corpus pointing the right way.
+- **Paths**: run
+  `https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35089709020`;
+  artifact `claude-mg-intraday-v2-35089709020` (ID `10445226948`);
+  `src/a1clean/formula_research/claude_mg_intraday_v2.py`.
