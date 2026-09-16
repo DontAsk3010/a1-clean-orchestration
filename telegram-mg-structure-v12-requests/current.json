@@ -1,0 +1,11 @@
+{
+  "schema": "A1_TELEGRAM_MG_STRUCTURE_V12_REQUEST_V1",
+  "enabled": true,
+  "run_revision": 1,
+  "prior_days": 10,
+  "execution": {
+    "buy_fee_pct": 0.15,
+    "sell_fee_pct": 0.25
+  },
+  "min_support": 40
+}
