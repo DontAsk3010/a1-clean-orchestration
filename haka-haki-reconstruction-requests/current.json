@@ -1,0 +1,11 @@
+{
+  "schema": "A1_HAKA_HAKI_RECONSTRUCTION_REQUEST_V1",
+  "enabled": true,
+  "source_name": "Raw Des 02-31-2024.csv",
+  "source_drive_id": "1wvBmhpQIV-evJJOPN_g8nks3KZBzmVHC",
+  "source_sha256": "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+  "generation_id": "BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01",
+  "derive_only_when_flow_available_and_mechanism_eligible": true,
+  "physical_zero_without_independent_availability_remains_unknown": true,
+  "reserved_oos_must_remain_untouched": true
+}
