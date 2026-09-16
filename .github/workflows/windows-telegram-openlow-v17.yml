@@ -1,0 +1,58 @@
+name: Windows Telegram OpenLow V17 MultiMonth
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - telegram-openlow-v17-requests/current.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-telegram-openlow-v17
+  cancel-in-progress: true
+
+jobs:
+  replay:
+    name: Replay frozen OpenLow formula across all cached months
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 240
+    steps:
+      - name: Checkout exact research revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate request
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'telegram-openlow-v17-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_TELEGRAM_OPENLOW_V17_REQUEST_V1') { throw 'Unsupported V17 request schema.' }
+          if ($req.enabled -ne $true) { throw 'V17 request disabled.' }
+
+      - name: Install and compile V17
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[test]'
+          if ($LASTEXITCODE -ne 0) { throw 'V17_INSTALL_FAILED' }
+          py -3.11 -m py_compile src/a1clean/formula_research/telegram_openlow_frozen_multimonth_v17.py
+          if ($LASTEXITCODE -ne 0) { throw 'V17_COMPILE_FAILED' }
+
+      - name: Run V17 from durable cache only
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & py -3.11 -m a1clean.formula_research.telegram_openlow_frozen_multimonth_v17 --output-dir 'telegram-openlow-v17-output'
+          if ($LASTEXITCODE -ne 0) { throw "V17_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Upload V17 Telegram reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-openlow-v17-${{ github.run_id }}
+          path: telegram-openlow-v17-output/**
+          if-no-files-found: error
+          retention-days: 30
