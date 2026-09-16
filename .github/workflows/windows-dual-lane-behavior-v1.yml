@@ -41,25 +41,17 @@ jobs:
           $ErrorActionPreference = 'Stop'
           py -3.11 -m pip install -e '.[test]'
           if ($LASTEXITCODE -ne 0) { throw 'DUAL_LANE_INSTALL_FAILED' }
-          py -3.11 -m py_compile src/a1clean/formula_research/dual_lane_behavior_v1.py
+          py -3.11 -m py_compile src/a1clean/formula_research/dual_lane_behavior_v1.py src/a1clean/formula_research/dual_lane_behavior_v1_cached.py
           if ($LASTEXITCODE -ne 0) { throw 'DUAL_LANE_COMPILE_FAILED' }
           py -3.11 -m pytest -q tests/test_dual_lane_behavior_v1.py
           if ($LASTEXITCODE -ne 0) { throw 'DUAL_LANE_TEST_FAILED' }
 
-      - name: Verify Drive credential bindings
-        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
-        run: |
-          $ErrorActionPreference = 'Stop'
-          foreach ($path in @($env:A1_DRIVE_READER_CREDENTIALS, $env:A1_DRIVE_WRITER_CREDENTIALS)) {
-            if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'Drive credential binding missing.' }
-          }
-
-      - name: Run governed non-OOS dual-lane research from durable cache
+      - name: Run governed non-OOS dual-lane research from durable cache catalog
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           $req = $env:A1_DUAL_LANE_REQUEST_JSON | ConvertFrom-Json
-          & py -3.11 -m a1clean.formula_research.dual_lane_behavior_v1 `
+          & py -3.11 -m a1clean.formula_research.dual_lane_behavior_v1_cached `
             --output 'dual-lane-behavior-v1-result.json' `
             --prior-days ([string][int]$req.prior_days) `
             --buy-fee-pct ([string][double]$req.execution.buy_fee_pct) `
@@ -67,7 +59,7 @@ jobs:
             --min-support ([string][int]$req.min_support)
           if ($LASTEXITCODE -ne 0) { throw "DUAL_LANE_RUNTIME_FAILED:$LASTEXITCODE" }
 
-      - name: Assert reserved OOS untouched
+      - name: Assert cache-only execution and reserved OOS untouched
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
@@ -75,6 +67,8 @@ jobs:
           if ($obj.march_2025_reserved_oos_touched -ne $false) { throw 'RESERVED_OOS_TOUCHED' }
           if ($obj.future_data_used_for_formula_state -ne $false) { throw 'FUTURE_STATE_LEAKAGE_FLAGGED' }
           if ($obj.data_access -ne 'DURABLE_CACHE_ONLY_NO_RAW_REREAD') { throw 'RAW_REREAD_NOT_ALLOWED' }
+          if ($obj.source_catalog -ne 'DURABLE_CACHE_META_ONLY_NO_DRIVE_MANIFEST_DISCOVERY') { throw 'CACHE_CATALOG_ASSERTION_FAILED' }
+          if ($obj.cache_source_count -le 0) { throw 'CACHE_SOURCE_COUNT_INVALID' }
 
       - name: Upload dual-lane research artifact
         uses: actions/upload-artifact@v4
