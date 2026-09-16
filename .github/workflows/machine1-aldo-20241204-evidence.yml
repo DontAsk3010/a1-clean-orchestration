@@ -1,4 +1,4 @@
-name: Machine1 ALII 2024-12-04 Governed Evidence Extract
+name: Machine1 ALKA 2024-12-04 Governed Evidence Extract
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  extract-alii:
+  extract-alka:
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 30
     env:
@@ -18,7 +18,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Extract exact governed ALII packet
+      - name: Extract exact governed ALKA packet
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
@@ -26,15 +26,15 @@ jobs:
           import csv, hashlib, json, os, pathlib
 
           raw = pathlib.Path(os.environ['RAW_FILE'])
-          ticker_expected = 'ALII'
+          ticker_expected = 'ALKA'
           trading_date = '2024-12-04'
-          source_first = 54345
-          source_last = 54381
-          expected_count = 37
+          source_first = 60396
+          source_last = 60415
+          expected_count = 20
           expected_first_time = '09:00:00'
-          expected_last_time = '16:08:00'
+          expected_last_time = '16:13:00'
           semantic_bundle = 'Raw Des 02-31-2024__SEMANTIC_0009.jsonl'
-          semantic_bundle_line = 215
+          semantic_bundle_line = 216
           expected_md5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
           expected_sha256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
 
@@ -97,10 +97,10 @@ jobs:
               'rows': rows,
           }
 
-          out = pathlib.Path('machine1_alii_20241204_evidence')
+          out = pathlib.Path('machine1_alka_20241204_evidence')
           out.mkdir(exist_ok=True)
-          packet_path = out / 'ALII_20241204_PACKET.json'
-          rows_path = out / 'ALII_20241204_ROWS.jsonl'
+          packet_path = out / 'ALKA_20241204_PACKET.json'
+          rows_path = out / 'ALKA_20241204_ROWS.jsonl'
           packet_path.write_text(json.dumps(packet, ensure_ascii=False, indent=2), encoding='utf-8')
           with rows_path.open('w', encoding='utf-8', newline='\n') as w:
               for row in rows:
@@ -121,14 +121,14 @@ jobs:
               'last_datetime': dts[-1],
               'packet_sha256': evidence_sha256,
           }, ensure_ascii=False, indent=2), encoding='utf-8')
-          print(f'ALII_EVIDENCE_OK rows={len(rows)} source_rows={source_first}-{source_last} first={dts[0]} last={dts[-1]} packet_sha256={evidence_sha256}')
-          '@ | Set-Content -LiteralPath extract_alii_20241204.py -Encoding UTF8
-          py -3.11 extract_alii_20241204.py
+          print(f'ALKA_EVIDENCE_OK rows={len(rows)} source_rows={source_first}-{source_last} first={dts[0]} last={dts[-1]} packet_sha256={evidence_sha256}')
+          '@ | Set-Content -LiteralPath extract_alka_20241204.py -Encoding UTF8
+          py -3.11 extract_alka_20241204.py
 
-      - name: Upload governed ALII evidence
+      - name: Upload governed ALKA evidence
         uses: actions/upload-artifact@v4
         with:
-          name: machine1-alii-20241204-evidence
-          path: machine1_alii_20241204_evidence/
+          name: machine1-alka-20241204-evidence
+          path: machine1_alka_20241204_evidence/
           if-no-files-found: error
           retention-days: 7
