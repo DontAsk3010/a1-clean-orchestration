@@ -206,3 +206,25 @@ def test_a_bucket_reports_what_it_paid_not_only_how_often_it_touched():
         assert "mean_pl_rp" in bucket and "p_profitable" in bucket and "total_pl_rp" in bucket
     lo, hi = prof["buckets"][0], prof["buckets"][-1]
     assert lo["mean_pl_rp"] < hi["mean_pl_rp"]
+
+
+def test_cli_accepts_every_flag_the_workflow_passes():
+    """Run 35122982338 died in two seconds on 'unrecognized arguments:
+    --capital-per-signal' because a patch to the parser silently missed while
+    the call site already used it. The parser and the workflow must agree."""
+    import re
+    from pathlib import Path
+    from a1clean.formula_research import claude_openlow_pattern_mining_v1 as mod
+
+    workflow = Path(__file__).resolve().parents[1] / ".github/workflows/claude-mg-openlow-mining.yml"
+    passed = set(re.findall(r"(--[a-z][a-z0-9-]+)", workflow.read_text(encoding="utf-8")))
+    parser_src = mod.main.__doc__ or ""
+    defined = set(re.findall(r'add_argument\("(--[a-z0-9-]+)"',
+                             Path(mod.__file__).read_text(encoding="utf-8")))
+    missing = {f for f in passed if f.startswith("--") and f in {
+        "--source-name", "--min-chg-pct", "--strength-target-pct", "--buckets",
+        "--min-support", "--max-combo", "--top-cells", "--output", "--report-output",
+        "--feed-output", "--from-time", "--slot-minutes", "--capital-per-signal",
+    }} - defined
+    assert not missing, f"workflow passes flags the parser does not define: {sorted(missing)}"
+    assert parser_src is not None

@@ -476,6 +476,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--min-support", type=int, default=25)
     parser.add_argument("--max-combo", type=int, default=3)
     parser.add_argument("--top-cells", type=int, default=40)
+    parser.add_argument("--capital-per-signal", type=float, default=DEFAULT_CAPITAL_PER_SIGNAL)
     parser.add_argument("--output", required=True)
     parser.add_argument("--report-output", default=None)
     parser.add_argument("--feed-output", default=None)

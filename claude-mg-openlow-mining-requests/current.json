@@ -1,6 +1,6 @@
 {
   "schema": "A1_CLAUDE_OPENLOW_MINING_REQUEST_V1",
-  "request_id": "CLAUDE_OPENLOW_MINING_V1_DEC2024_RUPIAH",
+  "request_id": "CLAUDE_OPENLOW_MINING_V1_DEC2024_RUPIAH_RERUN",
   "enabled": true,
   "authorization_phrase": "AUTHORIZE_CLAUDE_OPENLOW_MINING_V1",
   "source_name": "Raw Des 02-31-2024.csv",
