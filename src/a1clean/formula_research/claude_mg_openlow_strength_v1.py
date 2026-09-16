@@ -214,6 +214,9 @@ def _forward_path(entry_price: float, forward: Sequence[Mapping[str, Any]]) -> d
         "mae_pct": (run_min / entry_price - 1.0) * 100.0,
         "mae_before_peak_pct": mae_before_peak,
         "eod_pct": (last_close / entry_price - 1.0) * 100.0,
+        "best_price": best,
+        "worst_price": run_min,
+        "eod_price": last_close,
     }
 
 
@@ -331,6 +334,8 @@ def analyse(
                         "mae_before_peak_pct": path["mae_before_peak_pct"],
                         "eod_pct": path["eod_pct"],
                         "eod_positive": path["eod_pct"] > 0.0,
+                        "best_price": path["best_price"],
+                        "eod_price": path["eod_price"],
                         f"reached_{int(strength_target_pct)}pct": reached_strength,
                         "features": _signal_features(bars, t, prior_range),
                         "future_data_used_for_signal": False,
@@ -548,6 +553,149 @@ def render_report(payload: Mapping[str, Any], *, strength_only: bool) -> str:
     return "\n".join(lines)
 
 
+LOT_SIZE = 100
+DEFAULT_CAPITAL_PER_SIGNAL = 5_000_000.0
+
+
+def _rupiah(value: float) -> str:
+    """IDX thousands separator, sign always shown for a result."""
+    whole = int(round(abs(value)))
+    body = f"{whole:,}".replace(",", ".")
+    return f"-{body}" if value < 0 else body
+
+
+def _position(entry_price: float, capital: float) -> dict[str, float] | None:
+    """One buy of `capital` rupiah at `entry_price`, rounded DOWN to whole lots.
+
+    IDX trades in lots of 100 shares, so 5 juta does not buy the same fraction at
+    every price. At Rp6 a lot costs Rp600 and the money lands almost exactly; at
+    Rp9.750 a lot costs Rp975.000 and only five lots fit, leaving Rp125.000
+    unspent. Reporting a naive capital/price division would overstate every cheap
+    stock and understate every expensive one.
+    """
+    lot_cost = entry_price * LOT_SIZE
+    lots = int(capital // lot_cost)
+    if lots < 1:
+        return None
+    shares = lots * LOT_SIZE
+    return {"lots": float(lots), "shares": float(shares), "cost": shares * entry_price}
+
+
+def _exit_price(signal: Mapping[str, Any]) -> tuple[float, str]:
+    """Sell at the target that was actually touched, otherwise at the close.
+
+    This is the only exit rule the replay data can support honestly: a limit sell
+    resting at TP is filled if the day traded through it, and anything unfilled is
+    closed at the last price of the same day. No trailing stop, no discretion.
+    """
+    result = signal["result"]
+    if result == "TP2" and signal.get("tp2_price") is not None:
+        return float(signal["tp2_price"]), "TP-2"
+    if result in ("TP1", "TP2") and signal.get("tp1_price") is not None:
+        return float(signal["tp1_price"]), "TP-1"
+    return float(signal["eod_price"]), "CLOSE"
+
+
+def money_rows(
+    payload: Mapping[str, Any], *, capital: float = DEFAULT_CAPITAL_PER_SIGNAL
+) -> list[dict[str, Any]]:
+    """Every signal as one independent Rp-capital buy.
+
+    Each signal is its own position. Capital is not recycled between signals and
+    is not capped per day: if nine signals print on one day, that is nine buys.
+    """
+    rows: list[dict[str, Any]] = []
+    for day in payload.get("days", []):
+        for s in day["signals"]:
+            entry = float(s["price"])
+            pos = _position(entry, capital)
+            exit_price, exit_kind = _exit_price(s)
+            best = float(s["best_price"])
+            if pos is None:
+                rows.append({
+                    "date": day["date"], "slot": s["slot"], "ticker": s["ticker"],
+                    "entry_price": entry, "exit_price": exit_price, "exit_kind": exit_kind,
+                    "skipped": "CAPITAL_BELOW_ONE_LOT",
+                })
+                continue
+            rows.append({
+                "date": day["date"],
+                "slot": s["slot"],
+                "ticker": s["ticker"],
+                "entry_price": entry,
+                "exit_price": exit_price,
+                "exit_kind": exit_kind,
+                "lots": pos["lots"],
+                "shares": pos["shares"],
+                "cost": pos["cost"],
+                "proceeds": pos["shares"] * exit_price,
+                "profit_loss": pos["shares"] * (exit_price - entry),
+                "max_profit": pos["shares"] * (best - entry),
+                "best_price": best,
+                "skipped": None,
+            })
+    return rows
+
+
+def render_money_report(
+    payload: Mapping[str, Any], *, capital: float = DEFAULT_CAPITAL_PER_SIGNAL
+) -> str:
+    """SAHAM | ENTRY | EXIT | PROFIT/LOSS | MAX PROFIT, per day and slot."""
+    months = {"01": "JAN", "02": "FEB", "03": "MAR", "04": "APR", "05": "MAY", "06": "JUN",
+              "07": "JUL", "08": "AUG", "09": "SEP", "10": "OCT", "11": "NOV", "12": "DEC"}
+    rows = money_rows(payload, capital=capital)
+    cap_label = f"Rp{_rupiah(capital)}"
+    lines = [
+        f"OPEN=LOW — {payload.get('source_name')} | ENTRY {cap_label} PER SINYAL",
+        "RESEARCH RENDERING ONLY — NOT A TELEGRAM PUBLICATION.",
+        f"{'HARI':<7}{'JAM':<7}{'SAHAM':<6}{'ENTRY':>9}{'EXIT':>9}  {'PROFIT/LOSS':>14}{'MAX PROFIT':>14}",
+    ]
+    by_date: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for r in rows:
+        by_date[r["date"]].append(r)
+
+    total_pl = 0.0
+    total_max = 0.0
+    total_cost = 0.0
+    wins = losses = flats = 0
+    for date in sorted(by_date):
+        parts = date.split("-")
+        label = f"{parts[2]} {months.get(parts[1], parts[1])}"
+        lines.append("")
+        day_pl = 0.0
+        for r in by_date[date]:
+            if r["skipped"]:
+                lines.append(f"{label:<7}{r['slot']:<7}{r['ticker']:<6}{'':>9}{'':>9}  {r['skipped']:>14}")
+                continue
+            pl = r["profit_loss"]
+            day_pl += pl
+            total_pl += pl
+            total_max += r["max_profit"]
+            total_cost += r["cost"]
+            wins += pl > 0
+            losses += pl < 0
+            flats += pl == 0
+            lines.append(
+                f"{label:<7}{r['slot']:<7}{r['ticker']:<6}"
+                f"{_rupiah(r['entry_price']):>9}{_rupiah(r['exit_price']):>9}  "
+                f"{_rupiah(pl):>14}{_rupiah(r['max_profit']):>14}"
+            )
+        lines.append(f"{'':<20}{'SUBTOTAL':<6}{'':>18}  {_rupiah(day_pl):>14}")
+
+    traded = wins + losses + flats
+    lines.append("")
+    lines.append("=" * 76)
+    lines.append(f"SINYAL DIBELI      : {traded}  (untung {wins} / rugi {losses} / impas {flats})")
+    lines.append(f"MODAL TERPAKAI     : {_rupiah(total_cost)}")
+    lines.append(f"PROFIT/LOSS BERSIH : {_rupiah(total_pl)}")
+    lines.append(f"MAX PROFIT (jual pas di high): {_rupiah(total_max)}")
+    if total_cost:
+        lines.append(f"RETURN ATAS MODAL  : {total_pl / total_cost * 100.0:+.2f}%")
+    lines.append("Entry = harga bar sinyal (proxy HAKA; tanpa data L1 ask/queue ini bukan fill HAKA sebenarnya).")
+    lines.append("Exit  = TP yang tersentuh, kalau tidak tersentuh ditutup di harga close hari itu. Belum potong fee.")
+    return "\n".join(lines)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="a1clean-claude-mg-openlow-strength-v1")
     parser.add_argument("--source-name", required=True)
@@ -561,6 +709,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--output", required=True)
     parser.add_argument("--report-output", default=None)
     parser.add_argument("--strength-report-output", default=None)
+    parser.add_argument("--money-report-output", default=None)
+    parser.add_argument("--capital-per-signal", type=float, default=DEFAULT_CAPITAL_PER_SIGNAL)
     args = parser.parse_args(argv)
 
     rungs = tuple(float(x) for x in args.rungs.split(",") if x.strip())
@@ -584,6 +734,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         Path(args.strength_report_output).write_text(
             render_report(payload, strength_only=True) + "\n", encoding="utf-8"
         )
+
+    money = render_money_report(payload, capital=args.capital_per_signal)
+    if args.money_report_output:
+        Path(args.money_report_output).write_text(money + "\n", encoding="utf-8")
 
     _print_utf8(full)
     return 0

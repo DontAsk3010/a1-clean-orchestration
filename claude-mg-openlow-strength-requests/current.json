@@ -1,6 +1,6 @@
 {
   "schema": "A1_CLAUDE_MG_OPENLOW_STRENGTH_REQUEST_V1",
-  "request_id": "CLAUDE_MG_OPENLOW_STRENGTH_V1_DEC2024_DOWNSIDE",
+  "request_id": "CLAUDE_MG_OPENLOW_STRENGTH_V1_DEC2024_MONEY",
   "enabled": true,
   "authorization_phrase": "AUTHORIZE_CLAUDE_MG_OPENLOW_STRENGTH_V1",
   "source_name": "Raw Des 02-31-2024.csv",
@@ -8,7 +8,8 @@
   "min_chg_pct": 7.0,
   "rungs": "3.5,5,5.7,7,10,12,15,20,25",
   "strength_target_pct": 10.0,
-  "notes": "Re-runs the SAME December gates with nothing retuned, to answer a question the earlier runs could not: when a signal shows FAIL, did it actually lose money? The prior module only recorded whether a rung was touched, so FAIL conflated a flat drift with a collapse. This run adds MFE, MAE, drawdown-before-peak and end-of-day result, all measured from the signal price on same-date forward bars as outcome labels only, and reports them split by rung result. March 2025 remains untouched and is refused fail-closed.",
+  "notes": "Owner report contract: SAHAM | ENTRY Rp5 jt | EXIT | PROFIT/LOSS | MAX PROFIT, per day and per 5-minute slot. Every signal is its own Rp5.000.000 buy -- capital is not recycled between signals and is not capped per day. Position size rounds DOWN to whole IDX lots of 100 shares, so 5 juta buys a different number of lots at Rp6 than at Rp9.750. Exit is the target that was actually touched, otherwise the same-day close. Gates unchanged (min_chg 7.0, max_bar_index 10, min_prior_day_range 7.0); nothing retuned, only the money rendering is new. March 2025 remains untouched and is refused fail-closed.",
   "max_bar_index": 10,
-  "min_prior_day_range_pct": 7.0
+  "min_prior_day_range_pct": 7.0,
+  "capital_per_signal": 5000000
 }

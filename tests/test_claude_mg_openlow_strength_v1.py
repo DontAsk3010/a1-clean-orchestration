@@ -206,3 +206,79 @@ def test_quantile_returns_a_value_the_sample_actually_contains():
     assert _quantile(sample, 0.10) == -5.0
     assert _quantile(sample, 0.90) == 9.0
     assert _quantile([], 0.5) is None
+
+
+def test_five_million_buys_whole_lots_only():
+    """IDX trades in lots of 100. A naive capital/price division would claim
+    fractional lots nobody can buy, and would overstate every cheap stock."""
+    from a1clean.formula_research.claude_mg_openlow_strength_v1 import _position
+
+    cheap = _position(6.0, 5_000_000.0)
+    assert cheap["lots"] == 8333  # 8333 * 600 = 4.999.800, not 833.333 shares
+    assert cheap["cost"] == pytest.approx(4_999_800.0)
+
+    pricey = _position(9750.0, 5_000_000.0)
+    assert pricey["lots"] == 5  # a lot costs 975.000, so only five fit
+    assert pricey["cost"] == pytest.approx(4_875_000.0)
+
+    # Above 50.000 a single lot exceeds the capital and nothing can be bought.
+    assert _position(60_000.0, 5_000_000.0) is None
+
+
+def test_exit_takes_the_target_that_was_touched_else_the_close():
+    from a1clean.formula_research.claude_mg_openlow_strength_v1 import _exit_price
+
+    hit2 = {"result": "TP2", "tp1_price": 110.0, "tp2_price": 120.0, "eod_price": 90.0}
+    assert _exit_price(hit2) == (120.0, "TP-2")
+
+    hit1 = {"result": "TP1", "tp1_price": 110.0, "tp2_price": 120.0, "eod_price": 90.0}
+    assert _exit_price(hit1) == (110.0, "TP-1")
+
+    missed = {"result": "FAIL", "tp1_price": 110.0, "tp2_price": 120.0, "eod_price": 92.0}
+    assert _exit_price(missed) == (92.0, "CLOSE")
+
+
+def test_every_signal_is_its_own_five_million_not_a_shared_pot():
+    from a1clean.formula_research.claude_mg_openlow_strength_v1 import money_rows
+
+    payload = {
+        "source_name": "Raw Des 02-31-2024.csv",
+        "days": [{
+            "date": "2024-12-03",
+            "signals": [
+                {"slot": "09:00", "ticker": "AAAA", "price": 100.0, "result": "FAIL",
+                 "tp1_price": 110.0, "tp2_price": 120.0, "eod_price": 90.0, "best_price": 104.0},
+                {"slot": "09:00", "ticker": "BBBB", "price": 100.0, "result": "TP1",
+                 "tp1_price": 110.0, "tp2_price": 120.0, "eod_price": 95.0, "best_price": 115.0},
+            ],
+        }],
+    }
+    rows = money_rows(payload, capital=5_000_000.0)
+    assert len(rows) == 2
+    # Both buy the full 5 juta; the first signal does not consume the second's money.
+    assert rows[0]["cost"] == pytest.approx(5_000_000.0)
+    assert rows[1]["cost"] == pytest.approx(5_000_000.0)
+    # A missed target closes at the close, and that is a real loss in rupiah.
+    assert rows[0]["profit_loss"] == pytest.approx(-500_000.0)
+    assert rows[0]["max_profit"] == pytest.approx(200_000.0)
+    # A touched target sells there even though the close was below entry.
+    assert rows[1]["profit_loss"] == pytest.approx(500_000.0)
+
+
+def test_money_report_has_the_owner_column_set():
+    from a1clean.formula_research.claude_mg_openlow_strength_v1 import render_money_report
+
+    payload = {
+        "source_name": "Raw Des 02-31-2024.csv",
+        "days": [{
+            "date": "2024-12-03",
+            "signals": [{"slot": "09:00", "ticker": "ECII", "price": 390.0, "result": "TP1",
+                         "tp1_price": 406.0, "tp2_price": 422.0, "eod_price": 356.0,
+                         "best_price": 410.0}],
+        }],
+    }
+    text = render_money_report(payload)
+    assert "SAHAM" in text and "ENTRY" in text and "EXIT" in text
+    assert "PROFIT/LOSS" in text and "MAX PROFIT" in text
+    assert "ECII" in text and "09:00" in text and "03 DEC" in text
+    assert "PROFIT/LOSS BERSIH" in text

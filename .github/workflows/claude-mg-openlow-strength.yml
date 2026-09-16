@@ -68,7 +68,9 @@ jobs:
             --min-prior-day-range-pct $req.min_prior_day_range_pct `
             --output 'claude-mg-openlow-strength-result.json' `
             --report-output 'claude-mg-openlow-strength-report.txt' `
-            --strength-report-output 'claude-mg-openlow-strength-10pct.txt'
+            --strength-report-output 'claude-mg-openlow-strength-10pct.txt' `
+            --money-report-output 'claude-mg-openlow-money-report.txt' `
+            --capital-per-signal $req.capital_per_signal
           if ($LASTEXITCODE -ne 0) { throw "CLAUDE_MG_OPENLOW_STRENGTH_RUN_FAILED:$LASTEXITCODE" }
 
       - name: Print reports to log
@@ -80,10 +82,8 @@ jobs:
           $r.totals | ConvertTo-Json -Depth 6 | Write-Host
           Write-Host '===== STRENGTH CONTRAST (signal-time features only) ====='
           $r.strength_contrast | ConvertTo-Json -Depth 6 | Write-Host
-          Write-Host '===== FULL REPLAY REPORT ====='
-          Get-Content -LiteralPath 'claude-mg-openlow-strength-report.txt' -Encoding UTF8 | Write-Host
-          Write-Host '===== STRONG >=10% ONLY ====='
-          Get-Content -LiteralPath 'claude-mg-openlow-strength-10pct.txt' -Encoding UTF8 | Write-Host
+          Write-Host '===== MONEY REPORT (owner contract) ====='
+          Get-Content -LiteralPath 'claude-mg-openlow-money-report.txt' -Encoding UTF8 | Write-Host
           Write-Host '===== END ====='
 
       - name: Upload artifacts
@@ -94,5 +94,6 @@ jobs:
             claude-mg-openlow-strength-result.json
             claude-mg-openlow-strength-report.txt
             claude-mg-openlow-strength-10pct.txt
+            claude-mg-openlow-money-report.txt
           if-no-files-found: error
           retention-days: 30
