@@ -25,6 +25,7 @@ def test_every_minute_is_accounted_and_temporal_runs_are_exact() -> None:
     ]
     summary, runs = scan_ticker_day(bars, allow_haka_haki=True)
     assert summary["rows"] == 4
+    assert summary["session_evidence_status"] == "AVAILABLE"
     assert summary["first_timestamp"] == "2024-12-02 09:00:00"
     assert summary["last_timestamp"] == "2024-12-02 09:03:00"
     assert summary["flow_rows"] == 4
@@ -59,3 +60,17 @@ def test_non_proven_source_does_not_reconstruct_haka_haki() -> None:
     assert summary["haka_sum"] is None
     assert summary["haki_sum"] is None
     assert summary["haka_haki_reconstruction_status_counts"]["NOT_IN_PROVEN_HAKA_HAKI_SOURCE_SCOPE"] == 1
+
+
+def test_zero_session_bar_ticker_day_is_preserved_as_processed_unknown_evidence() -> None:
+    summary, runs = scan_ticker_day([], allow_haka_haki=True)
+    assert summary["rows"] == 0
+    assert summary["session_evidence_status"] == "NO_SESSION_ELIGIBLE_BARS"
+    assert summary["first_timestamp"] is None
+    assert summary["last_timestamp"] is None
+    assert summary["flow_rows"] == 0
+    assert summary["haka_haki_rows"] == 0
+    assert summary["first_relation_state"] is None
+    assert summary["last_relation_state"] is None
+    assert summary["minute_evidence_digest_sha256"] == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    assert runs == []
