@@ -240,6 +240,30 @@
         "supersedes_claim": "P(reach 10%) = 51.81% December / 47.27% January",
         "tradeable": false
       }
+    },
+    {
+      "id": "H16",
+      "family": "Open=Low as a screener basis (owner-directed family)",
+      "title": "Some region of the Open=Low signal population is profitable in rupiah",
+      "status": "REJECTED_NO_PROFITABLE_REGION",
+      "causal_rationale": "Rather than propose a rule, sort the whole Open=Low population by every measured feature and look for where money concentrates. If any bucket or recurring cell pays, that is the boundary; if none does, the scout itself is the problem.",
+      "evidence": {
+        "run_id": "35123999305",
+        "commit": "8da57fc",
+        "source": "Raw Des 02-31-2024.csv",
+        "signals": 1251,
+        "capital_per_signal_rp": 5000000,
+        "exit_rule": "same-day close, no target",
+        "base_mean_pl_rp": -83551,
+        "best_single_bucket": {
+          "feature": "price",
+          "range": "106..228",
+          "mean_pl_rp": -35831
+        },
+        "finding": "No decile bucket of any of the eight features has a positive mean. The best loses Rp35.831 per signal. Roughly forty cells out of ~7.700 candidates clear support 25 with a small positive mean, which is the expected yield of multiple testing on noise; the top cell is 40% profitable, so its mean rests on outliers."
+      },
+      "carried_forward": "Price floor: the Rp4-42 tier wins 9% and loses Rp124.549 per signal because percentage rungs collapse onto one tick. Treat a floor near Rp100 as a standing constraint for any percentage-target family, independent of which precursor is used.",
+      "supersedes": "H15"
     }
   ]
 }

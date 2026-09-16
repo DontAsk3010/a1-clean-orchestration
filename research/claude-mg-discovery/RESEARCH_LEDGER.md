@@ -1244,3 +1244,81 @@ BEFORE ignition -- plus a hard price floor, since the sub-Rp50 tier is structura
 incompatible with percentage targets.
 
 Status: RESEARCH_ONLY. H15 remains INVALIDATED_ON_NET_OUTCOME. March 2025 untouched.
+
+## Entry 018 — Mining in rupiah: not one bucket of any feature is profitable
+
+Run 35123999305, commit 8da57fc, `Raw Des 02-31-2024.csv`, min_chg 3.5% so the
+population reaches below the 7% ignition. 1.251 signals. Every row is one
+Rp5.000.000 buy in whole lots, exited at the same-day close.
+
+Population base: **mean -Rp83.551 per signal**, derived total ≈ **-Rp104.522.301**
+(base mean x 1.251; the printed header line fell outside the retrievable log tail).
+
+### Decile shape, in rupiah
+
+```
+price                 [     4 ..    42]  n=255  untung=0.09  rata2 -124.549   total -31.759.945
+                      [    43 ..   105]  n=247  untung=0.22  rata2  -83.040   total -20.510.841
+                      [   106 ..   228]  n=250  untung=0.25  rata2  -35.831   total  -8.957.739
+                      [   230 ..   630]  n=249  untung=0.18  rata2 -112.130   total -27.920.273
+                      [   635 .. 24950]  n=250  untung=0.25  rata2  -61.494   total -15.373.540
+close_location        [  0.00 ..  0.89]  n=252  untung=0.22  rata2 -109.210
+                      [  0.89 ..  1.00]  n=999  untung=0.19  rata2  -77.078
+prior_day_return_pct  [-24.39 .. -3.53]  n=232  untung=0.21  rata2  -86.544
+                      [ -3.49 .. -0.94]  n=231  untung=0.16  rata2 -107.283
+                      [ -0.94 ..  0.00]  n=315  untung=0.17  rata2  -94.977
+                      [  0.21 ..  2.05]  n=147  untung=0.27  rata2  -39.819
+                      [  2.08 .. 34.62]  n=231  untung=0.19  rata2  -82.552
+value_expansion       five buckets spanning 0.00..62767.92, all between -67.119 and -89.230
+```
+
+**Not one bucket of any feature has a positive mean.** The best bucket in the
+whole study still loses Rp35.831 per signal. This is the finding, and it is not
+a tuning problem: sorting the population by any single dimension produces no
+profitable region at all.
+
+Feature verdicts:
+
+- **price** — the Entry 017 prediction is confirmed, and harder than predicted.
+  The Rp4-42 tier wins only 9% of the time against 25% at the top, and loses
+  Rp124.549 per signal. Below roughly Rp50, one tick is a double-digit percentage
+  move and percentage rungs collapse onto the same price, so the tier is
+  structurally hostile. It is a damage filter, not a source of profit.
+- **prior_day_return_pct** — mild peak at a small positive prior day (+0.21..2.05,
+  -39.819) and worst just below zero (-107.283). Shape is a weak hump, not a
+  threshold. Usable only as a tiebreaker.
+- **close_location** — 0.89..1.00 holds 999 of 1.251 signals, so the feature barely
+  splits the population. Near-useless as a discriminator here.
+- **value_expansion** — spread from 0 to 62.767 yet every bucket lands within
+  Rp22.000 of the others. **Flat. It does not separate and I will not use it.**
+
+### Cells
+
+Top cell: n=25, 40% profitable, mean +Rp78.502, total +Rp1.962.558
+(`prior_day_range 10.06-42.19`, `day_range_so_far 7.33-19.85`, `price 106-224`).
+About forty cells clear support 25 with a positive mean, the largest being
+n=70 at +Rp9.450.
+
+I am not proposing any of them, and the reason is arithmetic. With 8 features at
+5 buckets, the 2-way and 3-way search covers roughly 7.700 candidate cells. Finding
+a few dozen with a small positive mean at support 25-70, inside a population that
+loses Rp104,5 juta, is what multiple testing produces from noise alone. The top
+cell's own numbers say the same thing: 40% profitable means 15 of its 25 signals
+still lost, so its positive mean rests on a handful of outliers. Promoting it
+would be exactly the "rescue a structurally weak formula" move CLAUDE.md forbids.
+
+### Conclusion
+
+**Open=Low is not a viable screener basis.** Across 1.251 signals, from 3.5% to
+well past ignition, no price band, no time of day, no prior-day condition and no
+volume expansion produces a profitable region. Entry 017 showed the 7% ignition
+variant loses money; this shows the failure is not the ignition threshold but the
+scout itself. Open==Low means only that price has not traded below the open,
+which on IDX selects overwhelmingly for already-extended and illiquid names.
+
+Direction closed: tuning Open=Low gates. Direction to test next: drop the scout and
+select on the multi-day precursor archetypes CLAUDE.md lists, with a hard price
+floor around Rp100 carried forward as a standing constraint, since that is the one
+result here strong enough to survive on its own.
+
+Status: RESEARCH_ONLY. March 2025 untouched.
