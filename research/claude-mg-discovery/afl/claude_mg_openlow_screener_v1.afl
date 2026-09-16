@@ -105,6 +105,11 @@ Terpakai = Lembar * C;
 
 //=============================================================================
 //  EXPLORATION - kolom kontrak Telegram: CODE | PRICE | CHG% | TP-1 | TP-2
+//  ditambah ENTRY Rp5 juta.
+//
+//  PENTING: jalankan lewat tombol EXPLORE, bukan SCAN.
+//  Scan hanya mencetak Symbol/Trade/Date/Close dan MENGABAIKAN semua AddColumn
+//  di bawah, jadi kolom kontraknya tidak akan pernah muncul.
 //=============================================================================
 Filter = Screened;
 
@@ -114,36 +119,51 @@ AddColumn(Chg,         "CHG%",  1.2);
 AddColumn(TP1,         "TP-1",  1.0);
 AddColumn(TP2,         "TP-2",  1.0);
 
-// Kolom bantu. Hapus kalau mau output persis lima kolom kontrak.
-AddColumn(Lot,         "LOT",   1.0);
-AddColumn(Terpakai,    "MODAL", 1.0);
-AddColumn(RoomToARA,   "KE ARA%", 1.2);
-AddColumn(ValueToday,  "VALUE", 1.0);
+// ENTRY: berapa yang benar-benar terbeli dengan modal itu, lot penuh.
+AddColumn(Lot,         "LOT",      1.0);
+AddColumn(Terpakai,    "ENTRY Rp", 1.0);
+
+// POTENSI, bukan hasil. Ini rupiah yang didapat KALAU target tersentuh.
+PotensiTP1 = Lembar * (TP1 - C);
+PotensiTP2 = Lembar * (TP2 - C);
+AddColumn(PotensiTP1,  "POTENSI TP-1", 1.0);
+AddColumn(PotensiTP2,  "POTENSI TP-2", 1.0);
+
+AddColumn(RoomToARA,   "KE ARA%",    1.2);
+AddColumn(ValueToday,  "VALUE",      1.0);
 AddColumn(PrevRange,   "RANGE KMR%", 1.2);
 
 //=============================================================================
-//  Untuk Scan / Auto-Trade signal (opsional)
+//  Tidak ada Buy/Sell di file ini, dan itu disengaja. Adanya Buy/Sell membuat
+//  tombol Scan tampak seperti pilihan yang benar, padahal Scan tidak bisa
+//  mencetak kolom kontrak. Untuk sinyal beli/jual dan untung rugi rupiah,
+//  pakai claude_mg_openlow_backtest_v1.afl.
 //=============================================================================
-Buy  = Screened AND NOT Ref(Screened, -1);   // hanya bar pertama saat lolos
-Sell = C >= TP1 OR NOT OpenIsLow;            // kena target, atau scout batal
-Buy  = ExRem(Buy, Sell);
-Sell = ExRem(Sell, Buy);
 
 //=============================================================================
 //  CARA PAKAI
-//  1. Analysis > Formula ini > Apply to: All symbols (atau watchlist IDX).
-//  2. Range: 1 recent bar untuk screening live, atau n last quotations
-//     untuk melihat kemunculan per slot.
-//  3. Database intraday 5 menit -> tiap bar = satu slot publikasi, mulai 09:00.
-//     Saham yang masih lolos di slot berikutnya akan muncul lagi; kalau tidak
-//     lolos dia hilang, dan bisa muncul lagi nanti. Itu perilaku yang benar.
-//  4. Di database harian, DayL == DayO berarti Open = Low hari itu.
+//  1. Simpan di Formulas\Custom.
+//  2. Analysis > pilih formula ini > tekan EXPLORE (bukan SCAN).
+//  3. Apply to: All symbols, atau watchlist IDX.
+//  4. Range: "1 recent bar" untuk screening live.
+//  5. Database intraday 5 menit -> tiap bar = satu slot publikasi mulai 09:00.
+//     Saham yang masih lolos di slot berikutnya muncul lagi; kalau tidak lolos
+//     dia hilang dan bisa muncul lagi nanti. Itu perilaku yang benar.
+//  6. Kolomnya cuma Symbol/Trade/Date/Close? Berarti yang ditekan Scan.
+//     Tekan Explore.
+//
+//  KENAPA TIDAK ADA KOLOM PROFIT/LOSS DI SINI
+//  Screener berjalan pada saat sinyal muncul. Pada detik itu harga belum
+//  bergerak ke mana pun, jadi untung rugi belum ada, dan angka apa pun yang
+//  ditulis di kolom itu pasti karangan. Yang bisa jujur ditampilkan hanya
+//  ENTRY dan POTENSI kalau target tersentuh. Untuk untung rugi sungguhan atas
+//  data historis, jalankan claude_mg_openlow_backtest_v1.afl - laporan
+//  Backtest AmiBroker sudah memuat Entry, Exit, % chg, Profit dan MFE.
 //
 //  PERINGATAN JUJUR
 //  Filter di atas memotong kerusakan yang terukur (tier receh, saham terkunci,
 //  ARA). Itu TIDAK sama dengan terbukti untung. Yang sudah diukur baru versi
-//  tanpa filter dan hasilnya minus. Kombinasi dengan filter ini belum direplay
-//  utuh, jadi jangan dipakai uang besar sebelum direplay per-hari per-menit
-//  seperti laporan Desember.
+//  tanpa filter, dan hasilnya minus Rp17.678.396 di Desember. Kombinasi dengan
+//  filter ini belum direplay utuh.
 //=============================================================================
 _SECTION_END();

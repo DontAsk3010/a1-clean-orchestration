@@ -1355,3 +1355,47 @@ Ukuran posisi Rp5 juta memakai lot penuh 100 lembar, konsisten dengan Entry 017.
 Batas yang dicatat di dalam file itu sendiri: kombinasi filter ini BELUM
 direplay utuh. Yang sudah diukur adalah versi tanpa filter dan hasilnya minus.
 Status tetap RESEARCH_ONLY, tidak ada promosi.
+
+## Entry 020 — Screener tidak mencetak kolom, dan P/L tidak bisa ada di screener
+
+Owner melapor output AFL hanya `Symbol | Trade | Date | Close`, tanpa entry dan
+tanpa P/L Rp5 juta.
+
+Dua sebab berbeda, dua perbaikan berbeda.
+
+**1. Kolom tidak muncul.** Itu output baku tombol **Scan**, bukan Exploration.
+Scan mengabaikan seluruh `AddColumn`. Penyebabnya ada pada saya: file v1
+mendefinisikan `Buy`/`Sell`, dan kehadiran Buy/Sell membuat Scan tampak sebagai
+tombol yang benar. Blok itu dihapus dari screener, dan file sekarang menyebut
+secara eksplisit "tekan EXPLORE, bukan SCAN", termasuk gejalanya: kalau yang
+muncul cuma Symbol/Trade/Date/Close berarti salah tombol.
+
+**2. P/L tidak ada.** Ini bukan cacat yang bisa ditambal di screener. Screener
+berjalan pada saat sinyal terbit; pada detik itu harga belum bergerak, sehingga
+untung rugi belum ada dan angka apa pun di kolom itu akan karangan. Yang bisa
+jujur ditampilkan hanya ENTRY (lot, rupiah terpakai) dan POTENSI kalau target
+tersentuh. Kolom-kolom itu ditambahkan.
+
+Untuk P/L sungguhan dibuat `claude_mg_openlow_backtest_v1.afl`. Laporan Backtest
+AmiBroker sudah memuat per transaksi: Symbol, Price (entry), Ex.Price (exit),
+Profit, dan MFE bila "Show MAE/MFE" dicentang — persis
+SAHAM | ENTRY | EXIT | PROFIT/LOSS | MAX PROFIT.
+
+Setelan yang menentukan agar sesuai permintaan "tiap sinyal beli Rp5 juta":
+`SetPositionSize(Modal, spsValue)`, `RoundLotSize = 100`, `MaxOpenPositions 500`
+dan `InitialEquity` 5 miliar, supaya tidak ada sinyal yang dilewati karena
+kehabisan modal, dan bukan beli bergantian. `SetTradeDelays(0,0,0,0)` dengan
+`BuyPrice = C` sebagai proxy HAKA; tanpa L1 ask/queue ini bukan fill HAKA
+sebenarnya dan ditulis begitu di dalam file.
+
+Exit sengaja polos: target tersentuh, atau tutup di close hari itu. Tidak ada
+trailing stop, supaya hasilnya tidak dipercantik exit yang pintar.
+
+Angka pembanding ditanam di dalam file backtest: Desember tanpa filter lantai
+harga dan anti-ARA menghasilkan minus Rp17.678.396 dari 166 sinyal. Kalau hasil
+backtest owner jauh lebih bagus, itu petunjuk setelan berbeda, bukan temuan.
+
+Keduanya diverifikasi: paren dan brace seimbang, tiap statement tertutup,
+kolom kontrak ada, screener tidak lagi mendefinisikan Buy/Sell.
+
+Status: RESEARCH_ONLY.
