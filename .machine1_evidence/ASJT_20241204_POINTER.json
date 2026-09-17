@@ -1,0 +1,22 @@
+{
+  "ticker": "ASJT",
+  "trading_date": "2024-12-04",
+  "branch": "machine1/evidence-asjt-20241204",
+  "workflow_commit": "f33a1dd6848956a78d75f95cb51719fbe11818c5",
+  "github_run_id": 35285837129,
+  "github_artifact_id": 10524381110,
+  "github_artifact_url": "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35285837129/artifacts/10524381110",
+  "github_artifact_digest": "bb3584b7e2637a524582a3bb2df62591af41e6d70542031d365be8154269815f",
+  "packet_sha256": "28b57637ce413d8402ea5c1421662341f5c83df874cb0e45202ef7a3dd770bfc",
+  "rows_jsonl_sha256": "86739ebda75062927f0805c28fa5327fdeedf3a61dcfb8b1de9f28018b59348e",
+  "proof_sha256": "95675d88bdbc480dece12d57bf0fd2cbdbc9472436f41862559f3f8328bf67f6",
+  "source_sha256": "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+  "source_row_first": 101973,
+  "source_row_last": 101985,
+  "data_rows": 13,
+  "first_datetime": "2024-12-04 09:00:00",
+  "last_datetime": "2024-12-04 15:42:00",
+  "pointer_recovery": "DIRECT_GITHUB_WRITE_AFTER_RUN_POINTER_STEP_FAILED_DUBIOUS_OWNERSHIP",
+  "evidence_extraction_status": "SUCCESS",
+  "artifact_upload_status": "SUCCESS"
+}
