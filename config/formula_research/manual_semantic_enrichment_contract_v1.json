@@ -1,0 +1,107 @@
+{
+  "schema": "A1_MANUAL_STYLE_SEMANTIC_ENRICHMENT_CONTRACT_V1",
+  "status": "RESEARCH_ONLY_NOT_CANONICAL",
+  "purpose": "Enrich the deterministic machine so it preserves the same kinds of source-linked causal journey semantics that the manual reader preserves, without copying manual conclusions or using manual outcomes as hidden labels.",
+  "principles": {
+    "manual_reference_role": "COMPLEMENTARY_SEMANTIC_REFERENCE",
+    "manual_inputs_read_only": true,
+    "manual_labels_may_seed_formula": false,
+    "manual_labels_may_rewrite_machine_history": false,
+    "machine_must_remain_deterministic_and_reproducible": true,
+    "future_outcome_may_define_prior_state": false,
+    "missing_equals_zero": false,
+    "manual_noncoverage_means_no_event": false
+  },
+  "required_machine_enrichment_lanes": [
+    "FORMATION_SEQUENCE",
+    "EVENT_JOURNEY",
+    "NO_FORCED_EVENT_STATE",
+    "OPEN_RIGHT_CENSORED_STATE",
+    "CROSS_DATE_OPEN_CARRY",
+    "SOURCE_GAP_TIMING_UNCERTAINTY",
+    "FIRST_OBSERVED_AND_FIRST_CAUSAL_DETECTABLE_TIME",
+    "CHANGE_POINT_AND_CONFIRM_NONCONFIRM_TIME",
+    "PRICE_HIGH_LOW_DEVELOPMENT",
+    "EFFORT_PARTICIPATION_PATH",
+    "EFFORT_VS_PRICE_RESPONSE_NONRESPONSE",
+    "FAILED_RECOVERY",
+    "RECOVERY_DURABILITY",
+    "REBASE_TRANSFORMATION",
+    "WEAKENING_FAILURE_INVALIDATION",
+    "EVENT_END_OR_RIGHT_CENSOR",
+    "EXPLICIT_UNKNOWN_UNPROVEN_EVIDENCE",
+    "CAUSAL_VIEW_SEPARATE_FROM_HINDSIGHT_COMPLETE_VIEW"
+  ],
+  "formation_sequence_material_transition_fields": [
+    "source_time",
+    "source_row_or_range",
+    "price_state",
+    "high_low_state",
+    "volume_state",
+    "trade_value_state",
+    "validated_flow_state",
+    "flow_effort_state",
+    "value_activity_state",
+    "effort_response_state",
+    "fresh_high_low_state",
+    "haka_haki_state_if_proven",
+    "context_state_if_causally_available",
+    "contradiction_state",
+    "uncertainty_state",
+    "reason_code"
+  ],
+  "journey_semantics": {
+    "allowed_examples": [
+      "QUIET_TO_WAKEUP",
+      "INITIAL_PUSH",
+      "PULLBACK_TEST",
+      "DEFEND_OR_BREAK",
+      "RECLAIM_OR_NON_RECLAIM",
+      "ACCELERATION_OR_REACCELERATION",
+      "STALL_OR_NON_RESPONSE",
+      "WEAKENING_OR_GIVEBACK",
+      "FAILURE_OR_INVALIDATION",
+      "RECOVERY",
+      "FAILED_RECOVERY",
+      "REBASE_OR_TRANSFORMATION",
+      "RIGHT_CENSORED_OPEN"
+    ],
+    "labels_are_descriptive_not_assumed_truth": true,
+    "state_change_must_be_source_linked": true,
+    "state_change_must_be_causally_known_at_time": true
+  },
+  "manual_machine_concordance_classes": [
+    "MATCH",
+    "MACHINE_MISSED_SEMANTIC_DETAIL",
+    "MACHINE_OVERCOMPRESSED",
+    "MACHINE_FALSE_DISTINCTION",
+    "MANUAL_ONLY_CONTEXT",
+    "MACHINE_ONLY_RECURRENT_STRUCTURE",
+    "TIMING_MISMATCH",
+    "AVAILABILITY_MISMATCH",
+    "UNRESOLVED"
+  ],
+  "promotion_gate": {
+    "required_before_lane_affects_formula": [
+      "DETERMINISTIC_TRANSLATION_FROM_SOURCE",
+      "CAUSAL_TIMESTAMP_AND_PROVENANCE_PASS",
+      "FULL_UNIVERSE_REPLAY",
+      "MANUAL_MACHINE_CONCORDANCE_ON_OVERLAP",
+      "NEAR_TWIN_DISCRIMINATION",
+      "CROSS_PERIOD_ROBUSTNESS",
+      "ABLATION",
+      "NO_HINDSIGHT_LEAKAGE"
+    ]
+  },
+  "target_architecture": [
+    "RAW_OR_DURABLE_TF1M_EVIDENCE",
+    "MULTI_LAYER_FACT_STATE",
+    "MATERIAL_CHANGE_DETECTOR",
+    "FORMATION_SEQUENCE_BUILDER",
+    "EVENT_JOURNEY_BUILDER",
+    "CAUSAL_UNCERTAINTY_AND_CENSORING_LAYER",
+    "MOTIF_AND_NEAR_TWIN_MINER",
+    "OUTCOME_EVALUATION_ONLY_AFTER_CAUSAL_STATE",
+    "FORMULA_STATE_MACHINE_CANDIDATE"
+  ]
+}
