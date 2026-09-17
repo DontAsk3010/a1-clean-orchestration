@@ -1,0 +1,125 @@
+name: Windows V3.1 Full Chronological Semantic Enrichment
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - 'v31-full-chronological-semantic-enrichment-requests/current.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-v31-full-chronological-semantic-enrichment
+  cancel-in-progress: false
+
+jobs:
+  enrich:
+    name: Build 18-source chronological semantic atlas including March 2025
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact V3.1 revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate request contract install compile and tests
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'v31-full-chronological-semantic-enrichment-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_V31_FULL_CHRONOLOGICAL_SEMANTIC_ENRICHMENT_REQUEST_V1') { throw 'V31_REQUEST_SCHEMA_MISMATCH' }
+          if ($req.enabled -ne $true) { throw 'V31_REQUEST_DISABLED' }
+          if ($req.full_chronological_atlas -ne $true) { throw 'V31_FULL_CHRONOLOGICAL_LOCK_REQUIRED' }
+          if ($req.march_2025_required -ne $true) { throw 'V31_MARCH_REQUIRED' }
+          if ($req.old_v2_artifacts_immutable -ne $true) { throw 'V31_V2_IMMUTABILITY_REQUIRED' }
+          if ($req.failed_v30_run_reused -ne $false) { throw 'V31_FAILED_V30_REUSE_FORBIDDEN' }
+          if ([int64]$req.baseline_v26_run_id -ne 35261173652) { throw 'V31_V26_RUN_BINDING_MISMATCH' }
+          if ([int64]$req.baseline_v26_artifact_id -ne 10523725224) { throw 'V31_V26_ARTIFACT_BINDING_MISMATCH' }
+          if ($req.baseline_v26_artifact_digest -ne 'sha256:efec3347d5f95b42684ccb77b1b7aada1d9520b6b3e1ac6596edb817b6d5047a') { throw 'V31_V26_DIGEST_BINDING_MISMATCH' }
+
+          $contract = Get-Content -LiteralPath 'config/formula_research/semantic_enrichment_full_chronological_contract_v2.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($contract.schema -ne 'A1_SEMANTIC_ENRICHMENT_FULL_CHRONOLOGICAL_CONTRACT_V2') { throw 'V31_CONTRACT_SCHEMA_MISMATCH' }
+          if ([int64]$contract.full_chronological_policy.required_source_count -ne 18) { throw 'V31_CONTRACT_SOURCE_COUNT_MISMATCH' }
+          if ($contract.full_chronological_policy.march_is_full_atlas_member -ne $true) { throw 'V31_CONTRACT_MARCH_NOT_FULL_MEMBER' }
+          if ($contract.old_v2_artifacts_immutable -ne $true) { throw 'V31_CONTRACT_V2_IMMUTABILITY_FAIL' }
+
+          py -3.11 -m pip install -e '.[test]'
+          if ($LASTEXITCODE -ne 0) { throw 'V31_INSTALL_FAILED' }
+          py -3.11 -m py_compile src/a1clean/formula_research/full_chronological_cache_catalog.py src/a1clean/formula_research/v31_full_chronological_semantic_enrichment.py
+          if ($LASTEXITCODE -ne 0) { throw 'V31_COMPILE_FAILED' }
+          py -3.11 -m pytest -q tests/test_v30_semantic_journey_enrichment.py tests/test_v31_full_chronological_semantic_enrichment.py
+          if ($LASTEXITCODE -ne 0) { throw 'V31_TEST_FAILED' }
+
+      - name: Verify Drive reader credential binding
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:A1_DRIVE_READER_CREDENTIALS)) { throw 'A1_DRIVE_READER_CREDENTIALS_NOT_CONFIGURED' }
+          if (-not (Test-Path -LiteralPath $env:A1_DRIVE_READER_CREDENTIALS -PathType Leaf)) { throw 'A1_DRIVE_READER_CREDENTIALS_FILE_MISSING' }
+
+      - name: Discover 18-source chronological corpus and build only missing normalized cache
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m a1clean.formula_research.full_chronological_cache_catalog --output 'v31-source-plan.json' --ensure-cache
+          if ($LASTEXITCODE -ne 0) { throw 'V31_SOURCE_PLAN_FAILED' }
+          $p = Get-Content -LiteralPath 'v31-source-plan.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($p.status -ne 'PASS') { throw 'V31_SOURCE_PLAN_NOT_PASS' }
+          if ([int64]$p.source_count -ne 18) { throw 'V31_SOURCE_COUNT_MISMATCH' }
+          if ([int64]$p.legacy_source_count -ne 17) { throw 'V31_LEGACY_SOURCE_COUNT_MISMATCH' }
+          if ([int64]$p.legacy_ticker_days -ne 298483) { throw 'V31_LEGACY_TICKER_DAY_MISMATCH' }
+          if ([int64]$p.legacy_minute_rows -ne 32350174) { throw 'V31_LEGACY_MINUTE_ROW_MISMATCH' }
+          if ([int64]$p.march_ticker_days -le 0 -or [int64]$p.march_minute_rows -le 0) { throw 'V31_MARCH_EMPTY' }
+          if ($p.chronology.feb_march_april_order_pass -ne $true) { throw 'V31_FEB_MARCH_APRIL_ORDER_FAIL' }
+          $digest = [string]$p.corpus_digest_sha256
+          if ([string]::IsNullOrWhiteSpace($digest)) { throw 'V31_CORPUS_DIGEST_MISSING' }
+          $out = Join-Path $env:USERPROFILE ".a1clean\v31_full_chronological_semantic_enrichment\$digest"
+          "V31_OUTPUT_ROOT=$out" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "V31_CORPUS_DIGEST=$digest" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build or reuse uniform V3.1 semantic enrichment across all 18 sources
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m a1clean.formula_research.v31_full_chronological_semantic_enrichment --output-root $env:V31_OUTPUT_ROOT --expected-v26-artifact-digest 'sha256:efec3347d5f95b42684ccb77b1b7aada1d9520b6b3e1ac6596edb817b6d5047a'
+          if ($LASTEXITCODE -ne 0) { throw "V31_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Assert exact full chronological reconciliation
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $p = Get-Content -LiteralPath 'v31-source-plan.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          $m = Get-Content -LiteralPath (Join-Path $env:V31_OUTPUT_ROOT 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($m.schema -ne 'A1_V31_FULL_CHRONOLOGICAL_SEMANTIC_ENRICHMENT_V1') { throw 'V31_MANIFEST_SCHEMA_MISMATCH' }
+          if ($m.status -ne 'PASS' -or $m.reconciliation.pass -ne $true) { throw 'V31_RECONCILIATION_FAIL' }
+          if ([int64]$m.reconciliation.source_count -ne 18) { throw 'V31_MANIFEST_SOURCE_COUNT_FAIL' }
+          if ([int64]$m.reconciliation.ticker_days -ne [int64]$p.full_ticker_days) { throw 'V31_FULL_TICKER_DAY_MISMATCH' }
+          if ([int64]$m.reconciliation.minute_rows -ne [int64]$p.full_minute_rows) { throw 'V31_FULL_MINUTE_ROW_MISMATCH' }
+          if ([int64]$m.reconciliation.march_ticker_days -ne [int64]$p.march_ticker_days) { throw 'V31_MARCH_TICKER_DAY_MISMATCH' }
+          if ([int64]$m.reconciliation.march_minute_rows -ne [int64]$p.march_minute_rows) { throw 'V31_MARCH_MINUTE_ROW_MISMATCH' }
+          if ($m.chronology.feb_march_april_order_pass -ne $true) { throw 'V31_CHRONOLOGY_ORDER_FAIL' }
+          if ($m.chronology.march_to_april_calendar_link_pass -ne $true) { throw 'V31_MARCH_APRIL_LINK_FAIL' }
+          if ($m.contract.old_v2_artifacts_immutable -ne $true) { throw 'V31_V2_BASELINE_MUTATION_FLAG' }
+          if ($m.contract.march_2025_included_as_full_source -ne $true) { throw 'V31_MARCH_NOT_FULL_SOURCE' }
+          if ($m.contract.oos_is_formula_versioned_replay_not_withheld_atlas_month -ne $true) { throw 'V31_OOS_POLICY_FAIL' }
+
+          New-Item -ItemType Directory -Force -Path 'v31-full-chronological-summary\checkpoints' | Out-Null
+          Copy-Item -LiteralPath 'v31-source-plan.json' -Destination 'v31-full-chronological-summary\source-plan.json' -Force
+          Copy-Item -LiteralPath (Join-Path $env:V31_OUTPUT_ROOT 'manifest.json') -Destination 'v31-full-chronological-summary\manifest.json' -Force
+          Copy-Item -LiteralPath (Join-Path $env:V31_OUTPUT_ROOT 'compact-sample.jsonl.gz') -Destination 'v31-full-chronological-summary\compact-sample.jsonl.gz' -Force
+          Get-ChildItem -LiteralPath $env:V31_OUTPUT_ROOT -Recurse -Filter 'checkpoint.json' | ForEach-Object {
+            $parent = Split-Path $_.DirectoryName -Leaf
+            Copy-Item -LiteralPath $_.FullName -Destination (Join-Path 'v31-full-chronological-summary\checkpoints' ($parent + '.json')) -Force
+          }
+
+      - name: Upload V3.1 full chronological summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: v31-full-chronological-summary-${{ github.run_id }}
+          path: v31-full-chronological-summary
+          if-no-files-found: error
+          retention-days: 30
