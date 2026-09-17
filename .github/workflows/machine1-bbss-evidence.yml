@@ -1,4 +1,4 @@
-name: Machine1 FOLK-GGRM Evidence Extract
+name: Machine1 GHON-HADE Evidence Extract
 
 on:
   push:
@@ -28,16 +28,30 @@ jobs:
           expected_md5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
           expected_sha256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
           specs = {
-              'FOLK': {'first':559711,'last':559723,'count':13,'first_time':'09:00:00','last_time':'16:08:00'},
-              'FOOD': {'first':559475,'last':559481,'count':7,'first_time':'09:41:00','last_time':'16:00:00'},
-              'FORU': {'first':560044,'last':560104,'count':61,'first_time':'09:02:00','last_time':'16:00:00'},
-              'FPNI': {'first':564189,'last':564227,'count':39,'first_time':'09:00:00','last_time':'16:13:00'},
-              'FUJI': {'first':561826,'last':561948,'count':123,'first_time':'09:00:00','last_time':'16:01:00'},
-              'FWCT': {'first':565940,'last':566071,'count':132,'first_time':'09:00:00','last_time':'16:13:00'},
-              'GDST': {'first':567699,'last':567761,'count':63,'first_time':'09:00:00','last_time':'16:02:00'},
-              'GDYR': {'first':567217,'last':567223,'count':7,'first_time':'09:17:00','last_time':'16:09:00'},
-              'GEMS': {'first':571689,'last':571915,'count':227,'first_time':'09:01:00','last_time':'16:09:00'},
-              'GGRM': {'first':574285,'last':574460,'count':176,'first_time':'09:00:00','last_time':'16:11:00'},
+              'GHON': {'first':577039,'last':577048,'count':10,'first_time':'09:06:00','last_time':'15:35:00'},
+              'GIAA': {'first':577189,'last':577196,'count':8,'first_time':'09:55:00','last_time':'16:10:00'},
+              'GJTL': {'first':579375,'last':579610,'count':236,'first_time':'09:00:00','last_time':'16:12:00'},
+              'GLVA': {'first':577346,'last':577346,'count':1,'first_time':'09:00:00','last_time':'09:00:00'},
+              'GMFI': {'first':577594,'last':577598,'count':5,'first_time':'09:55:00','last_time':'16:00:00'},
+              'GMTD': {'first':577707,'last':577762,'count':56,'first_time':'09:04:00','last_time':'16:00:00'},
+              'GOLD': {'first':578732,'last':578745,'count':14,'first_time':'09:00:00','last_time':'15:36:00'},
+              'GOLF': {'first':583320,'last':583381,'count':62,'first_time':'09:00:00','last_time':'16:01:00'},
+              'GOOD': {'first':584574,'last':584614,'count':41,'first_time':'09:02:00','last_time':'16:12:00'},
+              'GOTO': {'first':589001,'last':589336,'count':336,'first_time':'08:59:00','last_time':'16:14:00'},
+              'GPRA': {'first':585412,'last':585493,'count':82,'first_time':'09:05:00','last_time':'16:12:00'},
+              'GPSO': {'first':586757,'last':586761,'count':5,'first_time':'09:55:00','last_time':'16:00:00'},
+              'GRIA': {'first':594856,'last':594920,'count':65,'first_time':'09:00:00','last_time':'16:13:00'},
+              'GRPH': {'first':596129,'last':596132,'count':4,'first_time':'09:07:00','last_time':'16:00:00'},
+              'GRPM': {'first':596605,'last':596613,'count':9,'first_time':'09:00:00','last_time':'16:00:00'},
+              'GSMF': {'first':596989,'last':597020,'count':32,'first_time':'09:00:00','last_time':'16:05:00'},
+              'GTBO': {'first':597372,'last':597404,'count':33,'first_time':'09:04:00','last_time':'16:00:00'},
+              'GTRA': {'first':598342,'last':598390,'count':49,'first_time':'09:00:00','last_time':'16:14:00'},
+              'GTSI': {'first':599955,'last':599959,'count':5,'first_time':'09:55:00','last_time':'16:00:00'},
+              'GULA': {'first':601888,'last':601993,'count':106,'first_time':'09:01:00','last_time':'16:05:00'},
+              'GUNA': {'first':600137,'last':600216,'count':80,'first_time':'09:00:00','last_time':'16:08:00'},
+              'GWSA': {'first':601456,'last':601489,'count':34,'first_time':'09:00:00','last_time':'16:00:00'},
+              'GZCO': {'first':604920,'last':605075,'count':156,'first_time':'09:00:00','last_time':'16:13:00'},
+              'HADE': {'first':604636,'last':604641,'count':6,'first_time':'09:55:00','last_time':'16:05:00'},
           }
           if not raw.is_file(): raise SystemExit(f'RAW_MISSING: {raw}')
           md5=hashlib.md5(); sha256=hashlib.sha256()
@@ -54,7 +68,7 @@ jobs:
                   t=row.get('RAW_TICKER')
                   if t in hits and row.get('RAW_DATETIME_ISO','').startswith('2024-12-03'):
                       hits[t].append((source_row,row))
-          out=pathlib.Path('machine1_folk_ggrm_evidence'); out.mkdir(exist_ok=True)
+          out=pathlib.Path('machine1_ghon_hade_evidence'); out.mkdir(exist_ok=True)
           manifest=[]
           for ticker,s in specs.items():
               arr=hits[ticker]; rows=[n for n,_ in arr]
@@ -69,13 +83,13 @@ jobs:
               manifest.append({k:packet[k] for k in ['ticker','trading_date','source_row_first','source_row_last','data_rows','first_datetime','last_datetime']})
               print(f'{ticker}_PACKET_PASS rows={len(arr)} source_rows={rows[0]}-{rows[-1]} first={first_dt} last={last_dt}')
           (out/'CHUNK_MANIFEST.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
-          '@ | Set-Content -LiteralPath extract_folk_ggrm.py -Encoding UTF8
-          py -3.11 extract_folk_ggrm.py
+          '@ | Set-Content -LiteralPath extract_ghon_hade.py -Encoding UTF8
+          py -3.11 extract_ghon_hade.py
 
       - name: Upload evidence block
         uses: actions/upload-artifact@v4
         with:
-          name: machine1-folk-ggrm-20241203-evidence
-          path: machine1_folk_ggrm_evidence/
+          name: machine1-ghon-hade-20241203-evidence
+          path: machine1_ghon_hade_evidence/
           if-no-files-found: error
           retention-days: 7
