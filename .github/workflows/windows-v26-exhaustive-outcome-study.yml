@@ -1,0 +1,99 @@
+name: Windows V2.6 Exhaustive Outcome Study
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - 'v26-exhaustive-outcome-study-requests/current.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-v26-exhaustive-outcome-study
+  cancel-in-progress: false
+
+jobs:
+  outcome-study:
+    name: Map every divergent branch to its later causal outcome evidence
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact research revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate request and compile V2.6
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'v26-exhaustive-outcome-study-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_V26_EXHAUSTIVE_OUTCOME_REQUEST_V1') { throw 'V26_REQUEST_SCHEMA_MISMATCH' }
+          if ($req.enabled -ne $true) { throw 'V26_REQUEST_DISABLED' }
+          if ($req.outcome_evaluation_only -ne $true) { throw 'V26_OUTCOME_MUST_BE_EVALUATION_ONLY' }
+          if ($req.future_outcome_rewrites_causal_state -ne $false) { throw 'V26_FUTURE_LEAKAGE' }
+          if ($req.arbitrary_outcome_thresholds_added -ne $false) { throw 'V26_ARBITRARY_THRESHOLD' }
+          if ($req.reserved_oos_untouched -ne $true) { throw 'V26_OOS_LOCK_REQUIRED' }
+          py -3.11 -m py_compile src/a1clean/formula_research/v26_exhaustive_outcome_study.py
+          if ($LASTEXITCODE -ne 0) { throw 'V26_COMPILE_FAILED' }
+
+      - name: Require completed durable V2.2 and V2.5 plus normalized TF1M cache
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $digest = 'deaacecc936174f66c9cd2138cbdcfb5c2120ad0ae8f0d4da8c4d7fed6484214'
+          $v22 = Join-Path $env:USERPROFILE ".a1clean\v22_durable_shards\$digest"
+          $v25 = Join-Path $env:USERPROFILE ".a1clean\v25_causal_divergence_atlas\$digest"
+          $cache = Join-Path $env:USERPROFILE '.a1clean\mg_normalized_cache_v1'
+          foreach ($p in @((Join-Path $v22 'manifest.json'), (Join-Path $v25 'manifest.json'), (Join-Path $v25 'causal-divergence-atlas.jsonl.gz'))) {
+            if (-not (Test-Path -LiteralPath $p)) { throw "V26_REQUIRED_INPUT_MISSING:$p" }
+          }
+          if (-not (Test-Path -LiteralPath $cache)) { throw 'V26_NORMALIZED_CACHE_MISSING' }
+          $m22 = Get-Content -LiteralPath (Join-Path $v22 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+          $m25 = Get-Content -LiteralPath (Join-Path $v25 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($m22.status -ne 'PASS' -or $m22.reconciliation.exact_coverage_pass -ne $true -or $m22.reconciliation.episode_partition_pass -ne $true) { throw 'V26_V22_NOT_PASS' }
+          if ($m25.status -ne 'PASS' -or $m25.reconciliation.pass -ne $true) { throw 'V26_V25_NOT_PASS' }
+          if ([int64]$m25.reconciliation.divergent_prefixes -ne 13621) { throw 'V26_PREFIX_BASELINE_MISMATCH' }
+          if ([int64]$m25.reconciliation.divergent_child_motifs -ne 203108) { throw 'V26_CHILD_BASELINE_MISMATCH' }
+          "V26_V22_ROOT=$v22" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "V26_V25_ROOT=$v25" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $out = Join-Path $env:USERPROFILE ".a1clean\v26_exhaustive_outcome_study\$digest"
+          "V26_OUTPUT_ROOT=$out" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "V26_ARTIFACT_DIGEST=$digest" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build or reuse exhaustive outcome evidence per source
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & py -3.11 -m a1clean.formula_research.v26_exhaustive_outcome_study `
+            --v22-root $env:V26_V22_ROOT `
+            --v25-root $env:V26_V25_ROOT `
+            --output-root $env:V26_OUTPUT_ROOT `
+            --artifact-digest $env:V26_ARTIFACT_DIGEST
+          if ($LASTEXITCODE -ne 0) { throw "V26_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Assert exact branch and source reconciliation
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $m = Get-Content -LiteralPath (Join-Path $env:V26_OUTPUT_ROOT 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($m.status -ne 'PASS' -or $m.reconciliation.pass -ne $true) { throw 'V26_RECONCILIATION_FAIL' }
+          if ([int64]$m.reconciliation.ticker_days -ne 298483) { throw 'V26_TICKER_DAY_MISMATCH' }
+          if ([int64]$m.reconciliation.minute_rows -ne 32350174) { throw 'V26_MINUTE_ROW_MISMATCH' }
+          if ([int64]$m.reconciliation.zero_session_ticker_days -ne 13074) { throw 'V26_ZERO_SESSION_MISMATCH' }
+          if ([int64]$m.reconciliation.divergent_prefixes_observed -ne 13621) { throw 'V26_PREFIX_COVERAGE_MISMATCH' }
+          if ([int64]$m.reconciliation.divergent_child_motifs_observed -ne 203108) { throw 'V26_CHILD_COVERAGE_MISMATCH' }
+          if ([int64]$m.reconciliation.divergent_event_occurrences -ne [int64]$m.reconciliation.expected_divergent_event_occurrences) { throw 'V26_EVENT_OCCURRENCE_MISMATCH' }
+          New-Item -ItemType Directory -Force -Path 'v26-exhaustive-outcome-summary' | Out-Null
+          Copy-Item -LiteralPath (Join-Path $env:V26_OUTPUT_ROOT 'manifest.json') -Destination 'v26-exhaustive-outcome-summary\manifest.json' -Force
+
+      - name: Upload compact V2.6 manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: v26-exhaustive-outcome-summary-${{ github.run_id }}
+          path: v26-exhaustive-outcome-summary
+          if-no-files-found: error
+          retention-days: 30
