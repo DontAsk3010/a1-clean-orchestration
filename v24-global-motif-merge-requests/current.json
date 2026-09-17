@@ -1,0 +1,14 @@
+{
+  "schema": "A1_V24_GLOBAL_MOTIF_MERGE_REQUEST_V1",
+  "enabled": true,
+  "research_status": "RESEARCH_ONLY_NOT_CANONICAL",
+  "source_stage": "V2.3_SHARD_MOTIF_REGISTRY_PASS",
+  "source_run_id": 35217152013,
+  "source_artifact_id": 10497420034,
+  "source_artifact_digest": "sha256:286097d7579edd77a6fa0c0d342f03768a98c59b5d04abf0b324d65b75c99bcb",
+  "registry_artifact_digest": "sha256:deaacecc936174f66c9cd2138cbdcfb5c2120ad0ae8f0d4da8c4d7fed6484214",
+  "read_only_v23_registry_shards": true,
+  "future_outcome_used_to_define_motif": false,
+  "reserved_oos_untouched": true,
+  "purpose": "Merge exact V2.3 causal state, transition, and branch3 motif registries globally for recurrence, timing, and branching analysis without rereading V2.2 episodes or raw data."
+}
