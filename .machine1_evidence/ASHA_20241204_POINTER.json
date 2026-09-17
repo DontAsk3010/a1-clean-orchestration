@@ -1,0 +1,22 @@
+{
+  "ticker": "ASHA",
+  "trading_date": "2024-12-04",
+  "branch": "machine1/evidence-asha-20241204",
+  "workflow_commit": "e06936261d6a765f17ff0cf8ad3abdd13ea4fafd",
+  "github_run_id": 35283986566,
+  "github_artifact_id": 10523822553,
+  "github_artifact_url": "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35283986566/artifacts/10523822553",
+  "github_artifact_digest": "d9898787a7cf7b4f2992b25f135d71ac9104f9c796735cf52045358b3012d916",
+  "packet_sha256": "ba09d3ef214ab0b959c3ec68d6d9a3882e4425ef94d9d833ffde683482fdc468",
+  "rows_jsonl_sha256": "9040232657dfbc7d4b1fd0555d280902c042c40bab249d58a7d42d5f4855dd86",
+  "proof_sha256": "de494eff04e17da1df582718c8cc5988b7f5780924c3a2dc01f89f31efe66c05",
+  "source_sha256": "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+  "source_row_first": 101842,
+  "source_row_last": 101846,
+  "data_rows": 5,
+  "first_datetime": "2024-12-04 09:55:00",
+  "last_datetime": "2024-12-04 16:00:00",
+  "pointer_recovery": "DIRECT_GITHUB_WRITE_AFTER_RUN_POINTER_STEP_FAILED_DUBIOUS_OWNERSHIP",
+  "evidence_extraction_status": "SUCCESS",
+  "artifact_upload_status": "SUCCESS"
+}
