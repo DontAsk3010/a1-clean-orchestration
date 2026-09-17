@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "ASDM",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-asdm-20241204",
+    "workflow_commit":  "ee6838a057e96bc0bd95bbb249f0f5a169a7ef14",
+    "github_run_id":  35283191649,
+    "github_artifact_id":  10523951169,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35283191649/artifacts/10523951169",
+    "github_artifact_digest":  "76104a178405575205a83c462e6183406eff6e511801cea6abce064601257419",
+    "packet_sha256":  "a1cab460876e0116d0375fb5b8f6b443adf901da7f8d03cdf3bd8bbd6882fbde",
+    "rows_jsonl_sha256":  "9ad62ae7f570b19e66833bc1e2dd022be5e5e1ab3f518a3a32b77e70d22e21c8",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  95999,
+    "source_row_last":  96003,
+    "data_rows":  5,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 11:50:00"
+}
