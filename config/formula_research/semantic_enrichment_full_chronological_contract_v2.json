@@ -1,0 +1,78 @@
+{
+  "schema": "A1_SEMANTIC_ENRICHMENT_FULL_CHRONOLOGICAL_CONTRACT_V2",
+  "status": "RESEARCH_ONLY_NOT_CANONICAL",
+  "owner_lock_date": "2026-09-18",
+  "purpose": "Build a new full-chronological semantic-enrichment lineage over every governed research month, including March 2025, while preserving the frozen V2.x 17-source baseline.",
+  "old_v2_artifacts_immutable": true,
+  "failed_v30_run_reused_as_pass": false,
+  "baseline_v26": {
+    "run_id": 35261173652,
+    "artifact_id": 10523725224,
+    "artifact_digest": "sha256:efec3347d5f95b42684ccb77b1b7aada1d9520b6b3e1ac6596edb817b6d5047a",
+    "source_count": 17,
+    "ticker_days": 298483,
+    "minute_rows": 32350174,
+    "preserve_as_historical_baseline": true
+  },
+  "full_chronological_policy": {
+    "required_source_count": 18,
+    "march_source": "Raw Maret 03-31-2025.csv",
+    "march_is_full_atlas_member": true,
+    "february_march_april_linkage_required": true,
+    "artificial_month_holes_for_oos_forbidden": true,
+    "oos_definition": "VERSIONED_FROZEN_CANDIDATE_REPLAY_WINDOW_NOT_WITHHELD_BEHAVIOR_ATLAS_MONTH"
+  },
+  "march_catchup_policy": {
+    "thin_patch_forbidden": true,
+    "same_source_identity_and_cache_accounting_as_other_months": true,
+    "same_causal_timing_rules_as_other_months": true,
+    "same_missing_unknown_unproven_semantics_as_other_months": true,
+    "same_semantic_enrichment_capabilities_as_other_months": true
+  },
+  "uniform_enrichment_required": [
+    "FORMATION_SEQUENCE_RUNS",
+    "SEMANTIC_MARKERS_WITH_EXACT_TIME",
+    "EVENT_JOURNEYS",
+    "NO_FORCED_EVENT",
+    "OPEN_RIGHT_CENSORED",
+    "CROSS_DATE_CARRY",
+    "FEB_MARCH_APRIL_CONTINUITY",
+    "SOURCE_GAP_TIMING_UNCERTAINTY",
+    "FAILED_RECOVERY_EVALUATION",
+    "PULLBACK_RECLAIM_EVALUATION",
+    "BUY_NONRESPONSE_WINDOWS",
+    "SELL_RESILIENCE_WINDOWS",
+    "OPEN_BREAK_RECLAIM",
+    "EXPLICIT_UNKNOWN_UNPROVEN_AVAILABILITY"
+  ],
+  "data_access_policy": {
+    "reuse_existing_normalized_cache_when_identity_and_accounting_match": true,
+    "narrowly_build_missing_march_cache_when_needed": true,
+    "whole_corpus_raw_rebuild_default": false,
+    "no_missing_substitution_with_zero": true
+  },
+  "causality_policy": {
+    "causal_view_separate_from_hindsight": true,
+    "future_resolution_may_evaluate_but_not_rewrite_start_state": true,
+    "exact_known_at_timing_required": true,
+    "cross_date_carry_must_follow_actual_governed_calendar": true
+  },
+  "downstream_policy": {
+    "old_v2_counts_and_artifacts_must_not_be_relabelled": true,
+    "new_global_motif_near_twin_outcome_layers_required_when_materially_changed": true,
+    "new_versioned_lineage_required": true,
+    "python_replay_before_afl_allowed": true,
+    "afl_parity_remains_separate_gate": true
+  },
+  "acceptance": [
+    "18-source source-plan PASS",
+    "legacy 17-source accounting exact against V2.6 baseline",
+    "March source nonempty and exact cache accounting",
+    "February to March to April chronological order PASS",
+    "April first governed date points back to last governed March date",
+    "all 18 sources receive same enrichment schema",
+    "full ticker-day and minute-row reconciliation exact",
+    "no duplicate or silent source omission",
+    "V2.x baseline remains unchanged"
+  ]
+}
