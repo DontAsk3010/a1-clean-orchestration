@@ -1,0 +1,63 @@
+{
+  "schema": "A1_FULL_CONTRACT_OUTCOME_DOMAIN_MATRIX_V1",
+  "status": "OWNER_LOCKED_RESEARCH_COVERAGE_GATE",
+  "purpose": "Prevent outcome research from collapsing the original contract into behavior-state tokens. Every original contract domain must be studied when physically available, semantically proven, provenance-linked, and causally known, or explicitly accounted with a non-study reason.",
+  "timeframe": "TF1M_CAUSAL_WHERE_AVAILABLE",
+  "reserved_oos_untouched": true,
+  "final_event_status_enum": [
+    "STUDIED_AVAILABLE_PROVEN",
+    "UNAVAILABLE_IN_GOVERNED_SOURCE",
+    "SEMANTICS_UNPROVEN",
+    "NOT_CAUSALLY_TIMED",
+    "NOT_APPLICABLE_WITH_REASON"
+  ],
+  "rules": {
+    "missing_is_never_zero_or_neutral": true,
+    "future_outcome_is_evaluation_only": true,
+    "price_and_formation_context_must_be_read_together": true,
+    "all_required_domains_must_appear_in_every_event_coverage_record": true,
+    "silent_domain_omission_is_failure": true,
+    "formula_promotion_blocked_until_full_contract_reconciliation_pass": true
+  },
+  "domains": [
+    {"id":"PRIOR_H1_CONTEXT","required":true,"current_capability":"AVAILABLE_PROVEN_FROM_COMPLETED_PRIOR_TICKER_DAYS","study":"prior close/open/high/low/range/path/activity, late-session retention/giveback, completed prior-day context only"},
+    {"id":"OPEN_GAP_CONTEXT","required":true,"current_capability":"AVAILABLE_PROVEN","study":"previous close versus current open/gap, opening position, open defended/broken, running-low/running-high context"},
+    {"id":"INITIATION_QUALITY","required":true,"current_capability":"AVAILABLE_PROVEN","study":"first causal release/initiation, initial displacement, participation change, response efficiency, contradiction"},
+    {"id":"PRICE_OHLC_PATH","required":true,"current_capability":"AVAILABLE_PROVEN","study":"complete TF1M OHLC path from causal point, not only state labels"},
+    {"id":"HIGH_LOW_LIFECYCLE","required":true,"current_capability":"AVAILABLE_PROVEN","study":"running/fresh high-low, high/low ordering, time-to-extremes, progression, break/reclaim"},
+    {"id":"PULLBACK_DEFEND_RECLAIM","required":true,"current_capability":"AVAILABLE_PROVEN","study":"pullback depth/path, defense/break, reclaim/non-reclaim, retest and subsequent price response"},
+    {"id":"MULTIBAR_PERSISTENCE_TIMING","required":true,"current_capability":"AVAILABLE_PROVEN","study":"duration, bar count, spacing, persistence, first-detectable/confirm/fail/recovery timing"},
+    {"id":"VOLUME_PARTICIPATION","required":true,"current_capability":"AVAILABLE_PROVEN","study":"volume build/fade/burst/persistence and change relative to price development"},
+    {"id":"TRADE_VALUE_PARTICIPATION","required":true,"current_capability":"AVAILABLE_PROVEN","study":"trade-value build, acceleration/deceleration, persistence, churn-like activity versus displacement"},
+    {"id":"EFFORT_PRICE_RESPONSE","required":true,"current_capability":"AVAILABLE_PROVEN_WHERE_FLOW_AVAILABLE_AND_MECHANISM_ELIGIBLE","study":"buy/sell effort versus advance/decline/non-response/resilience and response latency"},
+    {"id":"RANGE_VOLATILITY_DEVELOPMENT","required":true,"current_capability":"AVAILABLE_FROM_OHLC_CAUSAL_PATH","study":"range expansion/contraction and changing displacement path without inventing canonical volatility fields"},
+    {"id":"PROGRESS_RETENTION_GIVEBACK","required":true,"current_capability":"AVAILABLE_FROM_CAUSAL_PRICE_PATH","study":"how much progress is retained, when giveback starts, recovery/reclaim after giveback"},
+    {"id":"EXTENSION_REMAINING_ROOM","required":true,"current_capability":"AVAILABLE_AS_EMPIRICAL_PRICE_PATH_CONTEXT_NOT_CANONICAL_TARGET","study":"distance already traveled, later room distributions, mature/stale versus developing path; no future value used in live state"},
+    {"id":"TRADABILITY_FROM_BARS","required":true,"current_capability":"PARTIALLY_AVAILABLE_FROM_VOLUME_VALUE_PRICE_CONTINUITY","study":"observable participation, continuity, gaps/jumps and execution-risk proxies; must not be mislabeled direct order-book liquidity"},
+    {"id":"DIRECT_LIQUIDITY_L1_BBO","required":true,"current_capability":"UNAVAILABLE_NOT_PROVEN_IN_CURRENT_GOVERNED_HISTORICAL_CORPUS","study":"spread/BBO only if a physically captured, semantically proven source is later bound"},
+    {"id":"DIRECT_LIQUIDITY_L2_DEPTH_QUEUE","required":true,"current_capability":"UNAVAILABLE_NOT_PROVEN_IN_CURRENT_GOVERNED_HISTORICAL_CORPUS","study":"depth, imbalance, replenishment/depletion, queue persistence/cancel-replace only if physically captured"},
+    {"id":"NBSS_FLOW","required":true,"current_capability":"SOURCE_SCOPED_PROVEN_WHERE_FLOW_AVAILABLE_AND_MECHANISM_ELIGIBLE","study":"net flow direction, magnitude/path, acceleration/deceleration, dominance change, price response/non-response"},
+    {"id":"NFSS_FLOW","required":true,"current_capability":"UNAVAILABLE_UNLESS_SEPARATELY_BOUND","study":"separate NFSS/provider-equivalent only where exact semantic contract exists; never infer from NBSS"},
+    {"id":"HAKA_HAKI","required":true,"current_capability":"PROVEN_SOURCE_SCOPED_DEC2024_ONLY_UNDER_EXACT_CONTRACT","study":"reconstructed magnitude, dominance, changes, lead-lag and response; reconstruction is semantic decomposition, not new raw data"},
+    {"id":"BROKER_PARTICIPANT_GROSS_BUY_SELL_NET","required":true,"current_capability":"UNAVAILABLE_NOT_PROVEN_IN_CURRENT_V22_CORPUS","study":"gross buy, gross sell, net, concentration and timing only if physically sourced and semantically proven"},
+    {"id":"TICK_TIME_AND_TRADE","required":true,"current_capability":"UNAVAILABLE_NOT_PROVEN_IN_CURRENT_V22_CORPUS","study":"aggressor/tick sequence and intensity only if physically captured"},
+    {"id":"FINANCIAL_ISSUER_CORPORATE_ACTION_CONTEXT","required":true,"current_capability":"NOT_CAUSALLY_TIMED_IN_CURRENT_V22_CORPUS","study":"only authoritative facts whose publication/known-at time is proven; never backdate period-end information"},
+    {"id":"MARKET_SECTOR_CONTEXT","required":true,"current_capability":"NOT_BOUND_AS_CAUSALLY_TIMED_SERIES_IN_CURRENT_V22_CORPUS","study":"market/sector regime only if exact contemporaneous source and known-at time are bound"},
+    {"id":"CONTRADICTION_FAILURE_INVALIDATION","required":true,"current_capability":"AVAILABLE_PROVEN_FROM_PRICE_FORMATION_SEQUENCE","study":"non-confirmation, contradiction, break, failure/invalidation and exact first appearance"},
+    {"id":"RECOVERY_REVERSAL_REACCELERATION","required":true,"current_capability":"AVAILABLE_PROVEN_FROM_CAUSAL_SEQUENCE","study":"reversal, recovery, reclaim and renewed acceleration with exact timing and formation confirmation"},
+    {"id":"OUTCOME_PATH_MFE_MAE_ORDERING","required":true,"current_capability":"AVAILABLE_AS_EVALUATION_ONLY","study":"MFE/MAE, pre-peak adverse path, high-low ordering, time-to-peak/worst, EOD retention; prohibited as earlier-state input"},
+    {"id":"CAUSAL_PROVENANCE_TIMING","required":true,"current_capability":"AVAILABLE_FOR_BOUND_LANES","study":"source/version, exact timestamp/range, first observed/support/change/detectable/known-at/confirm/non-confirm/fail/recovery/end where supported"}
+  ],
+  "completion_gate": {
+    "all_203108_divergent_children_accounted": true,
+    "all_13621_divergent_prefixes_accounted": true,
+    "all_required_domains_present_per_event": true,
+    "every_domain_has_allowed_final_status": true,
+    "available_proven_domains_have_measured_evidence": true,
+    "unavailable_or_unproven_domains_have_reason_and_provenance": true,
+    "negative_ambiguous_right_censored_cases_preserved": true,
+    "near_twins_compared_on_all_applicable_domains": true,
+    "no_arbitrary_thresholds": true,
+    "reserved_oos_untouched": true
+  }
+}
