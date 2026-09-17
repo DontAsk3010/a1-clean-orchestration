@@ -1,6 +1,6 @@
 # A1 CLEAN — MACHINE 1 DEDICATED RUNNER V1
 
-STATUS: ACTIVE POOL EXPANSION — 3 OF 4 RUNNERS VERIFIED; RUNNER-05 ISOLATED SMOKE PENDING
+STATUS: ACTIVE POOL COMPLETE — 4 OF 4 RUNNERS VERIFIED
 
 ## Purpose
 Provide a reusable pool of dedicated Windows x64 self-hosted execution resources for Machine 1 AI semantic behavior-reading evidence extraction so Machine 1 does not queue behind Lane 2 compute. This is infrastructure isolation only. It does not create a new analytical engine and does not change behavior-reading methodology.
@@ -47,7 +47,7 @@ Pool identities:
 - `A1-WINDOWS-MACHINE1-02` — VERIFIED / ACTIVE; existing runner directory `C:\actions-runner-machine1-02`.
 - `A1-WINDOWS-MACHINE1-03` — VERIFIED / ACTIVE; runner directory `C:\actions-runner-machine1-03\actions-runner`; smoke run `35274664320` PASS.
 - `A1-WINDOWS-MACHINE1-04` — VERIFIED / ACTIVE; runner directory `C:\actions-runner-machine1-04\actions-runner`; smoke run `35275632454` PASS.
-- `A1-WINDOWS-MACHINE1-05` — REGISTERED / ONLINE / ISOLATED SMOKE PENDING.
+- `A1-WINDOWS-MACHINE1-05` — VERIFIED / ACTIVE; runner directory `C:\actions-runner-machine1-05`; smoke run `35276866155` PASS.
 
 These names identify physical runner instances only. They do NOT own a permanent trading date. Trading-date ownership exists only through the governed Dispatch Registry assignment/checkpoint state.
 
@@ -100,6 +100,6 @@ Current verified state:
 - `A1-WINDOWS-MACHINE1-02` — ACTIVE / smoke PASS / generic `a1-clean-machine1` route.
 - `A1-WINDOWS-MACHINE1-03` — ACTIVE / smoke PASS / generic `a1-clean-machine1` route; smoke run `35274664320` verified Python 3.11.9, exact RAW MD5/SHA256, and all no-mutation gates.
 - `A1-WINDOWS-MACHINE1-04` — ACTIVE / smoke PASS / generic `a1-clean-machine1` route; smoke run `35275632454` executed on runner_id `25` and completed successfully.
-- `A1-WINDOWS-MACHINE1-05` — REGISTERED / ONLINE / ISOLATED SMOKE PENDING.
+- `A1-WINDOWS-MACHINE1-05` — ACTIVE / smoke PASS / generic `a1-clean-machine1` route; smoke run `35276866155` executed on runner_id `26` and verified Python 3.11.9, exact RAW MD5/SHA256, and all no-mutation gates.
 
-The pool is partially active. Only individually registered and smoke-PASS runners may accept governed Machine 1 work.
+The reusable Machine 1 pool is complete: 4 of 4 runners are individually verified and ACTIVE. Governed work assignment remains controlled by the Dispatch Registry and durable Machine 1 checkpoint state.
