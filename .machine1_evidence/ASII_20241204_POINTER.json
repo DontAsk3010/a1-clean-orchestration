@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "ASII",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-asii-20241204",
+    "workflow_commit":  "1002afa2e3d7f536db45fd8585926a9daddc71fd",
+    "github_run_id":  35285454867,
+    "github_artifact_id":  10524335524,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35285454867/artifacts/10524335524",
+    "github_artifact_digest":  "8dce9ed1387c6a7c84de7cb9fc2d0a360db01b68f7e839dcd5cb0986ff16eb1b",
+    "packet_sha256":  "f8d103f296ea3abb1ede72acedbbaac46868c85bd165d3b31691db72b0f7b8ca",
+    "rows_jsonl_sha256":  "7e9ff27d5949f5ba0d96e48577b3e72fb0042b6188d9d2006a2ec2fb82428f79",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  105349,
+    "source_row_last":  105677,
+    "data_rows":  329,
+    "first_datetime":  "2024-12-04 08:59:00",
+    "last_datetime":  "2024-12-04 16:13:00"
+}
