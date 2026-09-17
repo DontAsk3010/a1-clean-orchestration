@@ -1,0 +1,105 @@
+name: Windows V2.7 Full Contract Outcome Study
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - 'v27-full-contract-outcome-study-requests/current.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-v27-full-contract-outcome-study
+  cancel-in-progress: false
+
+jobs:
+  full-contract-outcome:
+    name: Study every original contract domain across every divergent outcome event
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact research revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate request matrix and compile V2.7
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'v27-full-contract-outcome-study-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_V27_FULL_CONTRACT_OUTCOME_REQUEST_V1') { throw 'V27_REQUEST_SCHEMA_MISMATCH' }
+          if ($req.enabled -ne $true) { throw 'V27_REQUEST_DISABLED' }
+          if ($req.all_original_contract_domains_required -ne $true) { throw 'V27_FULL_CONTRACT_REQUIRED' }
+          if ($req.v26_core_is_not_full_completion -ne $true) { throw 'V27_V26_SCOPE_LOCK_REQUIRED' }
+          if ($req.future_outcome_rewrites_causal_state -ne $false) { throw 'V27_FUTURE_LEAKAGE' }
+          if ($req.missing_substituted_with_zero -ne $false) { throw 'V27_MISSING_ZERO_FORBIDDEN' }
+          if ($req.arbitrary_thresholds_added -ne $false) { throw 'V27_ARBITRARY_THRESHOLD' }
+          if ($req.reserved_oos_untouched -ne $true) { throw 'V27_OOS_LOCK_REQUIRED' }
+          $matrix = Get-Content -LiteralPath 'formula-research/FULL_CONTRACT_OUTCOME_STUDY_DOMAIN_MATRIX_20260918.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($matrix.schema -ne 'A1_FULL_CONTRACT_OUTCOME_DOMAIN_MATRIX_V1') { throw 'V27_MATRIX_SCHEMA_MISMATCH' }
+          if ($matrix.domains.Count -ne 27) { throw "V27_MATRIX_DOMAIN_COUNT_MISMATCH:$($matrix.domains.Count)" }
+          py -3.11 -m py_compile src/a1clean/formula_research/v27_full_contract_outcome_study.py
+          if ($LASTEXITCODE -ne 0) { throw 'V27_COMPILE_FAILED' }
+
+      - name: Require V2.6 PASS and exact source-scoped HAKA HAKI contract
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $digest = 'deaacecc936174f66c9cd2138cbdcfb5c2120ad0ae8f0d4da8c4d7fed6484214'
+          $v26 = Join-Path $env:USERPROFILE ".a1clean\v26_exhaustive_outcome_study\$digest"
+          $m26Path = Join-Path $v26 'manifest.json'
+          if (-not (Test-Path -LiteralPath $m26Path)) { throw 'V27_V26_MANIFEST_MISSING' }
+          $m26 = Get-Content -LiteralPath $m26Path -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($m26.status -ne 'PASS' -or $m26.reconciliation.pass -ne $true) { throw 'V27_V26_NOT_PASS' }
+          if ([int64]$m26.reconciliation.ticker_days -ne 298483) { throw 'V27_V26_TICKER_DAY_MISMATCH' }
+          if ([int64]$m26.reconciliation.minute_rows -ne 32350174) { throw 'V27_V26_MINUTE_ROW_MISMATCH' }
+          if ([int64]$m26.reconciliation.divergent_prefixes_observed -ne 13621) { throw 'V27_V26_PREFIX_MISMATCH' }
+          if ([int64]$m26.reconciliation.divergent_child_motifs_observed -ne 203108) { throw 'V27_V26_CHILD_MISMATCH' }
+          py -3.11 -c "from a1clean.formula_research.durable_cache_catalog import governed_sources_from_durable_cache; from a1clean.formula_research.haka_haki_reconstruction import DEC_2024_CONTRACT; ss=governed_sources_from_durable_cache(); m=next(x for x in ss if x['source_name']==DEC_2024_CONTRACT['source_name']); [(_ for _ in ()).throw(AssertionError('V27_HAKA_HAKI_CONTRACT_'+k)) if str(m.get(k) or '') != str(DEC_2024_CONTRACT[k]) else None for k in ('source_name','source_drive_id','source_sha256','generation_id')]; print('V27_HAKA_HAKI_CONTRACT_PASS')"
+          if ($LASTEXITCODE -ne 0) { throw 'V27_HAKA_HAKI_CONTRACT_FAIL' }
+          "V27_V26_ROOT=$v26" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $out = Join-Path $env:USERPROFILE ".a1clean\v27_full_contract_outcome_study\$digest"
+          "V27_OUTPUT_ROOT=$out" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "V27_ARTIFACT_DIGEST=$digest" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build or reuse full contract outcome evidence per source
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & py -3.11 -m a1clean.formula_research.v27_full_contract_outcome_study `
+            --v26-root $env:V27_V26_ROOT `
+            --output-root $env:V27_OUTPUT_ROOT `
+            --matrix 'formula-research/FULL_CONTRACT_OUTCOME_STUDY_DOMAIN_MATRIX_20260918.json' `
+            --artifact-digest $env:V27_ARTIFACT_DIGEST
+          if ($LASTEXITCODE -ne 0) { throw "V27_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Assert every contract domain every event and exact motif coverage
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $m = Get-Content -LiteralPath (Join-Path $env:V27_OUTPUT_ROOT 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($m.status -ne 'PASS' -or $m.reconciliation.pass -ne $true) { throw 'V27_RECONCILIATION_FAIL' }
+          if ([int64]$m.reconciliation.divergent_prefixes -ne 13621) { throw 'V27_PREFIX_COVERAGE_MISMATCH' }
+          if ([int64]$m.reconciliation.divergent_child_motifs -ne 203108) { throw 'V27_CHILD_COVERAGE_MISMATCH' }
+          if ([int64]$m.reconciliation.required_domains -ne 27) { throw 'V27_DOMAIN_COUNT_MISMATCH' }
+          if ($m.reconciliation.every_domain_accounted_for_every_event -ne $true) { throw 'V27_DOMAIN_ACCOUNTING_FAIL' }
+          if ([int64]$m.reconciliation.event_occurrences -ne [int64]$m.reconciliation.expected_event_occurrences) { throw 'V27_EVENT_COVERAGE_MISMATCH' }
+          if ($m.contract.price_and_all_applicable_formation_context_read_together -ne $true) { throw 'V27_PRICE_FORMATION_LOCK_FAIL' }
+          if ($m.contract.direct_liquidity_not_inferred_from_bar_tradability -ne $true) { throw 'V27_LIQUIDITY_SEMANTIC_FAIL' }
+          New-Item -ItemType Directory -Force -Path 'v27-full-contract-outcome-summary' | Out-Null
+          Copy-Item -LiteralPath (Join-Path $env:V27_OUTPUT_ROOT 'manifest.json') -Destination 'v27-full-contract-outcome-summary\manifest.json' -Force
+          Copy-Item -LiteralPath (Join-Path $env:V27_OUTPUT_ROOT 'child-contract-summary.jsonl.gz') -Destination 'v27-full-contract-outcome-summary\child-contract-summary.jsonl.gz' -Force
+          Copy-Item -LiteralPath (Join-Path $env:V27_OUTPUT_ROOT 'prefix-near-twin-full-contract-contrast.jsonl.gz') -Destination 'v27-full-contract-outcome-summary\prefix-near-twin-full-contract-contrast.jsonl.gz' -Force
+          Copy-Item -LiteralPath 'formula-research/FULL_CONTRACT_OUTCOME_STUDY_DOMAIN_MATRIX_20260918.json' -Destination 'v27-full-contract-outcome-summary\domain-matrix.json' -Force
+
+      - name: Upload V2.7 full contract reconciliation and near twin summaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: v27-full-contract-outcome-summary-${{ github.run_id }}
+          path: v27-full-contract-outcome-summary
+          if-no-files-found: error
+          retention-days: 30
