@@ -1,6 +1,6 @@
 # A1 CLEAN — MACHINE 1 DEDICATED RUNNER V1
 
-STATUS: ACTIVE POOL EXPANSION — 2 OF 4 RUNNERS VERIFIED; RUNNER-04 SMOKE PENDING
+STATUS: ACTIVE POOL EXPANSION — 2 OF 4 RUNNERS VERIFIED; RUNNER-04 ISOLATED SMOKE PENDING
 
 ## Purpose
 Provide a reusable pool of dedicated Windows x64 self-hosted execution resources for Machine 1 AI semantic behavior-reading evidence extraction so Machine 1 does not queue behind Lane 2 compute. This is infrastructure isolation only. It does not create a new analytical engine and does not change behavior-reading methodology.
