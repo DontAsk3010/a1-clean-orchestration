@@ -1,0 +1,28 @@
+{
+  "schema": "A1_V23_SHARD_MOTIF_REQUEST_V1",
+  "enabled": true,
+  "requested_at": "2026-09-17",
+  "timeframe": "1M",
+  "purpose": "Build the causal motif registry from already-reconciled durable V2.2 shards only, with per-shard resume/reuse and exact global reconciliation.",
+  "input": {
+    "v22_artifact_digest": "sha256:deaacecc936174f66c9cd2138cbdcfb5c2120ad0ae8f0d4da8c4d7fed6484214",
+    "v22_shard_summary_run_id": 35211392361,
+    "v22_shard_summary_artifact_id": 10495255918
+  },
+  "definition": {
+    "read_only_reconciled_v22_shards": true,
+    "future_outcome_used_to_define_motif": false,
+    "arbitrary_signal_thresholds_added": false,
+    "preserve_exact_v22_state_tokens": true,
+    "preserve_actual_1m_run_start_timestamps": true,
+    "preserve_failures_and_branching_paths": true,
+    "reuse_passed_shard_registry_when_fingerprint_matches": true
+  },
+  "reconciliation": {
+    "expected_ticker_days": 298483,
+    "expected_minute_rows": 32350174,
+    "expected_zero_session_ticker_days": 13074,
+    "expected_episode_runs": 29564130,
+    "fail_on_less_more_duplicate_or_orphan": true
+  }
+}
