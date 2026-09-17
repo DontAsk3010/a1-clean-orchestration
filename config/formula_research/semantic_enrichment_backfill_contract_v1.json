@@ -1,0 +1,86 @@
+{
+  "schema": "A1_SEMANTIC_ENRICHMENT_BACKFILL_CONTRACT_V1",
+  "status": "RESEARCH_ONLY_NOT_CANONICAL",
+  "owner_lock_date": "2026-09-18",
+  "purpose": "Add richer manual-style semantic journey representation to the governed Formula Research engine without destructively rewriting already-PASS historical artifacts.",
+  "default_strategy": "FULL_CORPUS_APPEND_ONLY_ENRICHMENT_FROM_DURABLE_TF1M_EVIDENCE",
+  "old_artifacts_immutable": true,
+  "destructive_rewrite_forbidden": true,
+  "raw_reextraction_default": false,
+  "raw_reread_allowed_only_when": [
+    "required semantic evidence is absent from retained durable evidence",
+    "required lane was not retained",
+    "source-gap or exact causal timing cannot be established from retained artifacts",
+    "provenance cannot be reconstructed faithfully",
+    "integrity or regression audit proves a real defect"
+  ],
+  "raw_reread_scope_rule": "NARROWEST_REQUIRED_SOURCE_OR_LANE; whole-corpus RAW rebuild only if the missing evidence is corpus-wide and unrecoverable otherwise",
+  "manual_reference_role": "READ_ONLY_GOLDEN_AND_CONCORDANCE_REFERENCE_NOT_HIDDEN_LABEL",
+  "manual_absence_means": "NOT_MANUALLY_READ",
+  "required_enrichment_capabilities": [
+    "FORMATION_SEQUENCE",
+    "EVENT_JOURNEY",
+    "NO_FORCED_EVENT",
+    "OPEN_RIGHT_CENSORED",
+    "CROSS_DATE_OPEN_CARRY",
+    "SOURCE_GAP_TIMING_UNCERTAINTY",
+    "FIRST_OBSERVED_TIME",
+    "FIRST_CAUSAL_DETECTABLE_TIME",
+    "CHANGE_POINT_TIME",
+    "CONFIRM_NON_CONFIRM_TIME",
+    "WEAKENING_TIME",
+    "FAIL_INVALIDATION_TIME",
+    "RECOVERY_TIME",
+    "RECOVERY_DURABILITY",
+    "FAILED_RECOVERY",
+    "REBASE_TRANSFORMATION",
+    "EVENT_END_OR_LAST_RELEVANT_TIME",
+    "CAUSAL_VIEW_SEPARATE_FROM_HINDSIGHT_VIEW",
+    "EXPLICIT_UNKNOWN_UNPROVEN_AVAILABILITY"
+  ],
+  "lineage_key_minimum": [
+    "source_identity",
+    "source_version_or_digest_where_available",
+    "ticker",
+    "trading_date",
+    "source_row_or_durable_row_identity",
+    "timestamp_or_time_range",
+    "parent_schema",
+    "parent_artifact_or_digest",
+    "enrichment_schema_version"
+  ],
+  "coverage_policy": {
+    "manual_examples_only": false,
+    "all_applicable_governed_non_oos_ticker_days": true,
+    "no_winner_only_filter": true,
+    "no_forced_event": true,
+    "reserved_oos_untouched": true
+  },
+  "reconciliation_requirements": [
+    "exact input coverage",
+    "exact applicable output coverage",
+    "no duplicate lineage",
+    "no orphan lineage",
+    "explicit OLD_BASELINE_STATE versus NEW_ENRICHED_STATE",
+    "timestamps and uncertainty preserved",
+    "manual overlap concordance reported separately from non-overlap"
+  ],
+  "promotion_gates": [
+    "manual-machine concordance on overlap",
+    "deterministic reproducibility",
+    "causal timestamp integrity",
+    "no future leakage",
+    "full applicable corpus backfill",
+    "failure/no-event/censored preservation",
+    "near-twin discrimination",
+    "cross-period robustness",
+    "ablation before formula influence"
+  ],
+  "historical_pass_layers_not_to_rerun_by_default": [
+    "V2.1_CENSUS",
+    "V2.2_MULTILAYER_EPISODE_MINER",
+    "V2.3_MOTIF_REGISTRY",
+    "V2.4_GLOBAL_MOTIF_MERGE",
+    "V2.5_CAUSAL_DIVERGENCE_ATLAS"
+  ]
+}
