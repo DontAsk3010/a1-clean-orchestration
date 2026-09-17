@@ -50,6 +50,128 @@ jobs:
           py -3.11 -m pytest -q tests/test_haka_haki_reconstruction.py tests/test_haka_haki_behavior_lane.py tests/test_minute_behavior_census_v21.py tests/test_minute_multilayer_episode_miner_v22.py
           if ($LASTEXITCODE -ne 0) { throw 'V22_TEST_FAILED' }
 
+      - name: Audit physical cache and exact TF1M temporal order
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $code = @'
+          import json
+          from pathlib import Path
+          from a1clean.formula_research.durable_cache_catalog import governed_sources_from_durable_cache
+          from a1clean.formula_research import telegram_mg_structure_v12_runner as v12r
+
+          request = json.loads(Path("minute-multilayer-episode-v22-requests/current.json").read_text(encoding="utf-8"))
+          expected_ticker_days = int(request["census_baseline"]["ticker_days"])
+          expected_minute_rows = int(request["census_baseline"]["minute_rows"])
+
+          source_rows = []
+          examples = []
+          total_ticker_days = 0
+          total_minute_rows = 0
+          total_missing_timestamps = 0
+          total_backward_timestamp_transitions = 0
+
+          for src in governed_sources_from_durable_cache():
+              source = str(src["source_name"])
+              catalog_ticker_days = int(src.get("ticker_days", 0))
+              physical_packets = 0
+              physical_rows = 0
+              missing_timestamps = 0
+              backward_timestamp_transitions = 0
+
+              for packet in v12r._iter_cached(source):
+                  physical_packets += 1
+                  bars = [dict(x) for x in packet.get("bars", [])]
+                  physical_rows += len(bars)
+                  previous_timestamp = None
+                  for row_index, bar in enumerate(bars):
+                      timestamp = str(bar.get("timestamp") or "")
+                      if not timestamp:
+                          missing_timestamps += 1
+                          if len(examples) < 50:
+                              examples.append({
+                                  "kind": "MISSING_TIMESTAMP",
+                                  "source_name": source,
+                                  "ticker": str(packet.get("ticker") or ""),
+                                  "date": str(packet.get("date") or ""),
+                                  "row_index": row_index,
+                              })
+                          continue
+                      if previous_timestamp is not None and timestamp < previous_timestamp:
+                          backward_timestamp_transitions += 1
+                          if len(examples) < 50:
+                              examples.append({
+                                  "kind": "BACKWARD_TIMESTAMP",
+                                  "source_name": source,
+                                  "ticker": str(packet.get("ticker") or ""),
+                                  "date": str(packet.get("date") or ""),
+                                  "row_index": row_index,
+                                  "previous_timestamp": previous_timestamp,
+                                  "timestamp": timestamp,
+                              })
+                      previous_timestamp = timestamp
+
+              source_pass = (
+                  physical_packets == catalog_ticker_days
+                  and missing_timestamps == 0
+                  and backward_timestamp_transitions == 0
+              )
+              source_rows.append({
+                  "source_name": source,
+                  "catalog_ticker_days": catalog_ticker_days,
+                  "physical_cached_packets": physical_packets,
+                  "physical_cached_session_rows": physical_rows,
+                  "missing_timestamps": missing_timestamps,
+                  "backward_timestamp_transitions": backward_timestamp_transitions,
+                  "pass": source_pass,
+              })
+              total_ticker_days += physical_packets
+              total_minute_rows += physical_rows
+              total_missing_timestamps += missing_timestamps
+              total_backward_timestamp_transitions += backward_timestamp_transitions
+
+          report = {
+              "schema": "A1_MINUTE_MULTILAYER_EPISODE_V22_TEMPORAL_ORDER_AUDIT",
+              "timeframe": "1M",
+              "audit_contract": {
+                  "reads_physical_durable_cache_directly": True,
+                  "no_sort_or_resample_performed": True,
+                  "all_cached_ticker_days_scanned": True,
+                  "all_cached_session_rows_scanned": True,
+                  "missing_timestamp_is_failure": True,
+                  "backward_timestamp_transition_is_failure": True,
+                  "equal_timestamp_does_not_imply_reordering": True,
+              },
+              "expected_from_census_baseline": {
+                  "ticker_days": expected_ticker_days,
+                  "minute_rows": expected_minute_rows,
+              },
+              "observed": {
+                  "ticker_days": total_ticker_days,
+                  "minute_rows": total_minute_rows,
+                  "missing_timestamps": total_missing_timestamps,
+                  "backward_timestamp_transitions": total_backward_timestamp_transitions,
+              },
+              "source_accounting": source_rows,
+              "violation_examples": examples,
+          }
+          report["pass"] = (
+              total_ticker_days == expected_ticker_days
+              and total_minute_rows == expected_minute_rows
+              and total_missing_timestamps == 0
+              and total_backward_timestamp_transitions == 0
+              and all(bool(row["pass"]) for row in source_rows)
+          )
+          Path("minute-multilayer-episode-v22-temporal-order-audit.json").write_text(
+              json.dumps(report, indent=2, sort_keys=True), encoding="utf-8"
+          )
+          print(json.dumps(report, indent=2, sort_keys=True))
+          if not report["pass"]:
+              raise SystemExit("V22_TEMPORAL_ORDER_AUDIT_FAILED")
+          '@
+          $code | py -3.11 -
+          if ($LASTEXITCODE -ne 0) { throw "V22_TEMPORAL_ORDER_AUDIT_FAILED:$LASTEXITCODE" }
+
       - name: Run exhaustive governed 1M episode mining
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
@@ -65,11 +187,17 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $obj = Get-Content -LiteralPath 'minute-multilayer-episode-v22-result.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          $order = Get-Content -LiteralPath 'minute-multilayer-episode-v22-temporal-order-audit.json' -Raw -Encoding UTF8 | ConvertFrom-Json
           if ($obj.schema -ne 'A1_MINUTE_MULTILAYER_EPISODE_MINER_V22') { throw 'V22_RESULT_SCHEMA_MISMATCH' }
           if ($obj.scope.timeframe -ne '1M') { throw 'V22_TIMEFRAME_MISMATCH' }
           if ($obj.scope.every_ticker_day_processed -ne $true) { throw 'V22_TICKER_DAY_SCOPE_INCOMPLETE' }
           if ($obj.scope.every_cached_session_bar_processed -ne $true) { throw 'V22_MINUTE_SCOPE_INCOMPLETE' }
-          if ($obj.scope.source_order_preserved -ne $true) { throw 'V22_SOURCE_ORDER_NOT_PRESERVED' }
+          if ($order.schema -ne 'A1_MINUTE_MULTILAYER_EPISODE_V22_TEMPORAL_ORDER_AUDIT') { throw 'V22_TEMPORAL_ORDER_AUDIT_SCHEMA_MISMATCH' }
+          if ($order.pass -ne $true) { throw 'V22_SOURCE_ORDER_NOT_PRESERVED' }
+          if ([int64]$order.observed.ticker_days -ne 298483) { throw "V22_ORDER_AUDIT_TICKER_DAY_COUNT_UNEXPECTED:$($order.observed.ticker_days)" }
+          if ([int64]$order.observed.minute_rows -ne 32350174) { throw "V22_ORDER_AUDIT_MINUTE_ROW_COUNT_UNEXPECTED:$($order.observed.minute_rows)" }
+          if ([int64]$order.observed.missing_timestamps -ne 0) { throw "V22_ORDER_AUDIT_MISSING_TIMESTAMPS:$($order.observed.missing_timestamps)" }
+          if ([int64]$order.observed.backward_timestamp_transitions -ne 0) { throw "V22_ORDER_AUDIT_BACKWARD_TIMESTAMPS:$($order.observed.backward_timestamp_transitions)" }
           if ($obj.episode_contract.future_outcome_used_in_state -ne $false) { throw 'V22_FUTURE_LEAKAGE' }
           if ($obj.episode_contract.arbitrary_thresholds_added -ne $false) { throw 'V22_ARBITRARY_THRESHOLD' }
           if ($obj.episode_contract.missing_never_zero -ne $true) { throw 'V22_MISSING_ZERO_GUARD_MISSING' }
@@ -87,6 +215,7 @@ jobs:
           name: minute-multilayer-episode-v22-${{ github.run_id }}
           path: |
             minute-multilayer-episode-v22-result.json
+            minute-multilayer-episode-v22-temporal-order-audit.json
             minute-multilayer-episode-v22-ticker-days.jsonl.gz
             minute-multilayer-episode-v22-runs.jsonl.gz
           if-no-files-found: error
