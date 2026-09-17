@@ -1,0 +1,133 @@
+name: Windows V2.2 Durable Reconciled Shards
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - 'v22-durable-shard-requests/current.json'
+      - '.github/workflows/windows-v22-durable-shard.yml'
+      - 'src/a1clean/formula_research/v22_durable_sharder.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: a1-windows-v22-durable-shards
+  cancel-in-progress: false
+
+jobs:
+  build-shards:
+    name: Build durable reconciled V2.2 shards once
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Preserve existing completed V2.2 outputs before checkout
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $digest = 'deaacecc936174f66c9cd2138cbdcfb5c2120ad0ae8f0d4da8c4d7fed6484214'
+          $cache = Join-Path $env:USERPROFILE ".a1clean\v22_artifact_cache\$digest"
+          New-Item -ItemType Directory -Force -Path $cache | Out-Null
+          $td = Join-Path $cache 'minute-multilayer-episode-v22-ticker-days.jsonl.gz'
+          $ep = Join-Path $cache 'minute-multilayer-episode-v22-runs.jsonl.gz'
+          if (-not ((Test-Path $td) -and (Test-Path $ep))) {
+            $workspaceTd = Join-Path $env:GITHUB_WORKSPACE 'minute-multilayer-episode-v22-ticker-days.jsonl.gz'
+            $workspaceEp = Join-Path $env:GITHUB_WORKSPACE 'minute-multilayer-episode-v22-runs.jsonl.gz'
+            if ((Test-Path $workspaceTd) -and (Test-Path $workspaceEp)) {
+              Copy-Item -LiteralPath $workspaceTd -Destination $td -Force
+              Copy-Item -LiteralPath $workspaceEp -Destination $ep -Force
+            }
+          }
+          $have = ((Test-Path $td) -and (Test-Path $ep))
+          "V22_INPUT_CACHE=$cache" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "V22_HAVE_INPUT=$($have.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Checkout exact research revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate request and sharder
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'v22-durable-shard-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_V22_DURABLE_SHARD_REQUEST_V1') { throw 'V22_SHARD_REQUEST_SCHEMA_MISMATCH' }
+          if ($req.enabled -ne $true) { throw 'V22_SHARD_REQUEST_DISABLED' }
+          if ([int64]$req.baseline.ticker_days -ne 298483) { throw 'V22_SHARD_BASELINE_TICKER_DAY_MISMATCH' }
+          if ([int64]$req.baseline.minute_rows -ne 32350174) { throw 'V22_SHARD_BASELINE_MINUTE_ROW_MISMATCH' }
+          if ([int64]$req.baseline.zero_session_ticker_days -ne 13074) { throw 'V22_SHARD_BASELINE_ZERO_SESSION_MISMATCH' }
+          if ([int64]$req.baseline.episode_runs -ne 29564130) { throw 'V22_SHARD_BASELINE_EPISODE_RUN_MISMATCH' }
+          py -3.11 -m py_compile src/a1clean/formula_research/v22_durable_sharder.py
+          if ($LASTEXITCODE -ne 0) { throw 'V22_SHARD_COMPILE_FAILED' }
+
+      - name: Download completed V2.2 artifact only if durable input cache is absent
+        if: env.V22_HAVE_INPUT != 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: minute-multilayer-episode-v22-35203822560
+          path: v22-downloaded
+          repository: DontAsk3010/a1-clean-orchestration
+          run-id: 35203822560
+          github-token: ${{ github.token }}
+
+      - name: Populate durable input cache if download was required
+        if: env.V22_HAVE_INPUT != 'true'
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path $env:V22_INPUT_CACHE | Out-Null
+          Copy-Item -LiteralPath 'v22-downloaded\minute-multilayer-episode-v22-ticker-days.jsonl.gz' -Destination (Join-Path $env:V22_INPUT_CACHE 'minute-multilayer-episode-v22-ticker-days.jsonl.gz') -Force
+          Copy-Item -LiteralPath 'v22-downloaded\minute-multilayer-episode-v22-runs.jsonl.gz' -Destination (Join-Path $env:V22_INPUT_CACHE 'minute-multilayer-episode-v22-runs.jsonl.gz') -Force
+
+      - name: Build or reuse durable reconciled shards
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $digest = 'deaacecc936174f66c9cd2138cbdcfb5c2120ad0ae8f0d4da8c4d7fed6484214'
+          $out = Join-Path $env:USERPROFILE ".a1clean\v22_durable_shards\$digest"
+          $td = Join-Path $env:V22_INPUT_CACHE 'minute-multilayer-episode-v22-ticker-days.jsonl.gz'
+          $ep = Join-Path $env:V22_INPUT_CACHE 'minute-multilayer-episode-v22-runs.jsonl.gz'
+          & py -3.11 -m a1clean.formula_research.v22_durable_sharder `
+            --ticker-days $td `
+            --episode-runs $ep `
+            --output-root $out `
+            --artifact-digest "sha256:$digest" `
+            --expected-ticker-days 298483 `
+            --expected-minute-rows 32350174 `
+            --expected-zero-session-ticker-days 13074 `
+            --expected-episode-runs 29564130 `
+            --shard-ticker-days 5000
+          if ($LASTEXITCODE -ne 0) { throw "V22_DURABLE_SHARD_FAILED:$LASTEXITCODE" }
+          "V22_SHARD_ROOT=$out" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Reconcile exact coverage no less no more no duplicates
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $manifest = Get-Content -LiteralPath (Join-Path $env:V22_SHARD_ROOT 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($manifest.status -ne 'PASS') { throw 'V22_SHARD_MANIFEST_NOT_PASS' }
+          $r = $manifest.reconciliation
+          if ([int64]$r.ticker_days -ne 298483) { throw "V22_SHARD_TICKER_DAYS:$($r.ticker_days)" }
+          if ([int64]$r.minute_rows_from_ticker_days -ne 32350174) { throw "V22_SHARD_MINUTE_ROWS:$($r.minute_rows_from_ticker_days)" }
+          if ([int64]$r.zero_session_ticker_days -ne 13074) { throw "V22_SHARD_ZERO_SESSION:$($r.zero_session_ticker_days)" }
+          if ([int64]$r.episode_runs -ne 29564130) { throw "V22_SHARD_EPISODE_RUNS:$($r.episode_runs)" }
+          if ([int64]$r.minute_rows_partitioned_by_episode_runs -ne 32350174) { throw "V22_SHARD_EPISODE_ROWS:$($r.minute_rows_partitioned_by_episode_runs)" }
+          if ([int64]$r.unique_identities -ne 298483) { throw "V22_SHARD_UNIQUE_IDENTITIES:$($r.unique_identities)" }
+          if ($r.exact_coverage_pass -ne $true) { throw 'V22_SHARD_EXACT_COVERAGE_FAIL' }
+          if ($r.no_duplicate_identity_pass -ne $true) { throw 'V22_SHARD_DUPLICATE_FAIL' }
+          if ($r.episode_partition_pass -ne $true) { throw 'V22_SHARD_PARTITION_FAIL' }
+          New-Item -ItemType Directory -Force -Path 'v22-shard-summary' | Out-Null
+          Copy-Item -LiteralPath (Join-Path $env:V22_SHARD_ROOT 'manifest.json') -Destination 'v22-shard-summary\manifest.json' -Force
+          Copy-Item -LiteralPath (Join-Path $env:V22_SHARD_ROOT 'checkpoints') -Destination 'v22-shard-summary\checkpoints' -Recurse -Force
+
+      - name: Upload only compact reconciliation manifest and checkpoints
+        uses: actions/upload-artifact@v4
+        with:
+          name: v22-durable-shard-summary-${{ github.run_id }}
+          path: v22-shard-summary
+          if-no-files-found: error
+          retention-days: 30
