@@ -1,0 +1,54 @@
+name: Windows Machine1 Dedicated Runner Smoke
+
+on:
+  push:
+    branches:
+      - infra/machine1-dedicated-runner-v1
+    paths:
+      - .github/workflows/windows-machine1-dedicated-runner-smoke.yml
+      - docs/MACHINE1_DEDICATED_RUNNER_V1.md
+      - scripts/machine1-dedicated-runner-preflight.ps1
+
+permissions:
+  contents: read
+
+jobs:
+  machine1-runner-smoke:
+    name: Machine 1 dedicated runner / no-mutation smoke
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 15
+    env:
+      RAW_FILE: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI\Raw Des 02-31-2024.csv'
+      EXPECTED_MD5: 'b8d42b35c90d2dff8b18ae4e1734523b'
+      EXPECTED_SHA256: '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+    steps:
+      - name: Checkout staging contract
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Dedicated Machine 1 compute-only preflight
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          .\scripts\machine1-dedicated-runner-preflight.ps1 `
+            -RawFile $env:RAW_FILE `
+            -ExpectedMd5 $env:EXPECTED_MD5 `
+            -ExpectedSha256 $env:EXPECTED_SHA256
+
+      - name: Record no-mutation smoke result
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          @"
+          # Machine 1 Dedicated Runner Smoke
+
+          - Contract state: STAGED / NOT ACTIVE until this job PASSes on the dedicated runner.
+          - Runner selector: self-hosted / windows / x64 / a1-clean-machine1.
+          - This workflow performs no semantic interpretation.
+          - This workflow performs no Google Drive writes.
+          - This workflow performs no Dispatch Registry writes.
+          - This workflow performs no canonical RAW writes.
+          - This workflow does not execute or modify Lane 2.
+          - Current known RAW authority hash gate was verified by the preflight step.
+          "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
