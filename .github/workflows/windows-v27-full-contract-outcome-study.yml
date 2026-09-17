@@ -64,7 +64,7 @@ jobs:
           "V27_V26_ROOT=$v26" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           $out = Join-Path $env:USERPROFILE ".a1clean\v27_full_contract_outcome_study\$digest"
           "V27_OUTPUT_ROOT=$out" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "V27_ARTIFACT_DIGEST=$digest" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "V27_ARTIFACT_DIGEST=sha256:$digest" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Build or reuse full contract outcome evidence per source
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
