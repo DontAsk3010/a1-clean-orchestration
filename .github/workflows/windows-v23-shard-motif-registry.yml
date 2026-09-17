@@ -1,0 +1,94 @@
+name: Windows V2.3 Resumable Shard Motif Registry
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - 'v23-motif-registry-requests/current.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-v23-shard-motif-registry
+  cancel-in-progress: false
+
+jobs:
+  mine-motifs:
+    name: Mine exact causal motifs from reconciled shards
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact research revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate request and compile V2.3
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'v23-motif-registry-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_V23_SHARD_MOTIF_REQUEST_V1') { throw 'V23_REQUEST_SCHEMA_MISMATCH' }
+          if ($req.enabled -ne $true) { throw 'V23_REQUEST_DISABLED' }
+          if ($req.timeframe -ne '1M') { throw 'V23_TIMEFRAME_MISMATCH' }
+          if ($req.definition.future_outcome_used_to_define_motif -ne $false) { throw 'V23_FUTURE_LEAKAGE' }
+          if ($req.definition.arbitrary_signal_thresholds_added -ne $false) { throw 'V23_ARBITRARY_THRESHOLD' }
+          if ($req.definition.read_only_reconciled_v22_shards -ne $true) { throw 'V23_REQUIRES_RECONCILED_SHARDS' }
+          py -3.11 -m py_compile src/a1clean/formula_research/v23_shard_motif_registry.py
+          if ($LASTEXITCODE -ne 0) { throw 'V23_COMPILE_FAILED' }
+
+      - name: Require completed V2.2 durable shard manifest
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $digest = 'deaacecc936174f66c9cd2138cbdcfb5c2120ad0ae8f0d4da8c4d7fed6484214'
+          $root = Join-Path $env:USERPROFILE ".a1clean\v22_durable_shards\$digest"
+          $manifestPath = Join-Path $root 'manifest.json'
+          if (-not (Test-Path -LiteralPath $manifestPath)) { throw 'V23_V22_SHARD_MANIFEST_MISSING' }
+          $m = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($m.status -ne 'PASS') { throw 'V23_V22_SHARD_MANIFEST_NOT_PASS' }
+          if ($m.artifact_digest -ne "sha256:$digest") { throw 'V23_V22_ARTIFACT_DIGEST_MISMATCH' }
+          if ([int64]$m.reconciliation.ticker_days -ne 298483) { throw 'V23_V22_TICKER_DAY_MISMATCH' }
+          if ([int64]$m.reconciliation.minute_rows_from_ticker_days -ne 32350174) { throw 'V23_V22_MINUTE_ROW_MISMATCH' }
+          if ([int64]$m.reconciliation.zero_session_ticker_days -ne 13074) { throw 'V23_V22_ZERO_SESSION_MISMATCH' }
+          if ([int64]$m.reconciliation.episode_runs -ne 29564130) { throw 'V23_V22_EPISODE_RUN_MISMATCH' }
+          "V23_SHARD_ROOT=$root" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $out = Join-Path $env:USERPROFILE ".a1clean\v23_shard_motif_registry\$digest"
+          "V23_OUTPUT_ROOT=$out" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build or reuse motif registry shard by shard
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & py -3.11 -m a1clean.formula_research.v23_shard_motif_registry `
+            --shard-root $env:V23_SHARD_ROOT `
+            --output-root $env:V23_OUTPUT_ROOT `
+            --artifact-digest 'sha256:deaacecc936174f66c9cd2138cbdcfb5c2120ad0ae8f0d4da8c4d7fed6484214'
+          if ($LASTEXITCODE -ne 0) { throw "V23_MOTIF_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Reconcile motif registry to exact V2.2 coverage
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $m = Get-Content -LiteralPath (Join-Path $env:V23_OUTPUT_ROOT 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($m.status -ne 'PASS') { throw 'V23_MANIFEST_NOT_PASS' }
+          if ($m.reconciliation.pass -ne $true) { throw 'V23_RECONCILIATION_FAIL' }
+          if ([int64]$m.reconciliation.ticker_days -ne 298483) { throw 'V23_TICKER_DAY_COUNT' }
+          if ([int64]$m.reconciliation.minute_rows -ne 32350174) { throw 'V23_MINUTE_ROW_COUNT' }
+          if ([int64]$m.reconciliation.zero_session_ticker_days -ne 13074) { throw 'V23_ZERO_SESSION_COUNT' }
+          if ([int64]$m.reconciliation.episode_runs -ne 29564130) { throw 'V23_EPISODE_RUN_COUNT' }
+          if ([int64]$m.reconciliation.episode_rows -ne 32350174) { throw 'V23_EPISODE_ROW_COUNT' }
+          New-Item -ItemType Directory -Force -Path 'v23-motif-summary' | Out-Null
+          Copy-Item -LiteralPath (Join-Path $env:V23_OUTPUT_ROOT 'manifest.json') -Destination 'v23-motif-summary\manifest.json' -Force
+          Copy-Item -LiteralPath (Join-Path $env:V23_OUTPUT_ROOT 'checkpoints') -Destination 'v23-motif-summary\checkpoints' -Recurse -Force
+
+      - name: Upload compact V2.3 reconciliation summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: v23-shard-motif-summary-${{ github.run_id }}
+          path: v23-motif-summary
+          if-no-files-found: error
+          retention-days: 30
