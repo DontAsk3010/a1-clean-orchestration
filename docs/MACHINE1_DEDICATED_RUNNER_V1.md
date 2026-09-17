@@ -1,6 +1,6 @@
 # A1 CLEAN — MACHINE 1 DEDICATED RUNNER V1
 
-STATUS: ACTIVE POOL EXPANSION — 1 OF 3 RUNNERS VERIFIED
+STATUS: ACTIVE POOL EXPANSION — 1 OF 4 RUNNERS VERIFIED
 
 ## Purpose
 Provide a reusable pool of dedicated Windows x64 self-hosted execution resources for Machine 1 AI semantic behavior-reading evidence extraction so Machine 1 does not queue behind Lane 2 compute. This is infrastructure isolation only. It does not create a new analytical engine and does not change behavior-reading methodology.
@@ -40,13 +40,14 @@ No Machine 1 pool runner may carry:
 
 Reason: Lane 2 workflows use the parity route. Omitting that label prevents Lane 2 jobs from being scheduled onto the Machine 1 pool.
 
-Target reusable pool size authorized by owner: 3 runners.
+Target reusable pool size authorized by owner: 4 runners.
 
 Pool identities:
 
 - `A1-WINDOWS-MACHINE1-02` — VERIFIED / ACTIVE; existing runner directory `C:\actions-runner-machine1-02`.
 - `A1-WINDOWS-MACHINE1-03` — PENDING REGISTRATION / SMOKE.
 - `A1-WINDOWS-MACHINE1-04` — PENDING REGISTRATION / SMOKE.
+- `A1-WINDOWS-MACHINE1-05` — PENDING REGISTRATION / SMOKE.
 
 These names identify physical runner instances only. They do NOT own a permanent trading date. Trading-date ownership exists only through the governed Dispatch Registry assignment/checkpoint state.
 
@@ -82,7 +83,7 @@ Lane 2 remains on its existing runner selector and serialized controller. No Lan
 
 Additional compute capacity does not relax semantic governance. Parallelism is allowed only across distinct explicitly assigned dates/workers. The Dispatch Registry remains the source of truth for ownership. Two runners must never independently own/read the same open date.
 
-Three ACTIVE Machine 1 runners may therefore process up to three distinct governed Machine 1 assignments concurrently when three distinct valid worker/date claims exist. They must not duplicate the same date, skip chronological governance, or auto-advance a worker beyond its pinned date merely because another runner becomes free.
+Four ACTIVE Machine 1 runners may therefore process up to four distinct governed Machine 1 assignments concurrently when four distinct valid worker/date claims exist. They must not duplicate the same date, skip chronological governance, or auto-advance a worker beyond its pinned date merely because another runner becomes free.
 
 A completed/frozen worker/date releases execution capacity for later governed assignments; the physical runner remains reusable and is never permanently associated with that completed date.
 
@@ -92,12 +93,13 @@ If registration, source identity, hash, environment, or smoke verification fails
 
 ## Activation state
 
-Current pool target: `3` reusable Machine 1 runners.
+Current pool target: `4` reusable Machine 1 runners.
 
 Current verified state:
 
 - `A1-WINDOWS-MACHINE1-02` — ACTIVE / smoke PASS / generic `a1-clean-machine1` route.
 - `A1-WINDOWS-MACHINE1-03` — PENDING.
 - `A1-WINDOWS-MACHINE1-04` — PENDING.
+- `A1-WINDOWS-MACHINE1-05` — PENDING.
 
 The pool is partially active. Only individually registered and smoke-PASS runners may accept governed Machine 1 work.
