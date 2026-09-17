@@ -1,15 +1,19 @@
 # A1 CLEAN — MACHINE 1 DEDICATED RUNNER V1
 
-STATUS: STAGED / NOT ACTIVE
+STATUS: ACTIVE POOL EXPANSION — 1 OF 3 RUNNERS VERIFIED
 
 ## Purpose
-Provide a dedicated Windows x64 self-hosted execution resource for Machine 1 AI semantic behavior-reading evidence extraction so Machine 1 does not queue behind Lane 2 compute. This is infrastructure isolation only. It does not create a new analytical engine and does not change behavior-reading methodology.
+Provide a reusable pool of dedicated Windows x64 self-hosted execution resources for Machine 1 AI semantic behavior-reading evidence extraction so Machine 1 does not queue behind Lane 2 compute. This is infrastructure isolation only. It does not create a new analytical engine and does not change behavior-reading methodology.
+
+Machine 1 is the AI semantic/manual ticker-by-ticker, minute-by-minute market-behavior reading lane. Lane 2 is the separate algorithmic/numeric discovery/comparison lane. They remain analytically independent.
+
+The Machine 1 runner pool is NOT tied to specific trading dates. A runner may execute any governed Machine 1 date assignment after the Dispatch Registry has assigned/pinned that worker/date. When a date reaches its required durable close/freeze/readback boundary, the physical runner becomes reusable for a later governed Machine 1 assignment.
 
 ## Authority and non-negotiable locks
 
 The active Master, Current Execution, Behavior Handbook, Automation/Orchestration Handbook, Dispatch Registry, source manifests, and latest durable Machine 1 checkpoint remain authoritative.
 
-This runner MUST preserve all existing Machine 1 rules, including:
+Every runner in this pool MUST preserve all existing Machine 1 rules, including:
 
 - exact canonical source identity / hash verification before evidence use;
 - full actual source-supported rows only; no sampling, filtering, padding, interpolation, or synthetic bars;
@@ -24,61 +28,76 @@ This runner MUST preserve all existing Machine 1 rules, including:
 - formula / score / threshold / selector / ranking / optimization / BUY-SELL / TP-SL / Telegram analytical logic remain closed;
 - Machine 1 and Lane 2 remain analytically independent.
 
-## Runner isolation contract
+## Runner pool isolation contract
 
-Dedicated Machine 1 runner labels:
+Shared dedicated Machine 1 runner labels:
 
 `self-hosted, windows, x64, a1-clean-machine1`
 
-The dedicated Machine 1 runner MUST NOT carry label:
+No Machine 1 pool runner may carry:
 
 `a1-clean-parity`
 
-Reason: current Lane 2 workflows select `a1-clean-parity`. Omitting that label prevents Lane 2 jobs from being scheduled onto the dedicated Machine 1 runner.
+Reason: Lane 2 workflows use the parity route. Omitting that label prevents Lane 2 jobs from being scheduled onto the Machine 1 pool.
 
-Recommended runner name:
+Target reusable pool size authorized by owner: 3 runners.
 
-`A1-WINDOWS-MACHINE1-02`
+Pool identities:
 
-The runner is compute-only. Canonical project evidence remains in governed Drive/GitHub authority locations. Local storage is non-canonical execution scratch/cache only, consistent with active automation authority.
+- `A1-WINDOWS-MACHINE1-02` — VERIFIED / ACTIVE; existing runner directory `C:\actions-runner-machine1-02`.
+- `A1-WINDOWS-MACHINE1-03` — PENDING REGISTRATION / SMOKE.
+- `A1-WINDOWS-MACHINE1-04` — PENDING REGISTRATION / SMOKE.
 
-## Activation gates
+These names identify physical runner instances only. They do NOT own a permanent trading date. Trading-date ownership exists only through the governed Dispatch Registry assignment/checkpoint state.
 
-The dedicated runner remains NOT ACTIVE until all gates below pass:
+Each runner is compute-only. Canonical project evidence remains in governed Drive/GitHub authority locations. Local storage is non-canonical execution scratch/cache only, consistent with active automation authority.
 
-1. A second self-hosted runner is registered to `DontAsk3010/a1-clean-orchestration` under a separate runner installation/work directory.
-2. The runner has labels `self-hosted`, `windows`, `x64`, `a1-clean-machine1` and does **not** have `a1-clean-parity`.
-3. Python 3.11 is available.
-4. The governed local RAW compute path is readable.
-5. The known current authority source `Raw Des 02-31-2024.csv` matches canonical MD5 `b8d42b35c90d2dff8b18ae4e1734523b` and SHA256 `5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c` during the smoke probe.
-6. The dedicated smoke workflow completes PASS with zero semantic/Registry/Drive mutation.
-7. No in-flight Machine 1 job is retargeted mid-run. Routing changes occur only at a safe durable checkpoint boundary.
-8. Before any worker/date is assigned to this runner, Dispatch Registry ownership is checked and claimed exactly as required by the Behavior Handbook.
+## Activation gates per runner
 
-## Routing policy after activation
+Each physical runner becomes ACTIVE only after all gates below pass independently:
 
-Future Machine 1 evidence-extractor workflows may use:
+1. It is registered to `DontAsk3010/a1-clean-orchestration` under its own separate runner installation/work directory.
+2. It has labels `self-hosted`, `windows`, `x64`, `a1-clean-machine1` and does **not** have `a1-clean-parity`.
+3. It runs interactively under the established Windows user environment using `run.cmd`; it is not required to run as a Windows service.
+4. Python 3.11 is available to that runner process.
+5. The governed local RAW compute path is readable.
+6. The known current authority source `Raw Des 02-31-2024.csv` matches canonical MD5 `b8d42b35c90d2dff8b18ae4e1734523b` and SHA256 `5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c` during the smoke probe.
+7. The dedicated smoke workflow completes PASS with zero semantic/Registry/Drive mutation.
+8. No in-flight Machine 1 job is retargeted mid-run. Routing changes occur only at a safe durable checkpoint boundary.
+9. Before any worker/date is assigned, Dispatch Registry ownership is checked and claimed exactly as required by the Behavior Handbook.
+
+## Routing policy
+
+Governed Machine 1 evidence-extractor workflows use the generic pool selector:
 
 ```yaml
 runs-on: [self-hosted, windows, x64, a1-clean-machine1]
 ```
 
-Lane 2 remains on its existing runner selector and serialized controller. No Lane 2 workflow is changed by this infrastructure branch.
+The workflow must not select a runner by trading-date-specific label. GitHub may assign the job to any free ACTIVE runner in the Machine 1 pool. The Dispatch Registry and durable checkpoint—not the physical runner name—remain the authority for which worker owns which date and exact resume point.
 
-The currently queued/in-flight Machine 1 work must not be rewritten merely to activate this runner. Existing work may finish on its original runner. A future ticker/date worker transitions to the dedicated runner only after a durable checkpoint/readback boundary.
+Lane 2 remains on its existing runner selector and serialized controller. No Lane 2 workflow is changed by this Machine 1 pool expansion.
 
 ## Concurrency / date ownership
 
-A new runner does not relax semantic governance. Parallelism is allowed only across distinct explicitly assigned dates/workers. The Dispatch Registry remains the source of truth for ownership. Two runners must never independently own/read the same open date.
+Additional compute capacity does not relax semantic governance. Parallelism is allowed only across distinct explicitly assigned dates/workers. The Dispatch Registry remains the source of truth for ownership. Two runners must never independently own/read the same open date.
 
-If only one dedicated Machine 1 runner exists, jobs using `a1-clean-machine1` are naturally serialized on that runner. Additional future Machine 1 runners may share the generic label only if Dispatch Registry/date-worker governance remains enforced.
+Three ACTIVE Machine 1 runners may therefore process up to three distinct governed Machine 1 assignments concurrently when three distinct valid worker/date claims exist. They must not duplicate the same date, skip chronological governance, or auto-advance a worker beyond its pinned date merely because another runner becomes free.
+
+A completed/frozen worker/date releases execution capacity for later governed assignments; the physical runner remains reusable and is never permanently associated with that completed date.
 
 ## Failure policy
 
-If runner registration, source identity, hash, environment, or smoke verification fails, state is HOLD / NOT ACTIVE. Do not fall back by changing hashes, source scope, methodology, manifest order, or semantic rules. Existing governed Machine 1 and Lane 2 paths remain unchanged.
+If registration, source identity, hash, environment, or smoke verification fails for one pool member, that member is HOLD / NOT ACTIVE. Do not fall back by changing hashes, source scope, methodology, manifest order, or semantic rules. Other already-verified Machine 1 runners and Lane 2 remain unchanged.
 
 ## Activation state
 
-Current state: `STAGED_NOT_ACTIVE`.
+Current pool target: `3` reusable Machine 1 runners.
 
-Activation requires actual self-hosted runner registration plus smoke PASS. Until then, existing Machine 1 routing remains authoritative.
+Current verified state:
+
+- `A1-WINDOWS-MACHINE1-02` — ACTIVE / smoke PASS / generic `a1-clean-machine1` route.
+- `A1-WINDOWS-MACHINE1-03` — PENDING.
+- `A1-WINDOWS-MACHINE1-04` — PENDING.
+
+The pool is partially active. Only individually registered and smoke-PASS runners may accept governed Machine 1 work.
