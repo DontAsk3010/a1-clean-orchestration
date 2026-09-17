@@ -1,14 +1,17 @@
 {
   "schema": "A1_V26_EXHAUSTIVE_OUTCOME_REQUEST_V1",
   "enabled": true,
-  "purpose": "Exhaustively map every V2.5 divergent child occurrence to its later same-day outcome evidence without rewriting the causal prefix or branch state.",
-  "input_artifact_digest": "deaacecc936174f66c9cd2138cbdcfb5c2120ad0ae8f0d4da8c4d7fed6484214",
+  "purpose": "Exhaustively map every V2.5 divergent child occurrence to its later same-day CORE outcome evidence without rewriting the causal prefix or branch state. V2.6 is explicitly not full-contract research completion; V2.7 full-contract coverage is mandatory afterward.",
+  "input_artifact_digest": "sha256:deaacecc936174f66c9cd2138cbdcfb5c2120ad0ae8f0d4da8c4d7fed6484214",
   "input_v25_divergent_prefixes": 13621,
   "input_v25_divergent_child_motifs": 203108,
   "outcome_evaluation_only": true,
   "future_outcome_rewrites_causal_state": false,
   "arbitrary_outcome_thresholds_added": false,
   "reserved_oos_untouched": true,
+  "v26_core_is_not_full_contract_completion": true,
+  "mandatory_followup": "V2.7_FULL_CONTRACT_OUTCOME_STUDY",
+  "retry_reason": "CORRECT_V22_ARTIFACT_DIGEST_PREFIX_BINDING_ONLY_NO_DATA_METHOD_CHANGE",
   "required_evidence": [
     "detection timestamp and causal third-state identity",
     "future MFE and MAE from detection close",
@@ -18,5 +21,5 @@
     "right-censor state",
     "source/block/ticker/date provenance"
   ],
-  "completion_gate": "Every V2.5 divergent child motif and every occurrence must reconcile exactly with no missing, duplicate, orphan or silently dropped branch before empirical outcome taxonomy or candidate formula promotion."
+  "completion_gate": "Every V2.5 divergent child motif and every occurrence must reconcile exactly with no missing, duplicate, orphan or silently dropped branch. This CORE gate does not replace the V2.7 full-contract evidence coverage gate."
 }
