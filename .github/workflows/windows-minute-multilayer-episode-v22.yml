@@ -1,0 +1,84 @@
+name: Windows Exhaustive 1M Multi Layer Episode Miner V2.2
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - 'minute-multilayer-episode-v22-requests/current.json'
+  workflow_dispatch:
+
+jobs:
+  mine-episodes:
+    name: Mine every governed 1M behavioral episode
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact research revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate request
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'minute-multilayer-episode-v22-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_MINUTE_MULTILAYER_EPISODE_V22_REQUEST') { throw 'Unsupported V2.2 episode request schema.' }
+          if ($req.enabled -ne $true) { throw 'V2.2 episode request not enabled.' }
+          if ($req.reading_contract.timeframe -ne '1M') { throw 'V2.2 must remain TF 1M.' }
+          if ($req.reading_contract.publication_slot_filter -ne $false) { throw '5-minute publication-slot filtering is prohibited.' }
+
+      - name: Install compile and test V2.2 episode miner
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[test]'
+          if ($LASTEXITCODE -ne 0) { throw 'V22_INSTALL_FAILED' }
+          py -3.11 -m py_compile src/a1clean/formula_research/haka_haki_reconstruction.py src/a1clean/formula_research/minute_behavior_census_v21.py src/a1clean/formula_research/minute_multilayer_episode_miner_v22.py
+          if ($LASTEXITCODE -ne 0) { throw 'V22_COMPILE_FAILED' }
+          py -3.11 -m pytest -q tests/test_haka_haki_reconstruction.py tests/test_haka_haki_behavior_lane.py tests/test_minute_behavior_census_v21.py tests/test_minute_multilayer_episode_miner_v22.py
+          if ($LASTEXITCODE -ne 0) { throw 'V22_TEST_FAILED' }
+
+      - name: Run exhaustive governed TF1M episode mining
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & py -3.11 -m a1clean.formula_research.minute_multilayer_episode_miner_v22 `
+            --output 'minute-multilayer-episode-v22-result.json' `
+            --ticker-day-output 'minute-multilayer-episode-v22-ticker-days.jsonl.gz' `
+            --episode-output 'minute-multilayer-episode-v22-runs.jsonl.gz'
+          if ($LASTEXITCODE -ne 0) { throw "V22_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Assert V2.2 episode guardrails and accounting
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $obj = Get-Content -LiteralPath 'minute-multilayer-episode-v22-result.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($obj.schema -ne 'A1_MINUTE_MULTILAYER_EPISODE_MINER_V22') { throw 'V22_RESULT_SCHEMA_MISMATCH' }
+          if ($obj.scope.timeframe -ne '1M') { throw 'V22_TIMEFRAME_MISMATCH' }
+          if ($obj.scope.every_ticker_day_processed -ne $true) { throw 'V22_TICKER_DAY_SCOPE_INCOMPLETE' }
+          if ($obj.scope.every_cached_session_bar_processed -ne $true) { throw 'V22_MINUTE_SCOPE_INCOMPLETE' }
+          if ($obj.scope.publication_slot_filter_used -ne $false) { throw 'V22_PUBLICATION_SLOT_FILTER_NOT_ALLOWED' }
+          if ($obj.scope.telegram_five_minute_is_output_only -ne $true) { throw 'V22_TELEGRAM_CADENCE_SEPARATION_MISSING' }
+          if ($obj.episode_contract.future_outcome_used_in_state -ne $false) { throw 'V22_FUTURE_LEAKAGE' }
+          if ($obj.episode_contract.arbitrary_thresholds_added -ne $false) { throw 'V22_ARBITRARY_THRESHOLD' }
+          if ($obj.episode_contract.missing_never_zero -ne $true) { throw 'V22_MISSING_ZERO_GUARD_MISSING' }
+          if ([int64]$obj.totals.ticker_days -ne 298483) { throw "V22_TICKER_DAY_COUNT_UNEXPECTED:$($obj.totals.ticker_days)" }
+          if ([int64]$obj.totals.minute_rows -ne 32350174) { throw "V22_MINUTE_ROW_COUNT_UNEXPECTED:$($obj.totals.minute_rows)" }
+          foreach ($src in $obj.source_accounting) {
+            if ($src.ticker_day_accounting_pass -ne $true) { throw "V22_SOURCE_ACCOUNTING_FAILED:$($src.source_name)" }
+          }
+          if (-not (Test-Path -LiteralPath 'minute-multilayer-episode-v22-ticker-days.jsonl.gz')) { throw 'V22_TICKER_DAY_ARTIFACT_MISSING' }
+          if (-not (Test-Path -LiteralPath 'minute-multilayer-episode-v22-runs.jsonl.gz')) { throw 'V22_EPISODE_ARTIFACT_MISSING' }
+
+      - name: Upload V2.2 episode mining artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: minute-multilayer-episode-v22-${{ github.run_id }}
+          path: |
+            minute-multilayer-episode-v22-result.json
+            minute-multilayer-episode-v22-ticker-days.jsonl.gz
+            minute-multilayer-episode-v22-runs.jsonl.gz
+          if-no-files-found: error
+          retention-days: 30
