@@ -1,6 +1,6 @@
 # A1 CLEAN — MACHINE 1 DEDICATED RUNNER V1
 
-STATUS: ACTIVE POOL EXPANSION — 1 OF 4 RUNNERS VERIFIED; RUNNER-03 SMOKE PENDING
+STATUS: ACTIVE POOL EXPANSION — 2 OF 4 RUNNERS VERIFIED
 
 ## Purpose
 Provide a reusable pool of dedicated Windows x64 self-hosted execution resources for Machine 1 AI semantic behavior-reading evidence extraction so Machine 1 does not queue behind Lane 2 compute. This is infrastructure isolation only. It does not create a new analytical engine and does not change behavior-reading methodology.
@@ -45,7 +45,7 @@ Target reusable pool size authorized by owner: 4 runners.
 Pool identities:
 
 - `A1-WINDOWS-MACHINE1-02` — VERIFIED / ACTIVE; existing runner directory `C:\actions-runner-machine1-02`.
-- `A1-WINDOWS-MACHINE1-03` — REGISTERED / ONLINE / SMOKE PENDING; runner directory `C:\actions-runner-machine1-03\actions-runner`.
+- `A1-WINDOWS-MACHINE1-03` — VERIFIED / ACTIVE; runner directory `C:\actions-runner-machine1-03\actions-runner`; smoke run `35274664320` PASS.
 - `A1-WINDOWS-MACHINE1-04` — PENDING REGISTRATION / SMOKE.
 - `A1-WINDOWS-MACHINE1-05` — PENDING REGISTRATION / SMOKE.
 
@@ -98,7 +98,7 @@ Current pool target: `4` reusable Machine 1 runners.
 Current verified state:
 
 - `A1-WINDOWS-MACHINE1-02` — ACTIVE / smoke PASS / generic `a1-clean-machine1` route; currently paused only to isolate Runner-03 smoke.
-- `A1-WINDOWS-MACHINE1-03` — REGISTERED / ONLINE / SMOKE PENDING.
+- `A1-WINDOWS-MACHINE1-03` — ACTIVE / smoke PASS / generic `a1-clean-machine1` route; smoke run `35274664320` verified Python 3.11.9, exact RAW MD5/SHA256, and all no-mutation gates.
 - `A1-WINDOWS-MACHINE1-04` — PENDING.
 - `A1-WINDOWS-MACHINE1-05` — PENDING.
 
