@@ -1,0 +1,39 @@
+{
+  "schema": "A1_MINUTE_MULTILAYER_EPISODE_V22_REQUEST",
+  "enabled": true,
+  "requested_at": "2026-09-17",
+  "purpose": "Convert the completed exhaustive TF1M census into synchronized causal multi-layer behavior episodes without downsampling or 5-minute analytical filtering.",
+  "reading_contract": {
+    "timeframe": "1M",
+    "every_ticker_day": true,
+    "every_cached_session_bar": true,
+    "publication_slot_filter": false,
+    "telegram_five_minute_is_output_cadence_only": true,
+    "preserve_exact_source_timestamps": true,
+    "preserve_first_appearance_and_state_transition_time": true,
+    "preserve_formation_to_price_response_latency": true,
+    "preserve_activity_acceleration_deceleration": true,
+    "preserve_flow_dominance_changes": true,
+    "preserve_price_reversal_and_fresh_high_low": true,
+    "read_price_and_formation_together": true,
+    "source_bound_haka_haki_only": true,
+    "missing_never_zero": true,
+    "future_outcome_defines_current_state": false,
+    "arbitrary_thresholds_allowed": false,
+    "reserved_oos_march_2025": "UNTOUCHED"
+  },
+  "census_baseline": {
+    "run_id": 35155454180,
+    "ticker_days": 298483,
+    "minute_rows": 32350174,
+    "temporal_relation_runs": 20912906,
+    "zero_session_ticker_days": 13074,
+    "global_minute_evidence_digest_sha256": "c36f83e63efda90d6b0b8423b957465dc411bc7ee1d9101fbb8101937891533a"
+  },
+  "current_proven_haka_haki_scope": {
+    "source_name": "Raw Des 02-31-2024.csv",
+    "source_drive_id": "1wvBmhpQIV-evJJOPN_g8nks3KZBzmVHC",
+    "source_sha256": "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "generation_id": "BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01"
+  }
+}
