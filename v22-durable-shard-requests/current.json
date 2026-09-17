@@ -1,0 +1,38 @@
+{
+  "schema": "A1_V22_DURABLE_SHARD_REQUEST_V1",
+  "enabled": true,
+  "requested_at": "2026-09-17",
+  "purpose": "Partition the already-completed V2.2 episode artifact into durable reusable shards without rereading raw/census data, then reconcile exact global coverage before motif mining.",
+  "artifact": {
+    "run_id": 35203822560,
+    "artifact_id": 10491322757,
+    "name": "minute-multilayer-episode-v22-35203822560",
+    "digest": "sha256:deaacecc936174f66c9cd2138cbdcfb5c2120ad0ae8f0d4da8c4d7fed6484214"
+  },
+  "baseline": {
+    "ticker_days": 298483,
+    "minute_rows": 32350174,
+    "zero_session_ticker_days": 13074,
+    "episode_runs": 29564130
+  },
+  "sharding": {
+    "max_ticker_days_per_shard": 5000,
+    "never_cross_source_boundary": true,
+    "durable_runner_cache": true,
+    "reuse_passed_shard_if_artifact_digest_unchanged": true,
+    "no_raw_reread": true,
+    "no_census_rerun": true
+  },
+  "reconciliation_required": {
+    "exact_ticker_day_count": true,
+    "exact_minute_row_count": true,
+    "exact_zero_session_count": true,
+    "exact_episode_run_count": true,
+    "unique_source_ticker_date_identity": true,
+    "no_duplicate_identity": true,
+    "episode_rows_partition_back_to_exact_minute_rows": true,
+    "per_shard_digest": true,
+    "global_identity_and_content_digests": true,
+    "fail_on_less_more_duplicate_or_orphan": true
+  }
+}
