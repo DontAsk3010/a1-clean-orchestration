@@ -1,0 +1,105 @@
+name: Windows V3.0 Semantic Journey Enrichment
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - 'v30-semantic-journey-enrichment-requests/current.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-v30-semantic-journey-enrichment
+  cancel-in-progress: false
+
+jobs:
+  semantic-enrichment:
+    name: Backfill manual-grade semantic journeys from durable TF1M evidence
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact research revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate owner locks compile and unit tests
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'v30-semantic-journey-enrichment-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_V30_SEMANTIC_JOURNEY_ENRICHMENT_REQUEST_V1') { throw 'V30_REQUEST_SCHEMA_MISMATCH' }
+          if ($req.enabled -ne $true) { throw 'V30_REQUEST_DISABLED' }
+          if ($req.append_only_sidecar -ne $true) { throw 'V30_APPEND_ONLY_LOCK_REQUIRED' }
+          if ($req.old_pass_layers_immutable -ne $true) { throw 'V30_OLD_PASS_IMMUTABILITY_REQUIRED' }
+          if ($req.raw_reread -ne $false) { throw 'V30_RAW_REREAD_FORBIDDEN' }
+          if ($req.manual_labels_used_as_hidden_target -ne $false) { throw 'V30_MANUAL_LABEL_LEAKAGE' }
+          if ($req.future_resolution_rewrites_causal_state -ne $false) { throw 'V30_FUTURE_LEAKAGE' }
+          if ($req.reserved_oos_untouched -ne $true) { throw 'V30_OOS_LOCK_REQUIRED' }
+          $contract = Get-Content -LiteralPath 'config/formula_research/semantic_enrichment_backfill_contract_v1.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($contract.schema -ne 'A1_SEMANTIC_ENRICHMENT_BACKFILL_CONTRACT_V1') { throw 'V30_CONTRACT_SCHEMA_MISMATCH' }
+          if ($contract.old_artifacts_immutable -ne $true -or $contract.destructive_rewrite_forbidden -ne $true) { throw 'V30_CONTRACT_IMMUTABILITY_FAIL' }
+          if ($contract.raw_reextraction_default -ne $false) { throw 'V30_CONTRACT_RAW_POLICY_FAIL' }
+          py -3.11 -m py_compile src/a1clean/formula_research/v30_semantic_journey_enrichment.py
+          if ($LASTEXITCODE -ne 0) { throw 'V30_COMPILE_FAILED' }
+          py -3.11 -m pytest -q tests/test_v30_semantic_journey_enrichment.py
+          if ($LASTEXITCODE -ne 0) { throw 'V30_UNIT_TEST_FAILED' }
+
+      - name: Require exact durable cache corpus and source contracts
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $digest = 'deaacecc936174f66c9cd2138cbdcfb5c2120ad0ae8f0d4da8c4d7fed6484214'
+          py -3.11 -c "from a1clean.formula_research.durable_cache_catalog import governed_sources_from_durable_cache; ss=governed_sources_from_durable_cache(); td=sum(int(x['ticker_days']) for x in ss); rows=sum(int(x['rows']) for x in ss); assert td==298483,(td,rows); assert rows==32350174,(td,rows); print('V30_DURABLE_CACHE_PASS',len(ss),td,rows)"
+          if ($LASTEXITCODE -ne 0) { throw 'V30_DURABLE_CACHE_CONTRACT_FAIL' }
+          py -3.11 -c "from a1clean.formula_research.durable_cache_catalog import governed_sources_from_durable_cache; from a1clean.formula_research.haka_haki_reconstruction import DEC_2024_CONTRACT,_assert_contract; ss=governed_sources_from_durable_cache(); m=next(x for x in ss if x['source_name']==DEC_2024_CONTRACT['source_name']); _assert_contract(m); print('V30_HAKA_HAKI_CONTRACT_PASS')"
+          if ($LASTEXITCODE -ne 0) { throw 'V30_HAKA_HAKI_CONTRACT_FAIL' }
+          py -3.11 -c "from a1clean.formula_research import telegram_mg_sequence_v11 as v11; assert v11.RESERVED_OOS not in (v11.DISCOVERY+v11.VALIDATION_A+v11.VALIDATION_B); print('V30_RESERVED_OOS_EXCLUDED',v11.RESERVED_OOS)"
+          if ($LASTEXITCODE -ne 0) { throw 'V30_OOS_SCOPE_FAIL' }
+          $out = Join-Path $env:USERPROFILE ".a1clean\v30_semantic_journey_enrichment\$digest"
+          "V30_OUTPUT_ROOT=$out" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "V30_ARTIFACT_DIGEST=sha256:$digest" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build or reuse full corpus semantic journey sidecars
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & py -3.11 -m a1clean.formula_research.v30_semantic_journey_enrichment `
+            --output-root $env:V30_OUTPUT_ROOT `
+            --artifact-digest $env:V30_ARTIFACT_DIGEST
+          if ($LASTEXITCODE -ne 0) { throw "V30_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Assert exact enrichment reconciliation and frozen baseline
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $m = Get-Content -LiteralPath (Join-Path $env:V30_OUTPUT_ROOT 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($m.schema -ne 'A1_V30_SEMANTIC_JOURNEY_ENRICHMENT_V1') { throw 'V30_MANIFEST_SCHEMA_MISMATCH' }
+          if ($m.status -ne 'PASS' -or $m.reconciliation.pass -ne $true) { throw 'V30_RECONCILIATION_FAIL' }
+          if ([int64]$m.reconciliation.ticker_days -ne 298483) { throw 'V30_TICKER_DAY_MISMATCH' }
+          if ([int64]$m.reconciliation.minute_rows -ne 32350174) { throw 'V30_MINUTE_ROW_MISMATCH' }
+          if ([int64]$m.reconciliation.zero_session_ticker_days -ne 13074) { throw 'V30_ZERO_SESSION_MISMATCH' }
+          if ($m.contract.append_only_sidecar -ne $true) { throw 'V30_APPEND_ONLY_MANIFEST_FAIL' }
+          if ($m.contract.v21_v22_v23_v24_v25_not_rewritten -ne $true) { throw 'V30_BASELINE_IMMUTABILITY_FAIL' }
+          if ($m.contract.reads_durable_tf1m_cache_not_raw -ne $true) { throw 'V30_RAW_POLICY_MANIFEST_FAIL' }
+          if ($m.contract.manual_reference_not_used_as_hidden_label -ne $true) { throw 'V30_MANUAL_SEEDING_FAIL' }
+          if ($m.contract.causal_view_separate_from_hindsight -ne $true) { throw 'V30_CAUSAL_HINDSIGHT_FAIL' }
+          if ($m.contract.reserved_oos_untouched -ne $true) { throw 'V30_OOS_MANIFEST_FAIL' }
+          New-Item -ItemType Directory -Force -Path 'v30-semantic-journey-summary\checkpoints' | Out-Null
+          Copy-Item -LiteralPath (Join-Path $env:V30_OUTPUT_ROOT 'manifest.json') -Destination 'v30-semantic-journey-summary\manifest.json' -Force
+          Copy-Item -LiteralPath (Join-Path $env:V30_OUTPUT_ROOT 'compact-sample.jsonl.gz') -Destination 'v30-semantic-journey-summary\compact-sample.jsonl.gz' -Force
+          Get-ChildItem -LiteralPath $env:V30_OUTPUT_ROOT -Recurse -Filter 'checkpoint.json' | ForEach-Object {
+            $parent = Split-Path $_.DirectoryName -Leaf
+            Copy-Item -LiteralPath $_.FullName -Destination (Join-Path 'v30-semantic-journey-summary\checkpoints' ($parent + '.json')) -Force
+          }
+
+      - name: Upload compact V3.0 semantic enrichment summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: v30-semantic-journey-summary-${{ github.run_id }}
+          path: v30-semantic-journey-summary
+          if-no-files-found: error
+          retention-days: 30
