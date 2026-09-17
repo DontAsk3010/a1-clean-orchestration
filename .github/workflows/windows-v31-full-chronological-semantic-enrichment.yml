@@ -20,6 +20,8 @@ jobs:
     name: Build 18-source chronological semantic atlas including March 2025
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 720
+    env:
+      A1_RAW_DIR: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
     steps:
       - name: Checkout exact V3.1 revision
         uses: actions/checkout@v4
