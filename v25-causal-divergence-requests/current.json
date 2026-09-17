@@ -1,0 +1,22 @@
+{
+  "schema": "A1_V25_CAUSAL_DIVERGENCE_REQUEST_V1",
+  "enabled": true,
+  "research_status": "RESEARCH_ONLY_NOT_CANONICAL",
+  "purpose": "Turn V2.4 divergent two-state prefixes into an exact causal near-twin divergence atlas and candidate state-machine fragments without rereading RAW, census, V2.2 episodes, or V2.3 shards.",
+  "input_v24": {
+    "run_id": 35221099286,
+    "artifact_id": 10508468192,
+    "artifact_name": "v24-global-motif-summary-35221099286",
+    "artifact_digest": "sha256:79179d931e567974bec3930ed56d11c953e39e751febcd61ad0e5237eb97fe00",
+    "divergent_two_state_prefixes": 13621,
+    "unique_branch3_motifs": 208882
+  },
+  "read_only_v24_global_registry": true,
+  "future_outcome_used_to_define_divergence": false,
+  "arbitrary_numeric_thresholds_added": false,
+  "detection_moment": "THIRD_STATE_START",
+  "preserve_exact_token_semantics": true,
+  "preserve_exact_clock_evidence": true,
+  "preserve_cross_source_support": true,
+  "reserved_oos_untouched": true
+}
