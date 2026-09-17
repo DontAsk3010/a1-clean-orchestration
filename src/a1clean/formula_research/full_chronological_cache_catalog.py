@@ -163,13 +163,9 @@ def _legacy_cache_source(source: str, raw_item: Mapping[str, Any]) -> dict[str, 
         or int(meta.get("cached_ticker_days", -1)) != int(meta.get("ticker_days", -2))
         or int(meta.get("ticker_days", -1)) < 0
         or int(meta.get("rows", -1)) < 0
+        or int(meta.get("cached_session_rows", -1)) < 0
     ):
         raise RuntimeError(f"V31_LEGACY_CACHE_INVALID:{source}")
-    if meta.get("cached_session_rows") is not None and int(meta["cached_session_rows"]) != int(meta["rows"]):
-        raise RuntimeError(
-            f"V31_LEGACY_CACHE_ROW_SEMANTICS_DRIFT:{source}:"
-            f"{meta['cached_session_rows']}!={meta['rows']}"
-        )
     baseline_id = str(meta.get("source_drive_id") or "")
     current_id = str(raw_item.get("id") or "")
     if not baseline_id or baseline_id != current_id:
@@ -182,7 +178,8 @@ def _legacy_cache_source(source: str, raw_item: Mapping[str, Any]) -> dict[str, 
         "first_date": first_date,
         "last_date": last_date,
         "ticker_days": int(meta["ticker_days"]),
-        "rows": int(meta["rows"]),
+        "rows": int(meta["cached_session_rows"]),
+        "source_rows": int(meta["rows"]),
         "source_drive_id": baseline_id,
         "source_sha256": meta.get("source_sha256"),
         "generation_id": meta.get("generation_id"),
@@ -387,7 +384,7 @@ def _build_march_normalized_cache(
             and int(old.get("ticker_days", -1)) == expected_td
             and int(old.get("rows", -1)) == expected_rows
             and int(old.get("cached_ticker_days", -1)) == expected_td
-            and int(old.get("cached_session_rows", -1)) == expected_rows
+            and int(old.get("cached_session_rows", -1)) >= 0
         ):
             return {**old, "v31_cache_action": "REUSED_EXACT_MARCH_NORMALIZED_CACHE"}
 
@@ -419,9 +416,6 @@ def _build_march_normalized_cache(
     if ticker_days != expected_td:
         tmp.unlink(missing_ok=True)
         raise RuntimeError(f"V31_MARCH_CACHE_TICKER_DAY_MISMATCH:{ticker_days}!={expected_td}")
-    if session_rows != expected_rows:
-        tmp.unlink(missing_ok=True)
-        raise RuntimeError(f"V31_MARCH_CACHE_SESSION_ROW_MISMATCH:{session_rows}!={expected_rows}")
     tmp.replace(target)
     meta = {
         "schema": v12r.CACHE_SCHEMA,
@@ -475,7 +469,7 @@ def _march_source(api, raw_item: Mapping[str, Any], *, ensure_cache: bool) -> tu
         or int(meta.get("ticker_days", -1)) <= 0
         or int(meta.get("rows", -1)) <= 0
         or int(meta.get("cached_ticker_days", -1)) != int(meta.get("ticker_days", -2))
-        or int(meta.get("cached_session_rows", -1)) != int(meta.get("rows", -2))
+        or int(meta.get("cached_session_rows", -1)) < 0
     ):
         raise RuntimeError("V31_MARCH_CACHE_INVALID_AFTER_BUILD")
     first_date = str(meta.get("first_date") or SOURCE_ENVELOPES[MARCH_2025_SOURCE][0])
@@ -485,7 +479,8 @@ def _march_source(api, raw_item: Mapping[str, Any], *, ensure_cache: bool) -> tu
         "first_date": first_date,
         "last_date": last_date,
         "ticker_days": int(meta["ticker_days"]),
-        "rows": int(meta["rows"]),
+        "rows": int(meta["cached_session_rows"]),
+        "source_rows": int(meta["rows"]),
         "source_drive_id": str(meta["source_drive_id"]),
         "source_sha256": meta.get("source_sha256"),
         "generation_id": meta.get("generation_id"),
@@ -571,6 +566,7 @@ def prepare_full_chronological_sources(*, ensure_cache: bool = True) -> dict[str
         "march_source": MARCH_2025_SOURCE,
         "march_ticker_days": int(march["ticker_days"]),
         "march_minute_rows": int(march["rows"]),
+        "march_source_rows": int(march["source_rows"]),
         "full_ticker_days": full_ticker_days,
         "full_minute_rows": full_rows,
         "chronology": chronology,
@@ -604,6 +600,7 @@ def main() -> int:
                 "legacy_ticker_days": result["legacy_ticker_days"],
                 "march_ticker_days": result["march_ticker_days"],
                 "march_minute_rows": result["march_minute_rows"],
+                "march_source_rows": result["march_source_rows"],
                 "full_ticker_days": result["full_ticker_days"],
                 "full_minute_rows": result["full_minute_rows"],
                 "corpus_digest_sha256": result["corpus_digest_sha256"],
