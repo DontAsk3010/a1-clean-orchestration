@@ -1,0 +1,83 @@
+name: Windows V2.5 Causal Divergence Atlas
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - 'v25-causal-divergence-requests/current.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-v25-causal-divergence
+  cancel-in-progress: false
+
+jobs:
+  divergence-atlas:
+    name: Build causal near-twin divergence atlas from V2.4 registry
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact research revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate request and compile V2.5
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'v25-causal-divergence-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_V25_CAUSAL_DIVERGENCE_REQUEST_V1') { throw 'V25_REQUEST_SCHEMA_MISMATCH' }
+          if ($req.enabled -ne $true) { throw 'V25_REQUEST_DISABLED' }
+          if ($req.read_only_v24_global_registry -ne $true) { throw 'V25_REQUIRES_V24_ONLY' }
+          if ($req.future_outcome_used_to_define_divergence -ne $false) { throw 'V25_FUTURE_LEAKAGE' }
+          if ($req.arbitrary_numeric_thresholds_added -ne $false) { throw 'V25_ARBITRARY_THRESHOLD' }
+          py -3.11 -m py_compile src/a1clean/formula_research/v25_causal_divergence_atlas.py
+          if ($LASTEXITCODE -ne 0) { throw 'V25_COMPILE_FAILED' }
+
+      - name: Require completed V2.4 registry
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $digest = 'deaacecc936174f66c9cd2138cbdcfb5c2120ad0ae8f0d4da8c4d7fed6484214'
+          $v24 = Join-Path $env:USERPROFILE ".a1clean\v24_global_motif_merge\$digest"
+          $mPath = Join-Path $v24 'manifest.json'
+          $dbPath = Join-Path $v24 'global-motif-registry.sqlite3'
+          if (-not (Test-Path -LiteralPath $mPath) -or -not (Test-Path -LiteralPath $dbPath)) { throw 'V25_V24_INPUT_MISSING' }
+          $m = Get-Content -LiteralPath $mPath -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($m.status -ne 'PASS' -or $m.reconciliation.pass -ne $true) { throw 'V25_V24_NOT_PASS' }
+          if ([int64]$m.registry.divergent_two_state_prefixes -ne 13621) { throw 'V25_PREFIX_BASELINE_MISMATCH' }
+          "V25_V24_ROOT=$v24" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $out = Join-Path $env:USERPROFILE ".a1clean\v25_causal_divergence_atlas\$digest"
+          "V25_OUTPUT_ROOT=$out" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build exact causal divergence atlas
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & py -3.11 -m a1clean.formula_research.v25_causal_divergence_atlas `
+            --v24-root $env:V25_V24_ROOT `
+            --output-root $env:V25_OUTPUT_ROOT
+          if ($LASTEXITCODE -ne 0) { throw "V25_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Assert V2.5 reconciliation
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $m = Get-Content -LiteralPath (Join-Path $env:V25_OUTPUT_ROOT 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($m.status -ne 'PASS' -or $m.reconciliation.pass -ne $true) { throw 'V25_RECONCILIATION_FAIL' }
+          if ([int64]$m.reconciliation.divergent_prefixes -ne 13621) { throw 'V25_PREFIX_COUNT_MISMATCH' }
+          New-Item -ItemType Directory -Force -Path 'v25-causal-divergence-summary' | Out-Null
+          Copy-Item -LiteralPath (Join-Path $env:V25_OUTPUT_ROOT 'manifest.json') -Destination 'v25-causal-divergence-summary\manifest.json' -Force
+
+      - name: Upload compact V2.5 manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: v25-causal-divergence-summary-${{ github.run_id }}
+          path: v25-causal-divergence-summary
+          if-no-files-found: error
+          retention-days: 30
