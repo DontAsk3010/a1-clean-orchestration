@@ -8,17 +8,18 @@ on:
       - .github/workflows/machine1-asdm-20241204-evidence.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   extract-asdm:
-    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
     timeout-minutes: 30
     env:
       RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Extract exact governed ASDM packet
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
@@ -37,7 +38,8 @@ jobs:
           with raw.open('rb') as f:
               for chunk in iter(lambda:f.read(8*1024*1024),b''): md5.update(chunk); sha256.update(chunk)
           got_md5,got_sha256=md5.hexdigest(),sha256.hexdigest()
-          if got_md5!=expected_md5 or got_sha256!=expected_sha256: raise SystemExit(f'RAW_HASH_MISMATCH md5={got_md5} sha256={got_sha256}')
+          if got_md5!=expected_md5 or got_sha256!=expected_sha256:
+              raise SystemExit(f'RAW_HASH_MISMATCH md5={got_md5} sha256={got_sha256}')
           rows=[]
           with raw.open('r',encoding='utf-8-sig',newline='') as f:
               reader=csv.DictReader(f); header_fields=list(reader.fieldnames or [])
@@ -53,22 +55,71 @@ jobs:
           ft=dts[0].split('T',1)[-1][:8] if 'T' in dts[0] else dts[0].split(' ')[-1][:8]
           lt=dts[-1].split('T',1)[-1][:8] if 'T' in dts[-1] else dts[-1].split(' ')[-1][:8]
           if ft!=expected_first_time or lt!=expected_last_time: raise SystemExit(f'TIME_RANGE_MISMATCH got={ft}-{lt}')
-          packet={'source_name':raw.name,'source_md5':got_md5,'source_sha256':got_sha256,'generation_id':'BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01','ticker':ticker_expected,'trading_date':trading_date,'semantic_bundle':semantic_bundle,'semantic_bundle_line_number':semantic_bundle_line,'source_row_first':source_first,'source_row_last':source_last,'physical_line_first':source_first+1,'physical_line_last':source_last+1,'data_rows':len(rows),'first_datetime':dts[0],'last_datetime':dts[-1],'header_fields':header_fields,'rows':rows}
+          packet={
+              'source_name':raw.name,'source_md5':got_md5,'source_sha256':got_sha256,
+              'generation_id':'BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01',
+              'ticker':ticker_expected,'trading_date':trading_date,
+              'semantic_bundle':semantic_bundle,'semantic_bundle_line_number':semantic_bundle_line,
+              'source_row_first':source_first,'source_row_last':source_last,
+              'physical_line_first':source_first+1,'physical_line_last':source_last+1,
+              'data_rows':len(rows),'first_datetime':dts[0],'last_datetime':dts[-1],
+              'header_fields':header_fields,'rows':rows
+          }
           out=pathlib.Path('machine1_asdm_20241204_evidence'); out.mkdir(exist_ok=True)
           pp=out/'ASDM_20241204_PACKET.json'; rp=out/'ASDM_20241204_ROWS.jsonl'
           pp.write_text(json.dumps(packet,ensure_ascii=False,indent=2),encoding='utf-8')
           with rp.open('w',encoding='utf-8',newline='\n') as w:
               for row in rows: w.write(json.dumps(row,ensure_ascii=False,separators=(',',':'))+'\n')
           ph=hashlib.sha256(pp.read_bytes()).hexdigest(); rh=hashlib.sha256(rp.read_bytes()).hexdigest()
-          proof={'ticker':ticker_expected,'trading_date':trading_date,'source_md5':got_md5,'source_sha256':got_sha256,'semantic_bundle':semantic_bundle,'semantic_bundle_line_number':semantic_bundle_line,'source_row_first':source_first,'source_row_last':source_last,'data_rows':len(rows),'first_datetime':dts[0],'last_datetime':dts[-1],'packet_sha256':ph,'rows_jsonl_sha256':rh}
+          proof={
+              'ticker':ticker_expected,'trading_date':trading_date,
+              'source_md5':got_md5,'source_sha256':got_sha256,
+              'semantic_bundle':semantic_bundle,'semantic_bundle_line_number':semantic_bundle_line,
+              'source_row_first':source_first,'source_row_last':source_last,'data_rows':len(rows),
+              'first_datetime':dts[0],'last_datetime':dts[-1],
+              'packet_sha256':ph,'rows_jsonl_sha256':rh
+          }
           (out/'EVIDENCE_PROOF.json').write_text(json.dumps(proof,ensure_ascii=False,indent=2),encoding='utf-8')
           print(f'ASDM_EVIDENCE_OK rows={len(rows)} source_rows={source_first}-{source_last} first={dts[0]} last={dts[-1]} packet_sha256={ph} rows_sha256={rh}')
           '@ | Set-Content -LiteralPath extract_asdm_20241204.py -Encoding UTF8
           py -3.11 extract_asdm_20241204.py
+
       - name: Upload governed ASDM evidence
+        id: upload
         uses: actions/upload-artifact@v4
         with:
           name: machine1-asdm-20241204-evidence
           path: machine1_asdm_20241204_evidence/
           if-no-files-found: error
           retention-days: 7
+
+      - name: Persist ephemeral artifact pointer
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $proof = Get-Content -Raw 'machine1_asdm_20241204_evidence/EVIDENCE_PROOF.json' | ConvertFrom-Json
+          New-Item -ItemType Directory -Force '.machine1_evidence' | Out-Null
+          $pointer = [ordered]@{
+            ticker = 'ASDM'
+            trading_date = '2024-12-04'
+            branch = 'machine1/evidence-asdm-20241204'
+            workflow_commit = '${{ github.sha }}'
+            github_run_id = [int64]'${{ github.run_id }}'
+            github_artifact_id = [int64]'${{ steps.upload.outputs.artifact-id }}'
+            github_artifact_url = '${{ steps.upload.outputs.artifact-url }}'
+            github_artifact_digest = '${{ steps.upload.outputs.artifact-digest }}'
+            packet_sha256 = $proof.packet_sha256
+            rows_jsonl_sha256 = $proof.rows_jsonl_sha256
+            source_sha256 = $proof.source_sha256
+            source_row_first = $proof.source_row_first
+            source_row_last = $proof.source_row_last
+            data_rows = $proof.data_rows
+            first_datetime = $proof.first_datetime
+            last_datetime = $proof.last_datetime
+          }
+          $pointer | ConvertTo-Json -Depth 4 | Set-Content -Encoding UTF8 '.machine1_evidence/ASDM_20241204_POINTER.json'
+          git config user.name 'a1-clean-machine1-bot'
+          git config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
+          git add '.machine1_evidence/ASDM_20241204_POINTER.json'
+          git commit -m 'Record ASDM governed evidence pointer [skip ci]'
+          git push origin HEAD:machine1/evidence-asdm-20241204
