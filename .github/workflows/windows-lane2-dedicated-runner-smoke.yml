@@ -1,0 +1,87 @@
+name: Windows Lane2 Dedicated Runner Smoke
+
+on:
+  push:
+    branches:
+      - infra/lane2-dedicated-runner-02
+    paths:
+      - .github/workflows/windows-lane2-dedicated-runner-smoke.yml
+      - docs/LANE2_DEDICATED_RUNNER_02.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-lane2-dedicated-runner-smoke
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Lane 2 dedicated runner / no-mutation smoke
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 10
+    env:
+      RAW_FILE: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI\Raw Des 02-31-2024.csv'
+      EXPECTED_MD5: 'b8d42b35c90d2dff8b18ae4e1734523b'
+      EXPECTED_SHA256: '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+
+    steps:
+      - name: Verify dedicated Lane 2 endpoint
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Write-Host "LANE2_DEDICATED_RUNNER_PREFLIGHT_START"
+          Write-Host "RUNNER_NAME=$env:RUNNER_NAME"
+          Write-Host "RUNNER_OS=$env:RUNNER_OS"
+          Write-Host "RUNNER_ARCH=$env:RUNNER_ARCH"
+          if ($env:RUNNER_OS -ne 'Windows') { throw 'Expected Windows runner.' }
+          if ($env:RUNNER_ARCH -ne 'X64') { throw 'Expected X64 runner.' }
+
+      - name: Verify Python 3.11
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $v = (& py -3.11 -c "import sys; print('.'.join(map(str, sys.version_info[:3])))").Trim()
+          if ($LASTEXITCODE -ne 0) { throw 'Python 3.11 unavailable through py -3.11.' }
+          Write-Host "PYTHON_3_11=$v"
+
+      - name: Verify Lane 2 credential bindings
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bindings = @(
+            @{ Name = 'A1_DRIVE_READER_CREDENTIALS'; Path = $env:A1_DRIVE_READER_CREDENTIALS },
+            @{ Name = 'A1_DRIVE_WRITER_CREDENTIALS'; Path = $env:A1_DRIVE_WRITER_CREDENTIALS }
+          )
+          foreach ($binding in $bindings) {
+            if ([string]::IsNullOrWhiteSpace($binding.Path)) {
+              throw "$($binding.Name) is not configured for this runner process."
+            }
+            if (-not (Test-Path -LiteralPath $binding.Path -PathType Leaf)) {
+              throw "$($binding.Name) credential file does not exist."
+            }
+            Write-Host "$($binding.Name)=PRESENT"
+          }
+
+      - name: Verify governed RAW identity read-only
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Test-Path -LiteralPath $env:RAW_FILE -PathType Leaf)) {
+            throw 'Governed RAW file is not readable.'
+          }
+          $md5 = (Get-FileHash -LiteralPath $env:RAW_FILE -Algorithm MD5).Hash.ToLowerInvariant()
+          $sha256 = (Get-FileHash -LiteralPath $env:RAW_FILE -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($md5 -ne $env:EXPECTED_MD5) { throw "MD5 mismatch: $md5" }
+          if ($sha256 -ne $env:EXPECTED_SHA256) { throw "SHA256 mismatch: $sha256" }
+          Write-Host "RAW_IDENTITY_PASS md5=$md5 sha256=$sha256"
+
+      - name: Safety declaration
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          Write-Host 'NO_DRIVE_WRITE=TRUE'
+          Write-Host 'NO_RAW_WRITE=TRUE'
+          Write-Host 'NO_LANE2_ANALYTICAL_EXECUTION=TRUE'
+          Write-Host 'NO_MACHINE1_EXECUTION=TRUE'
+          Write-Host 'LANE2_DEDICATED_RUNNER_PREFLIGHT_PASS'
