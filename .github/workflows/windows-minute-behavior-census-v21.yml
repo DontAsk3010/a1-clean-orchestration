@@ -44,6 +44,32 @@ jobs:
           py -3.11 -m pytest -q tests/test_haka_haki_reconstruction.py tests/test_haka_haki_behavior_lane.py tests/test_minute_behavior_census_v21.py
           if ($LASTEXITCODE -ne 0) { throw 'MINUTE_CENSUS_TEST_FAILED' }
 
+      - name: Audit durable cache physical accounting
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $code = @'
+          import json
+          from a1clean.formula_research.durable_cache_catalog import governed_sources_from_durable_cache
+          from a1clean.formula_research import telegram_mg_structure_v12_runner as v12r
+
+          rows = []
+          bad = []
+          for src in governed_sources_from_durable_cache():
+              source = str(src["source_name"])
+              physical = sum(1 for _ in v12r._iter_cached(source))
+              expected = int(src.get("ticker_days", 0))
+              rec = {"source_name": source, "catalog_ticker_days": expected, "physical_cached_packets": physical, "pass": physical == expected}
+              rows.append(rec)
+              if physical != expected:
+                  bad.append(rec)
+          print(json.dumps({"durable_cache_physical_accounting": rows}, indent=2, sort_keys=True))
+          if bad:
+              raise SystemExit("DURABLE_CACHE_PHYSICAL_ACCOUNTING_MISMATCH:" + json.dumps(bad, sort_keys=True))
+          '@
+          $code | py -3.11 -
+          if ($LASTEXITCODE -ne 0) { throw "DURABLE_CACHE_PHYSICAL_ACCOUNTING_FAILED:$LASTEXITCODE" }
+
       - name: Run exhaustive governed minute behavior census
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
