@@ -49,6 +49,42 @@
     "parent_artifact_or_digest",
     "enrichment_schema_version"
   ],
+  "join_policy": {
+    "preferred_exact_join": [
+      "source_identity_or_bound_source_digest",
+      "ticker",
+      "trading_date",
+      "exact_timestamp_or_exact_source_row_identity"
+    ],
+    "event_level_join_requires": [
+      "same source lineage",
+      "same ticker",
+      "same trading date or explicit cross_date_carry_parent",
+      "source-linked start/end or causal time range"
+    ],
+    "cross_date_carry_rule": "link as parent-child event lineage across trading dates; never coerce into same-day rows",
+    "never_join_on_ticker_and_clock_alone": true,
+    "never_overwrite_parent_record": true,
+    "unmatched_or_conflicting_record_action": "QUARANTINE_AS_UNRESOLVED_DO_NOT_MERGE"
+  },
+  "compatibility_gates_before_merge": [
+    "source identity/version/digest compatibility",
+    "ticker and trading-date identity",
+    "timestamp/session/calendar alignment",
+    "overlap OHLCV/source-row equality where both sides carry those facts",
+    "lane semantic and availability compatibility",
+    "causal known-at timing compatibility",
+    "no future-data leakage",
+    "no duplicate or orphan lineage"
+  ],
+  "merge_statuses": [
+    "EXACT_MATCH",
+    "COMPATIBLE_ENRICHMENT",
+    "PARTIAL_MATCH_NEEDS_REVIEW",
+    "SOURCE_OR_TIMING_CONFLICT",
+    "UNMATCHED",
+    "NOT_APPLICABLE"
+  ],
   "coverage_policy": {
     "manual_examples_only": false,
     "all_applicable_governed_non_oos_ticker_days": true,
@@ -63,7 +99,9 @@
     "no orphan lineage",
     "explicit OLD_BASELINE_STATE versus NEW_ENRICHED_STATE",
     "timestamps and uncertainty preserved",
-    "manual overlap concordance reported separately from non-overlap"
+    "manual overlap concordance reported separately from non-overlap",
+    "every enriched record has explicit merge status",
+    "all conflicts and unmatched records remain visible and are never silently coerced"
   ],
   "promotion_gates": [
     "manual-machine concordance on overlap",
@@ -82,5 +120,7 @@
     "V2.3_MOTIF_REGISTRY",
     "V2.4_GLOBAL_MOTIF_MERGE",
     "V2.5_CAUSAL_DIVERGENCE_ATLAS"
-  ]
+  ],
+  "downstream_versioning_rule": "If enrichment materially adds discriminative information, create a new downstream research version over the enriched layer (for example V3.x). Do not relabel or overwrite V2.x outputs and do not pretend V2.x already contained the new semantics.",
+  "baseline_comparison_required": true
 }
