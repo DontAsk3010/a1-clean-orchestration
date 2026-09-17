@@ -28,7 +28,7 @@ jobs:
           ref: ${{ github.sha }}
 
       - name: Dedicated Machine 1 compute-only preflight
-        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+        shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
           .\scripts\machine1-dedicated-runner-preflight.ps1 `
@@ -37,7 +37,7 @@ jobs:
             -ExpectedSha256 $env:EXPECTED_SHA256
 
       - name: Record no-mutation smoke result
-        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+        shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
           @"
