@@ -1,0 +1,74 @@
+name: Machine1 ARTA 2024-12-04 Governed Evidence Extract
+
+on:
+  push:
+    branches:
+      - machine1/evidence-arta-20241204
+    paths:
+      - .github/workflows/machine1-arta-20241204-evidence.yml
+
+permissions:
+  contents: read
+
+jobs:
+  extract-arta:
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI\Raw Des 02-31-2024.csv'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Extract exact governed ARTA packet
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          @'
+          import csv, hashlib, json, os, pathlib
+          raw=pathlib.Path(os.environ['RAW_FILE'])
+          ticker_expected='ARTA'; trading_date='2024-12-04'
+          source_first=94004; source_last=94004; expected_count=1
+          expected_first_time='09:55:00'; expected_last_time='09:55:00'
+          semantic_bundle='Raw Des 02-31-2024__SEMANTIC_0010.jsonl'; semantic_bundle_line=13
+          expected_md5='b8d42b35c90d2dff8b18ae4e1734523b'
+          expected_sha256='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          if not raw.is_file(): raise SystemExit(f'RAW_MISSING: {raw}')
+          md5=hashlib.md5(); sha256=hashlib.sha256()
+          with raw.open('rb') as f:
+              for chunk in iter(lambda:f.read(8*1024*1024),b''): md5.update(chunk); sha256.update(chunk)
+          got_md5,got_sha256=md5.hexdigest(),sha256.hexdigest()
+          if got_md5!=expected_md5 or got_sha256!=expected_sha256: raise SystemExit(f'RAW_HASH_MISMATCH md5={got_md5} sha256={got_sha256}')
+          rows=[]
+          with raw.open('r',encoding='utf-8-sig',newline='') as f:
+              reader=csv.DictReader(f); header_fields=list(reader.fieldnames or [])
+              for source_row,row in enumerate(reader,start=1):
+                  if source_row<source_first: continue
+                  if source_row>source_last: break
+                  rows.append({'source_row':source_row,**row})
+          if len(rows)!=expected_count: raise SystemExit(f'ROW_COUNT_MISMATCH got={len(rows)} expected={expected_count}')
+          if [r['source_row'] for r in rows]!=[source_first]: raise SystemExit('SOURCE_ROW_SEQUENCE_MISMATCH')
+          if {r.get('RAW_TICKER','') for r in rows}!={ticker_expected}: raise SystemExit('TICKER_MISMATCH')
+          dts=[r.get('RAW_DATETIME_ISO','') for r in rows]
+          if any(not dt.startswith(trading_date) for dt in dts): raise SystemExit(f'DATE_MISMATCH: {dts}')
+          ft=dts[0].split('T',1)[-1][:8] if 'T' in dts[0] else dts[0].split(' ')[-1][:8]
+          lt=dts[-1].split('T',1)[-1][:8] if 'T' in dts[-1] else dts[-1].split(' ')[-1][:8]
+          if ft!=expected_first_time or lt!=expected_last_time: raise SystemExit(f'TIME_RANGE_MISMATCH got={ft}-{lt}')
+          packet={'source_name':raw.name,'source_md5':got_md5,'source_sha256':got_sha256,'generation_id':'BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01','ticker':ticker_expected,'trading_date':trading_date,'semantic_bundle':semantic_bundle,'semantic_bundle_line_number':semantic_bundle_line,'source_row_first':source_first,'source_row_last':source_last,'physical_line_first':source_first+1,'physical_line_last':source_last+1,'data_rows':len(rows),'first_datetime':dts[0],'last_datetime':dts[-1],'header_fields':header_fields,'rows':rows}
+          out=pathlib.Path('machine1_arta_20241204_evidence'); out.mkdir(exist_ok=True)
+          pp=out/'ARTA_20241204_PACKET.json'; rp=out/'ARTA_20241204_ROWS.jsonl'
+          pp.write_text(json.dumps(packet,ensure_ascii=False,indent=2),encoding='utf-8')
+          with rp.open('w',encoding='utf-8',newline='\n') as w:
+              for row in rows: w.write(json.dumps(row,ensure_ascii=False,separators=(',',':'))+'\n')
+          ph=hashlib.sha256(pp.read_bytes()).hexdigest(); rh=hashlib.sha256(rp.read_bytes()).hexdigest()
+          proof={'ticker':ticker_expected,'trading_date':trading_date,'source_md5':got_md5,'source_sha256':got_sha256,'semantic_bundle':semantic_bundle,'semantic_bundle_line_number':semantic_bundle_line,'source_row_first':source_first,'source_row_last':source_last,'data_rows':len(rows),'first_datetime':dts[0],'last_datetime':dts[-1],'packet_sha256':ph,'rows_jsonl_sha256':rh}
+          (out/'EVIDENCE_PROOF.json').write_text(json.dumps(proof,ensure_ascii=False,indent=2),encoding='utf-8')
+          print(f'ARTA_EVIDENCE_OK rows={len(rows)} source_rows={source_first}-{source_last} first={dts[0]} last={dts[-1]} packet_sha256={ph} rows_sha256={rh}')
+          '@ | Set-Content -LiteralPath extract_arta_20241204.py -Encoding UTF8
+          py -3.11 extract_arta_20241204.py
+      - name: Upload governed ARTA evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-arta-20241204-evidence
+          path: machine1_arta_20241204_evidence/
+          if-no-files-found: error
+          retention-days: 7
