@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "ASGR",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-asgr-20241204",
+    "workflow_commit":  "20e45783d6319ca8924305f3d0d8e87f468292d0",
+    "github_run_id":  35283643012,
+    "github_artifact_id":  10523481515,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35283643012/artifacts/10523481515",
+    "github_artifact_digest":  "e044542ba321e74e102c2a61319d7d8902fe29b17c1f5a07fd5f423056d5238f",
+    "packet_sha256":  "636c9988d7c3427caf02b872ad272b6c4f00af923d470086aa3a26a3eb4b2a7e",
+    "rows_jsonl_sha256":  "c918976208242ce34204921ee5a81fb444ccb464b59b32b673933a58408f478f",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  96214,
+    "source_row_last":  96258,
+    "data_rows":  45,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:01:00"
+}
