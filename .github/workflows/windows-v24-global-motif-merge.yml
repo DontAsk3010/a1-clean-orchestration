@@ -1,0 +1,83 @@
+name: Windows V2.4 Global Motif Merge
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - 'v24-global-motif-merge-requests/current.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-v24-global-motif-merge
+  cancel-in-progress: false
+
+jobs:
+  merge-motifs:
+    name: Merge V2.3 motif shards without rereading V2.2 episodes
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout exact research revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate request and compile V2.4
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'v24-global-motif-merge-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_V24_GLOBAL_MOTIF_MERGE_REQUEST_V1') { throw 'V24_REQUEST_SCHEMA_MISMATCH' }
+          if ($req.enabled -ne $true) { throw 'V24_REQUEST_DISABLED' }
+          if ($req.read_only_v23_registry_shards -ne $true) { throw 'V24_REQUIRES_V23_REGISTRY_SHARDS' }
+          if ($req.future_outcome_used_to_define_motif -ne $false) { throw 'V24_FUTURE_LEAKAGE' }
+          py -3.11 -m py_compile src/a1clean/formula_research/v24_global_motif_merge.py
+          if ($LASTEXITCODE -ne 0) { throw 'V24_COMPILE_FAILED' }
+
+      - name: Require completed V2.3 motif manifest
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $digest = 'deaacecc936174f66c9cd2138cbdcfb5c2120ad0ae8f0d4da8c4d7fed6484214'
+          $v23 = Join-Path $env:USERPROFILE ".a1clean\v23_shard_motif_registry\$digest"
+          $mPath = Join-Path $v23 'manifest.json'
+          if (-not (Test-Path -LiteralPath $mPath)) { throw 'V24_V23_MANIFEST_MISSING' }
+          $m = Get-Content -LiteralPath $mPath -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($m.status -ne 'PASS' -or $m.reconciliation.pass -ne $true) { throw 'V24_V23_MANIFEST_NOT_PASS' }
+          if ([int64]$m.reconciliation.ticker_days -ne 298483) { throw 'V24_V23_TICKER_DAY_MISMATCH' }
+          if ([int64]$m.reconciliation.minute_rows -ne 32350174) { throw 'V24_V23_MINUTE_ROW_MISMATCH' }
+          if ([int64]$m.reconciliation.episode_runs -ne 29564130) { throw 'V24_V23_EPISODE_RUN_MISMATCH' }
+          "V24_V23_ROOT=$v23" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $out = Join-Path $env:USERPROFILE ".a1clean\v24_global_motif_merge\$digest"
+          "V24_OUTPUT_ROOT=$out" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Merge exact recurrence timing and branching registries
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & py -3.11 -m a1clean.formula_research.v24_global_motif_merge `
+            --v23-root $env:V24_V23_ROOT `
+            --output-root $env:V24_OUTPUT_ROOT
+          if ($LASTEXITCODE -ne 0) { throw "V24_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Assert global merge reconciliation
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $m = Get-Content -LiteralPath (Join-Path $env:V24_OUTPUT_ROOT 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($m.status -ne 'PASS' -or $m.reconciliation.pass -ne $true) { throw 'V24_RECONCILIATION_FAIL' }
+          if ([int64]$m.reconciliation.state_occurrences -ne 29564130) { throw 'V24_STATE_OCCURRENCE_MISMATCH' }
+          New-Item -ItemType Directory -Force -Path 'v24-global-motif-summary' | Out-Null
+          Copy-Item -LiteralPath (Join-Path $env:V24_OUTPUT_ROOT 'manifest.json') -Destination 'v24-global-motif-summary\manifest.json' -Force
+
+      - name: Upload compact V2.4 manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: v24-global-motif-summary-${{ github.run_id }}
+          path: v24-global-motif-summary
+          if-no-files-found: error
+          retention-days: 30
