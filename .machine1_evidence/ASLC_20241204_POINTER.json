@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "ASLC",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-aslc-20241204",
+    "workflow_commit":  "5eb0c4dc8d7b1f38ebf2f72d6530c24bc6c2f991",
+    "github_run_id":  35286189854,
+    "github_artifact_id":  10524251918,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35286189854/artifacts/10524251918",
+    "github_artifact_digest":  "17f322b8c10ce7d77a624219fa596d8996277c8c805071324ee9d0e0a6f9ab77",
+    "packet_sha256":  "58055248ff7319cb6a00871048b292d72ad713e6c62bcfb6b4639ca269ec8967",
+    "rows_jsonl_sha256":  "efb7ca0d1bb4d52fbcbca2da08de47e1f0334cf9a1387a9b4fc620c14e12d4a6",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  102410,
+    "source_row_last":  102646,
+    "data_rows":  237,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:09:00"
+}
