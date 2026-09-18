@@ -8,7 +8,7 @@ on:
       - .github/workflows/machine1-idxenergy-20241203-evidence.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   extract-idxenergy:
@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: machine1/evidence-bbss-20241203
 
       - name: Extract exact governed IDXENERGY packet
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
@@ -56,9 +58,9 @@ jobs:
                   if row.get('RAW_TICKER') == ticker and row.get('RAW_DATETIME_ISO','').startswith(trading_date):
                       arr.append((source_row, row))
 
+          rows = [n for n,_ in arr]
           if len(arr) != expected_count:
               raise SystemExit(f'ROW_COUNT_MISMATCH got={len(arr)} expected={expected_count}')
-          rows = [n for n,_ in arr]
           if rows[0] != expected_first or rows[-1] != expected_last:
               raise SystemExit(f'SOURCE_RANGE_MISMATCH got={rows[0]}-{rows[-1]} expected={expected_first}-{expected_last}')
           if arr[0][1]['RAW_DATETIME_ISO'] != expected_first_dt or arr[-1][1]['RAW_DATETIME_ISO'] != expected_last_dt:
@@ -66,8 +68,8 @@ jobs:
           if rows != list(range(expected_first, expected_last + 1)):
               raise SystemExit('SOURCE_ROWS_NOT_CONTIGUOUS')
 
-          out = pathlib.Path('idxenergy_20241203_evidence')
-          out.mkdir(exist_ok=True)
+          out = pathlib.Path('evidence/idxenergy_20241203')
+          out.mkdir(parents=True, exist_ok=True)
           packet = {
               'source_name': raw.name,
               'source_md5': got_md5,
@@ -106,10 +108,24 @@ jobs:
           '@ | Set-Content -LiteralPath extract_idxenergy_20241203.py -Encoding UTF8
           py -3.11 extract_idxenergy_20241203.py
 
+      - name: Commit governed evidence packet to branch
+        shell: powershell
+        run: |
+          git config user.name "a1-clean-machine1"
+          git config user.email "a1-clean-machine1@users.noreply.github.com"
+          git add evidence/idxenergy_20241203/
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Evidence already identical; no commit required."
+            exit 0
+          }
+          git commit -m "Persist governed IDXENERGY 2024-12-03 evidence"
+          git push origin HEAD:machine1/evidence-bbss-20241203
+
       - name: Upload governed IDXENERGY evidence
         uses: actions/upload-artifact@v4
         with:
           name: machine1-idxenergy-20241203-evidence
-          path: idxenergy_20241203_evidence/
+          path: evidence/idxenergy_20241203/
           if-no-files-found: error
           retention-days: 7
