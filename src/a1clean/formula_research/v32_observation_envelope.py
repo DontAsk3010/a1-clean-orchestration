@@ -23,6 +23,7 @@ from ..pattern_discovery.packet import parse_semantic_packet
 from ..source_parity import _SingleSourceDriveApi
 from . import telegram_mg_structure_v12_runner as v12r
 from .formula_replay import packet_to_formula_bars
+from .haka_haki_reconstruction import DEC_2024_CONTRACT, reconstruct_bar
 from .full_chronological_cache_catalog import (
     FULL_CHRONOLOGICAL_SOURCE_NAMES,
     _canonical_raw_items,
@@ -31,9 +32,10 @@ from .full_chronological_cache_catalog import (
     prepare_full_chronological_sources,
 )
 
-CACHE_SCHEMA = "A1_V32_FULL_OBSERVATION_ENVELOPE_CACHE_V1"
+CACHE_SCHEMA = "A1_V32_FULL_OBSERVATION_ENVELOPE_CACHE_V2"
 
 PHASE_FIELDS = (
+    "IDX_CLOCK_RULESET_CODE",
     "IDX_REGULAR_CLOCK_SESSION_CODE",
     "CLK_PREOPEN_INPUT_FLAG",
     "CLK_PREOPEN_MATCH_FLAG",
@@ -90,6 +92,13 @@ def _num_value(row: Mapping[str, str], field: str) -> float | None:
         return None
 
 
+def _text_value(row: Mapping[str, str], field: str) -> str | None:
+    raw = row.get(field)
+    if raw is None or str(raw).strip() == "":
+        return None
+    return str(raw).strip()
+
+
 def classify_phase(row: Mapping[str, str]) -> str:
     # Evidence hierarchy uses source flags, never clock inference.
     if _flag_value(row, "CLK_PREOPEN_MATCH_FLAG"):
@@ -108,10 +117,10 @@ def classify_phase(row: Mapping[str, str]) -> str:
         return "PRECLOSE_INPUT"
     if _flag_value(row, "CLK_POSTCLOSE_FLAG"):
         return "POSTCLOSE"
-    return "OTHER_SOURCE_SUPPORTED"
+    return "OTHER_SOURCE_SUPPORTED_PHASE"
 
 
-def packet_to_envelope_bars(packet) -> list[dict[str, Any]]:
+def packet_to_envelope_bars(packet, *, allow_haka_haki: bool = False) -> list[dict[str, Any]]:
     all_formula_bars, _ = packet_to_formula_bars(packet)
     missing = [field for field in PHASE_FIELDS if field not in packet.header]
     if missing:
@@ -123,7 +132,12 @@ def packet_to_envelope_bars(packet) -> list[dict[str, Any]]:
     source_row_first = int(packet.identity.source_row_first)
     for i, (raw, base) in enumerate(zip(packet.rows, all_formula_bars, strict=True)):
         phase = classify_phase(raw)
-        flags = {field: _flag_value(raw, field) for field in PHASE_FIELDS if field != "IDX_REGULAR_CLOCK_SESSION_CODE"}
+        flags = {
+            field: _flag_value(raw, field)
+            for field in PHASE_FIELDS
+            if field not in {"IDX_CLOCK_RULESET_CODE", "IDX_REGULAR_CLOCK_SESSION_CODE"}
+        }
+        clock_ruleset_code = _text_value(raw, "IDX_CLOCK_RULESET_CODE")
         session_code_num = _num_value(raw, "IDX_REGULAR_CLOCK_SESSION_CODE")
         session_code = int(session_code_num) if session_code_num is not None and session_code_num.is_integer() else session_code_num
         regular = bool(base.get("session_eligible"))
@@ -132,15 +146,29 @@ def packet_to_envelope_bars(packet) -> list[dict[str, Any]]:
                 f"V32_REGULAR_PHASE_CONTRACT_MISMATCH:{packet.identity.ticker}:"
                 f"{packet.identity.trading_date}:{base.get('timestamp')}:{phase}:{regular}"
             )
+        if allow_haka_haki:
+            hh = reconstruct_bar(base)
+            haka = hh.get("haka")
+            haki = hh.get("haki")
+            haka_haki_status = str(hh.get("status") or "UNKNOWN")
+        else:
+            haka = None
+            haki = None
+            haka_haki_status = "SEMANTICS_UNPROVEN_FOR_SOURCE"
         out.append(
             {
                 **dict(base),
                 "source_row": source_row_first + i,
                 "source_phase": phase,
+                "observation_role": phase,
                 "regular_behavior_eligible": regular,
                 "nonregular_context_observation": not regular,
+                "idx_clock_ruleset_code": clock_ruleset_code,
                 "idx_regular_clock_session_code": session_code,
                 "phase_flags": flags,
+                "haka": haka,
+                "haki": haki,
+                "haka_haki_status": haka_haki_status,
             }
         )
     return out
@@ -284,7 +312,10 @@ def build_source_cache(
     with gzip.open(tmp, "wt", encoding="utf-8", newline="\n") as fh:
         for row in sem:
             packet = _load_packet_from_local(root, row, bundle_cache)
-            bars = packet_to_envelope_bars(packet)
+            bars = packet_to_envelope_bars(
+                packet,
+                allow_haka_haki=source == str(DEC_2024_CONTRACT["source_name"]),
+            )
             regular = sum(1 for x in bars if x["regular_behavior_eligible"])
             source_rows += len(bars)
             regular_rows += regular
