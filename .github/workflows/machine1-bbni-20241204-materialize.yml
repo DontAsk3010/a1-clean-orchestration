@@ -1,0 +1,51 @@
+name: Machine1 BBNI 2024-12-04 Materialize Existing Evidence
+
+on:
+  push:
+    branches:
+      - machine1/evidence-bbni-20241204
+    paths:
+      - .github/workflows/machine1-bbni-20241204-materialize.yml
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  materialize-bbni:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download existing governed BBNI artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: machine1-bbni-20241204-evidence
+          path: downloaded_bbni
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: 35348041563
+
+      - name: Verify and persist exact rows from existing artifact
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $rows = 'downloaded_bbni/BBNI_20241204_ROWS.jsonl'
+          $proof = 'downloaded_bbni/EVIDENCE_PROOF.json'
+          if (!(Test-Path $rows)) { throw "ROWS_MISSING: $rows" }
+          if (!(Test-Path $proof)) { throw "PROOF_MISSING: $proof" }
+          $p = Get-Content -Raw $proof | ConvertFrom-Json
+          $got = (Get-FileHash -Algorithm SHA256 $rows).Hash.ToLower()
+          if ($got -ne '2a78b5d19f4c6344b7ac109451610ec56f9b095d24ee0f739568c05dd2dfa5a4') {
+            throw "ROWS_SHA_MISMATCH got=$got"
+          }
+          if ([int]$p.data_rows -ne 334) { throw "ROW_COUNT_PROOF_MISMATCH" }
+          New-Item -ItemType Directory -Force '.machine1_evidence' | Out-Null
+          Copy-Item $rows '.machine1_evidence/BBNI_20241204_ROWS.jsonl' -Force
+          Copy-Item $proof '.machine1_evidence/BBNI_20241204_EVIDENCE_PROOF.json' -Force
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_evidence/BBNI_20241204_ROWS.jsonl' '.machine1_evidence/BBNI_20241204_EVIDENCE_PROOF.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Materialize BBNI governed evidence rows [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-bbni-20241204
