@@ -1,0 +1,15 @@
+{
+  "ticker": "BDMN",
+  "trading_date": "2024-12-04",
+  "source_md5": "b8d42b35c90d2dff8b18ae4e1734523b",
+  "source_sha256": "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+  "semantic_bundle": "Raw Des 02-31-2024__SEMANTIC_0010.jsonl",
+  "semantic_bundle_line_number": 65,
+  "source_row_first": 196863,
+  "source_row_last": 196985,
+  "data_rows": 123,
+  "first_datetime": "2024-12-04 09:00:00",
+  "last_datetime": "2024-12-04 16:01:00",
+  "packet_sha256": "ec59c89e853aa4b1ffc45f775df3d19be895478a47b931d70d30837b2d5b7698",
+  "rows_jsonl_sha256": "95bb4c52d92ca6514eef739e0fcc8c41a792f6061bbfd5f7c00236e21d8919d9"
+}
