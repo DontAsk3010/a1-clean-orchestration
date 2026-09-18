@@ -23,7 +23,7 @@ from .v32_observation_envelope import (
     iter_envelope_cached,
 )
 
-SCHEMA = "A1_V32_FULL_OBSERVATION_SEMANTIC_ENRICHMENT_V1"
+SCHEMA = "A1_V32_FULL_OBSERVATION_SEMANTIC_ENRICHMENT_V2"
 STATUS = "RESEARCH_ONLY_NOT_CANONICAL"
 V31_RUN_ID = 35291174908
 V31_ARTIFACT_ID = 10533633559
@@ -44,16 +44,63 @@ def _terminal_summary(bar: Mapping[str, Any] | None) -> dict[str, Any] | None:
         return None
     return {
         "timestamp": bar.get("timestamp"),
+        "known_at": bar.get("timestamp"),
         "source_row": bar.get("source_row"),
         "source_phase": bar.get("source_phase"),
+        "observation_role": bar.get("observation_role"),
+        "idx_clock_ruleset_code": bar.get("idx_clock_ruleset_code"),
         "idx_regular_clock_session_code": bar.get("idx_regular_clock_session_code"),
+        "phase_flags": bar.get("phase_flags"),
         "open": bar.get("open"),
         "high": bar.get("high"),
         "low": bar.get("low"),
         "close": bar.get("close"),
         "volume": bar.get("volume"),
         "trade_value": bar.get("trade_value"),
-        "regular_behavior_eligible": bool(bar.get("regular_behavior_eligible")),
+        "nbss": bar.get("nbss"),
+        "flow_available": bar.get("flow_available"),
+        "mechanism_eligible": bar.get("mechanism_eligible"),
+        "session_eligible": bar.get("session_eligible"),
+        "regular_behavior_eligible": bar.get("regular_behavior_eligible"),
+        "haka": bar.get("haka"),
+        "haki": bar.get("haki"),
+        "haka_haki_status": bar.get("haka_haki_status"),
+    }
+
+
+def _closing_match_summary(bars: list[Mapping[str, Any]]) -> dict[str, Any] | None:
+    matches = [
+        bar
+        for bar in bars
+        if bar.get("source_phase") == "PRECLOSE_MATCH"
+        or bool((bar.get("phase_flags") or {}).get("CLK_PRECLOSE_MATCH_FLAG"))
+    ]
+    if not matches:
+        return None
+    return {
+        "observation_count": len(matches),
+        "first": _terminal_summary(matches[0]),
+        "last": _terminal_summary(matches[-1]),
+    }
+
+
+def _journey_carry_payload(journeys: list[Mapping[str, Any]]) -> dict[str, Any]:
+    open_rows = []
+    for row in journeys:
+        resolution = dict(row.get("hindsight_resolution") or {})
+        if not bool(resolution.get("right_censored")):
+            continue
+        open_rows.append(
+            {
+                "journey_kind": row.get("journey_kind"),
+                "causal_start": row.get("causal_start"),
+                "hindsight_resolution": resolution,
+            }
+        )
+    return {
+        "status": "OPEN_RIGHT_CENSORED_PRESENT" if open_rows else "NO_OPEN_RIGHT_CENSORED_JOURNEY",
+        "open_right_censored_count": len(open_rows),
+        "journeys": open_rows,
     }
 
 
@@ -70,8 +117,11 @@ def _phase_context_record(
         "ticker": ticker,
         "date": day,
         "timestamp": bar.get("timestamp"),
+        "known_at": bar.get("timestamp"),
         "source_row": bar.get("source_row"),
         "source_phase": bar.get("source_phase"),
+        "observation_role": bar.get("observation_role"),
+        "idx_clock_ruleset_code": bar.get("idx_clock_ruleset_code"),
         "idx_regular_clock_session_code": bar.get("idx_regular_clock_session_code"),
         "phase_flags": bar.get("phase_flags"),
         "open": bar.get("open"),
@@ -81,9 +131,13 @@ def _phase_context_record(
         "volume": bar.get("volume"),
         "trade_value": bar.get("trade_value"),
         "nbss": bar.get("nbss"),
-        "flow_available": bool(bar.get("flow_available")),
-        "mechanism_eligible": bool(bar.get("mechanism_eligible")),
+        "flow_available": bar.get("flow_available"),
+        "mechanism_eligible": bar.get("mechanism_eligible"),
+        "session_eligible": bar.get("session_eligible"),
         "regular_behavior_eligible": False,
+        "haka": bar.get("haka"),
+        "haki": bar.get("haki"),
+        "haka_haki_status": bar.get("haka_haki_status"),
         "role": "SOURCE_SUPPORTED_NONREGULAR_CONTEXT",
         "not_injected_into_regular_state_machine": True,
     }
@@ -97,10 +151,10 @@ def _build_day_index(
     db.execute("DROP TABLE IF EXISTS calendar")
     db.execute(
         "CREATE TABLE days("
-        "source_order INTEGER, source TEXT, ticker TEXT, day TEXT, "
-        "source_observation_count INTEGER, regular_count INTEGER, "
-        "first_timestamp TEXT, last_timestamp TEXT, terminal_close REAL, "
-        "terminal_phase TEXT, terminal_session_code TEXT, terminal_source_row INTEGER, "
+        "source_order INTEGER, source TEXT, source_drive_id TEXT, source_sha256 TEXT, generation_id TEXT, "
+        "ticker TEXT, day TEXT, source_observation_count INTEGER, regular_count INTEGER, "
+        "first_timestamp TEXT, last_timestamp TEXT, last_regular_state_json TEXT, "
+        "last_source_state_json TEXT, closing_match_state_json TEXT, "
         "PRIMARY KEY(source,ticker,day))"
     )
     all_dates: set[str] = set()
@@ -113,30 +167,36 @@ def _build_day_index(
             bars = [dict(x) for x in packet.get("bars", [])]
             if not ticker or not day:
                 raise RuntimeError(f"V32_BAD_PACKET_IDENTITY:{source}:{ticker}:{day}")
-            regular_count = sum(1 for x in bars if x.get("regular_behavior_eligible"))
+            regular = [x for x in bars if x.get("regular_behavior_eligible")]
             first = bars[0] if bars else None
             last = bars[-1] if bars else None
+            last_regular = regular[-1] if regular else None
+            last_regular_state = _terminal_summary(last_regular)
+            last_source_state = _terminal_summary(last)
+            closing_match_state = _closing_match_summary(bars)
             db.execute(
-                "INSERT INTO days VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO days VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     source_order,
                     source,
+                    str(src.get("source_drive_id") or ""),
+                    str(src.get("source_sha256") or ""),
+                    str(src.get("generation_id") or ""),
                     ticker,
                     day,
                     len(bars),
-                    regular_count,
+                    len(regular),
                     first.get("timestamp") if first else None,
                     last.get("timestamp") if last else None,
-                    last.get("close") if last else None,
-                    last.get("source_phase") if last else None,
-                    str(last.get("idx_regular_clock_session_code")) if last else None,
-                    int(last["source_row"]) if last and last.get("source_row") is not None else None,
+                    json.dumps(last_regular_state, sort_keys=True, separators=(",", ":")) if last_regular_state is not None else None,
+                    json.dumps(last_source_state, sort_keys=True, separators=(",", ":")) if last_source_state is not None else None,
+                    json.dumps(closing_match_state, sort_keys=True, separators=(",", ":")) if closing_match_state is not None else None,
                 ),
             )
             all_dates.add(day)
             ticker_days += 1
             source_rows += len(bars)
-            regular_rows += regular_count
+            regular_rows += len(regular)
     dates = sorted(all_dates)
     db.execute("CREATE TABLE calendar(day TEXT PRIMARY KEY, previous_day TEXT)")
     for i, day in enumerate(dates):
@@ -146,6 +206,66 @@ def _build_day_index(
         )
     db.commit()
     return dates, ticker_days, source_rows, regular_rows
+
+
+def _init_journey_carry(db: sqlite3.Connection) -> None:
+    db.execute("DROP TABLE IF EXISTS journey_carry")
+    db.execute(
+        "CREATE TABLE journey_carry("
+        "ticker TEXT, day TEXT, open_state_json TEXT NOT NULL, "
+        "PRIMARY KEY(ticker,day))"
+    )
+    db.commit()
+
+
+def _store_journey_carry(
+    db: sqlite3.Connection,
+    *,
+    ticker: str,
+    day: str,
+    journeys: list[Mapping[str, Any]],
+) -> None:
+    payload = _journey_carry_payload(journeys)
+    db.execute(
+        "INSERT OR REPLACE INTO journey_carry VALUES(?,?,?)",
+        (
+            ticker,
+            day,
+            json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
+        ),
+    )
+
+
+def _restore_journey_carry(db: sqlite3.Connection, source_dir: Path) -> None:
+    ticker_day_path = source_dir / "ticker-days.jsonl.gz"
+    journeys_path = source_dir / "event-journeys.jsonl.gz"
+    if not ticker_day_path.is_file() or not journeys_path.is_file():
+        raise RuntimeError(f"V32_REUSED_SOURCE_CARRY_FILES_MISSING:{source_dir}")
+    states: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    with gzip.open(ticker_day_path, "rt", encoding="utf-8") as fh:
+        for line in fh:
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            key = (str(row.get("ticker") or ""), str(row.get("date") or ""))
+            if not all(key):
+                raise RuntimeError("V32_REUSED_TICKER_DAY_IDENTITY_MISSING")
+            states.setdefault(key, [])
+    with gzip.open(journeys_path, "rt", encoding="utf-8") as fh:
+        for line in fh:
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            resolution = dict(row.get("hindsight_resolution") or {})
+            if not bool(resolution.get("right_censored")):
+                continue
+            key = (str(row.get("ticker") or ""), str(row.get("date") or ""))
+            if key not in states:
+                raise RuntimeError(f"V32_REUSED_JOURNEY_WITHOUT_TICKER_DAY:{key}")
+            states[key].append(row)
+    for (ticker, day), journeys in states.items():
+        _store_journey_carry(db, ticker=ticker, day=day, journeys=journeys)
+    db.commit()
 
 
 def _carry_for_full_observation(
@@ -159,8 +279,9 @@ def _carry_for_full_observation(
     if prev_day is None:
         return None, None
     prior = db.execute(
-        "SELECT source,source_observation_count,regular_count,first_timestamp,last_timestamp,"
-        "terminal_close,terminal_phase,terminal_session_code,terminal_source_row "
+        "SELECT source,source_drive_id,source_sha256,generation_id,"
+        "source_observation_count,regular_count,first_timestamp,last_timestamp,"
+        "last_regular_state_json,last_source_state_json,closing_match_state_json "
         "FROM days WHERE ticker=? AND day=? ORDER BY source_order DESC LIMIT 1",
         (ticker, prev_day),
     ).fetchone()
@@ -169,25 +290,58 @@ def _carry_for_full_observation(
             "status": "NO_TICKER_PACKET_ON_PREVIOUS_GOVERNED_DATE",
             "previous_governed_date": prev_day,
         }, prev_day
-    if int(prior[1]) == 0:
+    if int(prior[4]) == 0:
         return {
             "status": "PREVIOUS_GOVERNED_DATE_HAS_NO_SOURCE_OBSERVATION",
             "previous_governed_date": prev_day,
             "source": prior[0],
-            "regular_count": int(prior[2]),
+            "regular_count": int(prior[5]),
+            "provenance": {
+                "source_drive_id": prior[1],
+                "source_sha256": prior[2],
+                "generation_id": prior[3],
+            },
         }, prev_day
+
+    last_regular = json.loads(prior[8]) if prior[8] else None
+    last_source = json.loads(prior[9]) if prior[9] else None
+    closing_match = json.loads(prior[10]) if prior[10] else None
+    if last_source is None:
+        raise RuntimeError(f"V32_PRIOR_LAST_SOURCE_STATE_MISSING:{ticker}:{prev_day}")
+    journey_row = db.execute(
+        "SELECT open_state_json FROM journey_carry WHERE ticker=? AND day=?",
+        (ticker, prev_day),
+    ).fetchone()
+    if journey_row is None:
+        raise RuntimeError(f"V32_PRIOR_JOURNEY_CARRY_NOT_READY:{ticker}:{prev_day}")
+    journey_state = json.loads(journey_row[0])
+    availability = {
+        "flow_available": last_source.get("flow_available"),
+        "mechanism_eligible": last_source.get("mechanism_eligible"),
+        "session_eligible": last_source.get("session_eligible"),
+        "haka_haki_status": last_source.get("haka_haki_status"),
+    }
     return {
-        "status": "EXACT_PREVIOUS_GOVERNED_DATE_TERMINAL_SOURCE_OBSERVATION",
+        "status": "EXACT_PREVIOUS_GOVERNED_DATE_SOURCE_SUPPORTED_CARRY",
         "previous_governed_date": prev_day,
         "source": prior[0],
-        "source_observation_count": int(prior[1]),
-        "regular_count": int(prior[2]),
-        "first_timestamp": prior[3],
-        "last_timestamp": prior[4],
-        "final_close": prior[5],
-        "terminal_phase": prior[6],
-        "terminal_session_code": prior[7],
-        "terminal_source_row": prior[8],
+        "source_observation_count": int(prior[4]),
+        "regular_count": int(prior[5]),
+        "first_timestamp": prior[6],
+        "last_timestamp": prior[7],
+        "last_regular_session_state": last_regular,
+        "last_source_supported_observation_state": last_source,
+        "previous_terminal_observation_phase": last_source.get("source_phase"),
+        "closing_preclose_match_state": closing_match,
+        "prior_event_journey_open_right_censored_state": journey_state,
+        "provenance": {
+            "source_drive_id": prior[1],
+            "source_sha256": prior[2],
+            "generation_id": prior[3],
+            "terminal_source_row": last_source.get("source_row"),
+        },
+        "availability": availability,
+        "known_at_boundary": last_source.get("timestamp"),
         "carry_uses_source_envelope_not_last_regular_bar": True,
     }, prev_day
 
@@ -230,6 +384,7 @@ def run(*, output_root: Path) -> dict[str, Any]:
         raise RuntimeError("V32_INDEX_SOURCE_ROW_MISMATCH")
     if indexed_regular_rows != int(catalog["regular_rows"]):
         raise RuntimeError("V32_INDEX_REGULAR_ROW_MISMATCH")
+    _init_journey_carry(db)
 
     totals = Counter()
     summaries: list[dict[str, Any]] = []
@@ -259,6 +414,7 @@ def run(*, output_root: Path) -> dict[str, Any]:
                 "phase_context_records",
             ):
                 totals[key] += int(cp.get(key, 0))
+            _restore_journey_carry(db, source_dir)
             reused_sources += 1
             continue
 
@@ -266,20 +422,43 @@ def run(*, output_root: Path) -> dict[str, Any]:
         runs_path = source_dir / "formation-runs.jsonl.gz"
         journeys_path = source_dir / "event-journeys.jsonl.gz"
         context_path = source_dir / "phase-context.jsonl.gz"
+        full_layer_path = source_dir / "full-observation-envelope.jsonl.gz"
+        regular_layer_path = source_dir / "regular-behavior-stream.jsonl.gz"
         td_tmp = td_path.with_suffix(td_path.suffix + ".tmp")
         runs_tmp = runs_path.with_suffix(runs_path.suffix + ".tmp")
         journeys_tmp = journeys_path.with_suffix(journeys_path.suffix + ".tmp")
         context_tmp = context_path.with_suffix(context_path.suffix + ".tmp")
+        full_layer_tmp = full_layer_path.with_suffix(full_layer_path.suffix + ".tmp")
+        regular_layer_tmp = regular_layer_path.with_suffix(regular_layer_path.suffix + ".tmp")
         counts = Counter()
         allow_haka_haki = source == str(DEC_2024_CONTRACT["source_name"])
 
-        with gzip.open(td_tmp, "wt", encoding="utf-8", newline="\n") as td_fh,              gzip.open(runs_tmp, "wt", encoding="utf-8", newline="\n") as runs_fh,              gzip.open(journeys_tmp, "wt", encoding="utf-8", newline="\n") as journeys_fh,              gzip.open(context_tmp, "wt", encoding="utf-8", newline="\n") as context_fh:
+        with gzip.open(td_tmp, "wt", encoding="utf-8", newline="\n") as td_fh,              gzip.open(runs_tmp, "wt", encoding="utf-8", newline="\n") as runs_fh,              gzip.open(journeys_tmp, "wt", encoding="utf-8", newline="\n") as journeys_fh,              gzip.open(context_tmp, "wt", encoding="utf-8", newline="\n") as context_fh,              gzip.open(full_layer_tmp, "wt", encoding="utf-8", newline="\n") as full_layer_fh,              gzip.open(regular_layer_tmp, "wt", encoding="utf-8", newline="\n") as regular_layer_fh:
             for packet in iter_envelope_cached(source):
                 ticker = str(packet.get("ticker") or "")
                 day = str(packet.get("date") or "")
                 envelope = [dict(x) for x in packet.get("bars", [])]
                 regular = [x for x in envelope if x.get("regular_behavior_eligible")]
                 nonregular = [x for x in envelope if not x.get("regular_behavior_eligible")]
+                layer_identity = {"schema": SCHEMA, "source": source, "ticker": ticker, "date": day}
+                full_layer_fh.write(
+                    json.dumps(
+                        {**layer_identity, "layer": "FULL_OBSERVATION_ENVELOPE", "bars": envelope},
+                        sort_keys=True,
+                        separators=(",", ":"),
+                        ensure_ascii=False,
+                    )
+                    + "\n"
+                )
+                regular_layer_fh.write(
+                    json.dumps(
+                        {**layer_identity, "layer": "REGULAR_BEHAVIOR_STREAM", "bars": regular},
+                        sort_keys=True,
+                        separators=(",", ":"),
+                        ensure_ascii=False,
+                    )
+                    + "\n"
+                )
                 carry, prev_day = _carry_for_full_observation(db, ticker=ticker, day=day)
                 td, runs, journeys = enrich_ticker_day(
                     regular,
@@ -294,10 +473,13 @@ def run(*, output_root: Path) -> dict[str, Any]:
                 td = _rewrite_v32(td)
                 runs = [_rewrite_v32(dict(x)) for x in runs]
                 journeys = [_rewrite_v32(dict(x)) for x in journeys]
+                _store_journey_carry(db, ticker=ticker, day=day, journeys=journeys)
 
                 phases = Counter(str(x.get("source_phase")) for x in envelope)
                 first_source = _terminal_summary(envelope[0] if envelope else None)
+                last_regular = _terminal_summary(regular[-1] if regular else None)
                 last_source = _terminal_summary(envelope[-1] if envelope else None)
+                closing_match = _closing_match_summary(envelope)
                 td.update(
                     {
                         "source_observation_count": len(envelope),
@@ -305,6 +487,9 @@ def run(*, output_root: Path) -> dict[str, Any]:
                         "nonregular_context_observation_count": len(nonregular),
                         "source_first_observation": first_source,
                         "source_terminal_observation": last_source,
+                        "last_regular_session_state": last_regular,
+                        "last_source_supported_observation_state": last_source,
+                        "closing_preclose_match_state": closing_match,
                         "source_phase_counts": dict(sorted(phases.items())),
                         "regular_session_zero": len(regular) == 0,
                         "source_observation_zero": len(envelope) == 0,
@@ -348,6 +533,9 @@ def run(*, output_root: Path) -> dict[str, Any]:
         runs_tmp.replace(runs_path)
         journeys_tmp.replace(journeys_path)
         context_tmp.replace(context_path)
+        full_layer_tmp.replace(full_layer_path)
+        regular_layer_tmp.replace(regular_layer_path)
+        db.commit()
 
         if counts["ticker_days"] != int(src["ticker_days"]):
             raise RuntimeError(f"V32_SOURCE_TICKER_DAY_FAIL:{source}:{dict(counts)}")
@@ -357,6 +545,8 @@ def run(*, output_root: Path) -> dict[str, Any]:
             raise RuntimeError(f"V32_SOURCE_REGULAR_FAIL:{source}:{dict(counts)}")
         if counts["nonregular_rows"] != int(src["nonregular_rows"]):
             raise RuntimeError(f"V32_SOURCE_NONREGULAR_FAIL:{source}:{dict(counts)}")
+        if counts["source_rows"] != counts["regular_rows"] + counts["nonregular_rows"]:
+            raise RuntimeError(f"V32_SOURCE_LAYER_ACCOUNTING_FAIL:{source}:{dict(counts)}")
 
         cp = {
             "schema": SCHEMA,
@@ -371,6 +561,14 @@ def run(*, output_root: Path) -> dict[str, Any]:
             "formation_run_file": runs_path.name,
             "event_journey_file": journeys_path.name,
             "phase_context_file": context_path.name,
+            "full_observation_layer_file": full_layer_path.name,
+            "regular_behavior_stream_file": regular_layer_path.name,
+            "full_observation_rows": int(counts["source_rows"]),
+            "regular_behavior_rows": int(counts["regular_rows"]),
+            "nonregular_observation_rows": int(counts["nonregular_rows"]),
+            "excluded_rows": 0,
+            "exclusion_reasons": {},
+            "dual_layer_materialized": True,
             "regular_state_engine_preserved": True,
             "nonregular_context_not_injected_into_regular_state_machine": True,
             "terminal_carry_uses_source_envelope": True,
@@ -388,13 +586,16 @@ def run(*, output_root: Path) -> dict[str, Any]:
         raise RuntimeError(f"V32_GLOBAL_REGULAR_ROW_FAIL:{dict(totals)}")
     if totals["nonregular_rows"] != int(catalog["nonregular_rows"]):
         raise RuntimeError(f"V32_GLOBAL_NONREGULAR_ROW_FAIL:{dict(totals)}")
+    if totals["source_rows"] != totals["regular_rows"] + totals["nonregular_rows"]:
+        raise RuntimeError(f"V32_GLOBAL_LAYER_ACCOUNTING_FAIL:{dict(totals)}")
 
     # Exact AALI concordance gates for the blind spot that opened V3.2.
     aali = {}
     for day in ("2024-12-02", "2024-12-03"):
         row = db.execute(
-            "SELECT source_observation_count,regular_count,last_timestamp,terminal_close,"
-            "terminal_phase,terminal_session_code FROM days WHERE ticker='AALI' AND day=?",
+            "SELECT source_observation_count,regular_count,last_regular_state_json,"
+            "last_source_state_json,closing_match_state_json "
+            "FROM days WHERE ticker='AALI' AND day=?",
             (day,),
         ).fetchone()
         if row is None:
@@ -402,31 +603,46 @@ def run(*, output_root: Path) -> dict[str, Any]:
         aali[day] = {
             "source_observation_count": int(row[0]),
             "regular_count": int(row[1]),
-            "last_timestamp": row[2],
-            "terminal_close": row[3],
-            "terminal_phase": row[4],
-            "terminal_session_code": row[5],
+            "last_regular_session_state": json.loads(row[2]) if row[2] else None,
+            "last_source_supported_observation_state": json.loads(row[3]) if row[3] else None,
+            "closing_preclose_match_state": json.loads(row[4]) if row[4] else None,
         }
+
+    dec2_regular = aali["2024-12-02"]["last_regular_session_state"] or {}
+    dec2_source = aali["2024-12-02"]["last_source_supported_observation_state"] or {}
+    dec3_source = aali["2024-12-03"]["last_source_supported_observation_state"] or {}
     if aali["2024-12-02"]["source_observation_count"] != 104:
         raise RuntimeError("V32_AALI_DEC2_SOURCE_COUNT_FAIL")
-    if not str(aali["2024-12-02"]["last_timestamp"]).endswith("16:01:00"):
+    if aali["2024-12-02"]["regular_count"] != 102:
+        raise RuntimeError("V32_AALI_DEC2_REGULAR_COUNT_FAIL")
+    if not str(dec2_regular.get("timestamp") or "").endswith("15:49:00"):
+        raise RuntimeError("V32_AALI_DEC2_LAST_REGULAR_TIME_FAIL")
+    if float(dec2_regular.get("close") or 0) != 6175.0:
+        raise RuntimeError("V32_AALI_DEC2_LAST_REGULAR_CLOSE_FAIL")
+    if not str(dec2_source.get("timestamp") or "").endswith("16:01:00"):
         raise RuntimeError("V32_AALI_DEC2_TERMINAL_TIME_FAIL")
-    if float(aali["2024-12-02"]["terminal_close"]) != 6125.0:
+    if float(dec2_source.get("close") or 0) != 6125.0:
         raise RuntimeError("V32_AALI_DEC2_TERMINAL_CLOSE_FAIL")
-    if aali["2024-12-02"]["terminal_phase"] != "PRECLOSE_MATCH":
+    if dec2_source.get("source_phase") != "PRECLOSE_MATCH":
         raise RuntimeError("V32_AALI_DEC2_TERMINAL_PHASE_FAIL")
     if aali["2024-12-03"]["source_observation_count"] != 150:
         raise RuntimeError("V32_AALI_DEC3_SOURCE_COUNT_FAIL")
-    if not str(aali["2024-12-03"]["last_timestamp"]).endswith("16:03:00"):
+    if not str(dec3_source.get("timestamp") or "").endswith("16:03:00"):
         raise RuntimeError("V32_AALI_DEC3_TERMINAL_TIME_FAIL")
-    if float(aali["2024-12-03"]["terminal_close"]) != 6125.0:
+    if float(dec3_source.get("close") or 0) != 6125.0:
         raise RuntimeError("V32_AALI_DEC3_TERMINAL_CLOSE_FAIL")
 
     carry_dec3, _ = _carry_for_full_observation(db, ticker="AALI", day="2024-12-03")
-    if not carry_dec3 or float(carry_dec3.get("final_close") or 0) != 6125.0:
+    carry_dec2_source = dict((carry_dec3 or {}).get("last_source_supported_observation_state") or {})
+    carry_dec2_regular = dict((carry_dec3 or {}).get("last_regular_session_state") or {})
+    if float(carry_dec2_source.get("close") or 0) != 6125.0:
         raise RuntimeError("V32_AALI_DEC3_PRIOR_CARRY_FAIL")
-    if not str(carry_dec3.get("last_timestamp") or "").endswith("16:01:00"):
+    if not str(carry_dec2_source.get("timestamp") or "").endswith("16:01:00"):
         raise RuntimeError("V32_AALI_DEC3_PRIOR_CARRY_TIME_FAIL")
+    if float(carry_dec2_regular.get("close") or 0) != 6175.0:
+        raise RuntimeError("V32_AALI_DEC3_PRIOR_REGULAR_CARRY_FAIL")
+    if (carry_dec3 or {}).get("known_at_boundary") != carry_dec2_source.get("timestamp"):
+        raise RuntimeError("V32_AALI_DEC3_KNOWN_AT_BOUNDARY_FAIL")
 
     sample_path = output_root / "compact-sample.jsonl.gz"
     _write_gz_jsonl(sample_path, sample)
@@ -449,6 +665,10 @@ def run(*, output_root: Path) -> dict[str, Any]:
             "regular_state_engine_preserved": True,
             "nonregular_context_not_injected_into_regular_state_machine": True,
             "cross_date_carry_uses_terminal_source_observation": True,
+            "last_regular_and_last_source_supported_states_separated": True,
+            "closing_preclose_match_state_preserved": True,
+            "prior_open_right_censored_journey_state_preserved_in_carry": True,
+            "dual_layer_materialized_per_ticker_day": True,
             "manual_labels_not_used_as_hidden_targets": True,
             "v31_not_rewritten": True,
             "v2x_not_rewritten": True,
@@ -462,6 +682,11 @@ def run(*, output_root: Path) -> dict[str, Any]:
             "source_rows": int(totals["source_rows"]),
             "regular_rows": int(totals["regular_rows"]),
             "nonregular_rows": int(totals["nonregular_rows"]),
+            "full_observation_rows": int(totals["source_rows"]),
+            "regular_behavior_rows": int(totals["regular_rows"]),
+            "nonregular_observation_rows": int(totals["nonregular_rows"]),
+            "excluded_rows": 0,
+            "full_equals_regular_plus_nonregular": int(totals["source_rows"]) == int(totals["regular_rows"]) + int(totals["nonregular_rows"]),
             "zero_regular_ticker_days": int(totals["zero_regular_ticker_days"]),
             "zero_source_observation_ticker_days": int(totals["zero_source_observation_ticker_days"]),
             "formation_runs": int(totals["formation_runs"]),
