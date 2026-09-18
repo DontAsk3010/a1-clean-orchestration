@@ -1,8 +1,8 @@
 {
   "schema": "A1_V32_FULL_OBSERVATION_BEHAVIOR_REQUEST_V1",
-  "enabled": true,
-  "purpose": "Build complete V3.2 lineage as superset of V3.1 with full source-supported observation envelope, complete machine behavior lifecycle contract, behavior paths for all formation runs/state changes, corrected terminal carry, explicit source-phase versus legacy behavior-eligibility separation, and no hidden manual targets.",
-  "required_parent_revision": "6051a790540d4d1063f51a530c0a1d55e589c7ab",
+  "enabled": false,
+  "purpose": "HOLD: V3.2 full-corpus execution is disabled until MASTER + Behavior Handbook + owner complaint/order are mapped into an explicit evidence-parity and retrieval-coverage contract. Different reader mechanisms are allowed; different source-evidence completeness is forbidden.",
+  "required_parent_revision": "2eb915b82d36c598a79fd12cde78f38f5940313f",
   "required_source_count": 18,
   "march_2025_required": true,
   "full_source_supported_observation_envelope": true,
@@ -24,5 +24,7 @@
   "expected_ticker_days": 315637,
   "expected_regular_rows": 33733344,
   "expected_governed_dates": 347,
-  "owner_lock_date": "2026-09-18"
+  "owner_lock_date": "2026-09-18",
+  "hold_reason": "KNOWN_INCOMPLETE_SCOPE_BEFORE_FULL_CORPUS: current V3.2 preserves full observation envelope and lifecycle/path structure but does not yet prove one-to-one coverage/retrievability for the complete behavior-reading requirements and manual/owner complaint set.",
+  "owner_parity_lock": "MESIN_2_MAY_USE_MECHANISM_A_AND_MESIN_1_MECHANISM_B_BUT_BOTH_MUST_TRACE_TO_COMPLETE_SOURCE_SUPPORTED_EVIDENCE"
 }
