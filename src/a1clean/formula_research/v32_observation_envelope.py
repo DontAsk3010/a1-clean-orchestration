@@ -1,0 +1,411 @@
+from __future__ import annotations
+
+import gzip
+import hashlib
+import json
+import os
+import shutil
+from collections import Counter, defaultdict
+from pathlib import Path
+from typing import Any, Mapping
+
+from ..config import (
+    FROZEN_CURRENT_FOLDER_DRIVE_ID,
+    FROZEN_GENERATION_ID,
+    FROZEN_IMPL_VERSION,
+    FROZEN_PARITY_STAGING_FOLDER_DRIVE_ID,
+    FROZEN_RAW_FOLDER_DRIVE_ID,
+    DataPlaneConfig,
+)
+from ..frozen_v2 import run_delta
+from ..google_drive import build_drive_api
+from ..pattern_discovery.packet import parse_semantic_packet
+from ..source_parity import _SingleSourceDriveApi
+from . import telegram_mg_structure_v12_runner as v12r
+from .formula_replay import packet_to_formula_bars
+from .full_chronological_cache_catalog import (
+    FULL_CHRONOLOGICAL_SOURCE_NAMES,
+    _canonical_raw_items,
+    _download_raw_to_stage,
+    _hash_file,
+    prepare_full_chronological_sources,
+)
+
+CACHE_SCHEMA = "A1_V32_FULL_OBSERVATION_ENVELOPE_CACHE_V1"
+
+PHASE_FIELDS = (
+    "IDX_REGULAR_CLOCK_SESSION_CODE",
+    "CLK_PREOPEN_INPUT_FLAG",
+    "CLK_PREOPEN_MATCH_FLAG",
+    "CLK_REGULAR_SESSION1_FLAG",
+    "CLK_OFFICIAL_MIDDAY_BREAK_FLAG",
+    "CLK_REGULAR_SESSION2_FLAG",
+    "CLK_PRECLOSE_INPUT_FLAG",
+    "CLK_PRECLOSE_MATCH_FLAG",
+    "CLK_POSTCLOSE_FLAG",
+    "CLK_PREOPEN_NCP_NO_WITHDRAW_FLAG",
+    "CLK_PREOPEN_NCP_NO_AMEND_FLAG",
+    "CLK_PRECLOSE_NCP_NO_WITHDRAW_FLAG",
+    "CLK_PRECLOSE_NCP_NO_AMEND_FLAG",
+    "CLK_RANDOM_CLOSING_FLAG",
+    "CLK_WATCHLIST_IEP_WINDOW_FLAG",
+)
+
+
+def _slug(source: str) -> str:
+    return hashlib.sha256(source.encode("utf-8")).hexdigest()[:16]
+
+
+def _root() -> Path:
+    root = Path.home() / ".a1clean" / "v32_full_observation_cache"
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def _cache_path(source: str) -> Path:
+    return _root() / f"{_slug(source)}.jsonl.gz"
+
+
+def _meta_path(source: str) -> Path:
+    return _root() / f"{_slug(source)}.meta.json"
+
+
+def _flag_value(row: Mapping[str, str], field: str) -> bool:
+    raw = row.get(field)
+    if raw is None or str(raw).strip() == "":
+        return False
+    try:
+        return float(raw) != 0.0
+    except ValueError:
+        return str(raw).strip().upper() in {"TRUE", "T", "YES", "Y"}
+
+
+def _num_value(row: Mapping[str, str], field: str) -> float | None:
+    raw = row.get(field)
+    if raw is None or str(raw).strip() == "":
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        return None
+
+
+def classify_phase(row: Mapping[str, str]) -> str:
+    # Evidence hierarchy uses source flags, never clock inference.
+    if _flag_value(row, "CLK_PREOPEN_MATCH_FLAG"):
+        return "PREOPEN_MATCH"
+    if _flag_value(row, "CLK_PREOPEN_INPUT_FLAG"):
+        return "PREOPEN_INPUT"
+    if _flag_value(row, "CLK_REGULAR_SESSION1_FLAG"):
+        return "REGULAR_SESSION1"
+    if _flag_value(row, "CLK_OFFICIAL_MIDDAY_BREAK_FLAG"):
+        return "OFFICIAL_MIDDAY_BREAK"
+    if _flag_value(row, "CLK_REGULAR_SESSION2_FLAG"):
+        return "REGULAR_SESSION2"
+    if _flag_value(row, "CLK_PRECLOSE_MATCH_FLAG"):
+        return "PRECLOSE_MATCH"
+    if _flag_value(row, "CLK_PRECLOSE_INPUT_FLAG"):
+        return "PRECLOSE_INPUT"
+    if _flag_value(row, "CLK_POSTCLOSE_FLAG"):
+        return "POSTCLOSE"
+    return "OTHER_SOURCE_SUPPORTED"
+
+
+def packet_to_envelope_bars(packet) -> list[dict[str, Any]]:
+    all_formula_bars, _ = packet_to_formula_bars(packet)
+    missing = [field for field in PHASE_FIELDS if field not in packet.header]
+    if missing:
+        raise RuntimeError(f"V32_PHASE_FIELD_MISSING:{missing}")
+    if len(all_formula_bars) != len(packet.rows):
+        raise RuntimeError("V32_PACKET_FORMULA_LENGTH_MISMATCH")
+
+    out: list[dict[str, Any]] = []
+    source_row_first = int(packet.identity.source_row_first)
+    for i, (raw, base) in enumerate(zip(packet.rows, all_formula_bars, strict=True)):
+        phase = classify_phase(raw)
+        flags = {field: _flag_value(raw, field) for field in PHASE_FIELDS if field != "IDX_REGULAR_CLOCK_SESSION_CODE"}
+        session_code_num = _num_value(raw, "IDX_REGULAR_CLOCK_SESSION_CODE")
+        session_code = int(session_code_num) if session_code_num is not None and session_code_num.is_integer() else session_code_num
+        regular = bool(base.get("session_eligible"))
+        if regular != phase in {"REGULAR_SESSION1", "REGULAR_SESSION2"}:
+            raise RuntimeError(
+                f"V32_REGULAR_PHASE_CONTRACT_MISMATCH:{packet.identity.ticker}:"
+                f"{packet.identity.trading_date}:{base.get('timestamp')}:{phase}:{regular}"
+            )
+        out.append(
+            {
+                **dict(base),
+                "source_row": source_row_first + i,
+                "source_phase": phase,
+                "regular_behavior_eligible": regular,
+                "nonregular_context_observation": not regular,
+                "idx_regular_clock_session_code": session_code,
+                "phase_flags": flags,
+            }
+        )
+    return out
+
+
+def _exact_local_raw(api, item: Mapping[str, Any], source: str) -> Path:
+    expected_size = int(item.get("size") or -1)
+    expected_md5 = str(item.get("md5Checksum") or "").lower()
+    configured = os.environ.get("A1_RAW_DIR")
+    if configured:
+        candidate = Path(configured).expanduser().resolve() / source
+        if candidate.is_file() and candidate.stat().st_size == expected_size and expected_md5:
+            actual_md5, _ = _hash_file(candidate)
+            if actual_md5.lower() == expected_md5:
+                return candidate
+    staged, _ = _download_raw_to_stage(api, item, source)
+    return staged
+
+
+def _data_plane_root(source: str, item: Mapping[str, Any]) -> Path:
+    key = hashlib.sha256(
+        (source + "|" + str(item.get("id")) + "|" + str(item.get("md5Checksum")) + "|" + str(item.get("size"))).encode("utf-8")
+    ).hexdigest()[:24]
+    return Path.home() / ".a1clean" / "v32_full_data_plane" / key
+
+
+def _data_plane_valid(root: Path, source: str, item: Mapping[str, Any]) -> bool:
+    stem = Path(source).stem
+    data_path = root / "00_MANIFESTS" / f"{stem}__DATA_PLANE_MANIFEST.json"
+    sem_path = root / "00_MANIFESTS" / f"{stem}__SEMANTIC_BUNDLES_MANIFEST.json"
+    if not data_path.is_file() or not sem_path.is_file():
+        return False
+    try:
+        data = json.loads(data_path.read_text(encoding="utf-8"))
+        sem = json.loads(sem_path.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+    return (
+        data.get("status") == "ACCESS_READY_FOR_AI"
+        and data.get("source_name") == source
+        and str(data.get("source_drive_id") or "") == str(item.get("id") or "")
+        and isinstance(sem, list)
+        and len(sem) == int(data.get("ticker_day_objects") or -1)
+        and sum(int(x.get("data_row_count") or 0) for x in sem) == int(data.get("source_data_rows") or -1)
+    )
+
+
+def _ensure_data_plane(api, source: str, item: Mapping[str, Any]) -> Path:
+    root = _data_plane_root(source, item)
+    if _data_plane_valid(root, source, item):
+        return root
+    if root.exists():
+        shutil.rmtree(root)
+    root.mkdir(parents=True, exist_ok=True)
+    raw = _exact_local_raw(api, item, source)
+    scratch = root / "_scratch"
+    scratch.mkdir(parents=True, exist_ok=True)
+    config = DataPlaneConfig(
+        engine_root=root,
+        raw_dir=raw.parent,
+        runtime_ingest_dir=root,
+        raw_folder_drive_id=FROZEN_RAW_FOLDER_DRIVE_ID,
+        current_folder_drive_id=FROZEN_CURRENT_FOLDER_DRIVE_ID,
+        parity_staging_folder_drive_id=FROZEN_PARITY_STAGING_FOLDER_DRIVE_ID,
+        run_root=root,
+        scratch_dir=scratch,
+        generation_id=FROZEN_GENERATION_ID,
+        data_plane_impl_version=FROZEN_IMPL_VERSION,
+    )
+    run_delta(config, _SingleSourceDriveApi(api, dict(item)))
+    if not _data_plane_valid(root, source, item):
+        raise RuntimeError(f"V32_DATA_PLANE_INVALID_AFTER_BUILD:{source}")
+    return root
+
+
+def _cache_valid(source: str, expected: Mapping[str, Any], item: Mapping[str, Any]) -> bool:
+    path = _cache_path(source)
+    meta_path = _meta_path(source)
+    if not path.is_file() or not meta_path.is_file():
+        return False
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+    return (
+        meta.get("schema") == CACHE_SCHEMA
+        and meta.get("complete") is True
+        and meta.get("source_name") == source
+        and str(meta.get("source_drive_id") or "") == str(item.get("id") or "")
+        and int(meta.get("ticker_days", -1)) == int(expected.get("ticker_days", -2))
+        and int(meta.get("regular_rows", -1)) == int(expected.get("rows", -2))
+        and int(meta.get("source_rows", -1)) == int(expected.get("source_rows", -2))
+    )
+
+
+def _load_packet_from_local(root: Path, manifest_row: Mapping[str, Any], cache: dict[str, tuple[str, ...]]):
+    bundle_name = str(manifest_row.get("bundle_name") or "")
+    line_number = int(manifest_row.get("bundle_line_number") or 0)
+    if not bundle_name or line_number <= 0:
+        raise RuntimeError("V32_BAD_SEMANTIC_MANIFEST_ROW")
+    lines = cache.get(bundle_name)
+    if lines is None:
+        path = root / "02_SEMANTIC_BUNDLES" / bundle_name
+        if not path.is_file():
+            raise RuntimeError(f"V32_SEMANTIC_BUNDLE_MISSING:{bundle_name}")
+        lines = tuple(path.read_text(encoding="utf-8").splitlines())
+        cache.clear()
+        cache[bundle_name] = lines
+    idx = line_number - 1
+    if idx < 0 or idx >= len(lines):
+        raise RuntimeError(f"V32_SEMANTIC_BUNDLE_LINE_RANGE:{bundle_name}:{line_number}")
+    return parse_semantic_packet(json.loads(lines[idx]))
+
+
+def build_source_cache(
+    api,
+    *,
+    source: str,
+    expected: Mapping[str, Any],
+    item: Mapping[str, Any],
+) -> dict[str, Any]:
+    if _cache_valid(source, expected, item):
+        meta = json.loads(_meta_path(source).read_text(encoding="utf-8"))
+        return {**meta, "cache_action": "REUSED_EXACT_V32_ENVELOPE_CACHE"}
+
+    root = _ensure_data_plane(api, source, item)
+    stem = Path(source).stem
+    data_path = root / "00_MANIFESTS" / f"{stem}__DATA_PLANE_MANIFEST.json"
+    sem_path = root / "00_MANIFESTS" / f"{stem}__SEMANTIC_BUNDLES_MANIFEST.json"
+    data = json.loads(data_path.read_text(encoding="utf-8"))
+    sem = json.loads(sem_path.read_text(encoding="utf-8"))
+
+    target = _cache_path(source)
+    tmp = target.with_suffix(target.suffix + ".tmp")
+    packet_count = 0
+    source_rows = 0
+    regular_rows = 0
+    nonregular_rows = 0
+    phase_counts = Counter()
+    bundle_cache: dict[str, tuple[str, ...]] = {}
+    with gzip.open(tmp, "wt", encoding="utf-8", newline="\n") as fh:
+        for row in sem:
+            packet = _load_packet_from_local(root, row, bundle_cache)
+            bars = packet_to_envelope_bars(packet)
+            regular = sum(1 for x in bars if x["regular_behavior_eligible"])
+            source_rows += len(bars)
+            regular_rows += regular
+            nonregular_rows += len(bars) - regular
+            phase_counts.update(str(x["source_phase"]) for x in bars)
+            fh.write(
+                json.dumps(
+                    {
+                        "ticker": str(packet.identity.ticker),
+                        "date": str(packet.identity.trading_date),
+                        "bars": bars,
+                    },
+                    separators=(",", ":"),
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
+            packet_count += 1
+
+    if packet_count != int(expected["ticker_days"]):
+        tmp.unlink(missing_ok=True)
+        raise RuntimeError(f"V32_TICKER_DAY_RECONCILIATION_FAIL:{source}:{packet_count}:{expected['ticker_days']}")
+    if source_rows != int(expected["source_rows"]):
+        tmp.unlink(missing_ok=True)
+        raise RuntimeError(f"V32_SOURCE_ROW_RECONCILIATION_FAIL:{source}:{source_rows}:{expected['source_rows']}")
+    if regular_rows != int(expected["rows"]):
+        tmp.unlink(missing_ok=True)
+        raise RuntimeError(f"V32_REGULAR_ROW_RECONCILIATION_FAIL:{source}:{regular_rows}:{expected['rows']}")
+    if source_rows != int(data["source_data_rows"]):
+        tmp.unlink(missing_ok=True)
+        raise RuntimeError(f"V32_DATA_PLANE_SOURCE_ROW_RECONCILIATION_FAIL:{source}")
+    tmp.replace(target)
+
+    meta = {
+        "schema": CACHE_SCHEMA,
+        "complete": True,
+        "source_name": source,
+        "source_drive_id": str(data["source_drive_id"]),
+        "source_sha256": str(data["source_sha256"]),
+        "generation_id": str(data["generation_id"]),
+        "ticker_days": packet_count,
+        "source_rows": source_rows,
+        "regular_rows": regular_rows,
+        "nonregular_rows": nonregular_rows,
+        "phase_counts": dict(sorted(phase_counts.items())),
+        "cache_path": str(target),
+        "canonical_raw_untouched": True,
+        "v31_untouched": True,
+    }
+    _meta_path(source).write_text(json.dumps(meta, indent=2, sort_keys=True), encoding="utf-8")
+
+    # The compact full-envelope cache is the durable V3.2 input. Heavy temporary
+    # data-plane output can be rebuilt deterministically from the exact RAW if needed.
+    shutil.rmtree(root, ignore_errors=True)
+    return {**meta, "cache_action": "BUILT_FROM_CURRENT_CANONICAL_RAW_VIA_FROZEN_V2_DATA_PLANE"}
+
+
+def ensure_full_observation_caches() -> dict[str, Any]:
+    v31 = prepare_full_chronological_sources(ensure_cache=True)
+    expected_by_name = {str(x["source_name"]): x for x in v31["sources"]}
+    api = build_drive_api(read_write=False)
+    raw_items = _canonical_raw_items(api)
+
+    summaries: list[dict[str, Any]] = []
+    totals = Counter()
+    for source in FULL_CHRONOLOGICAL_SOURCE_NAMES:
+        summary = build_source_cache(
+            api,
+            source=source,
+            expected=expected_by_name[source],
+            item=raw_items[source],
+        )
+        summaries.append(summary)
+        totals["ticker_days"] += int(summary["ticker_days"])
+        totals["source_rows"] += int(summary["source_rows"])
+        totals["regular_rows"] += int(summary["regular_rows"])
+        totals["nonregular_rows"] += int(summary["nonregular_rows"])
+
+    if totals["ticker_days"] != int(v31["full_ticker_days"]):
+        raise RuntimeError(f"V32_GLOBAL_TICKER_DAY_MISMATCH:{dict(totals)}")
+    if totals["regular_rows"] != int(v31["full_minute_rows"]):
+        raise RuntimeError(f"V32_GLOBAL_REGULAR_ROW_MISMATCH:{dict(totals)}")
+    expected_source_rows = sum(int(x["source_rows"]) for x in v31["sources"])
+    if totals["source_rows"] != expected_source_rows:
+        raise RuntimeError(f"V32_GLOBAL_SOURCE_ROW_MISMATCH:{dict(totals)}:{expected_source_rows}")
+
+    digest_payload = [
+        {
+            "source_name": x["source_name"],
+            "source_drive_id": x["source_drive_id"],
+            "source_sha256": x["source_sha256"],
+            "ticker_days": x["ticker_days"],
+            "source_rows": x["source_rows"],
+            "regular_rows": x["regular_rows"],
+            "nonregular_rows": x["nonregular_rows"],
+            "phase_counts": x["phase_counts"],
+        }
+        for x in summaries
+    ]
+    digest = hashlib.sha256(
+        json.dumps(digest_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    return {
+        "schema": "A1_V32_FULL_OBSERVATION_ENVELOPE_CATALOG_V1",
+        "status": "PASS",
+        "v31_corpus_digest_sha256": v31["corpus_digest_sha256"],
+        "envelope_digest_sha256": digest,
+        "source_count": len(summaries),
+        "ticker_days": int(totals["ticker_days"]),
+        "source_rows": int(totals["source_rows"]),
+        "regular_rows": int(totals["regular_rows"]),
+        "nonregular_rows": int(totals["nonregular_rows"]),
+        "sources": summaries,
+    }
+
+
+def iter_envelope_cached(source: str):
+    path = _cache_path(source)
+    if not path.is_file():
+        raise RuntimeError(f"V32_ENVELOPE_CACHE_MISSING:{source}")
+    with gzip.open(path, "rt", encoding="utf-8") as fh:
+        for line in fh:
+            if line.strip():
+                yield json.loads(line)
