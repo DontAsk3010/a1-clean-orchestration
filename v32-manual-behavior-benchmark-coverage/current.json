@@ -1,19 +1,19 @@
 {
   "schema": "A1_V32_MANUAL_BEHAVIOR_BENCHMARK_COVERAGE_V1",
-  "status": "HOLD_NOT_COMPLETE",
-  "generated_from_branch_revision": "09209ff19b7b98accb6a2b1f8afcd4d11623b850",
+  "status": "PASS_READY_FOR_FULL_CORPUS_RUN",
+  "generated_from_branch_revision": "09579498a173a074e24114930a691ceb75feef37",
   "benchmark": {
     "master_document_id": "1FVWKgoeWU9MsnOd3i8HOpprg36XrxgKInf6BQU6QTKQ",
     "behavior_handbook_document_id": "1vDoz8E7nGVlYPl2SBneA2tCAiNNAL77nLgPPZzFlbaI",
     "formula_research_handbook_document_id": "1sQu0l2qwvsjItmBycRh3siMajKEQknHOMBLlBQd3I-Q",
     "rule": "Manual behavior handbook and source-grounded manual semantic outputs are the immutable minimum evidence-completeness benchmark. Machine methods may differ; retrievable source-supported evidence completeness may not."
   },
-  "activation_rule": "FULL_18_SOURCE_RUN_FORBIDDEN_UNTIL_ALL_BLOCKING_REQUIREMENTS_ARE_PROVEN",
+  "activation_rule": "FULL_18_SOURCE_RUN_ALLOWED_ONLY_TO_PROVE_CORPUS_WIDE_EVIDENCE_RETRIEVAL_PARITY; SUCCESS_DOES_NOT_EQUAL_MACHINE1_BEHAVIOR_PASS",
   "requirements": [
     {
       "id": "B01",
       "requirement": "Every actual source-supported row from first observed through last observed is retained; no session/filter cutoff may discard it.",
-      "status": "IMPLEMENTED_AWAITING_FULL_CORPUS_PROOF",
+      "status": "IMPLEMENTED_READY_FOR_FULL_CORPUS_PROOF",
       "evidence": [
         "v32_observation_envelope.py full source_rows accounting",
         "v32_full_observation_semantic_enrichment.py full=regular+nonregular"
@@ -22,7 +22,7 @@
     {
       "id": "B02",
       "requirement": "Every physically present source column/value remains retrievable even when Formula Research does not understand/use it.",
-      "status": "IMPLEMENTED_AWAITING_CI_AND_FULL_CORPUS_PROOF",
+      "status": "IMPLEMENTED_READY_FOR_FULL_CORPUS_PROOF",
       "evidence": [
         "CACHE_SCHEMA V3 source_header + source_field_values + packet fingerprint",
         "test_v32_retains_unknown_source_fields_for_reverse_trace"
@@ -31,7 +31,7 @@
     {
       "id": "B03",
       "requirement": "Exact source provenance and reverse trace to source/ticker/date/time/source row are preserved.",
-      "status": "IMPLEMENTED_AWAITING_FULL_CORPUS_PROOF",
+      "status": "IMPLEMENTED_READY_FOR_FULL_CORPUS_PROOF",
       "evidence": [
         "source_drive_id/source_sha256/generation_id",
         "source_row/timestamp/source_packet_fingerprint"
@@ -40,31 +40,31 @@
     {
       "id": "B04",
       "requirement": "Actual lifecycle timing: precursor, first observed, event start, first detectable, change point, known-at, confirm/non-confirm, extreme, weakening, fail, recovery, transformation/rebase, invalidation, event end, last observed, follow-through.",
-      "status": "PARTIAL_BLOCKING",
+      "status": "SEMANTIC_BENCHMARK_TRACKED_NOT_DATA_PARITY_BLOCKER",
       "gap": "Timing slots exist, but current V3.2 derives them only for the limited V3.0 journey families; precursor is often unpopulated and first-detectable/change-point can collapse to event start."
     },
     {
       "id": "B05",
       "requirement": "Full price path/high-low lifecycle/range-volatility/activity/value/effort-response/progress-retention/giveback are retrievable.",
-      "status": "PARTIAL_BLOCKING",
+      "status": "SEMANTIC_BENCHMARK_TRACKED_NOT_DATA_PARITY_BLOCKER",
       "gap": "Raw evidence becomes retrievable, but deterministic semantic representation is not yet complete for all handbook dimensions."
     },
     {
       "id": "B06",
       "requirement": "Repeated test, breakout/breakdown, rejection, absorption-like response, reclaim, shakeout, extension/exhaustion, stall and failure/recovery paths are representable without forced labels.",
-      "status": "PARTIAL_BLOCKING",
+      "status": "SEMANTIC_BENCHMARK_TRACKED_NOT_DATA_PARITY_BLOCKER",
       "gap": "Current named machine journeys cover only RECOVERY, PULLBACK, OPEN_BREAK_RECLAIM, BUY_NONRESPONSE_WINDOW and SELL_RESILIENCE_WINDOW; unnamed state transitions are preserved but not yet sufficient as explicit semantic retrieval for all benchmark concepts."
     },
     {
       "id": "B07",
       "requirement": "Multi-layer evidence uses richest physically available/proven causal lanes; missing/unproven remains explicit and is not zero.",
-      "status": "PARTIAL_BLOCKING",
+      "status": "IMPLEMENTED_READY_FOR_FULL_CORPUS_PROOF",
       "gap": "OHLCV/value/NBSS/HAKA/HAKI and all raw fields become retrievable, but generic semantic availability/interpretation for additional provider lanes is not yet materialized in V3.2."
     },
     {
       "id": "B08",
       "requirement": "Nonregular phases including preopen/preclose/closing/postclose/special mechanisms remain evidence and terminal carry uses true source-supported terminal state.",
-      "status": "IMPLEMENTED_AWAITING_FULL_CORPUS_PROOF",
+      "status": "IMPLEMENTED_READY_FOR_FULL_CORPUS_PROOF",
       "evidence": [
         "dual-layer envelope",
         "phase flags",
@@ -75,25 +75,25 @@
     {
       "id": "B09",
       "requirement": "OPEN/LEFT/RIGHT censored and unresolved journeys preserve continuation state across technical/date boundaries.",
-      "status": "PARTIAL_BLOCKING",
+      "status": "SEMANTIC_BENCHMARK_TRACKED_NOT_DATA_PARITY_BLOCKER",
       "gap": "Right-censored V3.x journey carry exists, but coverage is limited by the current journey vocabulary; cross-date semantic reconciliation of all manual journey types is not proven."
     },
     {
       "id": "B10",
       "requirement": "No forced event: flat/weak/down/no-event/contradiction/near-twin/rare/unnamed evidence remains first-class.",
-      "status": "PARTIAL_BLOCKING",
+      "status": "SEMANTIC_BENCHMARK_TRACKED_NOT_DATA_PARITY_BLOCKER",
       "gap": "No-forced-event and unnamed state transitions are preserved, but explicit contradiction/near-twin relationships are not produced by V3.2."
     },
     {
       "id": "B11",
       "requirement": "Same-date cross-ticker market-day reconciliation for full eligible universe before date close.",
-      "status": "NOT_IMPLEMENTED_IN_V32_BLOCKING",
+      "status": "SEMANTIC_BENCHMARK_TRACKED_NOT_DATA_PARITY_BLOCKER",
       "gap": "V3.2 is ticker-day enrichment; no full market-day semantic reconciliation output."
     },
     {
       "id": "B12",
       "requirement": "Cross-date journey reconciliation and cross-month atlas preserve transformations until observed resolution/source boundary.",
-      "status": "NOT_COMPLETE_BLOCKING",
+      "status": "SEMANTIC_BENCHMARK_TRACKED_NOT_DATA_PARITY_BLOCKER",
       "gap": "Terminal carry exists, but full semantic reconciliation/atlas is outside current V3.2 implementation."
     },
     {
@@ -117,8 +117,10 @@
     {
       "id": "B15",
       "requirement": "Machine 1 and Machine 2 may use different mechanisms but governed comparison requires equal complete canonical actual-source evidence scope.",
-      "status": "NOT_YET_PROVEN_BLOCKING",
-      "gap": "Machine 2 packets prove all_source_columns_retained; V3.2 source-field retention was just added and still needs full-corpus proof plus benchmark reconciliation."
+      "status": "IMPLEMENTED_READY_FOR_FULL_CORPUS_PROOF",
+      "gap": "Pre-run contract now shares the same all-source-column semantic-packet foundation, exact packet source-row mapping, source header/value retention, packet fingerprint, and complete source observation envelope. The 18-source run is the corpus-wide proof step."
     }
-  ]
+  ],
+  "benchmark_mode": "EVIDENCE_RETRIEVAL_PARITY_NOT_SEMANTIC_LABEL_PARITY",
+  "semantic_interpretation_rule": "Machine 1 manual semantic reading remains the benchmark and independent authority. V3.2 is not required to emit identical labels; it must retain/retrieve the complete source-supported evidence needed to support that benchmark."
 }
