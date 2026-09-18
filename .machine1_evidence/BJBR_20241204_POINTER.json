@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BJBR",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bjbr-20241204",
+    "workflow_commit":  "a71afb9db30d5a7bf5a0b01e9f67db81014f4c5a",
+    "github_run_id":  35399278951,
+    "github_artifact_id":  10568953141,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35399278951/artifacts/10568953141",
+    "github_artifact_digest":  "02534595bc9476c8ede42d95e7ea59a1d2d40055296b4dba21a733e54f9053fd",
+    "packet_sha256":  "ff0afd9a5b8f430cb54c7b23cd505cb7081fdb3067fde23dc74f741fe8ffff3c",
+    "rows_jsonl_sha256":  "80b363709d7b13e88823ec71cfba4a53f67ded692f99b89515efe618a4704368",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  232854,
+    "source_row_last":  233008,
+    "data_rows":  155,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:08:00"
+}
