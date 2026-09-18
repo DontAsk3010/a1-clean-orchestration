@@ -46,6 +46,7 @@ jobs:
           Copy-Item $proof '.machine1_evidence/BBNI_20241204_EVIDENCE_PROOF.json' -Force
           git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
           git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
-          git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_evidence/BBNI_20241204_ROWS.jsonl' '.machine1_evidence/BBNI_20241204_EVIDENCE_PROOF.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add -f '.machine1_evidence/BBNI_20241204_ROWS.jsonl'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_evidence/BBNI_20241204_EVIDENCE_PROOF.json'
           git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Materialize BBNI governed evidence rows [skip ci]'
           git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-bbni-20241204
