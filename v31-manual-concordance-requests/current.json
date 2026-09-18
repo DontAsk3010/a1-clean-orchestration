@@ -1,0 +1,19 @@
+{
+  "schema": "A1_V31_MANUAL_CONCORDANCE_REQUEST_V1",
+  "enabled": true,
+  "owner_lock_date": "2026-09-18",
+  "purpose": "Extract exact V3.1 machine evidence for AALI on 2024-12-02, 2024-12-03, and 2024-12-04 for read-only manual concordance audit.",
+  "v31_run_id": 35291174908,
+  "v31_artifact_id": 10533633559,
+  "v31_corpus_digest_sha256": "9c2ed57ec60c81caaa0220ce57a7392473b2cf63eb23f8c846d4e961187e8732",
+  "ticker": "AALI",
+  "dates": [
+    "2024-12-02",
+    "2024-12-03",
+    "2024-12-04"
+  ],
+  "manual_reference_read_only": true,
+  "manual_labels_used_as_target": false,
+  "engine_logic_modified": false,
+  "v31_outputs_rewritten": false
+}
