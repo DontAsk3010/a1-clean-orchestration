@@ -1,0 +1,167 @@
+{
+  "status": "PASS",
+  "source_md5": "b8d42b35c90d2dff8b18ae4e1734523b",
+  "source_sha256": "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+  "tickers": [
+    {
+      "ticker": "IDXESGL",
+      "trading_date": "2024-12-03",
+      "bundle_line_number": 51,
+      "source_row_first": 699170,
+      "source_row_last": 699504,
+      "data_rows": 335,
+      "first_datetime": "2024-12-03 09:00:00",
+      "last_datetime": "2024-12-03 16:14:00"
+    },
+    {
+      "ticker": "IDXFINANCE",
+      "trading_date": "2024-12-03",
+      "bundle_line_number": 52,
+      "source_row_first": 705281,
+      "source_row_last": 705615,
+      "data_rows": 335,
+      "first_datetime": "2024-12-03 09:00:00",
+      "last_datetime": "2024-12-03 16:14:00"
+    },
+    {
+      "ticker": "IDXG30",
+      "trading_date": "2024-12-03",
+      "bundle_line_number": 53,
+      "source_row_first": 711392,
+      "source_row_last": 711726,
+      "data_rows": 335,
+      "first_datetime": "2024-12-03 09:00:00",
+      "last_datetime": "2024-12-03 16:14:00"
+    },
+    {
+      "ticker": "IDXHEALTH",
+      "trading_date": "2024-12-03",
+      "bundle_line_number": 54,
+      "source_row_first": 717503,
+      "source_row_last": 717837,
+      "data_rows": 335,
+      "first_datetime": "2024-12-03 09:00:00",
+      "last_datetime": "2024-12-03 16:14:00"
+    },
+    {
+      "ticker": "IDXHIDIV20",
+      "trading_date": "2024-12-03",
+      "bundle_line_number": 55,
+      "source_row_first": 723612,
+      "source_row_last": 723946,
+      "data_rows": 335,
+      "first_datetime": "2024-12-03 09:00:00",
+      "last_datetime": "2024-12-03 16:14:00"
+    },
+    {
+      "ticker": "IDXINDUST",
+      "trading_date": "2024-12-03",
+      "bundle_line_number": 56,
+      "source_row_first": 729723,
+      "source_row_last": 730057,
+      "data_rows": 335,
+      "first_datetime": "2024-12-03 09:00:00",
+      "last_datetime": "2024-12-03 16:14:00"
+    },
+    {
+      "ticker": "IDXINFRA",
+      "trading_date": "2024-12-03",
+      "bundle_line_number": 57,
+      "source_row_first": 735834,
+      "source_row_last": 736168,
+      "data_rows": 335,
+      "first_datetime": "2024-12-03 09:00:00",
+      "last_datetime": "2024-12-03 16:14:00"
+    },
+    {
+      "ticker": "IDXMESBUMN",
+      "trading_date": "2024-12-03",
+      "bundle_line_number": 58,
+      "source_row_first": 741945,
+      "source_row_last": 742279,
+      "data_rows": 335,
+      "first_datetime": "2024-12-03 09:00:00",
+      "last_datetime": "2024-12-03 16:14:00"
+    },
+    {
+      "ticker": "IDXNONCYC",
+      "trading_date": "2024-12-03",
+      "bundle_line_number": 59,
+      "source_row_first": 748056,
+      "source_row_last": 748390,
+      "data_rows": 335,
+      "first_datetime": "2024-12-03 09:00:00",
+      "last_datetime": "2024-12-03 16:14:00"
+    },
+    {
+      "ticker": "IDXPROPERT",
+      "trading_date": "2024-12-03",
+      "bundle_line_number": 60,
+      "source_row_first": 754167,
+      "source_row_last": 754501,
+      "data_rows": 335,
+      "first_datetime": "2024-12-03 09:00:00",
+      "last_datetime": "2024-12-03 16:14:00"
+    },
+    {
+      "ticker": "IDXQ30",
+      "trading_date": "2024-12-03",
+      "bundle_line_number": 61,
+      "source_row_first": 760278,
+      "source_row_last": 760612,
+      "data_rows": 335,
+      "first_datetime": "2024-12-03 09:00:00",
+      "last_datetime": "2024-12-03 16:14:00"
+    },
+    {
+      "ticker": "IDXSMC-COM",
+      "trading_date": "2024-12-03",
+      "bundle_line_number": 62,
+      "source_row_first": 766389,
+      "source_row_last": 766723,
+      "data_rows": 335,
+      "first_datetime": "2024-12-03 09:00:00",
+      "last_datetime": "2024-12-03 16:14:00"
+    },
+    {
+      "ticker": "IDXSMC-LIQ",
+      "trading_date": "2024-12-03",
+      "bundle_line_number": 63,
+      "source_row_first": 772500,
+      "source_row_last": 772834,
+      "data_rows": 335,
+      "first_datetime": "2024-12-03 09:00:00",
+      "last_datetime": "2024-12-03 16:14:00"
+    },
+    {
+      "ticker": "IDXTECHNO",
+      "trading_date": "2024-12-03",
+      "bundle_line_number": 64,
+      "source_row_first": 778611,
+      "source_row_last": 778945,
+      "data_rows": 335,
+      "first_datetime": "2024-12-03 09:00:00",
+      "last_datetime": "2024-12-03 16:14:00"
+    },
+    {
+      "ticker": "IDXTRANS",
+      "trading_date": "2024-12-03",
+      "bundle_line_number": 65,
+      "source_row_first": 784722,
+      "source_row_last": 785056,
+      "data_rows": 335,
+      "first_datetime": "2024-12-03 09:00:00",
+      "last_datetime": "2024-12-03 16:14:00"
+    },
+    {
+      "ticker": "IDXV30",
+      "trading_date": "2024-12-03",
+      "bundle_line_number": 66,
+      "source_row_first": 791821,
+      "source_row_last": 792155,
+      "data_rows": 335,
+      "first_datetime": "2024-12-03 09:00:00",
+      "last_datetime": "2024-12-03 16:14:00"
+    }
+  ]
+}
