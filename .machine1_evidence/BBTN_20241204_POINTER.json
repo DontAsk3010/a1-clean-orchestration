@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BBTN",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bbtn-20241204",
+    "workflow_commit":  "3d3c77f6542adf4d6d517fa8c25d0d03cca59b40",
+    "github_run_id":  35365087914,
+    "github_artifact_id":  10554824888,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35365087914/artifacts/10554824888",
+    "github_artifact_digest":  "a32ebd34c026c42487cc87ee6623788850525d0d32dfcb9759e0a4a78f5addd2",
+    "packet_sha256":  "258dd74aeb4cdc5dc5009f79b5f1039da1b4752ba1df54fabd24c01d3ca36747",
+    "rows_jsonl_sha256":  "d9837bb97dff2353fb4e4fd07010ec25cd184a9b19e41f5b4bc5401738305215",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  182046,
+    "source_row_last":  182374,
+    "data_rows":  329,
+    "first_datetime":  "2024-12-04 08:59:00",
+    "last_datetime":  "2024-12-04 16:14:00"
+}
