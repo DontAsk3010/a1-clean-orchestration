@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BINA",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bina-20241204",
+    "workflow_commit":  "cf7d32eba437f42ccaac8086730a9781f6633e65",
+    "github_run_id":  35385956231,
+    "github_artifact_id":  10563523639,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35385956231/artifacts/10563523639",
+    "github_artifact_digest":  "520858c62c4bf12f3489cd4fcfdee02ce529c66dc1fecb461d9584d877a1862f",
+    "packet_sha256":  "41e4aaf23b7ac3d0b69538f73c85240d3298c67b5e4cf917b0cb4d196242b52a",
+    "rows_jsonl_sha256":  "cde9c1d085e58a7831b30ecf3965d1d76761b8bf0a5f30f0115995437583d05e",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  217216,
+    "source_row_last":  217219,
+    "data_rows":  4,
+    "first_datetime":  "2024-12-04 09:53:00",
+    "last_datetime":  "2024-12-04 16:00:00"
+}
