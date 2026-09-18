@@ -66,6 +66,18 @@ def _carry_for_full(
     }, prev_day
 
 
+def _indexed_source_bounds(db: sqlite3.Connection, source: str) -> tuple[str, str]:
+    row = db.execute(
+        "SELECT MIN(day), MAX(day) FROM days WHERE source=?",
+        (source,),
+    ).fetchone()
+    first_day = str(row[0]) if row and row[0] else ""
+    last_day = str(row[1]) if row and row[1] else ""
+    if not first_day or not last_day:
+        raise RuntimeError(f"V31_INDEXED_SOURCE_DATES_MISSING:{source}")
+    return first_day, last_day
+
+
 def _checkpoint_ok(path: Path, src: Mapping[str, Any], corpus_digest: str) -> bool:
     if not path.is_file():
         return False
@@ -128,14 +140,41 @@ def run(
         )
 
     chronology = dict(plan["chronology"])
-    april_first = str(chronology["april_first_date"])
-    march_last = str(chronology["march_last_date"])
-    row = db.execute("SELECT previous_day FROM calendar WHERE day=?", (april_first,)).fetchone()
-    actual_previous = str(row[0]) if row and row[0] else None
-    if actual_previous != march_last:
+    feb_first_actual, feb_last_actual = _indexed_source_bounds(db, "Raw Feb 03-28-2025.csv")
+    march_first_actual, march_last_actual = _indexed_source_bounds(db, MARCH_2025_SOURCE)
+    april_first_actual, april_last_actual = _indexed_source_bounds(db, "Raw April 01-30-2025.csv")
+    actual_order_pass = (
+        feb_first_actual <= feb_last_actual
+        < march_first_actual <= march_last_actual
+        < april_first_actual <= april_last_actual
+    )
+    if not actual_order_pass:
         raise RuntimeError(
-            f"V31_MARCH_APRIL_CALENDAR_LINK_FAIL:{actual_previous}:{march_last}"
+            "V31_ACTUAL_FEB_MARCH_APRIL_ORDER_FAIL:"
+            f"{feb_first_actual}:{feb_last_actual}:"
+            f"{march_first_actual}:{march_last_actual}:"
+            f"{april_first_actual}:{april_last_actual}"
         )
+    row = db.execute(
+        "SELECT previous_day FROM calendar WHERE day=?",
+        (april_first_actual,),
+    ).fetchone()
+    actual_previous = str(row[0]) if row and row[0] else None
+    if actual_previous != march_last_actual:
+        raise RuntimeError(
+            f"V31_MARCH_APRIL_CALENDAR_LINK_FAIL:{actual_previous}:{march_last_actual}"
+        )
+    chronology.update(
+        {
+            "february_actual_first_date": feb_first_actual,
+            "february_actual_last_date": feb_last_actual,
+            "march_actual_first_date": march_first_actual,
+            "march_actual_last_date": march_last_actual,
+            "april_actual_first_date": april_first_actual,
+            "april_actual_last_date": april_last_actual,
+            "actual_feb_march_april_order_pass": True,
+        }
+    )
 
     totals = Counter()
     source_summaries: list[dict[str, Any]] = []
@@ -319,7 +358,7 @@ def run(
         "chronology": {
             **chronology,
             "april_first_previous_governed_date": actual_previous,
-            "march_to_april_calendar_link_pass": actual_previous == march_last,
+            "march_to_april_calendar_link_pass": actual_previous == march_last_actual,
         },
         "source_plan": {
             "source_names": list(plan["source_names"]),
