@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BELL",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bell-20241204",
+    "workflow_commit":  "c369bb68c0e1f9e902f50d878cc8185901ea4776",
+    "github_run_id":  35373084958,
+    "github_artifact_id":  10559915025,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35373084958/artifacts/10559915025",
+    "github_artifact_digest":  "f6284b47c25efb47d73764add52e1d259ad2650a0d5de156ef5de1e6ea87a8ff",
+    "packet_sha256":  "ac09ecfba7616b473d4523a260176509ba29297914ece358b539bc17dff1eb88",
+    "rows_jsonl_sha256":  "cdda184d93a5949519705c52c3d78b1243bfd25ad8a97f8537d04352f19faf2b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  205764,
+    "source_row_last":  205812,
+    "data_rows":  49,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:00:00"
+}
