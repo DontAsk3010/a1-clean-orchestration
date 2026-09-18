@@ -32,7 +32,7 @@ from .full_chronological_cache_catalog import (
     prepare_full_chronological_sources,
 )
 
-CACHE_SCHEMA = "A1_V32_FULL_OBSERVATION_ENVELOPE_CACHE_V2"
+CACHE_SCHEMA = "A1_V32_FULL_OBSERVATION_ENVELOPE_CACHE_V3"
 
 PHASE_FIELDS = (
     "IDX_CLOCK_RULESET_CODE",
@@ -188,6 +188,12 @@ def packet_to_envelope_bars(packet, *, allow_haka_haki: bool = False) -> list[di
                 "haka": haka,
                 "haki": haki,
                 "haka_haki_status": haka_haki_status,
+                # Preserve every physically present source field value, including
+                # fields not currently understood or consumed by Formula Research.
+                # Values are aligned to packet-level source_header in exact header order.
+                "source_field_values": [raw.get(field) for field in packet.header],
+                "source_field_count": len(packet.header),
+                "source_packet_fingerprint": getattr(packet, "packet_fingerprint", None),
             }
         )
     return out
@@ -345,6 +351,10 @@ def build_source_cache(
                     {
                         "ticker": str(packet.identity.ticker),
                         "date": str(packet.identity.trading_date),
+                        "source_header": list(packet.header),
+                        "source_header_field_count": len(packet.header),
+                        "source_packet_fingerprint": getattr(packet, "packet_fingerprint", None),
+                        "all_source_columns_retained": True,
                         "bars": bars,
                     },
                     separators=(",", ":"),
@@ -381,6 +391,9 @@ def build_source_cache(
         "nonregular_rows": nonregular_rows,
         "phase_counts": dict(sorted(phase_counts.items())),
         "cache_path": str(target),
+        "all_source_columns_retained": True,
+        "source_values_retained_for_every_row": True,
+        "source_packet_fingerprint_preserved": True,
         "canonical_raw_untouched": True,
         "v31_untouched": True,
     }
@@ -458,4 +471,23 @@ def iter_envelope_cached(source: str):
     with gzip.open(path, "rt", encoding="utf-8") as fh:
         for line in fh:
             if line.strip():
-                yield json.loads(line)
+                packet = json.loads(line)
+                header = packet.get("source_header")
+                bars = packet.get("bars")
+                if packet.get("all_source_columns_retained") is not True:
+                    raise RuntimeError(f"V32_PACKET_SOURCE_COLUMNS_NOT_RETAINED:{source}")
+                if not isinstance(header, list) or not header:
+                    raise RuntimeError(f"V32_PACKET_SOURCE_HEADER_MISSING:{source}")
+                if not isinstance(bars, list):
+                    raise RuntimeError(f"V32_PACKET_BARS_NOT_LIST:{source}")
+                for i, bar in enumerate(bars):
+                    values = bar.get("source_field_values")
+                    if not isinstance(values, list) or len(values) != len(header):
+                        raise RuntimeError(
+                            f"V32_PACKET_SOURCE_VALUES_MISMATCH:{source}:{i}:{len(header)}"
+                        )
+                    if int(bar.get("source_field_count", -1)) != len(header):
+                        raise RuntimeError(
+                            f"V32_PACKET_SOURCE_FIELD_COUNT_MISMATCH:{source}:{i}"
+                        )
+                yield packet
