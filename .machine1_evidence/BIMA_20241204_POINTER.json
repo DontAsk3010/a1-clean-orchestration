@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BIMA",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bima-20241204",
+    "workflow_commit":  "5c719ad1a1e8b61cd9c04290c9a40c9405d00e9d",
+    "github_run_id":  35381289087,
+    "github_artifact_id":  10562430895,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35381289087/artifacts/10562430895",
+    "github_artifact_digest":  "4cf682750b60da3f583a0d846706f166baa29dfd35ed333b19c1693222474714",
+    "packet_sha256":  "0d74a1cb1d6bc0075f8b20174eb737d88b2f50c3ff652013442d65d478eaeea6",
+    "rows_jsonl_sha256":  "82c96b885a4a2e5c933475acb48a690c000b769f9911131af4f3c3768f81f120",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  215906,
+    "source_row_last":  216036,
+    "data_rows":  131,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:12:00"
+}
