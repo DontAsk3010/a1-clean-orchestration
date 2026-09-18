@@ -36,6 +36,11 @@ jobs:
           $req = Get-Content -LiteralPath 'v32-full-observation-behavior-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
           if ($req.schema -ne 'A1_V32_FULL_OBSERVATION_BEHAVIOR_REQUEST_V1') { throw 'V32_REQUEST_SCHEMA_MISMATCH' }
           if ($req.enabled -ne $true) { throw 'V32_REQUEST_DISABLED' }
+          $coverage = Get-Content -LiteralPath 'v32-manual-behavior-benchmark-coverage/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($coverage.schema -ne 'A1_V32_MANUAL_BEHAVIOR_BENCHMARK_COVERAGE_V1') { throw 'V32_BENCHMARK_COVERAGE_SCHEMA_MISMATCH' }
+          if ($coverage.status -ne 'PASS_READY_FOR_FULL_CORPUS_RUN') { throw "V32_BENCHMARK_COVERAGE_NOT_READY:$($coverage.status)" }
+          $blocking = @($coverage.requirements | Where-Object { [string]$_.status -match 'BLOCKING|NOT_IMPLEMENTED|NOT_COMPLETE|NOT_YET_PROVEN' })
+          if ($blocking.Count -ne 0) { throw "V32_BENCHMARK_BLOCKING_REQUIREMENTS_REMAIN:$($blocking.Count)" }
           if ([int64]$req.required_source_count -ne 18) { throw 'V32_REQUIRED_SOURCE_COUNT_MISMATCH' }
           if ($req.march_2025_required -ne $true) { throw 'V32_MARCH_REQUIRED' }
           if ($req.full_source_supported_observation_envelope -ne $true) { throw 'V32_FULL_ENVELOPE_REQUIRED' }
