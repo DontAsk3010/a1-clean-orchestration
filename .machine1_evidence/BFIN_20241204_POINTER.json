@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BFIN",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bfin-20241204",
+    "workflow_commit":  "d92577b8983deae303fc1142bfb95a4483ea1f9b",
+    "github_run_id":  35378982846,
+    "github_artifact_id":  10561027414,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35378982846/artifacts/10561027414",
+    "github_artifact_digest":  "faf8f4151a603f8cfaa27b7270fea2a2fef7a1dba95b64df4f3100df8a5780e4",
+    "packet_sha256":  "c8ef7d251b1046210a9868ec449be823a1d0e24dd6e7513d1fe1155bb1b0d471",
+    "rows_jsonl_sha256":  "1337504fd99d31d495025ee89c80a3381dd16c94ba15b7ef422b7b85c16adcc9",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  212734,
+    "source_row_last":  212923,
+    "data_rows":  190,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:02:00"
+}
