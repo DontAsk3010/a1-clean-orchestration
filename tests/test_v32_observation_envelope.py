@@ -351,3 +351,57 @@ def test_v32_source_regular_phase_does_not_force_legacy_behavior_eligibility():
     assert bar["nonregular_context_observation"] is True
     assert bar["phase_behavior_eligibility_relation"] == "SOURCE_REGULAR_BUT_BEHAVIOR_INELIGIBLE"
     assert bar["behavior_exclusion_reason"] == "LEGACY_FORMULA_SYMBOL_OR_SESSION_ELIGIBILITY_FALSE"
+
+
+def test_v32_retains_unknown_source_fields_for_reverse_trace():
+    from datetime import datetime
+    from types import SimpleNamespace
+
+    from a1clean.formula_research.v32_observation_envelope import packet_to_envelope_bars
+
+    row = {
+        "RAW_OPEN": "100",
+        "RAW_HIGH": "101",
+        "RAW_LOW": "99",
+        "RAW_CLOSE": "100",
+        "RAW_VOLUME": "10",
+        "RAW_AUX2_PHYSICAL": "1000",
+        "RAW_OPENINT_PHYSICAL": "5",
+        "SYMBOL_IS_INDEX": "0",
+        "SYMBOL_CONTINUOUS_QUOTATIONS_FLAG": "1",
+        "IDX_CLOCK_RULESET_CODE": "IDX_RULESET_TEST",
+        "IDX_REGULAR_CLOCK_SESSION_CODE": "20",
+        "CLK_PREOPEN_INPUT_FLAG": "0",
+        "CLK_PREOPEN_MATCH_FLAG": "0",
+        "CLK_REGULAR_SESSION1_FLAG": "1",
+        "CLK_OFFICIAL_MIDDAY_BREAK_FLAG": "0",
+        "CLK_REGULAR_SESSION2_FLAG": "0",
+        "CLK_PRECLOSE_INPUT_FLAG": "0",
+        "CLK_PRECLOSE_MATCH_FLAG": "0",
+        "CLK_POSTCLOSE_FLAG": "0",
+        "CLK_PREOPEN_NCP_NO_WITHDRAW_FLAG": "0",
+        "CLK_PREOPEN_NCP_NO_AMEND_FLAG": "0",
+        "CLK_PRECLOSE_NCP_NO_WITHDRAW_FLAG": "0",
+        "CLK_PRECLOSE_NCP_NO_AMEND_FLAG": "0",
+        "CLK_RANDOM_CLOSING_FLAG": "0",
+        "CLK_WATCHLIST_IEP_WINDOW_FLAG": "0",
+        "FUTURE_PROVIDER_FIELD_X": "opaque-value",
+    }
+    header = tuple(row.keys())
+    packet = SimpleNamespace(
+        header=header,
+        rows=(row,),
+        timestamps=(datetime(2024, 12, 2, 9, 0, 0),),
+        packet_fingerprint="packet-fingerprint-test",
+        identity=SimpleNamespace(
+            ticker="TEST",
+            trading_date="2024-12-02",
+            source_row_first=10,
+        ),
+    )
+    bar = packet_to_envelope_bars(packet)[0]
+    assert bar["source_field_count"] == len(header)
+    assert bar["source_field_values"] == [row[field] for field in header]
+    assert bar["source_packet_fingerprint"] == "packet-fingerprint-test"
+    idx = header.index("FUTURE_PROVIDER_FIELD_X")
+    assert bar["source_field_values"][idx] == "opaque-value"
