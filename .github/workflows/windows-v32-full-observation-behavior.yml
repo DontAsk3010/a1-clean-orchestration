@@ -1,0 +1,163 @@
+name: Windows V3.2 Full Observation and Behavior Capability
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - 'v32-full-observation-behavior-requests/current.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-v32-full-observation-behavior
+  cancel-in-progress: false
+
+jobs:
+  enrich:
+    name: Build complete 18-source observation and behavior capability lineage
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    env:
+      A1_RAW_DIR: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
+    steps:
+      - name: Checkout exact trigger revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+
+      - name: Validate governed request and pin software revision
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'v32-full-observation-behavior-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_V32_FULL_OBSERVATION_BEHAVIOR_REQUEST_V1') { throw 'V32_REQUEST_SCHEMA_MISMATCH' }
+          if ($req.enabled -ne $true) { throw 'V32_REQUEST_DISABLED' }
+          if ([int64]$req.required_source_count -ne 18) { throw 'V32_REQUIRED_SOURCE_COUNT_MISMATCH' }
+          if ($req.march_2025_required -ne $true) { throw 'V32_MARCH_REQUIRED' }
+          if ($req.full_source_supported_observation_envelope -ne $true) { throw 'V32_FULL_ENVELOPE_REQUIRED' }
+          if ($req.regular_behavior_stream_isolated -ne $true) { throw 'V32_REGULAR_STREAM_ISOLATION_REQUIRED' }
+          if ($req.behavior_lifecycle_required -ne $true) { throw 'V32_LIFECYCLE_REQUIRED' }
+          if ($req.behavior_path_required -ne $true) { throw 'V32_BEHAVIOR_PATH_REQUIRED' }
+          if ($req.unnamed_state_transitions_must_be_preserved -ne $true) { throw 'V32_UNNAMED_TRANSITIONS_REQUIRED' }
+          if ($req.manual_labels_used_as_hidden_targets -ne $false) { throw 'V32_MANUAL_HIDDEN_TARGET_FORBIDDEN' }
+          if ($req.arbitrary_thresholds_added -ne $false) { throw 'V32_ARBITRARY_THRESHOLD_FORBIDDEN' }
+          if ($req.v31_immutable -ne $true) { throw 'V32_V31_IMMUTABILITY_REQUIRED' }
+          if ($req.v2x_immutable -ne $true) { throw 'V32_V2X_IMMUTABILITY_REQUIRED' }
+          if ([int64]$req.v31_run_id -ne 35291174908) { throw 'V32_V31_RUN_BINDING_FAIL' }
+          if ([int64]$req.v31_artifact_id -ne 10533633559) { throw 'V32_V31_ARTIFACT_BINDING_FAIL' }
+          if ($req.v31_artifact_digest -ne 'sha256:b1f6b891aad38fa4afcdfd7e34657fb7b44456e96c8d2985d05f4f4378961f03') { throw 'V32_V31_ARTIFACT_DIGEST_FAIL' }
+          if ($req.v31_corpus_digest -ne '9c2ed57ec60c81caaa0220ce57a7392473b2cf63eb23f8c846d4e961187e8732') { throw 'V32_V31_CORPUS_DIGEST_FAIL' }
+          if ([int64]$req.phase_probe_run_id -ne 35322105528) { throw 'V32_PHASE_PROBE_RUN_BINDING_FAIL' }
+          if ([int64]$req.phase_probe_artifact_id -ne 10537732681) { throw 'V32_PHASE_PROBE_ARTIFACT_BINDING_FAIL' }
+          if ($req.phase_probe_artifact_digest -ne 'sha256:3d07b1f7a5a16acb8cc66930c7f271f2de432a6cb52340f77e43efae0e8e7057') { throw 'V32_PHASE_PROBE_DIGEST_FAIL' }
+
+          $parent = (git rev-parse HEAD^).Trim()
+          if ($parent -ne [string]$req.required_parent_revision) { throw "V32_PARENT_REVISION_MISMATCH:$parent" }
+          "A1_V32_SOFTWARE_REVISION=$parent" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $out = Join-Path $env:USERPROFILE ".a1clean\v32_full_observation_behavior\schema-v3\$parent"
+          "V32_OUTPUT_ROOT=$out" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Install compile and test exact V3.2 capability
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e '.[test]'
+          if ($LASTEXITCODE -ne 0) { throw 'V32_INSTALL_FAILED' }
+          py -3.11 -m py_compile src/a1clean/formula_research/v32_observation_envelope.py src/a1clean/formula_research/v32_behavior_lifecycle.py src/a1clean/formula_research/v32_full_observation_semantic_enrichment.py
+          if ($LASTEXITCODE -ne 0) { throw 'V32_COMPILE_FAILED' }
+          py -3.11 -m pytest -q tests/test_v30_semantic_journey_enrichment.py tests/test_v31_full_chronological_semantic_enrichment.py tests/test_v32_observation_envelope.py
+          if ($LASTEXITCODE -ne 0) { throw 'V32_TEST_FAILED' }
+
+      - name: Verify Drive reader credential binding
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:A1_DRIVE_READER_CREDENTIALS)) { throw 'A1_DRIVE_READER_CREDENTIALS_NOT_CONFIGURED' }
+          if (-not (Test-Path -LiteralPath $env:A1_DRIVE_READER_CREDENTIALS -PathType Leaf)) { throw 'A1_DRIVE_READER_CREDENTIALS_FILE_MISSING' }
+
+      - name: Build complete V3.2 corpus
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m a1clean.formula_research.v32_full_observation_semantic_enrichment --output-root $env:V32_OUTPUT_ROOT
+          if ($LASTEXITCODE -ne 0) { throw "V32_RUNTIME_FAILED:$LASTEXITCODE" }
+
+      - name: Assert full source behavior and lineage reconciliation
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $m = Get-Content -LiteralPath (Join-Path $env:V32_OUTPUT_ROOT 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($m.schema -ne 'A1_V32_FULL_OBSERVATION_SEMANTIC_ENRICHMENT_V3') { throw 'V32_MANIFEST_SCHEMA_FAIL' }
+          if ($m.status -ne 'PASS' -or $m.reconciliation.pass -ne $true) { throw 'V32_RECONCILIATION_FAIL' }
+          if ($m.software_revision -ne $env:A1_V32_SOFTWARE_REVISION) { throw 'V32_SOFTWARE_REVISION_BINDING_FAIL' }
+          if ([int64]$m.reconciliation.source_count -ne 18) { throw 'V32_SOURCE_COUNT_FAIL' }
+          if ([int64]$m.reconciliation.ticker_days -ne 315637) { throw 'V32_TICKER_DAY_FAIL' }
+          if ([int64]$m.reconciliation.regular_rows -ne 33733344) { throw 'V32_REGULAR_ROW_FAIL' }
+          if ([int64]$m.reconciliation.governed_dates -ne 347) { throw 'V32_GOVERNED_DATE_FAIL' }
+          if ([int64]$m.reconciliation.excluded_rows -ne 0) { throw 'V32_EXCLUDED_ROW_FAIL' }
+          if ($m.reconciliation.full_equals_regular_plus_nonregular -ne $true) { throw 'V32_LAYER_ACCOUNTING_FAIL' }
+          if ([int64]$m.reconciliation.behavior_day_profiles -ne [int64]$m.reconciliation.ticker_days) { throw 'V32_BEHAVIOR_DAY_COVERAGE_FAIL' }
+          if ([int64]$m.reconciliation.behavior_paths -ne [int64]$m.reconciliation.ticker_days) { throw 'V32_BEHAVIOR_PATH_COVERAGE_FAIL' }
+          if ([int64]$m.reconciliation.behavior_lifecycle_journeys -ne [int64]$m.reconciliation.event_journeys) { throw 'V32_LIFECYCLE_EVENT_COVERAGE_FAIL' }
+          if ([int64]$m.reconciliation.behavior_lifecycle_contract_records -ne [int64]$m.reconciliation.behavior_lifecycle_journeys) { throw 'V32_LIFECYCLE_CONTRACT_COVERAGE_FAIL' }
+          if ($m.contract.full_source_supported_observation_envelope_preserved -ne $true) { throw 'V32_FULL_ENVELOPE_FLAG_FAIL' }
+          if ($m.contract.cross_date_carry_uses_terminal_source_observation -ne $true) { throw 'V32_TERMINAL_CARRY_FLAG_FAIL' }
+          if ($m.contract.manual_behavior_lifecycle_contract_materialized -ne $true) { throw 'V32_LIFECYCLE_FLAG_FAIL' }
+          if ($m.contract.all_formation_runs_and_state_changes_materialized_in_behavior_path -ne $true) { throw 'V32_BEHAVIOR_PATH_FLAG_FAIL' }
+          if ($m.contract.unnamed_state_transitions_preserved -ne $true) { throw 'V32_UNNAMED_STATE_FLAG_FAIL' }
+          if ($m.contract.manual_labels_not_used_as_hidden_targets -ne $true) { throw 'V32_MANUAL_TARGET_FLAG_FAIL' }
+          if ($m.contract.v31_not_rewritten -ne $true -or $m.contract.v2x_not_rewritten -ne $true) { throw 'V32_IMMUTABILITY_FLAG_FAIL' }
+          if ($m.aali_concordance_gate.pass -ne $true) { throw 'V32_AALI_CONCORDANCE_FAIL' }
+          if ($m.source_summaries.Count -ne 18) { throw 'V32_SOURCE_SUMMARY_COUNT_FAIL' }
+          foreach ($s in $m.source_summaries) {
+            if ($s.status -ne 'PASS') { throw "V32_SOURCE_NOT_PASS:$($s.source)" }
+            if ($s.dual_layer_materialized -ne $true) { throw "V32_SOURCE_DUAL_LAYER_FAIL:$($s.source)" }
+            if ($s.manual_behavior_lifecycle_contract_materialized -ne $true) { throw "V32_SOURCE_LIFECYCLE_FAIL:$($s.source)" }
+            if ($s.all_event_journeys_have_lifecycle_representation -ne $true) { throw "V32_SOURCE_EVENT_COVERAGE_FAIL:$($s.source)" }
+            if ($s.unnamed_state_transitions_preserved -ne $true) { throw "V32_SOURCE_UNNAMED_STATE_FAIL:$($s.source)" }
+            foreach ($key in @('ticker_days','formation_runs','event_journeys','phase_context','full_observation_envelope','regular_behavior_stream','behavior_day_profiles','behavior_lifecycle','behavior_paths')) {
+              $meta = $s.output_files.$key
+              if ($null -eq $meta -or [string]::IsNullOrWhiteSpace([string]$meta.sha256) -or [int64]$meta.bytes -lt 0) { throw "V32_OUTPUT_HASH_METADATA_FAIL:$($s.source):$key" }
+            }
+          }
+
+      - name: Exact second-run readback and checkpoint reuse
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m a1clean.formula_research.v32_full_observation_semantic_enrichment --output-root $env:V32_OUTPUT_ROOT
+          if ($LASTEXITCODE -ne 0) { throw "V32_READBACK_RUNTIME_FAILED:$LASTEXITCODE" }
+          $m = Get-Content -LiteralPath (Join-Path $env:V32_OUTPUT_ROOT 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ([int64]$m.reconciliation.reused_pass_sources -ne 18) { throw "V32_READBACK_REUSE_FAIL:$($m.reconciliation.reused_pass_sources)" }
+          if ($m.reconciliation.behavior_path_coverage_pass -ne $true) { throw 'V32_READBACK_BEHAVIOR_PATH_FAIL' }
+          if ($m.reconciliation.behavior_lifecycle_contract_pass -ne $true) { throw 'V32_READBACK_LIFECYCLE_CONTRACT_FAIL' }
+
+      - name: Build compact governed summary artifact
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path 'v32-full-observation-behavior-summary\checkpoints' | Out-Null
+          Copy-Item -LiteralPath 'v32-full-observation-behavior-requests\current.json' -Destination 'v32-full-observation-behavior-summary\request.json' -Force
+          Copy-Item -LiteralPath (Join-Path $env:V32_OUTPUT_ROOT 'manifest.json') -Destination 'v32-full-observation-behavior-summary\manifest.json' -Force
+          Copy-Item -LiteralPath (Join-Path $env:V32_OUTPUT_ROOT 'compact-sample.jsonl.gz') -Destination 'v32-full-observation-behavior-summary\compact-sample.jsonl.gz' -Force
+          Get-ChildItem -LiteralPath $env:V32_OUTPUT_ROOT -Recurse -Filter 'checkpoint.json' | ForEach-Object {
+            $parent = Split-Path $_.DirectoryName -Leaf
+            Copy-Item -LiteralPath $_.FullName -Destination (Join-Path 'v32-full-observation-behavior-summary\checkpoints' ($parent + '.json')) -Force
+          }
+          @{
+            trigger_revision = '${{ github.sha }}'
+            software_revision = $env:A1_V32_SOFTWARE_REVISION
+            output_root = $env:V32_OUTPUT_ROOT
+          } | ConvertTo-Json | Out-File -LiteralPath 'v32-full-observation-behavior-summary\run-identity.json' -Encoding utf8
+
+      - name: Upload V3.2 governed summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: v32-full-observation-behavior-summary-${{ github.run_id }}
+          path: v32-full-observation-behavior-summary
+          if-no-files-found: error
+          retention-days: 30
