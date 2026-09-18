@@ -1,0 +1,15 @@
+{
+  "ticker": "BHAT",
+  "trading_date": "2024-12-04",
+  "source_md5": "b8d42b35c90d2dff8b18ae4e1734523b",
+  "source_sha256": "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+  "semantic_bundle": "Raw Des 02-31-2024__SEMANTIC_0010.jsonl",
+  "semantic_bundle_line_number": 76,
+  "source_row_first": 211988,
+  "source_row_last": 212004,
+  "data_rows": 17,
+  "first_datetime": "2024-12-04 09:00:00",
+  "last_datetime": "2024-12-04 16:00:00",
+  "packet_sha256": "7d552ef94e997e773478eabb1bd8275cfbcf3252f0eefa85fae91fcb8a3840fb",
+  "rows_jsonl_sha256": "bb95508d43c700f67080e2eb839664425028abb1ca1d8f173f9f7cb7053f021e"
+}

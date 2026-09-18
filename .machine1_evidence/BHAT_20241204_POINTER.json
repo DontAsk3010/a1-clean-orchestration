@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BHAT",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bhat-20241204",
+    "workflow_commit":  "86572c0dbc9598aa22bd6ad3fbc0249688b016c3",
+    "github_run_id":  35380075031,
+    "github_artifact_id":  10560968950,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35380075031/artifacts/10560968950",
+    "github_artifact_digest":  "4bec59643a8de566042812b68a90cd4cd9cb47cd1e789ff23a8a4cb471113407",
+    "packet_sha256":  "7d552ef94e997e773478eabb1bd8275cfbcf3252f0eefa85fae91fcb8a3840fb",
+    "rows_jsonl_sha256":  "bb95508d43c700f67080e2eb839664425028abb1ca1d8f173f9f7cb7053f021e",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  211988,
+    "source_row_last":  212004,
+    "data_rows":  17,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:00:00"
+}
