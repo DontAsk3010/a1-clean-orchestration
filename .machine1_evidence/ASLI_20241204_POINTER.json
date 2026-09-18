@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "ASLI",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-asli-20241204",
+    "workflow_commit":  "23d451d34d3bc45d3f8487fa95c0d1b2a2085de5",
+    "github_run_id":  35291400331,
+    "github_artifact_id":  10534216623,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35291400331/artifacts/10534216623",
+    "github_artifact_digest":  "fba7accdc71941ba40fec80e4abb83a3a0b7504f935958db3e99d6d48ccb1fa8",
+    "packet_sha256":  "2463d04148b7138ad92bc464b15a0779420acd058c70c8da70c161b1778addc1",
+    "rows_jsonl_sha256":  "692f16e985fb77c9212373e7b8312e95804ab5fc0522b828fda84a63cc62f41e",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  111016,
+    "source_row_last":  111097,
+    "data_rows":  82,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 15:49:00"
+}
