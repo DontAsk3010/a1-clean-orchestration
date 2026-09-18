@@ -200,3 +200,96 @@ def test_v32_terminal_and_carry_contract_keeps_regular_and_source_terminal_separ
     assert carry["previous_terminal_observation_phase"] == "PRECLOSE_MATCH"
     assert carry["known_at_boundary"] == "2024-12-02 16:01:00"
     assert carry["prior_event_journey_open_right_censored_state"]["open_right_censored_count"] == 1
+
+
+
+def test_v32_behavior_lifecycle_materializes_manual_contract_without_hidden_targets():
+    from a1clean.formula_research.v32_behavior_lifecycle import (
+        LIFECYCLE_TIMING_FIELDS,
+        enrich_behavior_lifecycle,
+    )
+
+    bars = [
+        {"timestamp": "2024-12-02 09:00:00", "source_row": 1, "open": 100, "high": 100, "low": 99, "close": 99, "volume": 10, "trade_value": 990, "nbss": -50, "flow_available": True, "mechanism_eligible": True, "regular_behavior_eligible": True},
+        {"timestamp": "2024-12-02 09:01:00", "source_row": 2, "open": 99, "high": 100, "low": 99, "close": 100, "volume": 20, "trade_value": 2000, "nbss": 80, "flow_available": True, "mechanism_eligible": True, "regular_behavior_eligible": True},
+        {"timestamp": "2024-12-02 09:02:00", "source_row": 3, "open": 100, "high": 102, "low": 100, "close": 102, "volume": 30, "trade_value": 3060, "nbss": 100, "flow_available": True, "mechanism_eligible": True, "regular_behavior_eligible": True},
+        {"timestamp": "2024-12-02 09:03:00", "source_row": 4, "open": 102, "high": 102, "low": 100, "close": 100, "volume": 15, "trade_value": 1500, "nbss": -20, "flow_available": True, "mechanism_eligible": True, "regular_behavior_eligible": True},
+    ]
+    runs = [
+        {"start_index": 0, "end_index": 0, "start_timestamp": bars[0]["timestamp"], "end_timestamp": bars[0]["timestamp"], "row_count": 1, "state_key": "A", "state": {"price_direction": "DOWN"}, "start_close": 99, "end_close": 99},
+        {"start_index": 1, "end_index": 2, "start_timestamp": bars[1]["timestamp"], "end_timestamp": bars[2]["timestamp"], "row_count": 2, "state_key": "B", "state": {"price_direction": "UP"}, "start_close": 100, "end_close": 102},
+        {"start_index": 3, "end_index": 3, "start_timestamp": bars[3]["timestamp"], "end_timestamp": bars[3]["timestamp"], "row_count": 1, "state_key": "C", "state": {"price_direction": "DOWN"}, "start_close": 100, "end_close": 100},
+    ]
+    journeys = [{
+        "journey_kind": "RECOVERY",
+        "causal_start": {"index": 1, "timestamp": bars[1]["timestamp"], "close": 100, "known_at": bars[1]["timestamp"]},
+        "hindsight_resolution": {"resolution_status": "FAILED_BELOW_RECOVERY_START_CLOSE", "resolution_index": 3, "resolution_timestamp": bars[3]["timestamp"], "right_censored": False},
+        "future_resolution_not_used_to_define_start": True,
+    }]
+    profile, lifecycle = enrich_behavior_lifecycle(
+        bars=bars,
+        full_envelope=bars,
+        runs=runs,
+        journeys=journeys,
+        source="Raw Des 02-31-2024.csv",
+        ticker="TEST",
+        trading_date="2024-12-02",
+        carry_in=None,
+    )
+    assert len(lifecycle) == 1
+    rec = lifecycle[0]
+    assert rec["manual_label_used_as_target"] is False
+    assert rec["arbitrary_threshold_added"] is False
+    assert rec["timing_contract_complete"] is True
+    assert tuple(rec["timing_contract_fields"]) == LIFECYCLE_TIMING_FIELDS
+    assert rec["timing"]["event_start_time"].endswith("09:01:00")
+    assert rec["timing"]["first_detectable_time"].endswith("09:01:00")
+    assert rec["timing"]["confirm_time"].endswith("09:02:00")
+    assert rec["timing"]["peak_time"].endswith("09:02:00")
+    assert rec["timing"]["weakening_time"].endswith("09:03:00")
+    assert rec["timing"]["fail_time"].endswith("09:03:00")
+    assert rec["timing"]["event_end_time"].endswith("09:03:00")
+    assert rec["formation_sequence"][0]["role"] == "PRIOR_CONDITION_RUN"
+    assert profile["lifecycle_contract"]["formation_sequence"] is True
+    assert profile["no_forced_event"] is False
+
+
+def test_v32_behavior_lifecycle_preserves_open_and_no_event_states():
+    from a1clean.formula_research.v32_behavior_lifecycle import enrich_behavior_lifecycle
+
+    bars = [
+        {"timestamp": "2024-12-02 09:00:00", "source_row": 1, "open": 100, "high": 100, "low": 100, "close": 100, "volume": 10, "trade_value": 1000, "flow_available": False, "mechanism_eligible": False, "regular_behavior_eligible": True},
+        {"timestamp": "2024-12-02 09:01:00", "source_row": 2, "open": 100, "high": 101, "low": 100, "close": 101, "volume": 10, "trade_value": 1010, "flow_available": False, "mechanism_eligible": False, "regular_behavior_eligible": True},
+    ]
+    profile0, rec0 = enrich_behavior_lifecycle(
+        bars=bars,
+        full_envelope=bars,
+        runs=[],
+        journeys=[],
+        source="S",
+        ticker="NOEV",
+        trading_date="2024-12-02",
+        carry_in=None,
+    )
+    assert rec0 == []
+    assert profile0["no_forced_event"] is True
+    assert profile0["observation_only_day_preserved"] is True
+
+    journey = {
+        "journey_kind": "RECOVERY",
+        "causal_start": {"index": 1, "timestamp": bars[1]["timestamp"]},
+        "hindsight_resolution": {"resolution_status": "OPEN_RIGHT_CENSORED", "resolution_timestamp": None, "right_censored": True},
+    }
+    profile1, rec1 = enrich_behavior_lifecycle(
+        bars=bars,
+        full_envelope=bars,
+        runs=[{"start_index": 0, "end_index": 0, "start_timestamp": bars[0]["timestamp"], "end_timestamp": bars[0]["timestamp"], "row_count": 1, "state_key": "A", "state": {}, "start_close": 100, "end_close": 100}, {"start_index": 1, "end_index": 1, "start_timestamp": bars[1]["timestamp"], "end_timestamp": bars[1]["timestamp"], "row_count": 1, "state_key": "B", "state": {}, "start_close": 101, "end_close": 101}],
+        journeys=[journey],
+        source="S",
+        ticker="OPEN",
+        trading_date="2024-12-02",
+        carry_in=None,
+    )
+    assert rec1[0]["timing"]["event_end_time"] == "OPEN"
+    assert rec1[0]["right_censored_open"] is True
+    assert profile1["open_right_censored_journey_count"] == 1

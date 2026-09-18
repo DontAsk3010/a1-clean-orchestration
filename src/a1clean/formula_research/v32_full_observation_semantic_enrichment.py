@@ -23,7 +23,7 @@ from .v32_observation_envelope import (
     iter_envelope_cached,
 )
 
-SCHEMA = "A1_V32_FULL_OBSERVATION_SEMANTIC_ENRICHMENT_V2"
+SCHEMA = "A1_V32_FULL_OBSERVATION_SEMANTIC_ENRICHMENT_V3"
 STATUS = "RESEARCH_ONLY_NOT_CANONICAL"
 V31_RUN_ID = 35291174908
 V31_ARTIFACT_ID = 10533633559
@@ -35,7 +35,7 @@ def _rewrite_v32(record: dict[str, Any]) -> dict[str, Any]:
     out = dict(record)
     out["semantic_engine_parent_schema"] = V30_SCHEMA
     out["schema"] = SCHEMA
-    out["lineage_version"] = "V3.2_FULL_OBSERVATION_ENVELOPE"
+    out["lineage_version"] = "V3.2_FULL_OBSERVATION_AND_BEHAVIOR_CAPABILITY"
     return out
 
 
@@ -354,7 +354,7 @@ def _carry_for_full_observation(
     }, prev_day
 
 
-def _checkpoint_ok(path: Path, src: Mapping[str, Any], digest: str) -> bool:
+def _checkpoint_ok(path: Path, src: Mapping[str, Any], digest: str, software_revision: str) -> bool:
     if not path.is_file():
         return False
     try:
@@ -434,7 +434,7 @@ def run(*, output_root: Path) -> dict[str, Any]:
         source_dir = output_root / _slug(source)
         source_dir.mkdir(parents=True, exist_ok=True)
         checkpoint = source_dir / "checkpoint.json"
-        if _checkpoint_ok(checkpoint, src, envelope_digest):
+        if _checkpoint_ok(checkpoint, src, envelope_digest, software_revision):
             cp = json.loads(checkpoint.read_text(encoding="utf-8"))
             summaries.append(cp)
             for key in (
