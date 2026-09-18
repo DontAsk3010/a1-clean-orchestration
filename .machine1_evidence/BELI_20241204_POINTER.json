@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BELI",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-beli-20241204",
+    "workflow_commit":  "e805ede1b9f8177ce2d3107566cc9de864952ad7",
+    "github_run_id":  35372659874,
+    "github_artifact_id":  10559305458,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35372659874/artifacts/10559305458",
+    "github_artifact_digest":  "81b567f3b1d4b6ab4b1689bd4174ab1af9985d45967e2fa24fd453753dc33a69",
+    "packet_sha256":  "a39690763b07c13e9eb7a03150d49e84f296b0c52f2fb5a6dbc0a00836eb95fd",
+    "rows_jsonl_sha256":  "e46ed78c79f4b1f6ac883cded2773301dd1827ac17c02bee6dc191334da515d5",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  205015,
+    "source_row_last":  205033,
+    "data_rows":  19,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 15:39:00"
+}
