@@ -1,0 +1,75 @@
+name: Machine1 Index Chunk 20241203 Evidence Extract
+
+on:
+  push:
+    branches:
+      - machine1/evidence-bbss-20241203
+    paths:
+      - .github/workflows/machine1-indexchunk-20241203-evidence.yml
+
+permissions:
+  contents: write
+
+jobs:
+  extract-index-chunk:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: machine1/evidence-bbss-20241203
+
+      - name: Extract governed index chunk
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          @'
+          import csv, hashlib, json, os, pathlib
+          raw=pathlib.Path(os.environ['RAW_FILE'])
+          date='2024-12-03'
+          expected_md5='b8d42b35c90d2dff8b18ae4e1734523b'
+          expected_sha256='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          specs=[["IDXESGL",699170,699504,335,"09:00:00","16:14:00",51],["IDXFINANCE",705281,705615,335,"09:00:00","16:14:00",52],["IDXG30",711392,711726,335,"09:00:00","16:14:00",53],["IDXHEALTH",717503,717837,335,"09:00:00","16:14:00",54],["IDXHIDIV20",723612,723946,335,"09:00:00","16:14:00",55],["IDXINDUST",729723,730057,335,"09:00:00","16:14:00",56],["IDXINFRA",735834,736168,335,"09:00:00","16:14:00",57],["IDXMESBUMN",741945,742279,335,"09:00:00","16:14:00",58],["IDXNONCYC",748056,748390,335,"09:00:00","16:14:00",59],["IDXPROPERT",754167,754501,335,"09:00:00","16:14:00",60],["IDXQ30",760278,760612,335,"09:00:00","16:14:00",61],["IDXSMC-COM",766389,766723,335,"09:00:00","16:14:00",62],["IDXSMC-LIQ",772500,772834,335,"09:00:00","16:14:00",63],["IDXTECHNO",778611,778945,335,"09:00:00","16:14:00",64],["IDXTRANS",784722,785056,335,"09:00:00","16:14:00",65],["IDXV30",791821,792155,335,"09:00:00","16:14:00",66]]
+          if not raw.is_file(): raise SystemExit(f'RAW_MISSING {raw}')
+          md5=hashlib.md5(); sha=hashlib.sha256()
+          with raw.open('rb') as f:
+              for chunk in iter(lambda:f.read(8*1024*1024),b''):
+                  md5.update(chunk); sha.update(chunk)
+          if md5.hexdigest()!=expected_md5 or sha.hexdigest()!=expected_sha256:
+              raise SystemExit(f'RAW_HASH_MISMATCH md5={md5.hexdigest()} sha256={sha.hexdigest()}')
+          wanted={s[0] for s in specs}; hits={k:[] for k in wanted}
+          with raw.open('r',encoding='utf-8-sig',newline='') as f:
+              reader=csv.DictReader(f)
+              for source_row,row in enumerate(reader,start=1):
+                  t=row.get('RAW_TICKER'); dt=row.get('RAW_DATETIME_ISO','')
+                  if t in wanted and dt.startswith(date):
+                      hits[t].append((source_row,row))
+          out=pathlib.Path('evidence/index_chunk_20241203'); out.mkdir(parents=True,exist_ok=True)
+          proof=[]
+          for ticker,first,last,count,ft,lt,bline in specs:
+              arr=hits[ticker]; rows=[n for n,_ in arr]
+              if len(arr)!=count: raise SystemExit(f'{ticker} ROW_COUNT {len(arr)} != {count}')
+              if rows[0]!=first or rows[-1]!=last: raise SystemExit(f'{ticker} RANGE {rows[0]}-{rows[-1]} != {first}-{last}')
+              if arr[0][1]['RAW_DATETIME_ISO'][-8:]!=ft or arr[-1][1]['RAW_DATETIME_ISO'][-8:]!=lt: raise SystemExit(f'{ticker} TIME_MISMATCH')
+              if rows!=list(range(first,last+1)): raise SystemExit(f'{ticker} NONCONTIGUOUS')
+              packet={'source_name':raw.name,'source_md5':md5.hexdigest(),'source_sha256':sha.hexdigest(),'ticker':ticker,'trading_date':date,'semantic_bundle':'Raw Des 02-31-2024__SEMANTIC_0007.jsonl','bundle_line_number':bline,'source_row_first':first,'source_row_last':last,'data_rows':count,'first_datetime':arr[0][1]['RAW_DATETIME_ISO'],'last_datetime':arr[-1][1]['RAW_DATETIME_ISO'],'header_fields':list(arr[0][1].keys()),'rows':[{'source_row':n,**r} for n,r in arr]}
+              (out/f'{ticker}_20241203_PACKET.json').write_text(json.dumps(packet,ensure_ascii=False,indent=2),encoding='utf-8')
+              proof.append({k:packet[k] for k in ['ticker','trading_date','bundle_line_number','source_row_first','source_row_last','data_rows','first_datetime','last_datetime']})
+              print(f'PASS {ticker} rows={count} source={first}-{last}')
+          (out/'CHUNK_PROOF.json').write_text(json.dumps({'status':'PASS','source_md5':md5.hexdigest(),'source_sha256':sha.hexdigest(),'tickers':proof},ensure_ascii=False,indent=2),encoding='utf-8')
+          '@ | Set-Content -LiteralPath extract_index_chunk_20241203.py -Encoding UTF8
+          py -3.11 extract_index_chunk_20241203.py
+
+      - name: Commit governed index chunk
+        shell: powershell
+        run: |
+          git config user.name "a1-clean-machine1"
+          git config user.email "a1-clean-machine1@users.noreply.github.com"
+          git add evidence/index_chunk_20241203/
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) { Write-Host "Evidence identical."; exit 0 }
+          git commit -m "Persist governed 2024-12-03 index evidence chunk"
+          git push origin HEAD:machine1/evidence-bbss-20241203
