@@ -39,6 +39,14 @@ def _rewrite_v32(record: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+def _sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def _terminal_summary(bar: Mapping[str, Any] | None) -> dict[str, Any] | None:
     if bar is None:
         return None
@@ -353,7 +361,7 @@ def _checkpoint_ok(path: Path, src: Mapping[str, Any], digest: str) -> bool:
         obj = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return False
-    return (
+    base_ok = (
         obj.get("schema") == SCHEMA
         and obj.get("status") == "PASS"
         and obj.get("envelope_digest_sha256") == digest
@@ -362,6 +370,36 @@ def _checkpoint_ok(path: Path, src: Mapping[str, Any], digest: str) -> bool:
         and int(obj.get("source_rows", -1)) == int(src.get("source_rows", -2))
         and int(obj.get("regular_rows", -1)) == int(src.get("regular_rows", -2))
     )
+    if not base_ok:
+        return False
+    outputs = obj.get("output_files")
+    if not isinstance(outputs, dict):
+        return False
+    required = {
+        "ticker_days",
+        "formation_runs",
+        "event_journeys",
+        "phase_context",
+        "full_observation_envelope",
+        "regular_behavior_stream",
+    }
+    if not required.issubset(outputs):
+        return False
+    for key in sorted(required):
+        meta = outputs.get(key)
+        if not isinstance(meta, dict):
+            return False
+        name = str(meta.get("name") or "")
+        expected_sha = str(meta.get("sha256") or "")
+        expected_bytes = int(meta.get("bytes") or -1)
+        artifact = path.parent / name
+        if not name or not expected_sha or not artifact.is_file():
+            return False
+        if artifact.stat().st_size != expected_bytes:
+            return False
+        if _sha256_file(artifact) != expected_sha:
+            return False
+    return True
 
 
 def run(*, output_root: Path) -> dict[str, Any]:
@@ -548,6 +586,39 @@ def run(*, output_root: Path) -> dict[str, Any]:
         if counts["source_rows"] != counts["regular_rows"] + counts["nonregular_rows"]:
             raise RuntimeError(f"V32_SOURCE_LAYER_ACCOUNTING_FAIL:{source}:{dict(counts)}")
 
+        output_files = {
+            "ticker_days": {
+                "name": td_path.name,
+                "sha256": _sha256_file(td_path),
+                "bytes": td_path.stat().st_size,
+            },
+            "formation_runs": {
+                "name": runs_path.name,
+                "sha256": _sha256_file(runs_path),
+                "bytes": runs_path.stat().st_size,
+            },
+            "event_journeys": {
+                "name": journeys_path.name,
+                "sha256": _sha256_file(journeys_path),
+                "bytes": journeys_path.stat().st_size,
+            },
+            "phase_context": {
+                "name": context_path.name,
+                "sha256": _sha256_file(context_path),
+                "bytes": context_path.stat().st_size,
+            },
+            "full_observation_envelope": {
+                "name": full_layer_path.name,
+                "sha256": _sha256_file(full_layer_path),
+                "bytes": full_layer_path.stat().st_size,
+            },
+            "regular_behavior_stream": {
+                "name": regular_layer_path.name,
+                "sha256": _sha256_file(regular_layer_path),
+                "bytes": regular_layer_path.stat().st_size,
+            },
+        }
+
         cp = {
             "schema": SCHEMA,
             "status": "PASS",
@@ -563,6 +634,7 @@ def run(*, output_root: Path) -> dict[str, Any]:
             "phase_context_file": context_path.name,
             "full_observation_layer_file": full_layer_path.name,
             "regular_behavior_stream_file": regular_layer_path.name,
+            "output_files": output_files,
             "full_observation_rows": int(counts["source_rows"]),
             "regular_behavior_rows": int(counts["regular_rows"]),
             "nonregular_observation_rows": int(counts["nonregular_rows"]),
