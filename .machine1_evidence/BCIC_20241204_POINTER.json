@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BCIC",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bcic-20241204",
+    "workflow_commit":  "f40f31a468327b75f669e2ea2352b6bdca59d464",
+    "github_run_id":  35366497765,
+    "github_artifact_id":  10556224388,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35366497765/artifacts/10556224388",
+    "github_artifact_digest":  "389d3826a041febe4cb9f704531ec15509f1308899565cc9490b3558deed968e",
+    "packet_sha256":  "d8e4fc990460c5a2dc4d788bc286ae1fd8c867a855aa5010d8ed08f007edac9f",
+    "rows_jsonl_sha256":  "e755745cfcd729a218eef5b39acf67fca83d986f48400fd6f1042dee358df71a",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  191955,
+    "source_row_last":  192029,
+    "data_rows":  75,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:00:00"
+}

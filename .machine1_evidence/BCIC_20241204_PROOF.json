@@ -1,0 +1,15 @@
+{
+  "ticker": "BCIC",
+  "trading_date": "2024-12-04",
+  "source_md5": "b8d42b35c90d2dff8b18ae4e1734523b",
+  "source_sha256": "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+  "semantic_bundle": "Raw Des 02-31-2024__SEMANTIC_0010.jsonl",
+  "semantic_bundle_line_number": 62,
+  "source_row_first": 191955,
+  "source_row_last": 192029,
+  "data_rows": 75,
+  "first_datetime": "2024-12-04 09:00:00",
+  "last_datetime": "2024-12-04 16:00:00",
+  "packet_sha256": "d8e4fc990460c5a2dc4d788bc286ae1fd8c867a855aa5010d8ed08f007edac9f",
+  "rows_jsonl_sha256": "e755745cfcd729a218eef5b39acf67fca83d986f48400fd6f1042dee358df71a"
+}
