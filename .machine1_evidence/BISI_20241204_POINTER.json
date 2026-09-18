@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BISI",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bisi-20241204",
+    "workflow_commit":  "d476dcea5c550887a7a3408ad5f949707180b7e7",
+    "github_run_id":  35398508033,
+    "github_artifact_id":  10570246367,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35398508033/artifacts/10570246367",
+    "github_artifact_digest":  "0358082aac4d702cdab15546985522b85910ce4d5d5547518e68cfee4bd103cc",
+    "packet_sha256":  "fa41fa5760234429f5a16aa4153a16a084beaa11bf19cbe02c97e39dc262dc02",
+    "rows_jsonl_sha256":  "cac90c6684e1d0015c561ec9a95daffb9058a0394b7bf3992057af6a5be5d61e",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  227789,
+    "source_row_last":  227824,
+    "data_rows":  36,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:08:00"
+}
