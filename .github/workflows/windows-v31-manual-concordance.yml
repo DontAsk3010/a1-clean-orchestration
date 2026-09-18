@@ -1,0 +1,74 @@
+name: Windows V3.1 Manual Concordance Extract
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - 'v31-manual-concordance-requests/current.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-v31-manual-concordance
+  cancel-in-progress: false
+
+jobs:
+  extract:
+    name: Extract AALI Dec 2-3-4 V3.1 concordance evidence
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 120
+    env:
+      A1_RAW_DIR: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
+    steps:
+      - name: Checkout exact concordance revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate request install compile tests
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'v31-manual-concordance-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_V31_MANUAL_CONCORDANCE_REQUEST_V1') { throw 'V31_CONCORDANCE_REQUEST_SCHEMA_MISMATCH' }
+          if ($req.enabled -ne $true) { throw 'V31_CONCORDANCE_REQUEST_DISABLED' }
+          if ($req.v31_corpus_digest_sha256 -ne '9c2ed57ec60c81caaa0220ce57a7392473b2cf63eb23f8c846d4e961187e8732') { throw 'V31_CONCORDANCE_CORPUS_BINDING_MISMATCH' }
+          if ($req.manual_labels_used_as_target -ne $false) { throw 'V31_CONCORDANCE_HIDDEN_LABEL_FORBIDDEN' }
+          py -3.11 -m pip install -e '.[test]'
+          if ($LASTEXITCODE -ne 0) { throw 'V31_CONCORDANCE_INSTALL_FAILED' }
+          py -3.11 -m py_compile src/a1clean/formula_research/v31_manual_concordance_extract.py
+          if ($LASTEXITCODE -ne 0) { throw 'V31_CONCORDANCE_COMPILE_FAILED' }
+          py -3.11 -m pytest -q tests/test_v31_manual_concordance_extract.py tests/test_v31_full_chronological_semantic_enrichment.py
+          if ($LASTEXITCODE -ne 0) { throw 'V31_CONCORDANCE_TEST_FAILED' }
+
+      - name: Verify Drive reader credential binding
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:A1_DRIVE_READER_CREDENTIALS)) { throw 'A1_DRIVE_READER_CREDENTIALS_NOT_CONFIGURED' }
+          if (-not (Test-Path -LiteralPath $env:A1_DRIVE_READER_CREDENTIALS -PathType Leaf)) { throw 'A1_DRIVE_READER_CREDENTIALS_FILE_MISSING' }
+
+      - name: Extract exact V3.1 AALI Dec 2-3-4 evidence
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path 'v31-manual-concordance' | Out-Null
+          py -3.11 -m a1clean.formula_research.v31_manual_concordance_extract --output 'v31-manual-concordance\aali-dec2-3-4.json'
+          if ($LASTEXITCODE -ne 0) { throw 'V31_CONCORDANCE_EXTRACT_FAILED' }
+          $m = Get-Content -LiteralPath 'v31-manual-concordance\aali-dec2-3-4.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($m.status -ne 'PASS') { throw 'V31_CONCORDANCE_EXTRACT_NOT_PASS' }
+          if ($m.v31_corpus_digest_sha256 -ne '9c2ed57ec60c81caaa0220ce57a7392473b2cf63eb23f8c846d4e961187e8732') { throw 'V31_CONCORDANCE_OUTPUT_CORPUS_MISMATCH' }
+          if ($m.cases.Count -ne 3) { throw 'V31_CONCORDANCE_CASE_COUNT_MISMATCH' }
+          if ($m.contract.engine_logic_modified -ne $false) { throw 'V31_CONCORDANCE_ENGINE_MUTATION_FLAG' }
+          if ($m.contract.manual_labels_used_as_target -ne $false) { throw 'V31_CONCORDANCE_MANUAL_TARGET_FLAG' }
+
+      - name: Upload V3.1 concordance extract
+        uses: actions/upload-artifact@v4
+        with:
+          name: v31-manual-concordance-${{ github.run_id }}
+          path: v31-manual-concordance
+          if-no-files-found: error
+          retention-days: 30
