@@ -129,7 +129,10 @@ def packet_to_envelope_bars(packet, *, allow_haka_haki: bool = False) -> list[di
         raise RuntimeError("V32_PACKET_FORMULA_LENGTH_MISMATCH")
 
     out: list[dict[str, Any]] = []
+    packet_source_rows = tuple(getattr(packet, "source_rows", ()) or ())
     source_row_first = int(packet.identity.source_row_first)
+    if packet_source_rows and len(packet_source_rows) != len(packet.rows):
+        raise RuntimeError("V32_PACKET_SOURCE_ROW_CARDINALITY_MISMATCH")
     for i, (raw, base) in enumerate(zip(packet.rows, all_formula_bars, strict=True)):
         phase = classify_phase(raw)
         flags = {
@@ -173,7 +176,7 @@ def packet_to_envelope_bars(packet, *, allow_haka_haki: bool = False) -> list[di
         out.append(
             {
                 **dict(base),
-                "source_row": source_row_first + i,
+                "source_row": int(packet_source_rows[i]) if packet_source_rows else source_row_first + i,
                 "source_phase": phase,
                 "observation_role": phase,
                 "source_regular_phase": source_regular_phase,
