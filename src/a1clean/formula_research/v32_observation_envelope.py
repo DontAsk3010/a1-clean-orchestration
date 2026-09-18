@@ -127,7 +127,7 @@ def packet_to_envelope_bars(packet) -> list[dict[str, Any]]:
         session_code_num = _num_value(raw, "IDX_REGULAR_CLOCK_SESSION_CODE")
         session_code = int(session_code_num) if session_code_num is not None and session_code_num.is_integer() else session_code_num
         regular = bool(base.get("session_eligible"))
-        if regular != phase in {"REGULAR_SESSION1", "REGULAR_SESSION2"}:
+        if regular != (phase in {"REGULAR_SESSION1", "REGULAR_SESSION2"}):
             raise RuntimeError(
                 f"V32_REGULAR_PHASE_CONTRACT_MISMATCH:{packet.identity.ticker}:"
                 f"{packet.identity.trading_date}:{base.get('timestamp')}:{phase}:{regular}"
