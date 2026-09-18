@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BJTM",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bjtm-20241204",
+    "workflow_commit":  "9624c5e12011b87e9763185fcadb98ce22efc2af",
+    "github_run_id":  35399514963,
+    "github_artifact_id":  10569643331,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35399514963/artifacts/10569643331",
+    "github_artifact_digest":  "585b1fa2fb78926d5a776b2602b0ad0a03b445e5d3fa0cf5d1e594d210510c8d",
+    "packet_sha256":  "a1112e728991b5242ab70986d84eb97b762e24f2f830e399b9e3afe53acac4d5",
+    "rows_jsonl_sha256":  "3a8c7fc45abe7927e42faf942342bcbe49f247256a666ef651b1b37e45a163df",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  243199,
+    "source_row_last":  243443,
+    "data_rows":  245,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:14:00"
+}
