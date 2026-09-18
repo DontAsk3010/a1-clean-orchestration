@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BEKS",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-beks-20241204",
+    "workflow_commit":  "8dc297e49ce35a75c20b6d9507df0b1a915dc431",
+    "github_run_id":  35371428814,
+    "github_artifact_id":  10558598333,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35371428814/artifacts/10558598333",
+    "github_artifact_digest":  "9409ccbabb10916b9fe626ab7e859dd300c239e576630b9e1c3309d2222ac74e",
+    "packet_sha256":  "6baa0fcc2b7f4527a0e3bade0686777868801a00e2373ed9ec4be8d95d67c322",
+    "rows_jsonl_sha256":  "efd4cedb509a37881e83d73d12b774facb353b3c05047cac107acb580362d016",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  204830,
+    "source_row_last":  204834,
+    "data_rows":  5,
+    "first_datetime":  "2024-12-04 09:55:00",
+    "last_datetime":  "2024-12-04 16:00:00"
+}

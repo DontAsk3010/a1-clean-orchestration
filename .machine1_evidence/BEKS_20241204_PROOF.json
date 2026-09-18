@@ -1,0 +1,15 @@
+{
+  "ticker": "BEKS",
+  "trading_date": "2024-12-04",
+  "source_md5": "b8d42b35c90d2dff8b18ae4e1734523b",
+  "source_sha256": "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+  "semantic_bundle": "Raw Des 02-31-2024__SEMANTIC_0010.jsonl",
+  "semantic_bundle_line_number": 69,
+  "source_row_first": 204830,
+  "source_row_last": 204834,
+  "data_rows": 5,
+  "first_datetime": "2024-12-04 09:55:00",
+  "last_datetime": "2024-12-04 16:00:00",
+  "packet_sha256": "6baa0fcc2b7f4527a0e3bade0686777868801a00e2373ed9ec4be8d95d67c322",
+  "rows_jsonl_sha256": "efd4cedb509a37881e83d73d12b774facb353b3c05047cac107acb580362d016"
+}
