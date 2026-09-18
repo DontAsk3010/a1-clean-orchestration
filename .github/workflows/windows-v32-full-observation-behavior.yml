@@ -48,10 +48,10 @@ jobs:
           if ($req.regular_behavior_stream_isolated -ne $true) { throw 'V32_REGULAR_STREAM_ISOLATION_REQUIRED' }
           if ($req.behavior_lifecycle_required -ne $true) { throw 'V32_LIFECYCLE_REQUIRED' }
           if ($req.behavior_path_required -ne $true) { throw 'V32_BEHAVIOR_PATH_REQUIRED' }
-          if ($req.dual_reader_complete_source_scope_parity_proven -ne $true) { throw 'V32_DUAL_READER_SOURCE_PARITY_NOT_PROVEN' }
+          if ($req.dual_reader_complete_source_scope_parity_contract_ready -ne $true) { throw 'V32_DUAL_READER_SOURCE_PARITY_CONTRACT_NOT_READY' }
           if ($req.machine1_semantic_reader_remains_independent -ne $true) { throw 'V32_MACHINE1_INDEPENDENCE_NOT_PROVEN' }
           if ($req.formula_research_not_substitute_for_machine1_behavior_pass -ne $true) { throw 'V32_FORMULA_RESEARCH_CANNOT_SUBSTITUTE_MACHINE1' }
-          if ($req.full_behavior_requirement_retrievability_proven -ne $true) { throw 'V32_BEHAVIOR_RETRIEVABILITY_NOT_PROVEN' }
+          if ($req.manual_benchmark_evidence_retrievability_contract_ready -ne $true) { throw 'V32_MANUAL_BENCHMARK_RETRIEVAL_CONTRACT_NOT_READY' }
           if ($req.master_and_behavior_handbook_revision_bound -ne $true) { throw 'V32_AUTHORITY_REVISION_BINDING_REQUIRED' }
           if ($req.unnamed_state_transitions_must_be_preserved -ne $true) { throw 'V32_UNNAMED_TRANSITIONS_REQUIRED' }
           if ($req.manual_labels_used_as_hidden_targets -ne $false) { throw 'V32_MANUAL_HIDDEN_TARGET_FORBIDDEN' }
@@ -119,6 +119,9 @@ jobs:
           if ($m.contract.all_source_columns_retrievable_from_full_observation_layer -ne $true) { throw 'V32_SOURCE_FIELD_RETRIEVABILITY_FAIL' }
           if ($m.contract.source_values_retained_for_every_observation -ne $true) { throw 'V32_SOURCE_VALUES_RETENTION_FAIL' }
           if ($m.contract.source_packet_fingerprint_preserved -ne $true) { throw 'V32_SOURCE_PACKET_FINGERPRINT_FAIL' }
+          if ($m.contract.manual_benchmark_evidence_retrievability_supported -ne $true) { throw 'V32_MANUAL_BENCHMARK_RETRIEVABILITY_FAIL' }
+          if ($m.contract.semantic_interpretation_independence_preserved -ne $true) { throw 'V32_SEMANTIC_INDEPENDENCE_FAIL' }
+          if ($m.contract.full_layer_has_source_file_hash_generation_row_time_and_all_field_values -ne $true) { throw 'V32_FULL_TRACEBACK_CONTRACT_FAIL' }
           if ($m.contract.cross_date_carry_uses_terminal_source_observation -ne $true) { throw 'V32_TERMINAL_CARRY_FLAG_FAIL' }
           if ($m.contract.manual_behavior_lifecycle_contract_materialized -ne $true) { throw 'V32_LIFECYCLE_FLAG_FAIL' }
           if ($m.contract.all_formation_runs_and_state_changes_materialized_in_behavior_path -ne $true) { throw 'V32_BEHAVIOR_PATH_FLAG_FAIL' }
