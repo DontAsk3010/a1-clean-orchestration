@@ -520,7 +520,15 @@ def run(*, output_root: Path) -> dict[str, Any]:
                         )
                 regular = [x for x in envelope if x.get("regular_behavior_eligible")]
                 nonregular = [x for x in envelope if not x.get("regular_behavior_eligible")]
-                layer_identity = {"schema": SCHEMA, "source": source, "ticker": ticker, "date": day}
+                layer_identity = {
+                    "schema": SCHEMA,
+                    "source": source,
+                    "source_drive_id": src.get("source_drive_id"),
+                    "source_sha256": src.get("source_sha256"),
+                    "generation_id": src.get("generation_id"),
+                    "ticker": ticker,
+                    "date": day,
+                }
                 full_layer_fh.write(
                     json.dumps(
                         {
@@ -869,6 +877,9 @@ def run(*, output_root: Path) -> dict[str, Any]:
             "all_source_columns_retrievable_from_full_observation_layer": True,
             "source_values_retained_for_every_observation": True,
             "source_packet_fingerprint_preserved": True,
+            "manual_benchmark_evidence_retrievability_supported": True,
+            "semantic_interpretation_independence_preserved": True,
+            "full_layer_has_source_file_hash_generation_row_time_and_all_field_values": True,
             "phase_from_source_flags_not_clock_inference": True,
             "regular_state_engine_preserved": True,
             "nonregular_context_not_injected_into_regular_state_machine": True,
