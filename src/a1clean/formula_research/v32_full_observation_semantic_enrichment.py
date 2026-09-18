@@ -4,6 +4,7 @@ import argparse
 import gzip
 import hashlib
 import json
+import os
 import sqlite3
 from collections import Counter
 from pathlib import Path
@@ -16,6 +17,11 @@ from .v30_semantic_journey_enrichment import (
     _slug,
     _write_gz_jsonl,
     enrich_ticker_day,
+)
+from .v32_behavior_lifecycle import (
+    LIFECYCLE_TIMING_FIELDS,
+    SCHEMA as V32_LIFECYCLE_SCHEMA,
+    enrich_behavior_lifecycle,
 )
 from .v32_observation_envelope import (
     FULL_CHRONOLOGICAL_SOURCE_NAMES,
@@ -37,6 +43,13 @@ def _rewrite_v32(record: dict[str, Any]) -> dict[str, Any]:
     out["schema"] = SCHEMA
     out["lineage_version"] = "V3.2_FULL_OBSERVATION_AND_BEHAVIOR_CAPABILITY"
     return out
+
+
+def _software_revision() -> str:
+    value = os.environ.get("A1_V32_SOFTWARE_REVISION", "").strip()
+    if not value:
+        raise RuntimeError("V32_SOFTWARE_REVISION_REQUIRED")
+    return value
 
 
 def _sha256_file(path: Path) -> str:
@@ -366,6 +379,7 @@ def _checkpoint_ok(path: Path, src: Mapping[str, Any], digest: str, software_rev
         and obj.get("status") == "PASS"
         and obj.get("envelope_digest_sha256") == digest
         and obj.get("source") == src.get("source_name")
+        and obj.get("software_revision") == software_revision
         and int(obj.get("ticker_days", -1)) == int(src.get("ticker_days", -2))
         and int(obj.get("source_rows", -1)) == int(src.get("source_rows", -2))
         and int(obj.get("regular_rows", -1)) == int(src.get("regular_rows", -2))
@@ -382,6 +396,9 @@ def _checkpoint_ok(path: Path, src: Mapping[str, Any], digest: str, software_rev
         "phase_context",
         "full_observation_envelope",
         "regular_behavior_stream",
+        "behavior_day_profiles",
+        "behavior_lifecycle",
+        "behavior_paths",
     }
     if not required.issubset(outputs):
         return False
@@ -403,6 +420,7 @@ def _checkpoint_ok(path: Path, src: Mapping[str, Any], digest: str, software_rev
 
 
 def run(*, output_root: Path) -> dict[str, Any]:
+    software_revision = _software_revision()
     catalog = ensure_full_observation_caches()
     if catalog["status"] != "PASS":
         raise RuntimeError("V32_ENVELOPE_CATALOG_NOT_PASS")
@@ -450,6 +468,12 @@ def run(*, output_root: Path) -> dict[str, Any]:
                 "right_censored_journeys",
                 "no_forced_event_ticker_days",
                 "phase_context_records",
+                "behavior_day_profiles",
+                "behavior_lifecycle_journeys",
+                "behavior_lifecycle_open_journeys",
+                "behavior_lifecycle_contract_records",
+                "behavior_paths",
+                "behavior_state_transitions",
             ):
                 totals[key] += int(cp.get(key, 0))
             _restore_journey_carry(db, source_dir)
@@ -462,16 +486,22 @@ def run(*, output_root: Path) -> dict[str, Any]:
         context_path = source_dir / "phase-context.jsonl.gz"
         full_layer_path = source_dir / "full-observation-envelope.jsonl.gz"
         regular_layer_path = source_dir / "regular-behavior-stream.jsonl.gz"
+        behavior_day_path = source_dir / "behavior-day-profiles.jsonl.gz"
+        behavior_lifecycle_path = source_dir / "behavior-lifecycle.jsonl.gz"
+        behavior_path_path = source_dir / "behavior-paths.jsonl.gz"
         td_tmp = td_path.with_suffix(td_path.suffix + ".tmp")
         runs_tmp = runs_path.with_suffix(runs_path.suffix + ".tmp")
         journeys_tmp = journeys_path.with_suffix(journeys_path.suffix + ".tmp")
         context_tmp = context_path.with_suffix(context_path.suffix + ".tmp")
         full_layer_tmp = full_layer_path.with_suffix(full_layer_path.suffix + ".tmp")
         regular_layer_tmp = regular_layer_path.with_suffix(regular_layer_path.suffix + ".tmp")
+        behavior_day_tmp = behavior_day_path.with_suffix(behavior_day_path.suffix + ".tmp")
+        behavior_lifecycle_tmp = behavior_lifecycle_path.with_suffix(behavior_lifecycle_path.suffix + ".tmp")
+        behavior_path_tmp = behavior_path_path.with_suffix(behavior_path_path.suffix + ".tmp")
         counts = Counter()
         allow_haka_haki = source == str(DEC_2024_CONTRACT["source_name"])
 
-        with gzip.open(td_tmp, "wt", encoding="utf-8", newline="\n") as td_fh,              gzip.open(runs_tmp, "wt", encoding="utf-8", newline="\n") as runs_fh,              gzip.open(journeys_tmp, "wt", encoding="utf-8", newline="\n") as journeys_fh,              gzip.open(context_tmp, "wt", encoding="utf-8", newline="\n") as context_fh,              gzip.open(full_layer_tmp, "wt", encoding="utf-8", newline="\n") as full_layer_fh,              gzip.open(regular_layer_tmp, "wt", encoding="utf-8", newline="\n") as regular_layer_fh:
+        with gzip.open(td_tmp, "wt", encoding="utf-8", newline="\n") as td_fh,              gzip.open(runs_tmp, "wt", encoding="utf-8", newline="\n") as runs_fh,              gzip.open(journeys_tmp, "wt", encoding="utf-8", newline="\n") as journeys_fh,              gzip.open(context_tmp, "wt", encoding="utf-8", newline="\n") as context_fh,              gzip.open(full_layer_tmp, "wt", encoding="utf-8", newline="\n") as full_layer_fh,              gzip.open(regular_layer_tmp, "wt", encoding="utf-8", newline="\n") as regular_layer_fh,              gzip.open(behavior_day_tmp, "wt", encoding="utf-8", newline="\n") as behavior_day_fh,              gzip.open(behavior_lifecycle_tmp, "wt", encoding="utf-8", newline="\n") as behavior_lifecycle_fh,              gzip.open(behavior_path_tmp, "wt", encoding="utf-8", newline="\n") as behavior_path_fh:
             for packet in iter_envelope_cached(source):
                 ticker = str(packet.get("ticker") or "")
                 day = str(packet.get("date") or "")
@@ -511,6 +541,22 @@ def run(*, output_root: Path) -> dict[str, Any]:
                 td = _rewrite_v32(td)
                 runs = [_rewrite_v32(dict(x)) for x in runs]
                 journeys = [_rewrite_v32(dict(x)) for x in journeys]
+                behavior_day, lifecycle_records, behavior_path = enrich_behavior_lifecycle(
+                    bars=regular,
+                    full_envelope=envelope,
+                    runs=runs,
+                    journeys=journeys,
+                    source=source,
+                    ticker=ticker,
+                    trading_date=day,
+                    carry_in=carry,
+                )
+                if len(lifecycle_records) != len(journeys):
+                    raise RuntimeError(f"V32_LIFECYCLE_JOURNEY_COVERAGE_FAIL:{source}:{ticker}:{day}")
+                behavior_day_fh.write(json.dumps(behavior_day, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n")
+                for rec in lifecycle_records:
+                    behavior_lifecycle_fh.write(json.dumps(rec, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n")
+                behavior_path_fh.write(json.dumps(behavior_path, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n")
                 _store_journey_carry(db, ticker=ticker, day=day, journeys=journeys)
 
                 phases = Counter(str(x.get("source_phase")) for x in envelope)
@@ -533,6 +579,10 @@ def run(*, output_root: Path) -> dict[str, Any]:
                         "source_observation_zero": len(envelope) == 0,
                         "terminal_carry_uses_source_envelope": True,
                         "nonregular_context_not_injected_into_regular_state_machine": True,
+                        "behavior_lifecycle_schema": V32_LIFECYCLE_SCHEMA,
+                        "behavior_lifecycle_journey_count": len(lifecycle_records),
+                        "behavior_lifecycle_open_journey_count": int(behavior_day["open_right_censored_journey_count"]),
+                        "behavior_lifecycle_contract": behavior_day["lifecycle_contract"],
                     }
                 )
 
@@ -564,6 +614,12 @@ def run(*, output_root: Path) -> dict[str, Any]:
                 counts["right_censored_journeys"] += int(td["open_right_censored_journey_count"])
                 counts["no_forced_event_ticker_days"] += int(td["no_forced_event"])
                 counts["phase_context_records"] += len(nonregular)
+                counts["behavior_day_profiles"] += 1
+                counts["behavior_lifecycle_journeys"] += len(lifecycle_records)
+                counts["behavior_lifecycle_open_journeys"] += int(behavior_day["open_right_censored_journey_count"])
+                counts["behavior_lifecycle_contract_records"] += sum(int(bool(x.get("timing_contract_complete"))) for x in lifecycle_records)
+                counts["behavior_paths"] += 1
+                counts["behavior_state_transitions"] += int(behavior_path["state_transition_count"])
                 if len(sample) < 150:
                     sample.append(td)
 
@@ -573,6 +629,9 @@ def run(*, output_root: Path) -> dict[str, Any]:
         context_tmp.replace(context_path)
         full_layer_tmp.replace(full_layer_path)
         regular_layer_tmp.replace(regular_layer_path)
+        behavior_day_tmp.replace(behavior_day_path)
+        behavior_lifecycle_tmp.replace(behavior_lifecycle_path)
+        behavior_path_tmp.replace(behavior_path_path)
         db.commit()
 
         if counts["ticker_days"] != int(src["ticker_days"]):
@@ -585,6 +644,14 @@ def run(*, output_root: Path) -> dict[str, Any]:
             raise RuntimeError(f"V32_SOURCE_NONREGULAR_FAIL:{source}:{dict(counts)}")
         if counts["source_rows"] != counts["regular_rows"] + counts["nonregular_rows"]:
             raise RuntimeError(f"V32_SOURCE_LAYER_ACCOUNTING_FAIL:{source}:{dict(counts)}")
+        if counts["behavior_day_profiles"] != counts["ticker_days"]:
+            raise RuntimeError(f"V32_SOURCE_BEHAVIOR_DAY_COVERAGE_FAIL:{source}:{dict(counts)}")
+        if counts["behavior_lifecycle_journeys"] != counts["event_journeys"]:
+            raise RuntimeError(f"V32_SOURCE_LIFECYCLE_JOURNEY_COVERAGE_FAIL:{source}:{dict(counts)}")
+        if counts["behavior_lifecycle_contract_records"] != counts["behavior_lifecycle_journeys"]:
+            raise RuntimeError(f"V32_SOURCE_LIFECYCLE_CONTRACT_FAIL:{source}:{dict(counts)}")
+        if counts["behavior_paths"] != counts["ticker_days"]:
+            raise RuntimeError(f"V32_SOURCE_BEHAVIOR_PATH_COVERAGE_FAIL:{source}:{dict(counts)}")
 
         output_files = {
             "ticker_days": {
@@ -617,6 +684,21 @@ def run(*, output_root: Path) -> dict[str, Any]:
                 "sha256": _sha256_file(regular_layer_path),
                 "bytes": regular_layer_path.stat().st_size,
             },
+            "behavior_day_profiles": {
+                "name": behavior_day_path.name,
+                "sha256": _sha256_file(behavior_day_path),
+                "bytes": behavior_day_path.stat().st_size,
+            },
+            "behavior_lifecycle": {
+                "name": behavior_lifecycle_path.name,
+                "sha256": _sha256_file(behavior_lifecycle_path),
+                "bytes": behavior_lifecycle_path.stat().st_size,
+            },
+            "behavior_paths": {
+                "name": behavior_path_path.name,
+                "sha256": _sha256_file(behavior_path_path),
+                "bytes": behavior_path_path.stat().st_size,
+            },
         }
 
         cp = {
@@ -625,6 +707,7 @@ def run(*, output_root: Path) -> dict[str, Any]:
             "research_status": STATUS,
             "envelope_digest_sha256": envelope_digest,
             "source": source,
+            "software_revision": software_revision,
             "source_drive_id": src.get("source_drive_id"),
             "source_sha256": src.get("source_sha256"),
             **{k: int(v) for k, v in counts.items()},
@@ -634,6 +717,9 @@ def run(*, output_root: Path) -> dict[str, Any]:
             "phase_context_file": context_path.name,
             "full_observation_layer_file": full_layer_path.name,
             "regular_behavior_stream_file": regular_layer_path.name,
+            "behavior_day_profile_file": behavior_day_path.name,
+            "behavior_lifecycle_file": behavior_lifecycle_path.name,
+            "behavior_path_file": behavior_path_path.name,
             "output_files": output_files,
             "full_observation_rows": int(counts["source_rows"]),
             "regular_behavior_rows": int(counts["regular_rows"]),
@@ -644,6 +730,11 @@ def run(*, output_root: Path) -> dict[str, Any]:
             "regular_state_engine_preserved": True,
             "nonregular_context_not_injected_into_regular_state_machine": True,
             "terminal_carry_uses_source_envelope": True,
+            "manual_behavior_lifecycle_contract_materialized": True,
+            "all_event_journeys_have_lifecycle_representation": True,
+            "observation_only_days_preserved": True,
+            "unnamed_state_transitions_preserved": True,
+            "all_machine_state_changes_preserved_without_event_label": True,
             "v31_rewritten": False,
         }
         checkpoint.write_text(json.dumps(cp, indent=2, sort_keys=True), encoding="utf-8")
@@ -660,6 +751,14 @@ def run(*, output_root: Path) -> dict[str, Any]:
         raise RuntimeError(f"V32_GLOBAL_NONREGULAR_ROW_FAIL:{dict(totals)}")
     if totals["source_rows"] != totals["regular_rows"] + totals["nonregular_rows"]:
         raise RuntimeError(f"V32_GLOBAL_LAYER_ACCOUNTING_FAIL:{dict(totals)}")
+    if totals["behavior_day_profiles"] != totals["ticker_days"]:
+        raise RuntimeError(f"V32_GLOBAL_BEHAVIOR_DAY_COVERAGE_FAIL:{dict(totals)}")
+    if totals["behavior_lifecycle_journeys"] != totals["event_journeys"]:
+        raise RuntimeError(f"V32_GLOBAL_LIFECYCLE_JOURNEY_COVERAGE_FAIL:{dict(totals)}")
+    if totals["behavior_lifecycle_contract_records"] != totals["behavior_lifecycle_journeys"]:
+        raise RuntimeError(f"V32_GLOBAL_LIFECYCLE_CONTRACT_FAIL:{dict(totals)}")
+    if totals["behavior_paths"] != totals["ticker_days"]:
+        raise RuntimeError(f"V32_GLOBAL_BEHAVIOR_PATH_COVERAGE_FAIL:{dict(totals)}")
 
     # Exact AALI concordance gates for the blind spot that opened V3.2.
     aali = {}
@@ -723,6 +822,9 @@ def run(*, output_root: Path) -> dict[str, Any]:
         "schema": SCHEMA,
         "status": "PASS",
         "research_status": STATUS,
+        "software_revision": software_revision,
+        "behavior_lifecycle_schema": V32_LIFECYCLE_SCHEMA,
+        "behavior_lifecycle_timing_fields": list(LIFECYCLE_TIMING_FIELDS),
         "v31_baseline": {
             "run_id": V31_RUN_ID,
             "artifact_id": V31_ARTIFACT_ID,
@@ -746,6 +848,20 @@ def run(*, output_root: Path) -> dict[str, Any]:
             "v2x_not_rewritten": True,
             "missing_unproven_not_zero": True,
             "causal_view_separate_from_hindsight": True,
+            "manual_behavior_lifecycle_contract_materialized": True,
+            "prior_condition_preserved": True,
+            "precursor_slot_preserved_without_forced_inference": True,
+            "initiation_first_detectable_change_point_known_at_preserved": True,
+            "confirmation_extreme_weakening_recovery_failure_preserved_when_source_proven": True,
+            "rebase_transformation_invalidation_end_followthrough_slots_preserved": True,
+            "formation_sequence_preserved_per_event": True,
+            "source_gap_uncertainty_preserved": True,
+            "connected_sequence_context_preserved_without_forced_merge": True,
+            "observation_only_days_preserved": True,
+            "all_v31_event_journeys_have_lifecycle_representation": True,
+            "unnamed_state_transitions_preserved": True,
+            "all_formation_runs_and_state_changes_materialized_in_behavior_path": True,
+            "software_revision_pinned": True,
         },
         "reconciliation": {
             "pass": True,
@@ -767,6 +883,16 @@ def run(*, output_root: Path) -> dict[str, Any]:
             "right_censored_journeys": int(totals["right_censored_journeys"]),
             "no_forced_event_ticker_days": int(totals["no_forced_event_ticker_days"]),
             "phase_context_records": int(totals["phase_context_records"]),
+            "behavior_day_profiles": int(totals["behavior_day_profiles"]),
+            "behavior_lifecycle_journeys": int(totals["behavior_lifecycle_journeys"]),
+            "behavior_lifecycle_open_journeys": int(totals["behavior_lifecycle_open_journeys"]),
+            "behavior_lifecycle_contract_records": int(totals["behavior_lifecycle_contract_records"]),
+            "behavior_paths": int(totals["behavior_paths"]),
+            "behavior_state_transitions": int(totals["behavior_state_transitions"]),
+            "behavior_day_profile_coverage_pass": int(totals["behavior_day_profiles"]) == int(totals["ticker_days"]),
+            "behavior_lifecycle_journey_coverage_pass": int(totals["behavior_lifecycle_journeys"]) == int(totals["event_journeys"]),
+            "behavior_lifecycle_contract_pass": int(totals["behavior_lifecycle_contract_records"]) == int(totals["behavior_lifecycle_journeys"]),
+            "behavior_path_coverage_pass": int(totals["behavior_paths"]) == int(totals["ticker_days"]),
             "governed_dates": len(dates),
             "reused_pass_sources": reused_sources,
         },

@@ -226,7 +226,7 @@ def test_v32_behavior_lifecycle_materializes_manual_contract_without_hidden_targ
         "hindsight_resolution": {"resolution_status": "FAILED_BELOW_RECOVERY_START_CLOSE", "resolution_index": 3, "resolution_timestamp": bars[3]["timestamp"], "right_censored": False},
         "future_resolution_not_used_to_define_start": True,
     }]
-    profile, lifecycle = enrich_behavior_lifecycle(
+    profile, lifecycle, path = enrich_behavior_lifecycle(
         bars=bars,
         full_envelope=bars,
         runs=runs,
@@ -252,6 +252,9 @@ def test_v32_behavior_lifecycle_materializes_manual_contract_without_hidden_targ
     assert rec["formation_sequence"][0]["role"] == "PRIOR_CONDITION_RUN"
     assert profile["lifecycle_contract"]["formation_sequence"] is True
     assert profile["no_forced_event"] is False
+    assert path["formation_run_count"] == 3
+    assert path["state_transition_count"] == 2
+    assert path["all_machine_state_changes_preserved_even_without_event_label"] is True
 
 
 def test_v32_behavior_lifecycle_preserves_open_and_no_event_states():
@@ -261,7 +264,7 @@ def test_v32_behavior_lifecycle_preserves_open_and_no_event_states():
         {"timestamp": "2024-12-02 09:00:00", "source_row": 1, "open": 100, "high": 100, "low": 100, "close": 100, "volume": 10, "trade_value": 1000, "flow_available": False, "mechanism_eligible": False, "regular_behavior_eligible": True},
         {"timestamp": "2024-12-02 09:01:00", "source_row": 2, "open": 100, "high": 101, "low": 100, "close": 101, "volume": 10, "trade_value": 1010, "flow_available": False, "mechanism_eligible": False, "regular_behavior_eligible": True},
     ]
-    profile0, rec0 = enrich_behavior_lifecycle(
+    profile0, rec0, path0 = enrich_behavior_lifecycle(
         bars=bars,
         full_envelope=bars,
         runs=[],
@@ -274,13 +277,14 @@ def test_v32_behavior_lifecycle_preserves_open_and_no_event_states():
     assert rec0 == []
     assert profile0["no_forced_event"] is True
     assert profile0["observation_only_day_preserved"] is True
+    assert path0["no_forced_event"] is True
 
     journey = {
         "journey_kind": "RECOVERY",
         "causal_start": {"index": 1, "timestamp": bars[1]["timestamp"]},
         "hindsight_resolution": {"resolution_status": "OPEN_RIGHT_CENSORED", "resolution_timestamp": None, "right_censored": True},
     }
-    profile1, rec1 = enrich_behavior_lifecycle(
+    profile1, rec1, path1 = enrich_behavior_lifecycle(
         bars=bars,
         full_envelope=bars,
         runs=[{"start_index": 0, "end_index": 0, "start_timestamp": bars[0]["timestamp"], "end_timestamp": bars[0]["timestamp"], "row_count": 1, "state_key": "A", "state": {}, "start_close": 100, "end_close": 100}, {"start_index": 1, "end_index": 1, "start_timestamp": bars[1]["timestamp"], "end_timestamp": bars[1]["timestamp"], "row_count": 1, "state_key": "B", "state": {}, "start_close": 101, "end_close": 101}],
@@ -293,3 +297,4 @@ def test_v32_behavior_lifecycle_preserves_open_and_no_event_states():
     assert rec1[0]["timing"]["event_end_time"] == "OPEN"
     assert rec1[0]["right_censored_open"] is True
     assert profile1["open_right_censored_journey_count"] == 1
+    assert path1["lifecycle_journey_count"] == 1

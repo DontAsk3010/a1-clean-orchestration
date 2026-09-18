@@ -352,6 +352,101 @@ def _critical_evidence(
     return out
 
 
+def _run_summary(run: Mapping[str, Any], ordinal: int) -> dict[str, Any]:
+    return {
+        "run_ordinal": ordinal,
+        "start_index": run.get("start_index"),
+        "end_index": run.get("end_index"),
+        "start_timestamp": run.get("start_timestamp"),
+        "end_timestamp": run.get("end_timestamp"),
+        "row_count": run.get("row_count"),
+        "state_key": run.get("state_key"),
+        "state": run.get("state"),
+        "start_close": run.get("start_close"),
+        "end_close": run.get("end_close"),
+    }
+
+
+def _behavior_path_record(
+    *,
+    source: str,
+    ticker: str,
+    trading_date: str,
+    bars: Sequence[Mapping[str, Any]],
+    full_envelope: Sequence[Mapping[str, Any]],
+    runs: Sequence[Mapping[str, Any]],
+    lifecycle_records: Sequence[Mapping[str, Any]],
+    carry_in: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    run_path = [_run_summary(run, i + 1) for i, run in enumerate(runs)]
+    transitions: list[dict[str, Any]] = []
+    dimension_change_counts: Counter[str] = Counter()
+    for i in range(1, len(runs)):
+        prev = runs[i - 1]
+        cur = runs[i]
+        prev_state = dict(prev.get("state") or {})
+        cur_state = dict(cur.get("state") or {})
+        keys = sorted(set(prev_state) | set(cur_state))
+        changed = {
+            key: {"from": prev_state.get(key), "to": cur_state.get(key)}
+            for key in keys
+            if prev_state.get(key) != cur_state.get(key)
+        }
+        for key in changed:
+            dimension_change_counts[key] += 1
+        transitions.append(
+            {
+                "transition_ordinal": i,
+                "known_at_time": cur.get("start_timestamp"),
+                "from_run_ordinal": i,
+                "to_run_ordinal": i + 1,
+                "from_state_key": prev.get("state_key"),
+                "to_state_key": cur.get("state_key"),
+                "changed_dimensions": changed,
+                "from_end_close": prev.get("end_close"),
+                "to_start_close": cur.get("start_close"),
+                "causal_only": True,
+                "manual_label_used": False,
+            }
+        )
+
+    return {
+        "schema": SCHEMA,
+        "source": source,
+        "ticker": ticker,
+        "date": trading_date,
+        "prior_condition_carry": dict(carry_in or {}) if carry_in else None,
+        "first_regular_observation": _snapshot(bars[0], 0) if bars else None,
+        "last_regular_observation": _snapshot(bars[-1], len(bars) - 1) if bars else None,
+        "last_source_supported_observation": _snapshot(
+            full_envelope[-1], len(full_envelope) - 1
+        ) if full_envelope else None,
+        "formation_run_count": len(run_path),
+        "formation_run_path": run_path,
+        "state_transition_count": len(transitions),
+        "state_transitions": transitions,
+        "state_dimension_change_counts": dict(sorted(dimension_change_counts.items())),
+        "lifecycle_journey_count": len(lifecycle_records),
+        "lifecycle_journey_refs": [
+            {
+                "journey_id": rec.get("journey_id"),
+                "journey_kind": rec.get("journey_kind"),
+                "journey_ordinal": rec.get("journey_ordinal"),
+                "event_start_time": (rec.get("timing") or {}).get("event_start_time"),
+                "event_end_time": (rec.get("timing") or {}).get("event_end_time"),
+                "right_censored_open": rec.get("right_censored_open"),
+            }
+            for rec in lifecycle_records
+        ],
+        "no_forced_event": len(lifecycle_records) == 0,
+        "unnamed_state_transitions_preserved": True,
+        "all_machine_state_changes_preserved_even_without_event_label": True,
+        "manual_semantic_label_not_required_for_preservation": True,
+        "causal_order_preserved": True,
+        "full_source_terminal_context_preserved": True,
+    }
+
+
 def enrich_behavior_lifecycle(
     *,
     bars: Sequence[Mapping[str, Any]],
@@ -362,7 +457,7 @@ def enrich_behavior_lifecycle(
     ticker: str,
     trading_date: str,
     carry_in: Mapping[str, Any] | None,
-) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any]]:
     session_open = _safe_float(bars[0].get("open")) if bars else None
     records: list[dict[str, Any]] = []
 
@@ -523,6 +618,10 @@ def enrich_behavior_lifecycle(
 
     close_values = [_safe_float(x.get("close")) for x in bars]
     close_values = [x for x in close_values if x is not None]
+    high_values = [_safe_float(x.get("high")) for x in bars]
+    high_values = [x for x in high_values if x is not None]
+    low_values = [_safe_float(x.get("low")) for x in bars]
+    low_values = [x for x in low_values if x is not None]
     total_volume = sum((_safe_float(x.get("volume")) or 0.0) for x in bars) if bars else 0.0
     total_value = sum((_safe_float(x.get("trade_value")) or 0.0) for x in bars) if bars else 0.0
     unchanged_with_activity = 0
@@ -556,8 +655,8 @@ def enrich_behavior_lifecycle(
         "distinct_regular_close_count": len(set(close_values)),
         "regular_first_close": close_values[0] if close_values else None,
         "regular_last_close": close_values[-1] if close_values else None,
-        "regular_high": max((_safe_float(x.get("high")) for x in bars), default=None),
-        "regular_low": min((_safe_float(x.get("low")) for x in bars), default=None),
+        "regular_high": max(high_values) if high_values else None,
+        "regular_low": min(low_values) if low_values else None,
         "total_regular_volume": total_volume,
         "total_regular_trade_value": total_value,
         "unchanged_close_with_activity_observation_count": unchanged_with_activity,
@@ -588,4 +687,14 @@ def enrich_behavior_lifecycle(
             "arbitrary_threshold": False,
         },
     }
-    return day_profile, records
+    behavior_path = _behavior_path_record(
+        source=source,
+        ticker=ticker,
+        trading_date=trading_date,
+        bars=bars,
+        full_envelope=full_envelope,
+        runs=runs,
+        lifecycle_records=records,
+        carry_in=carry_in,
+    )
+    return day_profile, records, behavior_path
