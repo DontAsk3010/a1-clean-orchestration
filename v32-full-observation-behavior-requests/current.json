@@ -2,7 +2,7 @@
   "schema": "A1_V32_FULL_OBSERVATION_BEHAVIOR_REQUEST_V1",
   "enabled": false,
   "purpose": "HOLD: V3.2 full-corpus execution is disabled until MASTER + Behavior Handbook + owner complaint/order are mapped into an explicit evidence-parity and retrieval-coverage contract. Different reader mechanisms are allowed; different source-evidence completeness is forbidden.",
-  "required_parent_revision": "8cd48631bf3a7f72bc4468d7c8a3fae24163dbd8",
+  "required_parent_revision": "98032b078366c6a6ed8b741db676c02e4006acda",
   "required_source_count": 18,
   "march_2025_required": true,
   "full_source_supported_observation_envelope": true,
@@ -36,11 +36,12 @@
   "master_revision_id": "ANLCKQmU9Jd_0_QHgWoqpN0wfzQwLE-XFB3YXcXc9eUZQvg6U8JfomjhTSU97OkX-C_cRP0LL-3np5daG0V5UPREJ2EdU8o6PPewqVhCAn8",
   "behavior_handbook_document_id": "1vDoz8E7nGVlYPl2SBneA2tCAiNNAL77nLgPPZzFlbaI",
   "behavior_handbook_revision_id": "ANLCKQmzOeA7BeeZ6Ja93qdXxx577cMmivy5owVoWQC9JPSo8bNeO0tQ-BuooIkncx-YloBbA7da5LXEzN6vi5jqkpVOoWUwvdt5oeGeMUs",
-  "next_activation_gate": "DO_NOT_ENABLE until source-scope parity and full behavior-requirement retrievability are both proven from the live MASTER/Behavior Handbook and read back.",
+  "next_activation_gate": "DO NOT ENABLE until complete source-field retrievability, full behavior benchmark coverage, and dual-reader evidence completeness parity are all proven and read back.",
   "manual_behavior_handbook_is_immutable_benchmark": true,
   "manual_behavior_handbook_must_not_be_modified_to_fit_machine": true,
   "benchmark_definition": "PEKERJAAN_MEMBACA_PERILAKU_PASAR handbook plus source-grounded manual semantic outputs define the minimum evidence-completeness benchmark. Machine 1 and Machine 2 may use independent reading mechanisms, but neither may expose less source-supported evidence than this benchmark where that evidence exists in the canonical source.",
   "parity_definition": "METHOD_INDEPENDENT_EVIDENCE_COMPLETENESS_PARITY",
   "parity_rule": "Different mechanisms are allowed; different completeness of retrievable source-supported evidence is forbidden.",
-  "prohibition": "DO_NOT_CHANGE_MANUAL_BEHAVIOR_HANDBOOK_TO_MAKE_MACHINE_OUTPUT_PASS"
+  "prohibition": "DO_NOT_CHANGE_MANUAL_BEHAVIOR_HANDBOOK_TO_MAKE_MACHINE_OUTPUT_PASS",
+  "all_source_columns_retrievable_required": true
 }
