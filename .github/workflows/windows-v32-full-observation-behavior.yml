@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: a1-windows-v32-full-observation-behavior
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   enrich:
