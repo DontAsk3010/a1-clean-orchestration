@@ -1,0 +1,14 @@
+{
+  "schema": "A1_V32_SESSION_PHASE_PROBE_REQUEST_V1",
+  "enabled": true,
+  "owner_lock_date": "2026-09-18",
+  "purpose": "Inspect the exact full semantic packet header and source field values for AALI 2024-12-02 to identify source-proven session/phase evidence for regular versus nonregular observations before V3.2 implementation.",
+  "source": "Raw Des 02-31-2024.csv",
+  "ticker": "AALI",
+  "trading_date": "2024-12-02",
+  "expected_packet_rows": 104,
+  "expected_v31_regular_rows": 102,
+  "phase_inferred_from_clock": false,
+  "canonical_raw_mutated": false,
+  "v31_mutated": false
+}
