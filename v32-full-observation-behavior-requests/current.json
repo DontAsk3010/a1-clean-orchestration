@@ -2,7 +2,7 @@
   "schema": "A1_V32_FULL_OBSERVATION_BEHAVIOR_REQUEST_V1",
   "enabled": false,
   "purpose": "HOLD: V3.2 full-corpus execution is disabled until MASTER + Behavior Handbook + owner complaint/order are mapped into an explicit evidence-parity and retrieval-coverage contract. Different reader mechanisms are allowed; different source-evidence completeness is forbidden.",
-  "required_parent_revision": "2eb915b82d36c598a79fd12cde78f38f5940313f",
+  "required_parent_revision": "d813845dc87e84e491ac08d47d464eb716167c28",
   "required_source_count": 18,
   "march_2025_required": true,
   "full_source_supported_observation_envelope": true,
@@ -26,5 +26,15 @@
   "expected_governed_dates": 347,
   "owner_lock_date": "2026-09-18",
   "hold_reason": "KNOWN_INCOMPLETE_SCOPE_BEFORE_FULL_CORPUS: current V3.2 preserves full observation envelope and lifecycle/path structure but does not yet prove one-to-one coverage/retrievability for the complete behavior-reading requirements and manual/owner complaint set.",
-  "owner_parity_lock": "MESIN_2_MAY_USE_MECHANISM_A_AND_MESIN_1_MECHANISM_B_BUT_BOTH_MUST_TRACE_TO_COMPLETE_SOURCE_SUPPORTED_EVIDENCE"
+  "owner_parity_lock": "MESIN_2_MAY_USE_MECHANISM_A_AND_MESIN_1_MECHANISM_B_BUT_BOTH_MUST_TRACE_TO_COMPLETE_SOURCE_SUPPORTED_EVIDENCE",
+  "dual_reader_complete_source_scope_parity_proven": false,
+  "machine1_semantic_reader_remains_independent": true,
+  "formula_research_not_substitute_for_machine1_behavior_pass": true,
+  "full_behavior_requirement_retrievability_proven": false,
+  "master_and_behavior_handbook_revision_bound": true,
+  "master_document_id": "1FVWKgoeWU9MsnOd3i8HOpprg36XrxgKInf6BQU6QTKQ",
+  "master_revision_id": "ANLCKQmU9Jd_0_QHgWoqpN0wfzQwLE-XFB3YXcXc9eUZQvg6U8JfomjhTSU97OkX-C_cRP0LL-3np5daG0V5UPREJ2EdU8o6PPewqVhCAn8",
+  "behavior_handbook_document_id": "1vDoz8E7nGVlYPl2SBneA2tCAiNNAL77nLgPPZzFlbaI",
+  "behavior_handbook_revision_id": "ANLCKQmzOeA7BeeZ6Ja93qdXxx577cMmivy5owVoWQC9JPSo8bNeO0tQ-BuooIkncx-YloBbA7da5LXEzN6vi5jqkpVOoWUwvdt5oeGeMUs",
+  "next_activation_gate": "DO_NOT_ENABLE until source-scope parity and full behavior-requirement retrievability are both proven from the live MASTER/Behavior Handbook and read back."
 }
