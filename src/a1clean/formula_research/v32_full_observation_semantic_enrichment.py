@@ -506,12 +506,32 @@ def run(*, output_root: Path) -> dict[str, Any]:
                 ticker = str(packet.get("ticker") or "")
                 day = str(packet.get("date") or "")
                 envelope = [dict(x) for x in packet.get("bars", [])]
+                source_header = list(packet.get("source_header") or [])
+                source_packet_fingerprint = packet.get("source_packet_fingerprint")
+                if packet.get("all_source_columns_retained") is not True:
+                    raise RuntimeError(f"V32_SOURCE_COLUMNS_NOT_RETAINED:{source}:{ticker}:{day}")
+                if not source_header:
+                    raise RuntimeError(f"V32_SOURCE_HEADER_EMPTY:{source}:{ticker}:{day}")
+                for i, bar in enumerate(envelope):
+                    values = bar.get("source_field_values")
+                    if not isinstance(values, list) or len(values) != len(source_header):
+                        raise RuntimeError(
+                            f"V32_SOURCE_FIELD_RETRIEVAL_MISMATCH:{source}:{ticker}:{day}:{i}"
+                        )
                 regular = [x for x in envelope if x.get("regular_behavior_eligible")]
                 nonregular = [x for x in envelope if not x.get("regular_behavior_eligible")]
                 layer_identity = {"schema": SCHEMA, "source": source, "ticker": ticker, "date": day}
                 full_layer_fh.write(
                     json.dumps(
-                        {**layer_identity, "layer": "FULL_OBSERVATION_ENVELOPE", "bars": envelope},
+                        {
+                            **layer_identity,
+                            "layer": "FULL_OBSERVATION_ENVELOPE",
+                            "source_header": source_header,
+                            "source_header_field_count": len(source_header),
+                            "source_packet_fingerprint": source_packet_fingerprint,
+                            "all_source_columns_retained": True,
+                            "bars": envelope,
+                        },
                         sort_keys=True,
                         separators=(",", ":"),
                         ensure_ascii=False,
@@ -520,7 +540,15 @@ def run(*, output_root: Path) -> dict[str, Any]:
                 )
                 regular_layer_fh.write(
                     json.dumps(
-                        {**layer_identity, "layer": "REGULAR_BEHAVIOR_STREAM", "bars": regular},
+                        {
+                            **layer_identity,
+                            "layer": "REGULAR_BEHAVIOR_STREAM",
+                            "source_header": source_header,
+                            "source_header_field_count": len(source_header),
+                            "source_packet_fingerprint": source_packet_fingerprint,
+                            "all_source_columns_retained_upstream": True,
+                            "bars": regular,
+                        },
                         sort_keys=True,
                         separators=(",", ":"),
                         ensure_ascii=False,
@@ -727,6 +755,9 @@ def run(*, output_root: Path) -> dict[str, Any]:
             "excluded_rows": 0,
             "exclusion_reasons": {},
             "dual_layer_materialized": True,
+            "all_source_columns_retrievable": True,
+            "source_values_retained_for_every_observation": True,
+            "source_packet_fingerprint_preserved": True,
             "regular_state_engine_preserved": True,
             "nonregular_context_not_injected_into_regular_state_machine": True,
             "terminal_carry_uses_source_envelope": True,
@@ -835,6 +866,9 @@ def run(*, output_root: Path) -> dict[str, Any]:
         "envelope_digest_sha256": envelope_digest,
         "contract": {
             "full_source_supported_observation_envelope_preserved": True,
+            "all_source_columns_retrievable_from_full_observation_layer": True,
+            "source_values_retained_for_every_observation": True,
+            "source_packet_fingerprint_preserved": True,
             "phase_from_source_flags_not_clock_inference": True,
             "regular_state_engine_preserved": True,
             "nonregular_context_not_injected_into_regular_state_machine": True,
