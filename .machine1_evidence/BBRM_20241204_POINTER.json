@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BBRM",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bbrm-20241204",
+    "workflow_commit":  "77447e88e0a7a1eaf36318dce2d4b94db7a7d2de",
+    "github_run_id":  35355186606,
+    "github_artifact_id":  10550949380,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35355186606/artifacts/10550949380",
+    "github_artifact_digest":  "d2ae7127a4fa392c1f0b0143a8e6b9121a79d2c7b11e47ae79e64602bd3b812b",
+    "packet_sha256":  "ec4a072bcd4b693a127347734da73d318f6d11b3d81669a71c1464fe80558fbe",
+    "rows_jsonl_sha256":  "4098b22396c8c30d5f6bfd0598f981d9c01dfe704167a9261d9a9aeb8b2140c4",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  180173,
+    "source_row_last":  180203,
+    "data_rows":  31,
+    "first_datetime":  "2024-12-04 09:02:00",
+    "last_datetime":  "2024-12-04 15:49:00"
+}
