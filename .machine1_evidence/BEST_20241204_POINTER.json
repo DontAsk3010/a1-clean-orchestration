@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BEST",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-best-20241204",
+    "workflow_commit":  "ce1803268220ddc8d5c5e1aeccb3c64bf5441411",
+    "github_run_id":  35373972396,
+    "github_artifact_id":  10559532439,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35373972396/artifacts/10559532439",
+    "github_artifact_digest":  "2ded2ac213a403813927a0bb30550e63f2a1bb8db29a46b61e457cdc78f4de31",
+    "packet_sha256":  "4864a7d427f49e9661954f52ca3e921135c666b61d6bf68697452007f8512286",
+    "rows_jsonl_sha256":  "18f2e061792bd899135937219d1222e3839592eaeeac0f74ce285e4151490b58",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  208657,
+    "source_row_last":  208783,
+    "data_rows":  127,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:00:00"
+}
