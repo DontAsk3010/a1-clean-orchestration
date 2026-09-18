@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BEEF",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-beef-20241204",
+    "workflow_commit":  "d69a13ffb255dec6585a9d1dfe71aa7aa9bc3f24",
+    "github_run_id":  35370407439,
+    "github_artifact_id":  10558331708,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35370407439/artifacts/10558331708",
+    "github_artifact_digest":  "6db6aa594e25233e7d16c7d2e3c37cbed08130807bbfe65f255d31e962c17880",
+    "packet_sha256":  "d4e0759ec8740e0ed6e6372d5795f83b4c015ef64a7491b31f4f699f9618c287",
+    "rows_jsonl_sha256":  "682a8c6a5128a324f252b06ba73fdabd8953472a631a038f4471071c7d281d19",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  203305,
+    "source_row_last":  203344,
+    "data_rows":  40,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:01:00"
+}
