@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BINO",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bino-20241204",
+    "workflow_commit":  "a0e8711f90eed2d9e9dcaa1daa5dd6d53719ab4a",
+    "github_run_id":  35386288319,
+    "github_artifact_id":  10564206592,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35386288319/artifacts/10564206592",
+    "github_artifact_digest":  "723f09853e8f52ba28a7cf76292a93255ed71df664a23fa1da0c0fbf8e8ba201",
+    "packet_sha256":  "bde2913bb7a9322ce3a1d773e1e3d6e17c89a53a97c9eee85ec8fd7f95a56712",
+    "rows_jsonl_sha256":  "18e5365027465ea09444be535ae815ac32d6eaa8ff75204fcc0996ac2c059105",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  221036,
+    "source_row_last":  221236,
+    "data_rows":  201,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:10:00"
+}
