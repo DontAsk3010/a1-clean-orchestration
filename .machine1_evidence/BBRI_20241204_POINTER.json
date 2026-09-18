@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BBRI",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bbri-20241204",
+    "workflow_commit":  "0ad2d7f434dd2b7f75aaa7ab6f559f19a4bdc3f6",
+    "github_run_id":  35354387772,
+    "github_artifact_id":  10551285374,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35354387772/artifacts/10551285374",
+    "github_artifact_digest":  "aa4627e1fd3ecdff144df4f6c7a7dbed2d793ad6c7a67cee6e4a7466b01a09bb",
+    "packet_sha256":  "1be6f353ec7bc751df3e946017768de1f134aaf59abcaa31879d44cd8c8b40eb",
+    "rows_jsonl_sha256":  "1bce693f1ae27444ed25f1b65672a3b8bf5dfe49046eb38ae092af0d7b637622",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  174623,
+    "source_row_last":  174958,
+    "data_rows":  336,
+    "first_datetime":  "2024-12-04 08:59:00",
+    "last_datetime":  "2024-12-04 16:14:00"
+}
