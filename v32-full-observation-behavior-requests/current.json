@@ -1,8 +1,8 @@
 {
   "schema": "A1_V32_FULL_OBSERVATION_BEHAVIOR_REQUEST_V1",
   "enabled": true,
-  "purpose": "Build complete V3.2 lineage as superset of V3.1 with full source-supported observation envelope, complete machine behavior lifecycle contract, behavior paths for all formation runs/state changes, corrected terminal carry, and no hidden manual targets.",
-  "required_parent_revision": "5a4fecdbb0c04ecc1f38df3ce1d836ecafd02372",
+  "purpose": "Build complete V3.2 lineage as superset of V3.1 with full source-supported observation envelope, complete machine behavior lifecycle contract, behavior paths for all formation runs/state changes, corrected terminal carry, explicit source-phase versus legacy behavior-eligibility separation, and no hidden manual targets.",
+  "required_parent_revision": "6051a790540d4d1063f51a530c0a1d55e589c7ab",
   "required_source_count": 18,
   "march_2025_required": true,
   "full_source_supported_observation_envelope": true,
