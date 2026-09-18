@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BIRD",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bird-20241204",
+    "workflow_commit":  "d6cc12c710441c779fc29a27a8a753b30ecfe165",
+    "github_run_id":  35387398863,
+    "github_artifact_id":  10565025880,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35387398863/artifacts/10565025880",
+    "github_artifact_digest":  "31f946a400babf2c12755ec80cceb6cb65b71cdc056d9de056f0ac7e6818f90b",
+    "packet_sha256":  "48dfca4819434e6af87047998be1ec0e4ea5afe709b85cdacf90893ecfd34a78",
+    "rows_jsonl_sha256":  "bb137cea3ee1c053ac9ce274b845f81b2ea29ea86c51c1cfcdbfd2c6e7cdc692",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  228983,
+    "source_row_last":  229164,
+    "data_rows":  182,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:14:00"
+}
