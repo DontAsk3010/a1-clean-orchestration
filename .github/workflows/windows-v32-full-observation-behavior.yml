@@ -39,6 +39,7 @@ jobs:
           if ([int64]$req.required_source_count -ne 18) { throw 'V32_REQUIRED_SOURCE_COUNT_MISMATCH' }
           if ($req.march_2025_required -ne $true) { throw 'V32_MARCH_REQUIRED' }
           if ($req.full_source_supported_observation_envelope -ne $true) { throw 'V32_FULL_ENVELOPE_REQUIRED' }
+          if ($req.all_source_columns_retrievable_required -ne $true) { throw 'V32_ALL_SOURCE_COLUMNS_RETRIEVABLE_REQUIRED' }
           if ($req.regular_behavior_stream_isolated -ne $true) { throw 'V32_REGULAR_STREAM_ISOLATION_REQUIRED' }
           if ($req.behavior_lifecycle_required -ne $true) { throw 'V32_LIFECYCLE_REQUIRED' }
           if ($req.behavior_path_required -ne $true) { throw 'V32_BEHAVIOR_PATH_REQUIRED' }
@@ -110,6 +111,9 @@ jobs:
           if ([int64]$m.reconciliation.behavior_lifecycle_journeys -ne [int64]$m.reconciliation.event_journeys) { throw 'V32_LIFECYCLE_EVENT_COVERAGE_FAIL' }
           if ([int64]$m.reconciliation.behavior_lifecycle_contract_records -ne [int64]$m.reconciliation.behavior_lifecycle_journeys) { throw 'V32_LIFECYCLE_CONTRACT_COVERAGE_FAIL' }
           if ($m.contract.full_source_supported_observation_envelope_preserved -ne $true) { throw 'V32_FULL_ENVELOPE_FLAG_FAIL' }
+          if ($m.contract.all_source_columns_retrievable_from_full_observation_layer -ne $true) { throw 'V32_SOURCE_FIELD_RETRIEVABILITY_FAIL' }
+          if ($m.contract.source_values_retained_for_every_observation -ne $true) { throw 'V32_SOURCE_VALUES_RETENTION_FAIL' }
+          if ($m.contract.source_packet_fingerprint_preserved -ne $true) { throw 'V32_SOURCE_PACKET_FINGERPRINT_FAIL' }
           if ($m.contract.cross_date_carry_uses_terminal_source_observation -ne $true) { throw 'V32_TERMINAL_CARRY_FLAG_FAIL' }
           if ($m.contract.manual_behavior_lifecycle_contract_materialized -ne $true) { throw 'V32_LIFECYCLE_FLAG_FAIL' }
           if ($m.contract.all_formation_runs_and_state_changes_materialized_in_behavior_path -ne $true) { throw 'V32_BEHAVIOR_PATH_FLAG_FAIL' }
@@ -121,6 +125,9 @@ jobs:
           foreach ($s in $m.source_summaries) {
             if ($s.status -ne 'PASS') { throw "V32_SOURCE_NOT_PASS:$($s.source)" }
             if ($s.dual_layer_materialized -ne $true) { throw "V32_SOURCE_DUAL_LAYER_FAIL:$($s.source)" }
+            if ($s.all_source_columns_retrievable -ne $true) { throw "V32_SOURCE_FIELDS_NOT_RETRIEVABLE:$($s.source)" }
+            if ($s.source_values_retained_for_every_observation -ne $true) { throw "V32_SOURCE_VALUES_NOT_RETAINED:$($s.source)" }
+            if ($s.source_packet_fingerprint_preserved -ne $true) { throw "V32_SOURCE_PACKET_FINGERPRINT_NOT_PRESERVED:$($s.source)" }
             if ($s.manual_behavior_lifecycle_contract_materialized -ne $true) { throw "V32_SOURCE_LIFECYCLE_FAIL:$($s.source)" }
             if ($s.all_event_journeys_have_lifecycle_representation -ne $true) { throw "V32_SOURCE_EVENT_COVERAGE_FAIL:$($s.source)" }
             if ($s.unnamed_state_transitions_preserved -ne $true) { throw "V32_SOURCE_UNNAMED_STATE_FAIL:$($s.source)" }
