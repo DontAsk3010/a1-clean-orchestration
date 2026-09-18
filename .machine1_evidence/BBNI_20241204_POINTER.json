@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BBNI",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bbni-20241204",
+    "workflow_commit":  "d24e762b8e890741491d470390c7aeaabaa908b7",
+    "github_run_id":  35348041563,
+    "github_artifact_id":  10547434190,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35348041563/artifacts/10547434190",
+    "github_artifact_digest":  "8526ade54d6cf51fc106affdcce9b31559dfed1e79d2f77387e497906e72c3cc",
+    "packet_sha256":  "4b33a2c6c96c3a94e7d7488f5b79e148bb37251ef4c8ecbf71f1cf4aaff25aa1",
+    "rows_jsonl_sha256":  "2a78b5d19f4c6344b7ac109451610ec56f9b095d24ee0f739568c05dd2dfa5a4",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  168519,
+    "source_row_last":  168852,
+    "data_rows":  334,
+    "first_datetime":  "2024-12-04 08:59:00",
+    "last_datetime":  "2024-12-04 16:13:00"
+}
