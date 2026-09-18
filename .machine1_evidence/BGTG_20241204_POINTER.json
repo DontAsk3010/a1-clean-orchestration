@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BGTG",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bgtg-20241204",
+    "workflow_commit":  "3a4489708e0b99ba86ce97bb73a8fb8a23fbd0f0",
+    "github_run_id":  35379694912,
+    "github_artifact_id":  10561472815,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35379694912/artifacts/10561472815",
+    "github_artifact_digest":  "73001fa3043b33158677f839188bc4cd6f53a12d0a2bfd6557e4e2670aa407d3",
+    "packet_sha256":  "c1420f2006ba481a23cbcc8e9e62d878aa600c743087a5d59a1f285eb9a3ec51",
+    "rows_jsonl_sha256":  "f919e4c7629f1db25b80692f4e405c3b85be2502b37c4055bf21edf04044d9d2",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  210510,
+    "source_row_last":  210606,
+    "data_rows":  97,
+    "first_datetime":  "2024-12-04 09:02:00",
+    "last_datetime":  "2024-12-04 16:06:00"
+}
