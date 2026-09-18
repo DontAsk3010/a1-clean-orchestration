@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BESS",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bess-20241204",
+    "workflow_commit":  "959751a47cbc6eef0910a7674ff17f57c414d362",
+    "github_run_id":  35373531435,
+    "github_artifact_id":  10559925547,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35373531435/artifacts/10559925547",
+    "github_artifact_digest":  "b2934aab20a175a22125b1514a2aa9f78bab603f8dba743209a148819ab4f096",
+    "packet_sha256":  "1612c4f9698e1bc09ece1563e5b06fd38fd3a9ae130e9b0e7b1e132e6b215bbb",
+    "rows_jsonl_sha256":  "5abe462801073557e46ed00aecd5315dc9926075232458fc2edac47ed28c08e8",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  206696,
+    "source_row_last":  206757,
+    "data_rows":  62,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:00:00"
+}
