@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BCIP",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bcip-20241204",
+    "workflow_commit":  "5e58c509a94c247b4493807fc5eaa477f573eb73",
+    "github_run_id":  35366887951,
+    "github_artifact_id":  10556862059,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35366887951/artifacts/10556862059",
+    "github_artifact_digest":  "7128a6ef3fa8d0c146c2ff4a3698d9bae75b02bde9871765207d65aa4a6b5943",
+    "packet_sha256":  "17d2091f180caa82561b68cf3f79cc18ec7f22b9b22f92c111d15e0c0b0ce96c",
+    "rows_jsonl_sha256":  "02929ae9fda47b448b60fcc0687e2ecf44385815bc195be1b7b26bd2fa587321",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  195698,
+    "source_row_last":  195761,
+    "data_rows":  64,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:00:00"
+}

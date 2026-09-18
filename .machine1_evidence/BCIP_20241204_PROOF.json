@@ -1,0 +1,15 @@
+{
+  "ticker": "BCIP",
+  "trading_date": "2024-12-04",
+  "source_md5": "b8d42b35c90d2dff8b18ae4e1734523b",
+  "source_sha256": "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+  "semantic_bundle": "Raw Des 02-31-2024__SEMANTIC_0010.jsonl",
+  "semantic_bundle_line_number": 63,
+  "source_row_first": 195698,
+  "source_row_last": 195761,
+  "data_rows": 64,
+  "first_datetime": "2024-12-04 09:00:00",
+  "last_datetime": "2024-12-04 16:00:00",
+  "packet_sha256": "17d2091f180caa82561b68cf3f79cc18ec7f22b9b22f92c111d15e0c0b0ce96c",
+  "rows_jsonl_sha256": "02929ae9fda47b448b60fcc0687e2ecf44385815bc195be1b7b26bd2fa587321"
+}
