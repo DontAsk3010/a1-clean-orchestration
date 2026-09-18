@@ -140,12 +140,27 @@ def packet_to_envelope_bars(packet, *, allow_haka_haki: bool = False) -> list[di
         clock_ruleset_code = _text_value(raw, "IDX_CLOCK_RULESET_CODE")
         session_code_num = _num_value(raw, "IDX_REGULAR_CLOCK_SESSION_CODE")
         session_code = int(session_code_num) if session_code_num is not None and session_code_num.is_integer() else session_code_num
+        # Keep two authorities separate:
+        # 1) source-proven clock phase, and
+        # 2) legacy formula/behavior eligibility (ordinary continuously quoted stock).
+        # They are not required to be identical. A row can be source-proven regular
+        # phase while remaining outside the legacy behavior stream because the symbol
+        # is not an ordinary continuously quoted stock. Such a row must stay in the
+        # full observation envelope rather than being rejected or silently discarded.
+        source_regular_phase = phase in {"REGULAR_SESSION1", "REGULAR_SESSION2"}
         regular = bool(base.get("session_eligible"))
-        if regular != (phase in {"REGULAR_SESSION1", "REGULAR_SESSION2"}):
-            raise RuntimeError(
-                f"V32_REGULAR_PHASE_CONTRACT_MISMATCH:{packet.identity.ticker}:"
-                f"{packet.identity.trading_date}:{base.get('timestamp')}:{phase}:{regular}"
-            )
+        if source_regular_phase and regular:
+            phase_behavior_relation = "SOURCE_REGULAR_AND_BEHAVIOR_ELIGIBLE"
+            behavior_exclusion_reason = None
+        elif source_regular_phase and not regular:
+            phase_behavior_relation = "SOURCE_REGULAR_BUT_BEHAVIOR_INELIGIBLE"
+            behavior_exclusion_reason = "LEGACY_FORMULA_SYMBOL_OR_SESSION_ELIGIBILITY_FALSE"
+        elif (not source_regular_phase) and regular:
+            phase_behavior_relation = "SOURCE_NONREGULAR_BUT_LEGACY_BEHAVIOR_ELIGIBLE"
+            behavior_exclusion_reason = None
+        else:
+            phase_behavior_relation = "SOURCE_NONREGULAR_AND_BEHAVIOR_INELIGIBLE"
+            behavior_exclusion_reason = "SOURCE_NONREGULAR_PHASE"
         if allow_haka_haki:
             hh = reconstruct_bar(base)
             haka = hh.get("haka")
@@ -161,6 +176,10 @@ def packet_to_envelope_bars(packet, *, allow_haka_haki: bool = False) -> list[di
                 "source_row": source_row_first + i,
                 "source_phase": phase,
                 "observation_role": phase,
+                "source_regular_phase": source_regular_phase,
+                "legacy_formula_session_eligible": regular,
+                "phase_behavior_eligibility_relation": phase_behavior_relation,
+                "behavior_exclusion_reason": behavior_exclusion_reason,
                 "regular_behavior_eligible": regular,
                 "nonregular_context_observation": not regular,
                 "idx_clock_ruleset_code": clock_ruleset_code,
