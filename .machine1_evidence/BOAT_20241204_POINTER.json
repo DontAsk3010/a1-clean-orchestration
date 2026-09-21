@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BOAT",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-boat-20241204",
+    "workflow_commit":  "98d503d71671c5eabd671d21b3eff7c96dcb0983",
+    "github_run_id":  35659048262,
+    "github_artifact_id":  10666354472,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35659048262/artifacts/10666354472",
+    "github_artifact_digest":  "b566983fb0607126dd894aad9d2699b72d0b712f4b8711f042b87a91d7f00915",
+    "packet_sha256":  "2daf68c11a17f4e9985a68ebe95a2e35560328940a146195060f01e2524fbcfa",
+    "rows_jsonl_sha256":  "947643dd2c153b133d69dba0184417ee8c2958c0d06e8c74da90be9c4dcc281d",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  276004,
+    "source_row_last":  276335,
+    "data_rows":  332,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:12:00"
+}
