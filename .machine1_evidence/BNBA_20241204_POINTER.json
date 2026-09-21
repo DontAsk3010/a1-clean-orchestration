@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BNBA",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bnba-20241204",
+    "workflow_commit":  "fa793bd10e4ba88804d9514302562fe729e92dd4",
+    "github_run_id":  35654724145,
+    "github_artifact_id":  10662999434,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35654724145/artifacts/10662999434",
+    "github_artifact_digest":  "8b13ce53487d248cc2b8ad560db0782f3035bfaff23c39ff40c7a147103bd157",
+    "packet_sha256":  "79c4d2c990035b1d073166901a3c4b6d2b44ac72d1a10936be6966eefc1a424b",
+    "rows_jsonl_sha256":  "c4baf9a4efc3b0dfc21775a11bb103fa355862e12c8ddeafd5463b200748310d",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  266393,
+    "source_row_last":  266432,
+    "data_rows":  40,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:00:00"
+}
