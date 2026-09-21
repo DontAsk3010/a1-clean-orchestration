@@ -22,6 +22,7 @@ jobs:
     timeout-minutes: 720
     env:
       A1_RAW_DIR: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
+      A1_MG_FEATURE_CACHE_ROOT: 'C:\Users\feri-admin\.a1clean\mg_normalized_cache_v1'
       PSExecutionPolicyPreference: Bypass
     steps:
       - name: Checkout exact trigger revision
@@ -166,6 +167,27 @@ jobs:
           $ErrorActionPreference = 'Stop'
           if ([string]::IsNullOrWhiteSpace($env:A1_DRIVE_READER_CREDENTIALS)) { throw 'A1_DRIVE_READER_CREDENTIALS_NOT_CONFIGURED' }
           if (-not (Test-Path -LiteralPath $env:A1_DRIVE_READER_CREDENTIALS -PathType Leaf)) { throw 'A1_DRIVE_READER_CREDENTIALS_FILE_MISSING' }
+
+      - name: Preflight governed legacy normalized-cache binding
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:A1_MG_FEATURE_CACHE_ROOT)) { throw 'V32_LEGACY_CACHE_ROOT_NOT_BOUND' }
+          if (-not (Test-Path -LiteralPath $env:A1_MG_FEATURE_CACHE_ROOT -PathType Container)) { throw 'V32_LEGACY_CACHE_ROOT_MISSING' }
+          @'
+from a1clean.formula_research.full_chronological_cache_catalog import LEGACY_SOURCE_NAMES
+from a1clean.formula_research import telegram_mg_structure_v12_runner as v12r
+missing = []
+for source in LEGACY_SOURCE_NAMES:
+    if not v12r._cache_path(source).is_file() or not v12r._meta_path(source).is_file():
+        missing.append(source)
+print("V32_LEGACY_CACHE_ROOT=" + str(v12r._cache_root()))
+print("V32_LEGACY_CACHE_MISSING_COUNT=" + str(len(missing)))
+if missing:
+    print("V32_LEGACY_CACHE_MISSING=" + "|".join(missing))
+    raise SystemExit(1)
+'@ | & $env:A1_PYTHON_EXE -
+          if ($LASTEXITCODE -ne 0) { throw 'V32_LEGACY_CACHE_PREFLIGHT_FAILED' }
 
       - name: Build complete V3.2 corpus
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
