@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BNBR",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bnbr-20241204",
+    "workflow_commit":  "c468a2ea4c2af7e35689a434fafaf95ccf5ba6c9",
+    "github_run_id":  35655360167,
+    "github_artifact_id":  10664005801,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35655360167/artifacts/10664005801",
+    "github_artifact_digest":  "6e7e94a4b439f70a98c6c16b683ca649d7e0e087dd15772385a75a10403c776f",
+    "packet_sha256":  "c3eff721bfedf28aa3b076610f8b9fdd79a26f53d836cd141e135a1343a7a112",
+    "rows_jsonl_sha256":  "3cff25259b45a97ab4e8643f380bb528673c03d2d9a24a638808684c2ba9baf4",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  267059,
+    "source_row_last":  267066,
+    "data_rows":  8,
+    "first_datetime":  "2024-12-04 09:55:00",
+    "last_datetime":  "2024-12-04 16:09:00"
+}
