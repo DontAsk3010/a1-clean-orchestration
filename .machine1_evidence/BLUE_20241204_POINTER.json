@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BLUE",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-blue-20241204",
+    "workflow_commit":  "c83574c771ea31ad26d636f429f4bc481ec5ac3d",
+    "github_run_id":  35649308689,
+    "github_artifact_id":  10660997772,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35649308689/artifacts/10660997772",
+    "github_artifact_digest":  "fddaeaa41eac93801513437188bf738f312b9b2c548f35008ccc1e5da51fdcb2",
+    "packet_sha256":  "571cfc51fecee9010ad3e8c2a20b848c7e54f8496b83980747e2459bac5d6253",
+    "rows_jsonl_sha256":  "7177b62f61a94a3b082e179949f3f3bb75ad3ebd10d3d5856e4c4f704b85f3d4",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  252906,
+    "source_row_last":  252918,
+    "data_rows":  13,
+    "first_datetime":  "2024-12-04 09:06:00",
+    "last_datetime":  "2024-12-04 14:57:00"
+}
