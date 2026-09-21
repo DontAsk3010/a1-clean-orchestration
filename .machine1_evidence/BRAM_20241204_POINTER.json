@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BRAM",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bram-20241204",
+    "workflow_commit":  "804a75eddf240d60048584c7645b56d337fbd491",
+    "github_run_id":  35663073036,
+    "github_artifact_id":  10668191618,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35663073036/artifacts/10668191618",
+    "github_artifact_digest":  "cecf8f3633a934e0ba883a45b628a0b41a33197cbd278dee98cfb0bea3162f7e",
+    "packet_sha256":  "22158e3a27fe5e38a3d958667fc5d89c085a930940b33aed165f717252b593b2",
+    "rows_jsonl_sha256":  "715182f9fe1a0e40a733c10fafbd7ace252bf1c9bb12b6deb05c623992003e37",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  286669,
+    "source_row_last":  286675,
+    "data_rows":  7,
+    "first_datetime":  "2024-12-04 09:04:00",
+    "last_datetime":  "2024-12-04 16:04:00"
+}
