@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BNLI",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bnli-20241204",
+    "workflow_commit":  "5041bd53e489c31a7b3507510d8ee2faeadd2f83",
+    "github_run_id":  35658651061,
+    "github_artifact_id":  10665298902,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35658651061/artifacts/10665298902",
+    "github_artifact_digest":  "684b7035a6f7e6258160ccfd2a81c2dcb1f5e168d2d2663e21514bca58448222",
+    "packet_sha256":  "c9b3ed427977db32c898a838fe6207b4f4c1b3452a980be753609ada6f2790ff",
+    "rows_jsonl_sha256":  "4f642b4ddae92e21505a193ab7169f83579faf67daddf0b1ba050f6a56533b99",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  268390,
+    "source_row_last":  268479,
+    "data_rows":  90,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:13:00"
+}
