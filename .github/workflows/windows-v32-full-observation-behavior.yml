@@ -22,6 +22,7 @@ jobs:
     timeout-minutes: 720
     env:
       A1_RAW_DIR: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
+      A1_PYTHON_EXE: 'C:\\Users\\feri-admin\\AppData\\Local\\Python\\pythoncore-3.11-64\\python.exe'
     steps:
       - name: Checkout exact trigger revision
         uses: actions/checkout@v4
