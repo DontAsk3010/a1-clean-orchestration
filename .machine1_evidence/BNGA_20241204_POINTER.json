@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BNGA",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bnga-20241204",
+    "workflow_commit":  "52c424ee29b25d53a363eab40aa38ff8b948f88a",
+    "github_run_id":  35655721462,
+    "github_artifact_id":  10664241569,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35655721462/artifacts/10664241569",
+    "github_artifact_digest":  "8ea3c6351fe4bd903b8414145009d03fcd2830bcc9f3b8799fbddc69f2e5c9fb",
+    "packet_sha256":  "35a2bd6c8740d9a8b510fb6270f44a165853949b7ab3b85527bdb9a678be4385",
+    "rows_jsonl_sha256":  "1bad3b0b706eeae93171ccc7823d1b1f07e3ea9656f30357debda56230382511",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  270035,
+    "source_row_last":  270273,
+    "data_rows":  239,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:03:00"
+}
