@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BOLT",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bolt-20241204",
+    "workflow_commit":  "d765725032e8309c2e4a9f971d4844f5dbc1a959",
+    "github_run_id":  35660574678,
+    "github_artifact_id":  10667237295,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35660574678/artifacts/10667237295",
+    "github_artifact_digest":  "d0db76b49ca200ca46472b8e4aa7d01c9f22b0a4a66486d1e4f5cf47fd8df74f",
+    "packet_sha256":  "f9f5bb35b2483e3fef93ef5bba7e025896c38b5941796f88930b93f5be4ba84b",
+    "rows_jsonl_sha256":  "babe34588d9a99de101c1fe281b9d2b890539a8bec8a69c93f9007e37c06158f",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  282326,
+    "source_row_last":  282579,
+    "data_rows":  254,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:02:00"
+}
