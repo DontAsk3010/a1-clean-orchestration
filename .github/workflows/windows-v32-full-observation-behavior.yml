@@ -22,6 +22,7 @@ jobs:
     timeout-minutes: 720
     env:
       A1_RAW_DIR: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
+      PSExecutionPolicyPreference: Bypass
     steps:
       - name: Checkout exact trigger revision
         uses: actions/checkout@v4
@@ -83,6 +84,19 @@ jobs:
           "A1_V32_SOFTWARE_REVISION=$softwareRevision" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           $out = Join-Path "C:\Users\feri-admin\.a1clean\v32_full_observation_behavior\schema-v3" $softwareRevision
           "V32_OUTPUT_ROOT=$out" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Preflight legacy checkpoint access
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $legacyRoot = "C:\Users\feri-admin\.a1clean"
+          if (-not (Test-Path -LiteralPath $legacyRoot -PathType Container)) { throw 'V32_LEGACY_STATE_ROOT_MISSING' }
+          $v32Root = Join-Path $legacyRoot 'v32_full_observation_behavior'
+          if (-not (Test-Path -LiteralPath $v32Root -PathType Container)) { throw 'V32_LEGACY_V32_OUTPUT_ROOT_MISSING' }
+          $probe = Join-Path $v32Root '.service_access_probe.tmp'
+          'probe' | Out-File -LiteralPath $probe -Encoding ascii
+          Remove-Item -LiteralPath $probe -Force
+          "A1_SERVICE_LEGACY_STATE_ACCESS=PASS" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Install compile and test exact V3.2 capability
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
