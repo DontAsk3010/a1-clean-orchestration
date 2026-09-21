@@ -76,18 +76,19 @@ jobs:
           $unexpected = @($changed | Where-Object { $_ -notin $allowedOperationalFiles })
           if ($unexpected.Count -ne 0) { throw "V32_UNEXPECTED_CODE_CHANGE_SINCE_SOFTWARE_REVISION:$($unexpected -join ',')" }
           "A1_V32_SOFTWARE_REVISION=$softwareRevision" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          $out = Join-Path $env:USERPROFILE ".a1clean\v32_full_observation_behavior\schema-v3\$softwareRevision"
+          $out = Join-Path "C:\Users\feri-admin\.a1clean\v32_full_observation_behavior\schema-v3" $softwareRevision
           "V32_OUTPUT_ROOT=$out" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Install compile and test exact V3.2 capability
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          py -3.11 -m pip install -e '.[test]'
+          if (-not (Test-Path -LiteralPath $env:A1_PYTHON_EXE -PathType Leaf)) { throw 'V32_PYTHON_EXE_MISSING' }
+          & $env:A1_PYTHON_EXE -m pip install -e '.[test]'
           if ($LASTEXITCODE -ne 0) { throw 'V32_INSTALL_FAILED' }
-          py -3.11 -m py_compile src/a1clean/formula_research/v32_observation_envelope.py src/a1clean/formula_research/v32_behavior_lifecycle.py src/a1clean/formula_research/v32_full_observation_semantic_enrichment.py
+          & $env:A1_PYTHON_EXE -m py_compile src/a1clean/formula_research/v32_observation_envelope.py src/a1clean/formula_research/v32_behavior_lifecycle.py src/a1clean/formula_research/v32_full_observation_semantic_enrichment.py
           if ($LASTEXITCODE -ne 0) { throw 'V32_COMPILE_FAILED' }
-          py -3.11 -m pytest -q tests/test_v30_semantic_journey_enrichment.py tests/test_v31_full_chronological_semantic_enrichment.py tests/test_v32_observation_envelope.py
+          & $env:A1_PYTHON_EXE -m pytest -q tests/test_v30_semantic_journey_enrichment.py tests/test_v31_full_chronological_semantic_enrichment.py tests/test_v32_observation_envelope.py
           if ($LASTEXITCODE -ne 0) { throw 'V32_TEST_FAILED' }
 
       - name: Verify Drive reader credential binding
@@ -101,7 +102,7 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          py -3.11 -m a1clean.formula_research.v32_full_observation_semantic_enrichment --output-root $env:V32_OUTPUT_ROOT
+          & $env:A1_PYTHON_EXE -m a1clean.formula_research.v32_full_observation_semantic_enrichment --output-root $env:V32_OUTPUT_ROOT
           if ($LASTEXITCODE -ne 0) { throw "V32_RUNTIME_FAILED:$LASTEXITCODE" }
 
       - name: Assert full source behavior and lineage reconciliation
@@ -156,7 +157,7 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          py -3.11 -m a1clean.formula_research.v32_full_observation_semantic_enrichment --output-root $env:V32_OUTPUT_ROOT
+          & $env:A1_PYTHON_EXE -m a1clean.formula_research.v32_full_observation_semantic_enrichment --output-root $env:V32_OUTPUT_ROOT
           if ($LASTEXITCODE -ne 0) { throw "V32_READBACK_RUNTIME_FAILED:$LASTEXITCODE" }
           $m = Get-Content -LiteralPath (Join-Path $env:V32_OUTPUT_ROOT 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
           if ([int64]$m.reconciliation.reused_pass_sources -ne 18) { throw "V32_READBACK_REUSE_FAIL:$($m.reconciliation.reused_pass_sources)" }
