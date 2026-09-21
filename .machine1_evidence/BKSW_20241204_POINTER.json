@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BKSW",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bksw-20241204",
+    "workflow_commit":  "81cf963877edfd2d45de04d423d3b8e6ce3e52d6",
+    "github_run_id":  35639696244,
+    "github_artifact_id":  10657333581,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35639696244/artifacts/10657333581",
+    "github_artifact_digest":  "6711f29a684435bbca983df43c01bceeeb527d8c08e1d7185d0fb6469494d643",
+    "packet_sha256":  "f0851adc8111ddb0a676a172fac48ad4978eb42b639b7c7fc9cfe042c068a329",
+    "rows_jsonl_sha256":  "4c4fd122a23d24409710f6871b957bf2c2f657fb2ee3444dba5c8d46fae75d86",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  247915,
+    "source_row_last":  248095,
+    "data_rows":  181,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:13:00"
+}
