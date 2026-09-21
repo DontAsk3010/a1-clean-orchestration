@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BPII",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bpii-20241204",
+    "workflow_commit":  "8cbbf98f4c98e460914715f20173e1553583efa6",
+    "github_run_id":  35662433674,
+    "github_artifact_id":  10667363722,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35662433674/artifacts/10667363722",
+    "github_artifact_digest":  "597588b584df906ce72b73f6e45fe5d5cd2a3afb4ca730c9f9b8a34f4b70acd9",
+    "packet_sha256":  "1d82406b8822b019e5418821205d658951be02b84dadfee36243acd13ceb4083",
+    "rows_jsonl_sha256":  "37ba74fd1113f0c330f236468b53eefe36f01ba615d250cdee97e403d55522fa",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  281746,
+    "source_row_last":  281746,
+    "data_rows":  1,
+    "first_datetime":  "2024-12-04 11:40:00",
+    "last_datetime":  "2024-12-04 11:40:00"
+}
