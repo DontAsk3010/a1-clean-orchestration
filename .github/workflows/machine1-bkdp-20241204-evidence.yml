@@ -140,7 +140,7 @@ jobs:
           retention-days: 7
 
       - name: Persist exact rows and evidence pointer
-        shell: powershell
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           $proof = Get-Content -Raw 'machine1_bkdp_20241204_evidence/EVIDENCE_PROOF.json' | ConvertFrom-Json
