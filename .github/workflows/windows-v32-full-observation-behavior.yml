@@ -174,19 +174,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           if ([string]::IsNullOrWhiteSpace($env:A1_MG_FEATURE_CACHE_ROOT)) { throw 'V32_LEGACY_CACHE_ROOT_NOT_BOUND' }
           if (-not (Test-Path -LiteralPath $env:A1_MG_FEATURE_CACHE_ROOT -PathType Container)) { throw 'V32_LEGACY_CACHE_ROOT_MISSING' }
-          @'
-from a1clean.formula_research.full_chronological_cache_catalog import LEGACY_SOURCE_NAMES
-from a1clean.formula_research import telegram_mg_structure_v12_runner as v12r
-missing = []
-for source in LEGACY_SOURCE_NAMES:
-    if not v12r._cache_path(source).is_file() or not v12r._meta_path(source).is_file():
-        missing.append(source)
-print("V32_LEGACY_CACHE_ROOT=" + str(v12r._cache_root()))
-print("V32_LEGACY_CACHE_MISSING_COUNT=" + str(len(missing)))
-if missing:
-    print("V32_LEGACY_CACHE_MISSING=" + "|".join(missing))
-    raise SystemExit(1)
-'@ | & $env:A1_PYTHON_EXE -
+          & $env:A1_PYTHON_EXE -c "from a1clean.formula_research.full_chronological_cache_catalog import LEGACY_SOURCE_NAMES; from a1clean.formula_research import telegram_mg_structure_v12_runner as v12r; missing=[s for s in LEGACY_SOURCE_NAMES if (not v12r._cache_path(s).is_file()) or (not v12r._meta_path(s).is_file())]; print('V32_LEGACY_CACHE_ROOT=' + str(v12r._cache_root())); print('V32_LEGACY_CACHE_MISSING_COUNT=' + str(len(missing))); print('V32_LEGACY_CACHE_MISSING=' + '|'.join(missing) if missing else 'V32_LEGACY_CACHE_MISSING=NONE'); raise SystemExit(1 if missing else 0)"
           if ($LASTEXITCODE -ne 0) { throw 'V32_LEGACY_CACHE_PREFLIGHT_FAILED' }
 
       - name: Build complete V3.2 corpus
