@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BPFI",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bpfi-20241204",
+    "workflow_commit":  "183f1a5bf1dbb413673d426a3092c55e40f71c34",
+    "github_run_id":  35662101259,
+    "github_artifact_id":  10667599810,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35662101259/artifacts/10667599810",
+    "github_artifact_digest":  "289d2f9b6837fedbec42eeda9ecf211905f4cdce8848382e7e77fae0da1c9254",
+    "packet_sha256":  "65e8d4c85a7f40cf590bcf4ac9b75dbe137ce9dcbec0aaecdb6c3e9c3f35926d",
+    "rows_jsonl_sha256":  "fcd9ec01a97b6311ec8c545c8bf657812511ac5a99ad9dd5f2316fb332e469a6",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  281511,
+    "source_row_last":  281519,
+    "data_rows":  9,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 14:07:00"
+}
