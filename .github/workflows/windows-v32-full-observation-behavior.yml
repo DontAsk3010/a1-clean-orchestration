@@ -30,10 +30,29 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 2
 
-      - name: Provision service Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+      - name: Provision portable Python 3.11 for service runner
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $pyRoot = Join-Path $env:RUNNER_TEMP 'a1-python-3.11.9'
+          $zip = Join-Path $env:RUNNER_TEMP 'python-3.11.9-embed-amd64.zip'
+          $getPip = Join-Path $env:RUNNER_TEMP 'get-pip.py'
+          if (-not (Test-Path -LiteralPath (Join-Path $pyRoot 'python.exe') -PathType Leaf)) {
+            Remove-Item -LiteralPath $pyRoot -Recurse -Force -ErrorAction SilentlyContinue
+            New-Item -ItemType Directory -Force -Path $pyRoot | Out-Null
+            Invoke-WebRequest -UseBasicParsing -Uri 'https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-amd64.zip' -OutFile $zip
+            Expand-Archive -LiteralPath $zip -DestinationPath $pyRoot -Force
+            $pth = Join-Path $pyRoot 'python311._pth'
+            (Get-Content -LiteralPath $pth -Raw).Replace('#import site','import site') | Set-Content -LiteralPath $pth -Encoding ascii
+            Invoke-WebRequest -UseBasicParsing -Uri 'https://bootstrap.pypa.io/get-pip.py' -OutFile $getPip
+            & (Join-Path $pyRoot 'python.exe') $getPip --no-warn-script-location
+            if ($LASTEXITCODE -ne 0) { throw 'V32_PORTABLE_PIP_BOOTSTRAP_FAILED' }
+          }
+          $py = Join-Path $pyRoot 'python.exe'
+          & $py --version
+          if ($LASTEXITCODE -ne 0) { throw 'V32_PORTABLE_PYTHON_UNAVAILABLE' }
+          "A1_PYTHON_EXE=$py" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $pyRoot | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Validate governed request and pin software revision
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
@@ -102,13 +121,13 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          python --version
+          & $env:A1_PYTHON_EXE --version
           if ($LASTEXITCODE -ne 0) { throw 'V32_SERVICE_PYTHON_UNAVAILABLE' }
-          python -m pip install -e '.[test]'
+          & $env:A1_PYTHON_EXE -m pip install -e '.[test]'
           if ($LASTEXITCODE -ne 0) { throw 'V32_INSTALL_FAILED' }
-          python -m py_compile src/a1clean/formula_research/v32_observation_envelope.py src/a1clean/formula_research/v32_behavior_lifecycle.py src/a1clean/formula_research/v32_full_observation_semantic_enrichment.py
+          & $env:A1_PYTHON_EXE -m py_compile src/a1clean/formula_research/v32_observation_envelope.py src/a1clean/formula_research/v32_behavior_lifecycle.py src/a1clean/formula_research/v32_full_observation_semantic_enrichment.py
           if ($LASTEXITCODE -ne 0) { throw 'V32_COMPILE_FAILED' }
-          python -m pytest -q tests/test_v30_semantic_journey_enrichment.py tests/test_v31_full_chronological_semantic_enrichment.py tests/test_v32_observation_envelope.py
+          & $env:A1_PYTHON_EXE -m pytest -q tests/test_v30_semantic_journey_enrichment.py tests/test_v31_full_chronological_semantic_enrichment.py tests/test_v32_observation_envelope.py
           if ($LASTEXITCODE -ne 0) { throw 'V32_TEST_FAILED' }
 
       - name: Verify Drive reader credential binding
@@ -122,7 +141,7 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          python -m a1clean.formula_research.v32_full_observation_semantic_enrichment --output-root $env:V32_OUTPUT_ROOT
+          & $env:A1_PYTHON_EXE -m a1clean.formula_research.v32_full_observation_semantic_enrichment --output-root $env:V32_OUTPUT_ROOT
           if ($LASTEXITCODE -ne 0) { throw "V32_RUNTIME_FAILED:$LASTEXITCODE" }
 
       - name: Assert full source behavior and lineage reconciliation
@@ -177,7 +196,7 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          python -m a1clean.formula_research.v32_full_observation_semantic_enrichment --output-root $env:V32_OUTPUT_ROOT
+          & $env:A1_PYTHON_EXE -m a1clean.formula_research.v32_full_observation_semantic_enrichment --output-root $env:V32_OUTPUT_ROOT
           if ($LASTEXITCODE -ne 0) { throw "V32_READBACK_RUNTIME_FAILED:$LASTEXITCODE" }
           $m = Get-Content -LiteralPath (Join-Path $env:V32_OUTPUT_ROOT 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
           if ([int64]$m.reconciliation.reused_pass_sources -ne 18) { throw "V32_READBACK_REUSE_FAIL:$($m.reconciliation.reused_pass_sources)" }
