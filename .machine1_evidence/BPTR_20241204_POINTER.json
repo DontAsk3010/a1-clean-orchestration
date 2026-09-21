@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BPTR",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bptr-20241204",
+    "workflow_commit":  "a7e167ae4691c7ba62cdfe98308a75f41983d59c",
+    "github_run_id":  35662741169,
+    "github_artifact_id":  10666684310,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35662741169/artifacts/10666684310",
+    "github_artifact_digest":  "17e9c62c106ab2b66e739781d4f5671909e9797896f24eb4db1d0e25deaacefa",
+    "packet_sha256":  "120d9e60176452516cdce30c46d7ec0153ba7bfc1771dd733da20ea1809ee748",
+    "rows_jsonl_sha256":  "7c2e46aa9668d57cd28bd5b5161caddbd3813f9f1304a4973c79f0de5bedb040",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  286882,
+    "source_row_last":  286906,
+    "data_rows":  25,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 15:27:00"
+}
