@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BREN",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bren-20241204",
+    "workflow_commit":  "ef20278de8ebe4559ab8a59167119fe524cfa3aa",
+    "github_run_id":  35663532997,
+    "github_artifact_id":  10668730197,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35663532997/artifacts/10668730197",
+    "github_artifact_digest":  "8114dffb8d145fcef38c4ffa4ebd6761c4c244b525efa646867c4a12e0e259d1",
+    "packet_sha256":  "67b5d3d7c6abb6e4121d06e42c7fd97ecbed107f954cae3ab57adb4a13b64cd3",
+    "rows_jsonl_sha256":  "ed8095e18bcef308d78adaa74b630635f78d69140eb507308cbec9a8648c7c20",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  287932,
+    "source_row_last":  288266,
+    "data_rows":  335,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:14:00"
+}
