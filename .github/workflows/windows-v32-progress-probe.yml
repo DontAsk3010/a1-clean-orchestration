@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Inspect V3.2 source checkpoints
-        shell: powershell
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           $root = 'C:\Users\feri-admin\.a1clean\v32_full_observation_behavior\schema-v3\f22dc09395a7967215f93fc832d0fe81ee77d3aa'
