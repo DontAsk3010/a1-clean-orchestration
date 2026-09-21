@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BMTR",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bmtr-20241204",
+    "workflow_commit":  "d8bdac180969bca4fd20e6f8c05342b51c5a9772",
+    "github_run_id":  35654233223,
+    "github_artifact_id":  10663169131,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35654233223/artifacts/10663169131",
+    "github_artifact_digest":  "51ae93c830a19f90eaff9993b1b39b7834a204efb9162c12a1c40925d99ac938",
+    "packet_sha256":  "b6582ff81bd39098290bb74320adb660b5cbc31d3016dc8fa8476ce2a46a22e0",
+    "rows_jsonl_sha256":  "12f0194b6fbc91f4f8a533d14f325c2c14f3319224d65880ca7c47b2388762a7",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  256722,
+    "source_row_last":  256951,
+    "data_rows":  230,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:14:00"
+}
