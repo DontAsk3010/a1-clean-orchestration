@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BKDP",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bkdp-20241204",
+    "workflow_commit":  "8e9df2fffbb0bdb770fb3965d958c88d51a30538",
+    "github_run_id":  35638357394,
+    "github_artifact_id":  10656938156,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35638357394/artifacts/10656938156",
+    "github_artifact_digest":  "c198ec47a7b44b5bea96fbd97103e6f2364e5e0837fd1a5c4b9fd918fed26545",
+    "packet_sha256":  "e934c052e1c1a6588fef60c1d50cefedfc7e3a13dbd327a08d545a44a271d4d7",
+    "rows_jsonl_sha256":  "617dcc527da31e19363b9b2fb9b9eba3c9b26b0d0bd50d9f56e34441aad965a9",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  242371,
+    "source_row_last":  242373,
+    "data_rows":  3,
+    "first_datetime":  "2024-12-04 09:55:00",
+    "last_datetime":  "2024-12-04 16:00:00"
+}

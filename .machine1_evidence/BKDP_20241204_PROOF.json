@@ -1,0 +1,15 @@
+{
+    "ticker":  "BKDP",
+    "trading_date":  "2024-12-04",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0010.jsonl",
+    "semantic_bundle_line_number":  89,
+    "source_row_first":  242371,
+    "source_row_last":  242373,
+    "data_rows":  3,
+    "first_datetime":  "2024-12-04 09:55:00",
+    "last_datetime":  "2024-12-04 16:00:00",
+    "packet_sha256":  "e934c052e1c1a6588fef60c1d50cefedfc7e3a13dbd327a08d545a44a271d4d7",
+    "rows_jsonl_sha256":  "617dcc527da31e19363b9b2fb9b9eba3c9b26b0d0bd50d9f56e34441aad965a9"
+}
