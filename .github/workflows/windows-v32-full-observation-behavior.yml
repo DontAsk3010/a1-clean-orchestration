@@ -66,10 +66,17 @@ jobs:
           if ([int64]$req.phase_probe_artifact_id -ne 10537732681) { throw 'V32_PHASE_PROBE_ARTIFACT_BINDING_FAIL' }
           if ($req.phase_probe_artifact_digest -ne 'sha256:3d07b1f7a5a16acb8cc66930c7f271f2de432a6cb52340f77e43efae0e8e7057') { throw 'V32_PHASE_PROBE_DIGEST_FAIL' }
 
-          $parent = (git -c "safe.directory=$PWD" rev-parse HEAD^).Trim()
-          if ($parent -ne [string]$req.required_parent_revision) { throw "V32_PARENT_REVISION_MISMATCH:$parent" }
-          "A1_V32_SOFTWARE_REVISION=$parent" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          $out = Join-Path $env:USERPROFILE ".a1clean\v32_full_observation_behavior\schema-v3\$parent"
+          $softwareRevision = [string]$req.required_parent_revision
+          $changed = @(git -c "safe.directory=$PWD" diff --name-only "$softwareRevision..HEAD")
+          if ($LASTEXITCODE -ne 0) { throw 'V32_SOFTWARE_REVISION_DIFF_CHECK_FAILED' }
+          $allowedOperationalFiles = @(
+            '.github/workflows/windows-v32-full-observation-behavior.yml',
+            'v32-full-observation-behavior-requests/current.json'
+          )
+          $unexpected = @($changed | Where-Object { $_ -notin $allowedOperationalFiles })
+          if ($unexpected.Count -ne 0) { throw "V32_UNEXPECTED_CODE_CHANGE_SINCE_SOFTWARE_REVISION:$($unexpected -join ',')" }
+          "A1_V32_SOFTWARE_REVISION=$softwareRevision" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $out = Join-Path $env:USERPROFILE ".a1clean\v32_full_observation_behavior\schema-v3\$softwareRevision"
           "V32_OUTPUT_ROOT=$out" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Install compile and test exact V3.2 capability
