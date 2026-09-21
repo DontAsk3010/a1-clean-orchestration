@@ -1,0 +1,166 @@
+name: A1 V3.2 Service Runner Auto Recovery
+
+on:
+  workflow_run:
+    workflows:
+      - "Windows V3.2 Full Observation and Behavior Capability"
+    types:
+      - completed
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: a1-v32-service-auto-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    name: Recover interrupted V3.2 service-runner execution
+    runs-on: ubuntu-latest
+    steps:
+      - name: Classify latest run and recover infra interruption only
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const targetBranch = "formula/current-clean-research-v1";
+            const targetWorkflow = "windows-v32-full-observation-behavior.yml";
+            const requestPath = "v32-full-observation-behavior-requests/current.json";
+
+            const requestResponse = await github.rest.repos.getContent({
+              owner,
+              repo,
+              path: requestPath,
+              ref: targetBranch,
+            });
+            const requestText = Buffer.from(
+              requestResponse.data.content,
+              "base64"
+            ).toString("utf8");
+            const request = JSON.parse(requestText);
+
+            if (request.enabled !== true) {
+              core.info("V3.2 request disabled; recovery skipped.");
+              return;
+            }
+            if (request.service_runner_auto_recovery_enabled !== true) {
+              core.info("Service-runner auto recovery disabled by request; skipped.");
+              return;
+            }
+            if (request.service_runner_auto_recovery_policy !== "INFRA_INTERRUPTION_ONLY") {
+              core.setFailed("Unsupported auto-recovery policy.");
+              return;
+            }
+
+            const maxConsecutive = Number(
+              request.service_runner_auto_recovery_max_consecutive_interruptions || 3
+            );
+
+            const runsResponse = await github.rest.actions.listWorkflowRuns({
+              owner,
+              repo,
+              workflow_id: targetWorkflow,
+              branch: targetBranch,
+              per_page: 20,
+            });
+            const runs = runsResponse.data.workflow_runs || [];
+
+            const active = runs.find((run) => run.status !== "completed");
+            if (active) {
+              core.info(`V3.2 already active: run ${active.id} status=${active.status}`);
+              return;
+            }
+
+            const completedRuns = runs.filter((run) => run.status === "completed");
+            const latest = completedRuns[0];
+            if (!latest) {
+              core.info("No completed V3.2 run found; nothing to recover.");
+              return;
+            }
+            if (latest.conclusion !== "failure") {
+              core.info(`Latest completed V3.2 run is ${latest.conclusion}; recovery not required.`);
+              return;
+            }
+
+            async function classify(run) {
+              const jobsResponse = await github.rest.actions.listJobsForWorkflowRun({
+                owner,
+                repo,
+                run_id: run.id,
+                filter: "latest",
+                per_page: 100,
+              });
+              const jobs = jobsResponse.data.jobs || [];
+              const targetJob = jobs.find((job) =>
+                job.name === "Build complete 18-source observation and behavior capability lineage"
+              ) || jobs[0];
+
+              if (!targetJob) {
+                return { infra: false, reason: "NO_JOB" };
+              }
+
+              const steps = targetJob.steps || [];
+              const explicitFailures = steps.filter(
+                (step) => step.status === "completed" && step.conclusion === "failure"
+              );
+              const interrupted = steps.some(
+                (step) =>
+                  step.status !== "completed" ||
+                  step.conclusion === null ||
+                  step.conclusion === undefined
+              );
+
+              if (explicitFailures.length > 0) {
+                return {
+                  infra: false,
+                  reason: `EXPLICIT_STEP_FAILURE:${explicitFailures.map((s) => s.name).join(",")}`,
+                };
+              }
+              if (!interrupted) {
+                return { infra: false, reason: "NO_INTERRUPTED_STEP_STATE" };
+              }
+
+              return { infra: true, reason: "RUNNER_OR_POWER_INTERRUPTION_SIGNATURE" };
+            }
+
+            const latestClass = await classify(latest);
+            core.info(`Latest run ${latest.id}: ${latestClass.reason}`);
+
+            if (!latestClass.infra) {
+              core.info("Explicit workflow failure detected; automatic rerun intentionally blocked.");
+              return;
+            }
+
+            let consecutiveInfraFailures = 0;
+            for (const run of completedRuns) {
+              if (run.conclusion === "success") break;
+              if (run.conclusion !== "failure") break;
+              const classification = await classify(run);
+              if (!classification.infra) break;
+              consecutiveInfraFailures += 1;
+              if (consecutiveInfraFailures >= maxConsecutive) break;
+            }
+
+            if (consecutiveInfraFailures >= maxConsecutive) {
+              core.setFailed(
+                `Auto-recovery cap reached: ${consecutiveInfraFailures}/${maxConsecutive} consecutive infra interruptions.`
+              );
+              return;
+            }
+
+            await github.rest.actions.createWorkflowDispatch({
+              owner,
+              repo,
+              workflow_id: targetWorkflow,
+              ref: targetBranch,
+            });
+
+            core.notice(
+              `Recovered V3.2 after infra interruption. Previous run=${latest.id}; consecutive infra failures=${consecutiveInfraFailures}.`
+            );
