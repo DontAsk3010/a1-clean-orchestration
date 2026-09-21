@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BOLA",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bola-20241204",
+    "workflow_commit":  "229d69f5a2f82538cfef2dc0a1a62fad621f2910",
+    "github_run_id":  35660215896,
+    "github_artifact_id":  10667176703,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35660215896/artifacts/10667176703",
+    "github_artifact_digest":  "a3dfd7ee5938d5ca85dfbb0e77725cc65e8040a739fd61b1f692ddcd9ac6a413",
+    "packet_sha256":  "41a7d6887d7b9a997e669614d1bca0d7f0fbdf9e7dec9bc1a75fdec4dafcab5a",
+    "rows_jsonl_sha256":  "416ab180e97968884b6a9eb72268b98c07c961ca7e70eb63d13ffa8b13e7144e",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  281004,
+    "source_row_last":  281043,
+    "data_rows":  40,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:00:00"
+}
