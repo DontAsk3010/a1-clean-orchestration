@@ -1,0 +1,15 @@
+{
+    "ticker":  "BRIS",
+    "trading_date":  "2024-12-04",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0010.jsonl",
+    "semantic_bundle_line_number":  116,
+    "source_row_first":  293999,
+    "source_row_last":  294329,
+    "data_rows":  331,
+    "first_datetime":  "2024-12-04 08:59:00",
+    "last_datetime":  "2024-12-04 16:14:00",
+    "packet_sha256":  "e82e8bccfd8ed631f6bc2e8558696ba0377f319e9d3d78ea4f903136a5864b7c",
+    "rows_jsonl_sha256":  "4c8fdac576a1fe1a0d573b354688416270858868fa7c265a1cc62b949ba77828"
+}
