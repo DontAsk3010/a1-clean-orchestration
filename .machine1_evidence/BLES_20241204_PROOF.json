@@ -1,0 +1,15 @@
+{
+    "ticker":  "BLES",
+    "trading_date":  "2024-12-04",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0010.jsonl",
+    "semantic_bundle_line_number":  92,
+    "source_row_first":  250288,
+    "source_row_last":  250465,
+    "data_rows":  178,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:10:00",
+    "packet_sha256":  "64f75af9f66d196a73219834fd71174be2716df5f396e3f906710a36495197fb",
+    "rows_jsonl_sha256":  "ea8634ce14749c6c52892aaa9381f44f2ecc3ddd8496ef9541a8180017e5527a"
+}
