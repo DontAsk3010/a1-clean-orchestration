@@ -104,6 +104,36 @@ jobs:
           $out = Join-Path "C:\Users\feri-admin\.a1clean\v32_full_observation_behavior\schema-v3" $softwareRevision
           "V32_OUTPUT_ROOT=$out" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
+      - name: Enforce Machine 2 behavior-parity boundary
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'v32-full-observation-behavior-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          $coverage = Get-Content -LiteralPath 'v32-manual-behavior-benchmark-coverage/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($coverage.benchmark_mode -ne 'EVIDENCE_RETRIEVAL_PARITY_NOT_SEMANTIC_LABEL_PARITY') { throw 'V32_BENCHMARK_MODE_DRIFT' }
+          if ($req.manual_behavior_handbook_is_immutable_benchmark -ne $true) { throw 'V32_MANUAL_BENCHMARK_IMMUTABILITY_REQUIRED' }
+          if ($req.machine1_semantic_reader_remains_independent -ne $true) { throw 'V32_MACHINE1_INDEPENDENCE_REQUIRED' }
+          if ($req.formula_research_not_substitute_for_machine1_behavior_pass -ne $true) { throw 'V32_MACHINE2_CANNOT_SUBSTITUTE_MACHINE1' }
+          $b13 = @($coverage.requirements | Where-Object { $_.id -eq 'B13' })
+          $b14 = @($coverage.requirements | Where-Object { $_.id -eq 'B14' })
+          if ($b13.Count -ne 1 -or $b13[0].status -ne 'LOCKED_PASS') { throw 'V32_B13_INDEPENDENCE_LOCK_MISSING' }
+          if ($b14.Count -ne 1 -or $b14[0].status -ne 'LOCKED_PASS') { throw 'V32_B14_BENCHMARK_LOCK_MISSING' }
+          $semanticPending = @($coverage.requirements | Where-Object {
+            ([string]$_.status -eq 'SEMANTIC_BENCHMARK_TRACKED_NOT_DATA_PARITY_BLOCKER') -or
+            (-not [string]::IsNullOrWhiteSpace([string]$_.gap))
+          })
+          if ($req.full_behavior_requirement_retrievability_proven -eq $true -and $semanticPending.Count -ne 0) {
+            throw "V32_FALSE_BEHAVIOR_PARITY_CLAIM_PENDING_GAPS:$((@($semanticPending | ForEach-Object { $_.id })) -join ',')"
+          }
+          $gapIds = (@($semanticPending | ForEach-Object { [string]$_.id }) -join ',')
+          "A1_V32_SCOPE_CLASS=EVIDENCE_RETRIEVAL_PARITY_ONLY" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "A1_V32_SEMANTIC_GAP_IDS=$gapIds" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "### Machine 2 parity boundary"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Scope class: EVIDENCE_RETRIEVAL_PARITY_ONLY"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Machine 1 semantic reader remains independent: TRUE"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Machine 2 full behavior parity proven: FALSE while benchmark gaps remain"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Pending benchmark gap IDs: $gapIds"
+
       - name: Preflight legacy checkpoint access
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
@@ -192,6 +222,26 @@ jobs:
             }
           }
 
+      - name: Assert V3.2 result cannot be promoted as full Machine 2 behavior parity
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'v32-full-observation-behavior-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          $coverage = Get-Content -LiteralPath 'v32-manual-behavior-benchmark-coverage/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          $m = Get-Content -LiteralPath (Join-Path $env:V32_OUTPUT_ROOT 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($m.research_status -ne 'RESEARCH_ONLY_NOT_CANONICAL') { throw 'V32_RESEARCH_ONLY_BOUNDARY_FAIL' }
+          if ($req.machine1_semantic_reader_remains_independent -ne $true) { throw 'V32_MACHINE1_INDEPENDENCE_DRIFT' }
+          $semanticPending = @($coverage.requirements | Where-Object {
+            ([string]$_.status -eq 'SEMANTIC_BENCHMARK_TRACKED_NOT_DATA_PARITY_BLOCKER') -or
+            (-not [string]::IsNullOrWhiteSpace([string]$_.gap))
+          })
+          if ($semanticPending.Count -ne 0 -and $req.full_behavior_requirement_retrievability_proven -eq $true) {
+            throw 'V32_BEHAVIOR_PARITY_PROMOTION_FORBIDDEN_WITH_OPEN_BENCHMARK_GAPS'
+          }
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ""
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "V3.2 corpus PASS, if reached, proves governed evidence/source retrieval parity only."
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "It does NOT prove full Machine 2 semantic behavior-reading parity while B04-B12/B15-class benchmark gaps remain."
+
       - name: Exact second-run readback and checkpoint reuse
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
@@ -219,6 +269,10 @@ jobs:
             trigger_revision = '${{ github.sha }}'
             software_revision = $env:A1_V32_SOFTWARE_REVISION
             output_root = $env:V32_OUTPUT_ROOT
+            scope_class = $env:A1_V32_SCOPE_CLASS
+            semantic_gap_ids = $env:A1_V32_SEMANTIC_GAP_IDS
+            machine2_full_behavior_parity_proven = $false
+            machine1_semantic_reader_independent = $true
           } | ConvertTo-Json | Out-File -LiteralPath 'v32-full-observation-behavior-summary\run-identity.json' -Encoding utf8
 
       - name: Upload V3.2 governed summary
