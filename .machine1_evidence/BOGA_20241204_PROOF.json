@@ -1,0 +1,15 @@
+{
+    "ticker":  "BOGA",
+    "trading_date":  "2024-12-04",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0010.jsonl",
+    "semantic_bundle_line_number":  108,
+    "source_row_first":  275061,
+    "source_row_last":  275065,
+    "data_rows":  5,
+    "first_datetime":  "2024-12-04 09:06:00",
+    "last_datetime":  "2024-12-04 16:00:00",
+    "packet_sha256":  "d778cdac95a936f26cde89b220c5335ee59313848fe2c377b16557e55b0d06a9",
+    "rows_jsonl_sha256":  "20d37af0e7ebd0be36b85a75410013e5fc1efdccb958cfe22cced2194a314a90"
+}
