@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BOBA",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-boba-20241204",
+    "workflow_commit":  "111b559e773727daa6f0d257d2ec2a03430df31c",
+    "github_run_id":  35659473268,
+    "github_artifact_id":  10667320293,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35659473268/artifacts/10667320293",
+    "github_artifact_digest":  "6b1ccece2375e8eb878757a479d01efb0702a4cbd370e3af1ce9755bf1e32c2a",
+    "packet_sha256":  "d553e3db5edb304ea2cc1359564e1cff889c3383c1facdc3b75e09b629fbe0cf",
+    "rows_jsonl_sha256":  "6fc5604a60a9b1feb845ea1b1d30131125905530f17b6b878d051263eb79ad73",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  274319,
+    "source_row_last":  274380,
+    "data_rows":  62,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:12:00"
+}
