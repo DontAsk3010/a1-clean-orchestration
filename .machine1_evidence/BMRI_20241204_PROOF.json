@@ -1,0 +1,15 @@
+{
+    "ticker":  "BMRI",
+    "trading_date":  "2024-12-04",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0010.jsonl",
+    "semantic_bundle_line_number":  98,
+    "source_row_first":  260853,
+    "source_row_last":  261188,
+    "data_rows":  336,
+    "first_datetime":  "2024-12-04 08:59:00",
+    "last_datetime":  "2024-12-04 16:14:00",
+    "packet_sha256":  "3abd1ca715dfc873c7894a2f3505cc805c9a2b20192d7177fbba8ab23ddcd10a",
+    "rows_jsonl_sha256":  "4fbf9dbbd9dde77349495c83b02c3ec5240769c6cd51c12d8ec0a19a6431597e"
+}
