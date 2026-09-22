@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BRMS",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-brms-20241204",
+    "workflow_commit":  "48b7019e2d67ef8830ffb7dddd7622e09931095e",
+    "github_run_id":  35698781209,
+    "github_artifact_id":  10680784227,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35698781209/artifacts/10680784227",
+    "github_artifact_digest":  "427d3a32afbaa9764685c39a11b234759ef290b40abeb89e406aa108eef48aac",
+    "packet_sha256":  "9f43ade93dcbfb193d62f25cf8552a02076b481462852fd460cab846ac4f7534",
+    "rows_jsonl_sha256":  "5fcb840944fb2b686c9fe1f3690ef7ccbbb250113bae8386650f3c2b02d8d6ec",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  300158,
+    "source_row_last":  300490,
+    "data_rows":  333,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:14:00"
+}
