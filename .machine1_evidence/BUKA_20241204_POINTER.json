@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BUKA",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-buka-20241204",
+    "workflow_commit":  "5a25b12960de864bdcc964cac6347c2f06e224c2",
+    "github_run_id":  35764008604,
+    "github_artifact_id":  10711272729,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35764008604/artifacts/10711272729",
+    "github_artifact_digest":  "7094c3372a4ebe840cf1e22010a29276449f5d9ce139c72dddbd1d8049801188",
+    "packet_sha256":  "4f63e431b8735d0199cd28d4fd32db707691e300780c3b60219aca63c6ac3301",
+    "rows_jsonl_sha256":  "b8d6188133f685b60d43f03bca4ef1790b9e1c078f1b95dd5ef0a7f7012d9f48",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  336037,
+    "source_row_last":  336337,
+    "data_rows":  301,
+    "first_datetime":  "2024-12-04 08:59:00",
+    "last_datetime":  "2024-12-04 16:14:00"
+}
