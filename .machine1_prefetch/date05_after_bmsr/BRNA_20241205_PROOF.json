@@ -1,0 +1,19 @@
+{
+    "ticker":  "BRNA",
+    "trading_date":  "2024-12-05",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0014.jsonl",
+    "semantic_bundle_line_number":  232,
+    "source_row_first":  299422,
+    "source_row_last":  299425,
+    "physical_line_first":  299423,
+    "physical_line_last":  299426,
+    "actual_rows":  4,
+    "first_datetime":  "2024-12-05 13:40:00",
+    "last_datetime":  "2024-12-05 15:44:00",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "rows_jsonl_sha256":  "6b3a02ea658cb007b9e87f423e89b4a23fd88f4df4e9ce913f058c59ed31f468",
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}
