@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BTPN",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-btpn-20241204",
+    "workflow_commit":  "308319ac451b0053266f5e90c34fc77ee8bc8850",
+    "github_run_id":  35729067565,
+    "github_artifact_id":  10694114233,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35729067565/artifacts/10694114233",
+    "github_artifact_digest":  "c09f09858d2575d98cba010821cfecfa7d65b88f5cfd7aeb4df0e6deecde1ff1",
+    "packet_sha256":  "7103e2dd95085694145cb597372ab2b445cc6f9efd18e88b4816be92976083b5",
+    "rows_jsonl_sha256":  "fed332fcdaf3a82f7dff8b37caf5185fbb681f13968a747548aa53303c44159a",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  323164,
+    "source_row_last":  323176,
+    "data_rows":  13,
+    "first_datetime":  "2024-12-04 09:56:00",
+    "last_datetime":  "2024-12-04 15:43:00"
+}
