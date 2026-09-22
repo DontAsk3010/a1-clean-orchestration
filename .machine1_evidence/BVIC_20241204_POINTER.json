@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BVIC",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bvic-20241204",
+    "workflow_commit":  "787ec78f105550cc887b0deaaa6f22fb2dde4a30",
+    "github_run_id":  35777635181,
+    "github_artifact_id":  10716574342,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35777635181/artifacts/10716574342",
+    "github_artifact_digest":  "54e8ba030e1b648e0c57c44dec1f46b8a4f1c658bdab250b4fc378274eac836e",
+    "packet_sha256":  "4a2c3976cd97765a48ae2403fa738eb5dd99e80a4c73e2f5cff7cbe870b95375",
+    "rows_jsonl_sha256":  "0d16ff309a77c529c810019d336194b083a8b78d6bd5909e392a18a46818f3d6",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  350699,
+    "source_row_last":  350767,
+    "data_rows":  69,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:10:00"
+}
