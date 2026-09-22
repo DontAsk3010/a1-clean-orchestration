@@ -1,0 +1,15 @@
+{
+    "ticker":  "BMSR",
+    "trading_date":  "2024-12-05",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0014.jsonl",
+    "semantic_bundle_line_number":  213,
+    "source_row_first":  255923,
+    "source_row_last":  255932,
+    "data_rows":  10,
+    "first_datetime":  "2024-12-05 10:32:00",
+    "last_datetime":  "2024-12-05 16:00:00",
+    "packet_sha256":  "4a213bef2e747d572d311252d86ab94a01917de9e41c6295cd8345da4ce08939",
+    "rows_jsonl_sha256":  "ef405d4fa3b24e7c91c0bd1278ae65951dfae1b4b8f783349b40475284000f0d"
+}
