@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BSML",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bsml-20241204",
+    "workflow_commit":  "0c2ba79f819179496b60e3bcc15c4238b250c96d",
+    "github_run_id":  35704037544,
+    "github_artifact_id":  10683417952,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35704037544/artifacts/10683417952",
+    "github_artifact_digest":  "2489244164883475d5fd14acc98b2f6d0000484ad86cb4d0c8e03fe5de131b4c",
+    "packet_sha256":  "5151d9699399e7a4f18fd90a46e69ecffc12d1190719ad557161c4888ec683db",
+    "rows_jsonl_sha256":  "23c94dc76a40ca99f086bcf0b9647a1ac1bd50d7b011489be03c41c5854fcad7",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  320155,
+    "source_row_last":  320322,
+    "data_rows":  168,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:14:00"
+}
