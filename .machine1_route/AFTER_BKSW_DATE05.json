@@ -1,0 +1,13 @@
+﻿{
+    "ticker":  "BLTA",
+    "trading_date":  "2024-12-05",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0014.jsonl",
+    "semantic_bundle_line_number":  207,
+    "source_row_first":  249832,
+    "source_row_last":  249836,
+    "physical_line_first":  249833,
+    "physical_line_last":  249837,
+    "actual_rows":  5,
+    "first_datetime":  "2024-12-05 09:55:00",
+    "last_datetime":  "2024-12-05 16:00:00"
+}
