@@ -1,0 +1,105 @@
+name: Machine1 MBAP-MDLN 20241202 Evidence Extract
+
+on:
+  push:
+    branches:
+      - machine1/evidence-mbap-mdln-20241202
+    paths:
+      - .github/workflows/machine1-mbap-mdln-20241202-evidence.yml
+
+permissions:
+  contents: read
+
+jobs:
+  extract-governed-mbap-mdln:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: machine1/evidence-mbap-mdln-20241202
+
+      - name: Extract exact governed MBAP-MDLN packets
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $raw = $env:RAW_FILE
+          $tradingDate = '2024-12-02'
+          $expectedMd5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
+          $expectedSha256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          if (-not (Test-Path -LiteralPath $raw -PathType Leaf)) { throw "RAW_MISSING: $raw" }
+          $gotMd5 = (Get-FileHash -LiteralPath $raw -Algorithm MD5).Hash.ToLowerInvariant()
+          $gotSha256 = (Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($gotMd5 -ne $expectedMd5 -or $gotSha256 -ne $expectedSha256) { throw "RAW_HASH_MISMATCH md5=$gotMd5 sha256=$gotSha256" }
+
+          $specs = @(
+            [pscustomobject][ordered]@{ticker='MBAP'; first=1029492; last=1029560; count=69; first_time='09:00:00'; last_time='16:11:00'; bundle_line=147},
+            [pscustomobject][ordered]@{ticker='MBMA'; first=1035001; last=1035308; count=308; first_time='08:59:00'; last_time='16:13:00'; bundle_line=148},
+            [pscustomobject][ordered]@{ticker='MBSS'; first=1034246; last=1034277; count=32; first_time='09:00:00'; last_time='16:00:00'; bundle_line=149},
+            [pscustomobject][ordered]@{ticker='MBTO'; first=1034668; last=1034700; count=33; first_time='09:00:00'; last_time='16:03:00'; bundle_line=150},
+            [pscustomobject][ordered]@{ticker='MCAS'; first=1039905; last=1039967; count=63; first_time='09:08:00'; last_time='16:13:00'; bundle_line=151},
+            [pscustomobject][ordered]@{ticker='MCOL'; first=1041003; last=1041049; count=47; first_time='09:00:00'; last_time='15:49:00'; bundle_line=152},
+            [pscustomobject][ordered]@{ticker='MCOR'; first=1041513; last=1041590; count=78; first_time='09:00:00'; last_time='15:47:00'; bundle_line=153},
+            [pscustomobject][ordered]@{ticker='MDKA'; first=1045987; last=1046315; count=329; first_time='08:59:00'; last_time='16:14:00'; bundle_line=154},
+            [pscustomobject][ordered]@{ticker='MDKI'; first=1044264; last=1044290; count=27; first_time='09:05:00'; last_time='15:49:00'; bundle_line=155},
+            [pscustomobject][ordered]@{ticker='MDLN'; first=1044769; last=1044840; count=72; first_time='09:00:00'; last_time='16:13:00'; bundle_line=156}
+          )
+
+          $outDir = Join-Path $PWD 'machine1_mbap_mdln_20241202_evidence'
+          New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+          $byTicker = @{}
+          foreach ($s in $specs) { $byTicker[$s.ticker] = New-Object System.Collections.Generic.List[object] }
+          $minRow = 1029492
+          $maxRow = 1046315
+          $sr = New-Object System.IO.StreamReader($raw, [System.Text.Encoding]::UTF8, $true, 1048576)
+          try {
+            $headerLine = $sr.ReadLine()
+            if ($null -eq $headerLine) { throw 'RAW_EMPTY' }
+            $headerFields = @($headerLine.TrimStart([char]0xFEFF).Split(','))
+            $physicalLine = 1
+            while (-not $sr.EndOfStream) {
+              $line = $sr.ReadLine(); $physicalLine++; $sourceRow = $physicalLine - 1
+              if ($sourceRow -gt $maxRow) { break }
+              if ($sourceRow -lt $minRow) { continue }
+              foreach ($s in $specs) {
+                if ($sourceRow -ge $s.first -and $sourceRow -le $s.last) {
+                  $parsed = $line | ConvertFrom-Csv -Header $headerFields
+                  $fields = [ordered]@{}
+                  foreach ($h in $headerFields) { $fields[$h] = $parsed.$h }
+                  $byTicker[$s.ticker].Add([pscustomobject][ordered]@{source_row=[int]$sourceRow;physical_line=[int]$physicalLine;raw_line=$line;fields=$fields})
+                  break
+                }
+              }
+            }
+          } finally { $sr.Dispose() }
+
+          $proof = @()
+          foreach ($s in $specs) {
+            $arr = $byTicker[$s.ticker]
+            if ($arr.Count -ne $s.count) { throw "$($s.ticker)_ROW_COUNT_MISMATCH got=$($arr.Count) expected=$($s.count)" }
+            for ($i=0; $i -lt $arr.Count; $i++) {
+              $expectedRow = $s.first + $i
+              if ($arr[$i].source_row -ne $expectedRow) { throw "$($s.ticker)_SOURCE_ROW_MISMATCH index=$i got=$($arr[$i].source_row) expected=$expectedRow" }
+              if ($arr[$i].fields.RAW_TICKER -ne $s.ticker) { throw "$($s.ticker)_TICKER_MISMATCH row=$($arr[$i].source_row) got=$($arr[$i].fields.RAW_TICKER)" }
+              if (-not $arr[$i].fields.RAW_DATETIME_ISO.StartsWith($tradingDate)) { throw "$($s.ticker)_DATE_MISMATCH row=$($arr[$i].source_row) dt=$($arr[$i].fields.RAW_DATETIME_ISO)" }
+            }
+            $firstDt=[string]$arr[0].fields.RAW_DATETIME_ISO; $lastDt=[string]$arr[$arr.Count-1].fields.RAW_DATETIME_ISO
+            if ($firstDt.Substring($firstDt.Length-8)-ne $s.first_time -or $lastDt.Substring($lastDt.Length-8)-ne $s.last_time) { throw "$($s.ticker)_BOUNDARY_TIME_MISMATCH first=$firstDt last=$lastDt" }
+            [ordered]@{source_name=[System.IO.Path]::GetFileName($raw);source_md5=$gotMd5;source_sha256=$gotSha256;ticker=$s.ticker;trading_date=$tradingDate;semantic_bundle='Raw Des 02-31-2024__SEMANTIC_0003.jsonl';bundle_line_number=[int]$s.bundle_line;source_row_first=[int]$s.first;source_row_last=[int]$s.last;data_rows=[int]$s.count;first_datetime=$firstDt;last_datetime=$lastDt;header_line=$headerLine;header_fields=$headerFields;rows=$arr} | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $outDir "$($s.ticker)_20241202_PACKET.json") -Encoding UTF8
+            $rowsPath=Join-Path $outDir "$($s.ticker)_20241202_ROWS.jsonl"; if(Test-Path $rowsPath){Remove-Item $rowsPath -Force}
+            foreach($row in $arr){($row|ConvertTo-Json -Depth 6 -Compress)|Add-Content -LiteralPath $rowsPath -Encoding UTF8}
+            $proof += [pscustomobject][ordered]@{ticker=$s.ticker;trading_date=$tradingDate;semantic_bundle='Raw Des 02-31-2024__SEMANTIC_0003.jsonl';bundle_line_number=[int]$s.bundle_line;source_row_first=[int]$s.first;source_row_last=[int]$s.last;data_rows=[int]$s.count;first_datetime=$firstDt;last_datetime=$lastDt}
+            Write-Host "PASS $($s.ticker) rows=$($s.count) source=$($s.first)-$($s.last) first=$firstDt last=$lastDt"
+          }
+          [ordered]@{status='PASS';source_md5=$gotMd5;source_sha256=$gotSha256;trading_date=$tradingDate;tickers=$proof} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $outDir 'CHUNK_PROOF.json') -Encoding UTF8
+
+      - name: Upload governed evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-mbap-mdln-20241202-evidence
+          path: machine1_mbap_mdln_20241202_evidence/
+          if-no-files-found: error
+          retention-days: 7
