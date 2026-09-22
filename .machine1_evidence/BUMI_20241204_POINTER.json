@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BUMI",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bumi-20241204",
+    "workflow_commit":  "38c7d1bbbdc990b47f93283b87dfecd9edd7f0ff",
+    "github_run_id":  35774528319,
+    "github_artifact_id":  10715198681,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35774528319/artifacts/10715198681",
+    "github_artifact_digest":  "4b20227fd24f34698219db7f41bc2aaa513cb0667cbb0f94040c8dfdceebde4c",
+    "packet_sha256":  "9e0374a48a1b2c1bc3285a702d8abe6615e557f34d4f5feb3e9b5ae5173db683",
+    "rows_jsonl_sha256":  "b250a3f75860e9243c31420030053edcafe227fd35ed4a7844bb2ea83d9259d6",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  345062,
+    "source_row_last":  345396,
+    "data_rows":  335,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:14:00"
+}
