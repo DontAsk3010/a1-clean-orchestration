@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BUKK",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bukk-20241204",
+    "workflow_commit":  "b5002415d8806f5d571ccbd17fa0340d98659ffe",
+    "github_run_id":  35769546210,
+    "github_artifact_id":  10714115309,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35769546210/artifacts/10714115309",
+    "github_artifact_digest":  "13c6ce759a83cdf6921da9338e76e504b92bf213892e3ea8807a0ea2c0ab6f9b",
+    "packet_sha256":  "0834c207b4bd8aa9af06eaedb1a87c3569dadd6a40e7d928d50b085aa700f3bf",
+    "rows_jsonl_sha256":  "556de14fda506ef15bb23fb26c7fb24c5c365a6f77d8e54d9e5462e9ce45c0d1",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  335211,
+    "source_row_last":  335234,
+    "data_rows":  24,
+    "first_datetime":  "2024-12-04 09:09:00",
+    "last_datetime":  "2024-12-04 16:08:00"
+}
