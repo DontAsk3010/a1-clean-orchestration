@@ -1,0 +1,13 @@
+{
+    "ticker":  "LIFE",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  14,
+    "source_row_first":  973260,
+    "source_row_last":  973266,
+    "data_rows":  7,
+    "first_datetime":  "2024-12-03 15:13:00",
+    "last_datetime":  "2024-12-03 15:49:00",
+    "rows_jsonl_sha256":  "969be871ae2b7f15ef0b517fc060e7cb4da8cea1e025c1a57f8f80ff33353f8a"
+}
