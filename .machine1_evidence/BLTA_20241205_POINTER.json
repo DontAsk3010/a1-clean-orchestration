@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BLTA",
+    "trading_date":  "2024-12-05",
+    "branch":  "machine1/evidence-blta-20241205",
+    "workflow_commit":  "88fcda2fc56ef53480bbc289c3e3996118528ef7",
+    "github_run_id":  35729645556,
+    "github_artifact_id":  10695270389,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35729645556/artifacts/10695270389",
+    "github_artifact_digest":  "ddcdcbceac9a7ba32b18647bb12d1f5001dde364a53cdfbbe51faab07e7c3b5d",
+    "packet_sha256":  "858729758b286feff31ffe40b207df1cfcba93f6b660e0ad8ec07588e970bb4a",
+    "rows_jsonl_sha256":  "3cebe195d0f2451ef34a01180832e0703038a9bd5cc47b5c242c2157b23bffd8",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  249832,
+    "source_row_last":  249836,
+    "data_rows":  5,
+    "first_datetime":  "2024-12-05 09:55:00",
+    "last_datetime":  "2024-12-05 16:00:00"
+}
