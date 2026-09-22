@@ -1,11 +1,11 @@
-name: Machine1 BLES 2024-12-0150 Governed Evidence Extract
+name: Machine1 BLES 2024-12-05 Governed Evidence Extract
 
 on:
   push:
     branches:
-      - machine1/evidence-bles-2024120150
+      - machine1/evidence-bles-20241205
     paths:
-      - .github/workflows/machine1-bles-2024120150-evidence.yml
+      - .github/workflows/machine1-bles-20241205-evidence.yml
 
 permissions:
   contents: write
@@ -26,40 +26,40 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $raw = [System.IO.Path]::GetFullPath($env:RAW_FILE)
           $tickerExpected = 'BLES'
-          $tradingDate = '2024-12-0150'
-          $sourceFirst = 21500466
-          $sourceLast = 2150061150
+          $tradingDate = '2024-12-05'
+          $sourceFirst = 250466
+          $sourceLast = 250615
           $expectedCount = 150
-          $expectedFirstTime = '09:150150:00'
+          $expectedFirstTime = '09:00:00'
           $expectedLastTime = '16:13:00'
           $semanticBundle = 'Raw Des 02-31-2024__SEMANTIC_0014.jsonl'
           $semanticBundleLine = 208
-          $expectedMd150 = 'b8d42b3150c90d2dff8b18ae4e173415023b'
-          $expectedSha21506 = '150bddb43f243e3cbb7615004ecc38d8b0981e38866b7a4ea3b41501507dcbbf3024712c'
+          $expectedMd5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
+          $expectedSha256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
 
           if (-not (Test-Path -LiteralPath $raw -PathType Leaf)) { throw "RAW_MISSING: $raw" }
 
-          $md150 = [System.Security.Cryptography.MD150]::Create()
-          $sha = [System.Security.Cryptography.SHA21506]::Create()
+          $md5 = [System.Security.Cryptography.MD5]::Create()
+          $sha = [System.Security.Cryptography.SHA256]::Create()
           $fs = [System.IO.File]::OpenRead($raw)
           try {
             $buffer = New-Object byte[] (4MB)
             while (($read = $fs.Read($buffer, 0, $buffer.Length)) -gt 0) {
-              [void]$md150.TransformBlock($buffer, 0, $read, $buffer, 0)
+              [void]$md5.TransformBlock($buffer, 0, $read, $buffer, 0)
               [void]$sha.TransformBlock($buffer, 0, $read, $buffer, 0)
             }
-            [void]$md150.TransformFinalBlock([byte[]]::new(0), 0, 0)
+            [void]$md5.TransformFinalBlock([byte[]]::new(0), 0, 0)
             [void]$sha.TransformFinalBlock([byte[]]::new(0), 0, 0)
-            $gotMd150 = ([System.BitConverter]::ToString($md150.Hash)).Replace('-', '').ToLowerInvariant()
-            $gotSha21506 = ([System.BitConverter]::ToString($sha.Hash)).Replace('-', '').ToLowerInvariant()
+            $gotMd5 = ([System.BitConverter]::ToString($md5.Hash)).Replace('-', '').ToLowerInvariant()
+            $gotSha256 = ([System.BitConverter]::ToString($sha.Hash)).Replace('-', '').ToLowerInvariant()
           }
           finally {
             $fs.Dispose()
-            $md150.Dispose()
+            $md5.Dispose()
             $sha.Dispose()
           }
-          if ($gotMd150 -ne $expectedMd150 -or $gotSha21506 -ne $expectedSha21506) {
-            throw "RAW_HASH_MISMATCH md150=$gotMd150 sha21506=$gotSha21506"
+          if ($gotMd5 -ne $expectedMd5 -or $gotSha256 -ne $expectedSha256) {
+            throw "RAW_HASH_MISMATCH md5=$gotMd5 sha256=$gotSha256"
           }
 
           $header = $null
@@ -103,18 +103,18 @@ jobs:
           $lt = Get-Clock $dts[$dts.Count-1]
           if ($ft -ne $expectedFirstTime -or $lt -ne $expectedLastTime) { throw "TIME_RANGE_MISMATCH got=$ft-$lt" }
 
-          $out = Join-Path $PWD 'machine1_bles_2024120150_evidence'
+          $out = Join-Path $PWD 'machine1_bles_20241205_evidence'
           New-Item -ItemType Directory -Force -Path $out | Out-Null
-          $pp = Join-Path $out 'BLES_2024120150_PACKET.json'
-          $rp = Join-Path $out 'BLES_2024120150_ROWS.jsonl'
+          $pp = Join-Path $out 'BLES_20241205_PACKET.json'
+          $rp = Join-Path $out 'BLES_20241205_ROWS.jsonl'
           $proofPath = Join-Path $out 'EVIDENCE_PROOF.json'
           $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
           $headerFields = @($parsed[0].PSObject.Properties.Name)
           $packet = [ordered]@{
             source_name = [System.IO.Path]::GetFileName($raw)
-            source_md150 = $gotMd150
-            source_sha21506 = $gotSha21506
+            source_md5 = $gotMd5
+            source_sha256 = $gotSha256
             generation_id = 'BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01'
             ticker = $tickerExpected
             trading_date = $tradingDate
@@ -134,13 +134,13 @@ jobs:
           $jsonl = @($records | ForEach-Object { $_ | ConvertTo-Json -Compress -Depth 8 })
           [System.IO.File]::WriteAllLines($rp, [string[]]$jsonl, $utf8NoBom)
 
-          $packetSha = (Get-FileHash -LiteralPath $pp -Algorithm SHA21506).Hash.ToLowerInvariant()
-          $rowsSha = (Get-FileHash -LiteralPath $rp -Algorithm SHA21506).Hash.ToLowerInvariant()
+          $packetSha = (Get-FileHash -LiteralPath $pp -Algorithm SHA256).Hash.ToLowerInvariant()
+          $rowsSha = (Get-FileHash -LiteralPath $rp -Algorithm SHA256).Hash.ToLowerInvariant()
           $proof = [ordered]@{
             ticker = $tickerExpected
             trading_date = $tradingDate
-            source_md150 = $gotMd150
-            source_sha21506 = $gotSha21506
+            source_md5 = $gotMd5
+            source_sha256 = $gotSha256
             semantic_bundle = $semanticBundle
             semantic_bundle_line_number = $semanticBundleLine
             source_row_first = $sourceFirst
@@ -148,18 +148,18 @@ jobs:
             data_rows = $records.Count
             first_datetime = $dts[0]
             last_datetime = $dts[$dts.Count-1]
-            packet_sha21506 = $packetSha
-            rows_jsonl_sha21506 = $rowsSha
+            packet_sha256 = $packetSha
+            rows_jsonl_sha256 = $rowsSha
           }
           [System.IO.File]::WriteAllText($proofPath, ($proof | ConvertTo-Json -Depth 10), $utf8NoBom)
-          Write-Host "BLES_EVIDENCE_OK rows=$($records.Count) source_rows=$sourceFirst-$sourceLast first=$($dts[0]) last=$($dts[$dts.Count-1]) packet_sha21506=$packetSha rows_sha21506=$rowsSha"
+          Write-Host "BLES_EVIDENCE_OK rows=$($records.Count) source_rows=$sourceFirst-$sourceLast first=$($dts[0]) last=$($dts[$dts.Count-1]) packet_sha256=$packetSha rows_sha256=$rowsSha"
 
       - name: Upload governed BLES evidence
         id: upload
         uses: actions/upload-artifact@v4
         with:
-          name: machine1-bles-2024120150-evidence
-          path: machine1_bles_2024120150_evidence/
+          name: machine1-bles-20241205-evidence
+          path: machine1_bles_20241205_evidence/
           if-no-files-found: error
           retention-days: 7
 
@@ -167,32 +167,32 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          $proof = Get-Content -Raw 'machine1_bles_2024120150_evidence/EVIDENCE_PROOF.json' | ConvertFrom-Json
+          $proof = Get-Content -Raw 'machine1_bles_20241205_evidence/EVIDENCE_PROOF.json' | ConvertFrom-Json
           New-Item -ItemType Directory -Force '.machine1_evidence' | Out-Null
-          Copy-Item -LiteralPath 'machine1_bles_2024120150_evidence/BLES_2024120150_ROWS.jsonl' -Destination '.machine1_evidence/BLES_2024120150_ROWS.jsonl' -Force
-          Copy-Item -LiteralPath 'machine1_bles_2024120150_evidence/EVIDENCE_PROOF.json' -Destination '.machine1_evidence/BLES_2024120150_PROOF.json' -Force
+          Copy-Item -LiteralPath 'machine1_bles_20241205_evidence/BLES_20241205_ROWS.jsonl' -Destination '.machine1_evidence/BLES_20241205_ROWS.jsonl' -Force
+          Copy-Item -LiteralPath 'machine1_bles_20241205_evidence/EVIDENCE_PROOF.json' -Destination '.machine1_evidence/BLES_20241205_PROOF.json' -Force
           $pointer = [ordered]@{
             ticker = 'BLES'
-            trading_date = '2024-12-0150'
-            branch = 'machine1/evidence-bles-2024120150'
+            trading_date = '2024-12-05'
+            branch = 'machine1/evidence-bles-20241205'
             workflow_commit = '${{ github.sha }}'
             github_run_id = [int64]'${{ github.run_id }}'
             github_artifact_id = [int64]'${{ steps.upload.outputs.artifact-id }}'
             github_artifact_url = '${{ steps.upload.outputs.artifact-url }}'
             github_artifact_digest = '${{ steps.upload.outputs.artifact-digest }}'
-            packet_sha21506 = $proof.packet_sha21506
-            rows_jsonl_sha21506 = $proof.rows_jsonl_sha21506
-            source_sha21506 = $proof.source_sha21506
+            packet_sha256 = $proof.packet_sha256
+            rows_jsonl_sha256 = $proof.rows_jsonl_sha256
+            source_sha256 = $proof.source_sha256
             source_row_first = $proof.source_row_first
             source_row_last = $proof.source_row_last
             data_rows = $proof.data_rows
             first_datetime = $proof.first_datetime
             last_datetime = $proof.last_datetime
           }
-          $pointer | ConvertTo-Json -Depth 4 | Set-Content -Encoding UTF8 '.machine1_evidence/BLES_2024120150_POINTER.json'
+          $pointer | ConvertTo-Json -Depth 4 | Set-Content -Encoding UTF8 '.machine1_evidence/BLES_20241205_POINTER.json'
           git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
           git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
-          git -c safe.directory="$env:GITHUB_WORKSPACE" add -f '.machine1_evidence/BLES_2024120150_ROWS.jsonl'
-          git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_evidence/BLES_2024120150_PROOF.json' '.machine1_evidence/BLES_2024120150_POINTER.json'
-          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist BLES governed evidence [skip ci]'
-          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-bles-2024120150
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add -f '.machine1_evidence/BLES_20241205_ROWS.jsonl'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_evidence/BLES_20241205_PROOF.json' '.machine1_evidence/BLES_20241205_POINTER.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist BKSW governed evidence [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-bles-20241205
