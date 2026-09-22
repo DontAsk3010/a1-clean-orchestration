@@ -1,0 +1,13 @@
+﻿{
+    "ticker":  "BMSR",
+    "trading_date":  "2024-12-05",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0014.jsonl",
+    "semantic_bundle_line_number":  213,
+    "source_row_first":  255923,
+    "source_row_last":  255932,
+    "physical_line_first":  255924,
+    "physical_line_last":  255933,
+    "actual_rows":  10,
+    "first_datetime":  "2024-12-05 10:32:00",
+    "last_datetime":  "2024-12-05 16:00:00"
+}
