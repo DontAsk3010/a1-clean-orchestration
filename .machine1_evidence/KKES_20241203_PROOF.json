@@ -1,0 +1,13 @@
+{
+    "ticker":  "KKES",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0007.jsonl",
+    "semantic_bundle_line_number":  149,
+    "source_row_first":  937290,
+    "source_row_last":  937292,
+    "data_rows":  3,
+    "first_datetime":  "2024-12-03 09:55:00",
+    "last_datetime":  "2024-12-03 14:55:00",
+    "rows_jsonl_sha256":  "9b50dfbf0c6a0e4117bf60a30e9300c8d00c24f43a74e9e5a5366296f2ada53b"
+}
