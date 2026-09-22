@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BSDE",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bsde-20241204",
+    "workflow_commit":  "a502054a41e0f6af964d116088414a831e529c86",
+    "github_run_id":  35700191274,
+    "github_artifact_id":  10681781451,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35700191274/artifacts/10681781451",
+    "github_artifact_digest":  "a3aa78dae586e3e817c3cb666261d64c0c61a3a572018bcb1a835b22f138be98",
+    "packet_sha256":  "455b3fcce1435528cbab9b9973d1fb21cf78028f6be27a4d514eac49ce5c5281",
+    "rows_jsonl_sha256":  "3f1c6dcab1437b11d70b88041cbfe5bf3a3a1846d4bded0e39f2d38375e84fac",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  315486,
+    "source_row_last":  315745,
+    "data_rows":  260,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:13:00"
+}

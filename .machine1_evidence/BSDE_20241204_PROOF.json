@@ -1,0 +1,15 @@
+{
+    "ticker":  "BSDE",
+    "trading_date":  "2024-12-04",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0010.jsonl",
+    "semantic_bundle_line_number":  121,
+    "source_row_first":  315486,
+    "source_row_last":  315745,
+    "data_rows":  260,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:13:00",
+    "packet_sha256":  "455b3fcce1435528cbab9b9973d1fb21cf78028f6be27a4d514eac49ce5c5281",
+    "rows_jsonl_sha256":  "3f1c6dcab1437b11d70b88041cbfe5bf3a3a1846d4bded0e39f2d38375e84fac"
+}
