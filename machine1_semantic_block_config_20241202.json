@@ -1,0 +1,111 @@
+{
+  "trading_date": "2024-12-02",
+  "block_start_ordinal": 461,
+  "block_end_ordinal": 470,
+  "raw_file": "D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv",
+  "expected_md5": "b8d42b35c90d2dff8b18ae4e1734523b",
+  "expected_sha256": "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+  "semantic_bundle": "Raw Des 02-31-2024__SEMANTIC_0003.jsonl",
+  "specs": [
+    {
+      "ordinal": 461,
+      "ticker": "KOBX",
+      "first": 946929,
+      "last": 947068,
+      "count": 140,
+      "first_time": "09:00:00",
+      "last_time": "16:10:00",
+      "bundle_line": 97
+    },
+    {
+      "ordinal": 462,
+      "ticker": "KOCI",
+      "first": 948854,
+      "last": 948860,
+      "count": 7,
+      "first_time": "09:11:00",
+      "last_time": "14:29:00",
+      "bundle_line": 98
+    },
+    {
+      "ordinal": 463,
+      "ticker": "KOKA",
+      "first": 949114,
+      "last": 949186,
+      "count": 73,
+      "first_time": "09:00:00",
+      "last_time": "16:12:00",
+      "bundle_line": 99
+    },
+    {
+      "ordinal": 464,
+      "ticker": "KOMPAS100",
+      "first": 952370,
+      "last": 952704,
+      "count": 335,
+      "first_time": "09:00:00",
+      "last_time": "16:14:00",
+      "bundle_line": 100
+    },
+    {
+      "ordinal": 465,
+      "ticker": "KONI",
+      "first": 950726,
+      "last": 950757,
+      "count": 32,
+      "first_time": "09:00:00",
+      "last_time": "16:10:00",
+      "bundle_line": 101
+    },
+    {
+      "ordinal": 466,
+      "ticker": "KOPI",
+      "first": 951943,
+      "last": 951984,
+      "count": 42,
+      "first_time": "09:00:00",
+      "last_time": "16:05:00",
+      "bundle_line": 102
+    },
+    {
+      "ordinal": 467,
+      "ticker": "KOTA",
+      "first": 952259,
+      "last": 952264,
+      "count": 6,
+      "first_time": "09:55:00",
+      "last_time": "16:08:00",
+      "bundle_line": 103
+    },
+    {
+      "ordinal": 468,
+      "ticker": "KPIG",
+      "first": 958481,
+      "last": 958743,
+      "count": 263,
+      "first_time": "09:00:00",
+      "last_time": "16:13:00",
+      "bundle_line": 104
+    },
+    {
+      "ordinal": 469,
+      "ticker": "KRAS",
+      "first": 962846,
+      "last": 962988,
+      "count": 143,
+      "first_time": "09:00:00",
+      "last_time": "16:14:00",
+      "bundle_line": 105
+    },
+    {
+      "ordinal": 470,
+      "ticker": "KREN",
+      "first": 965211,
+      "last": 965218,
+      "count": 8,
+      "first_time": "09:55:00",
+      "last_time": "16:07:00",
+      "bundle_line": 106
+    }
+  ]
+}
