@@ -13,55 +13,55 @@ jobs:
       RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
     steps:
       - uses: actions/checkout@v4
-      - name: Resolve next date05 ticker metadata only
-        shell: powershell
+      - name: Resolve next Date05 manifest metadata only
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference='Stop'
           $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
+          if(-not (Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING"}
           $targetDate='2024-12-05'
           $afterSourceRow=248239
-          $header=$null
-          $lineIndex=0
-          $found=$false
-          $ticker=$null
-          $first=$null
-          $last=$null
-          $count=0
+          $header=$null; $tickerIdx=-1; $dtIdx=-1
+          $lineIndex=0; $found=$false; $ticker=$null
+          $first=$null; $last=$null; $count=0; $firstDt=$null; $lastDt=$null
           foreach($line in [System.IO.File]::ReadLines($raw,[System.Text.Encoding]::UTF8)){
-            if($lineIndex -eq 0){$header=$line; $lineIndex++; continue}
+            if($lineIndex -eq 0){
+              $header=$line.Split(',')
+              for($i=0;$i -lt $header.Length;$i++){
+                $h=$header[$i].Trim('"')
+                if($h -eq 'RAW_TICKER'){$tickerIdx=$i}
+                if($h -eq 'RAW_DATETIME_ISO'){$dtIdx=$i}
+              }
+              if($tickerIdx -lt 0 -or $dtIdx -lt 0){throw "HEADER_INDEX_MISSING"}
+              $lineIndex++; continue
+            }
             if($lineIndex -le $afterSourceRow){$lineIndex++; continue}
-            $obj=@($header,$line)|ConvertFrom-Csv
-            $o=$obj[0]
-            $dt=[string]$o.RAW_DATETIME_ISO
-            $tk=[string]$o.RAW_TICKER
+            $p=$line.Split(',')
+            $tk=$p[$tickerIdx].Trim('"')
+            $dt=$p[$dtIdx].Trim('"')
             if(-not $found){
               if($dt.StartsWith($targetDate) -and $tk -ne 'BKSW'){
-                $found=$true; $ticker=$tk; $first=$lineIndex; $last=$lineIndex; $count=1
-                $firstDt=$dt; $lastDt=$dt
+                $found=$true; $ticker=$tk; $first=$lineIndex; $last=$lineIndex; $count=1; $firstDt=$dt; $lastDt=$dt
               }
             } else {
-              if($tk -eq $ticker -and $dt.StartsWith($targetDate)){
-                $last=$lineIndex; $count++; $lastDt=$dt
-              } elseif($tk -ne $ticker) { break }
+              if($tk -eq $ticker){
+                if($dt.StartsWith($targetDate)){$last=$lineIndex; $count++; $lastDt=$dt}
+              } else {break}
             }
             $lineIndex++
           }
-          if(-not $found){throw 'NEXT_DATE05_TICKER_NOT_FOUND'}
+          if(-not $found){throw "NEXT_DATE05_TICKER_NOT_FOUND"}
           $out=[ordered]@{
-            ticker=$ticker
-            trading_date=$targetDate
+            ticker=$ticker; trading_date=$targetDate
             semantic_bundle='Raw Des 02-31-2024__SEMANTIC_0014.jsonl'
             semantic_bundle_line_number=207
-            source_row_first=$first
-            source_row_last=$last
-            physical_line_first=$first+1
-            physical_line_last=$last+1
-            actual_rows=$count
-            first_datetime=$firstDt
-            last_datetime=$lastDt
+            source_row_first=$first; source_row_last=$last
+            physical_line_first=$first+1; physical_line_last=$last+1
+            actual_rows=$count; first_datetime=$firstDt; last_datetime=$lastDt
           }
           New-Item -ItemType Directory -Force '.machine1_route'|Out-Null
           $out|ConvertTo-Json|Set-Content -Encoding UTF8 '.machine1_route/AFTER_BKSW_DATE05.json'
+          Write-Host ($out|ConvertTo-Json -Compress)
           git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
           git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
           git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_route/AFTER_BKSW_DATE05.json'
