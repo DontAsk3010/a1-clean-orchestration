@@ -26,6 +26,13 @@ jobs:
       - name: Checkout governed orchestration
         uses: actions/checkout@v4
 
+      - name: Allow setup scripts for this job only
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          "PSExecutionPolicyPreference=Bypass" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host 'PowerShell Process-scope execution policy for subsequent job processes: Bypass'
+
       - name: Provide Python 3.11 runtime
         uses: actions/setup-python@v5
         with:
