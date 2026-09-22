@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BMBL",
+    "trading_date":  "2024-12-05",
+    "branch":  "machine1/evidence-bmbl-20241205",
+    "workflow_commit":  "491998af9bbc80c782e61467648a237d170ef91e",
+    "github_run_id":  35742183548,
+    "github_artifact_id":  10700121707,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35742183548/artifacts/10700121707",
+    "github_artifact_digest":  "144b4f8908dfa260125abfe5916d2a8ab8d50d2a822449ae4a05b4cdb877b687",
+    "packet_sha256":  "59a30b6039bbe8138dcfb260faaf12ee706187fb1716bcf6a178c44670e43382",
+    "rows_jsonl_sha256":  "cfa7e6c414c5577589884931f7560b83dedb1bcb6f0af26d556621bb49d9eb13",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  253422,
+    "source_row_last":  253457,
+    "data_rows":  36,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:13:00"
+}
