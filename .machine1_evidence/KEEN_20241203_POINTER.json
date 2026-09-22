@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "KEEN",
+    "trading_date":  "2024-12-03",
+    "branch":  "machine1/evidence-keen-20241203",
+    "workflow_commit":  "a55f007a1816493126675bc9ccd6f390bcd3a168",
+    "github_run_id":  35729116944,
+    "github_artifact_id":  10694179215,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35729116944/artifacts/10694179215",
+    "github_artifact_digest":  "ffbf593098245240da84bc900b4d62d664d92fac9a8eb8ea12aadcfad7ba2e49",
+    "packet_sha256":  "6344c7f943479b4b5cf87530bcc3b51b6eb6e0a9190efb61a1ad44b818af11a1",
+    "rows_jsonl_sha256":  "74cb9c3108ef29ae5793e232875a7ca60539abb2a33502d952c7160647781730",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  928545,
+    "source_row_last":  928579,
+    "data_rows":  35,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:00:00"
+}
