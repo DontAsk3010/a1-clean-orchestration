@@ -1,0 +1,53 @@
+name: Machine1 Drive Mount Probe
+
+on:
+  push:
+    branches:
+      - machine1/evidence-kino-kmtr-20241202
+    paths:
+      - .github/workflows/machine1-drive-mount-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 10
+    steps:
+      - name: Probe mounted drives and CURRENT files
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Continue'
+          Write-Host "=== PSDrives ==="
+          Get-PSDrive -PSProvider FileSystem | Format-Table Name,Root,Used,Free -AutoSize
+          Write-Host "=== Candidate roots ==="
+          foreach ($d in (Get-PSDrive -PSProvider FileSystem)) {
+            Write-Host "--- $($d.Root) ---"
+            Get-ChildItem -LiteralPath $d.Root -Force -ErrorAction SilentlyContinue | Select-Object -First 80 FullName,Name,PSIsContainer | Format-Table -AutoSize
+          }
+          Write-Host "=== Fast exact-name probes ==="
+          $names=@(
+            'DES2024_20241202__AI_OBSERVATIONS_CURRENT.jsonl',
+            'DES2024_20241202__EVENT_JOURNEYS_CURRENT.jsonl',
+            'DES2024_20241202__OPEN_CARRY_CURRENT.jsonl',
+            'DES2024_20241202__COVERAGE_AUDIT_CURRENT.json',
+            'DES2024_20241202__CHECKPOINT_CURRENT.json'
+          )
+          $roots=@()
+          foreach($d in (Get-PSDrive -PSProvider FileSystem)){
+            $roots += $d.Root
+            foreach($sub in @('My Drive','Google Drive','MyDrive','Drive','TRADING SYSTEM')){
+              $p=Join-Path $d.Root $sub
+              if(Test-Path $p){$roots += $p}
+            }
+          }
+          $roots=$roots|Select-Object -Unique
+          foreach($root in $roots){
+            foreach($n in $names){
+              try {
+                Get-ChildItem -LiteralPath $root -Filter $n -File -Recurse -Depth 8 -ErrorAction SilentlyContinue |
+                  Select-Object FullName,Length,LastWriteTime | Format-Table -AutoSize
+              } catch {}
+            }
+          }
