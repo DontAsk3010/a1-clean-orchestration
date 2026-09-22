@@ -29,8 +29,8 @@ jobs:
           if(-not (Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING: $raw"}
 
           $targetDate='2024-12-05'
-          $afterSourceRow=255932
-          $startBundleLine=214
+          $afterSourceRow=300823
+          $startBundleLine=234
           $maxContexts=20
           $expectedSize=[int64]453806812
           $expectedMd5='b8d42b35c90d2dff8b18ae4e1734523b'
