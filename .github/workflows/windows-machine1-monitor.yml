@@ -26,18 +26,51 @@ jobs:
       - name: Checkout governed orchestration
         uses: actions/checkout@v4
 
-      - name: Allow setup scripts for this job only
+      - name: Resolve persistent non-admin Python 3.11 runtime
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          "PSExecutionPolicyPreference=Bypass" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host 'PowerShell Process-scope execution policy for subsequent job processes: Bypass'
+          $runtimeRoot = Join-Path $env:LOCALAPPDATA 'A1Clean\Python311'
+          $python = Join-Path $runtimeRoot 'python.exe'
 
-      - name: Provide Python 3.11 runtime
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
+          if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
+            New-Item -ItemType Directory -Path $runtimeRoot -Force | Out-Null
+            $installer = Join-Path $env:RUNNER_TEMP 'python-3.11.9-amd64.exe'
+            $uri = 'https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe'
+            Invoke-WebRequest -Uri $uri -OutFile $installer -UseBasicParsing
+
+            $signature = Get-AuthenticodeSignature -LiteralPath $installer
+            if ($signature.Status -ne 'Valid') {
+              throw "Python installer signature is not valid: $($signature.Status)"
+            }
+            if ($null -eq $signature.SignerCertificate -or $signature.SignerCertificate.Subject -notmatch 'Python Software Foundation') {
+              throw 'Python installer signer is not Python Software Foundation.'
+            }
+
+            $args = @(
+              '/quiet',
+              'InstallAllUsers=0',
+              "TargetDir=$runtimeRoot",
+              'PrependPath=0',
+              'Include_launcher=0',
+              'Include_test=0',
+              'Include_pip=1',
+              'Shortcuts=0'
+            )
+            $proc = Start-Process -FilePath $installer -ArgumentList $args -Wait -PassThru
+            if ($proc.ExitCode -ne 0) {
+              throw "Per-user Python installer exited with code $($proc.ExitCode)."
+            }
+          }
+
+          if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
+            throw 'Persistent per-user Python runtime was not created.'
+          }
+          & $python -c "import sys; assert sys.version_info[:2] == (3, 11); print(sys.executable); print(sys.version)"
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Python 3.11 runtime verification failed.'
+          }
+          "A1_MONITOR_PYTHON=$python" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Verify read-only Drive credential binding
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
@@ -54,14 +87,23 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          python -m pip install -e .
+          & $env:A1_MONITOR_PYTHON -m pip install --disable-pip-version-check -e .
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Monitor package installation failed.'
+          }
 
       - name: Build Machine 1 monitor snapshot
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           $out = Join-Path $env:RUNNER_TEMP 'a1-machine1-monitor'
-          python -m a1clean.machine1_monitor --output-dir $out
+          if (Test-Path -LiteralPath $out) {
+            Remove-Item -LiteralPath $out -Recurse -Force
+          }
+          & $env:A1_MONITOR_PYTHON -m a1clean.machine1_monitor --output-dir $out
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Machine 1 monitor snapshot build failed.'
+          }
           Get-Content -LiteralPath (Join-Path $out 'machine1-monitor-latest.md') -Raw | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           "A1_MACHINE1_MONITOR_OUT=$out" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
