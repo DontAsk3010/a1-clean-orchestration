@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BLES",
+    "trading_date":  "2024-12-05",
+    "branch":  "machine1/evidence-bles-20241205",
+    "workflow_commit":  "c3eee1afe4a43feb78f2400a725d20efffd5067a",
+    "github_run_id":  35730204075,
+    "github_artifact_id":  10694593832,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35730204075/artifacts/10694593832",
+    "github_artifact_digest":  "cb242cb2004a3e17428b018164d5e6c296e4e14ac8f02ab2f4e0fa6d98b7c286",
+    "packet_sha256":  "50e1d4bb0db7f860bf073a02999919b45731edbd5083a109e8295533b2cfa353",
+    "rows_jsonl_sha256":  "a4b9ab0497de9d1b065b1ed0824e2ae2d9f9a4081b700fb7c4c1b884af0fd9e0",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  250466,
+    "source_row_last":  250615,
+    "data_rows":  150,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:13:00"
+}
