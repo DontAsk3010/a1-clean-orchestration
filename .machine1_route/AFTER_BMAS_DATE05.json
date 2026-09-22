@@ -1,0 +1,13 @@
+﻿{
+    "ticker":  "BLUE",
+    "trading_date":  "2024-12-05",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0014.jsonl",
+    "semantic_bundle_line_number":  210,
+    "source_row_first":  252919,
+    "source_row_last":  252929,
+    "physical_line_first":  252920,
+    "physical_line_last":  252930,
+    "actual_rows":  11,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:00:00"
+}
