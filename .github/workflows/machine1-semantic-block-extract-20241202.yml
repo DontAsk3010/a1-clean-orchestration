@@ -1,0 +1,191 @@
+name: Machine1 Semantic Block Extract 20241202
+
+on:
+  push:
+    branches:
+      - machine1/semantic-block-extract-20241202
+    paths:
+      - machine1_semantic_block_config_20241202.json
+      - .github/workflows/machine1-semantic-block-extract-20241202.yml
+
+permissions:
+  contents: read
+
+jobs:
+  extract-governed-semantic-block:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: machine1/semantic-block-extract-20241202
+
+      - name: Extract exact governed block
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $configPath = Join-Path $PWD 'machine1_semantic_block_config_20241202.json'
+          if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) { throw "CONFIG_MISSING: $configPath" }
+          $cfg = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+          $raw = [string]$cfg.raw_file
+          $tradingDate = [string]$cfg.trading_date
+          $expectedMd5 = ([string]$cfg.expected_md5).ToLowerInvariant()
+          $expectedSha256 = ([string]$cfg.expected_sha256).ToLowerInvariant()
+          $semanticBundle = [string]$cfg.semantic_bundle
+          $specs = @($cfg.specs)
+
+          if (-not (Test-Path -LiteralPath $raw -PathType Leaf)) { throw "RAW_MISSING: $raw" }
+
+          $gotMd5 = (Get-FileHash -LiteralPath $raw -Algorithm MD5).Hash.ToLowerInvariant()
+          $gotSha256 = (Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($gotMd5 -ne $expectedMd5 -or $gotSha256 -ne $expectedSha256) {
+            throw "RAW_HASH_MISMATCH md5=$gotMd5 sha256=$gotSha256"
+          }
+
+          if ($specs.Count -ne 10) { throw "SPEC_COUNT_MISMATCH got=$($specs.Count) expected=10" }
+          $ordinals = @($specs | ForEach-Object { [int]$_.ordinal })
+          if (($ordinals | Measure-Object -Minimum).Minimum -ne [int]$cfg.block_start_ordinal -or
+              ($ordinals | Measure-Object -Maximum).Maximum -ne [int]$cfg.block_end_ordinal) {
+            throw "ORDINAL_BOUNDARY_MISMATCH"
+          }
+
+          $outDir = Join-Path $PWD 'machine1_semantic_block_evidence'
+          if (Test-Path -LiteralPath $outDir) { Remove-Item -LiteralPath $outDir -Recurse -Force }
+          New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+
+          $byTicker = @{}
+          foreach ($s in $specs) {
+            $byTicker[[string]$s.ticker] = New-Object System.Collections.ArrayList
+          }
+
+          $minRow = ($specs | ForEach-Object {[int]$_.first} | Measure-Object -Minimum).Minimum
+          $maxRow = ($specs | ForEach-Object {[int]$_.last} | Measure-Object -Maximum).Maximum
+
+          $sr = New-Object System.IO.StreamReader($raw, [System.Text.Encoding]::UTF8, $true, 1048576)
+          try {
+            $headerLine = $sr.ReadLine()
+            if ($null -eq $headerLine) { throw 'RAW_EMPTY' }
+            $headerFields = @($headerLine.TrimStart([char]0xFEFF).Split(','))
+            $physicalLine = 1
+            while (-not $sr.EndOfStream) {
+              $line = $sr.ReadLine()
+              $physicalLine++
+              $sourceRow = $physicalLine - 1
+              if ($sourceRow -gt $maxRow) { break }
+              if ($sourceRow -lt $minRow) { continue }
+
+              foreach ($s in $specs) {
+                $first=[int]$s.first; $last=[int]$s.last
+                if ($sourceRow -ge $first -and $sourceRow -le $last) {
+                  $parsed = $line | ConvertFrom-Csv -Header $headerFields
+                  $fields = [ordered]@{}
+                  foreach ($h in $headerFields) { $fields[$h] = $parsed.$h }
+                  $rowObj = [pscustomobject][ordered]@{
+                    source_row = [int]$sourceRow
+                    physical_line = [int]$physicalLine
+                    raw_line = $line
+                    fields = $fields
+                  }
+                  [void]$byTicker[[string]$s.ticker].Add($rowObj)
+                  break
+                }
+              }
+            }
+          }
+          finally {
+            $sr.Dispose()
+          }
+
+          $proof = @()
+          foreach ($s in $specs) {
+            $ticker=[string]$s.ticker
+            $arr=$byTicker[$ticker]
+            $expectedCount=[int]$s.count
+            if ($arr.Count -ne $expectedCount) {
+              throw "$($ticker)_ROW_COUNT_MISMATCH got=$($arr.Count) expected=$expectedCount"
+            }
+
+            for ($i=0; $i -lt $arr.Count; $i++) {
+              $expectedRow=[int]$s.first + $i
+              if ([int]$arr[$i].source_row -ne $expectedRow) {
+                throw "$($ticker)_SOURCE_ROW_MISMATCH at_index=$i got=$($arr[$i].source_row) expected=$expectedRow"
+              }
+              if ([string]$arr[$i].fields.RAW_TICKER -ne $ticker) {
+                throw "$($ticker)_TICKER_MISMATCH source_row=$($arr[$i].source_row) got=$($arr[$i].fields.RAW_TICKER)"
+              }
+              $dt=[string]$arr[$i].fields.RAW_DATETIME_ISO
+              if (-not $dt.StartsWith($tradingDate)) {
+                throw "$($ticker)_DATE_MISMATCH source_row=$($arr[$i].source_row) dt=$dt"
+              }
+            }
+
+            $firstDt=[string]$arr[0].fields.RAW_DATETIME_ISO
+            $lastDt=[string]$arr[$arr.Count-1].fields.RAW_DATETIME_ISO
+            $firstTime=[string]$s.first_time
+            $lastTime=[string]$s.last_time
+            if ($firstDt.Substring($firstDt.Length-8) -ne $firstTime -or
+                $lastDt.Substring($lastDt.Length-8) -ne $lastTime) {
+              throw "$($ticker)_BOUNDARY_TIME_MISMATCH first=$firstDt last=$lastDt"
+            }
+
+            $packet=[ordered]@{
+              source_name=[System.IO.Path]::GetFileName($raw)
+              source_md5=$gotMd5
+              source_sha256=$gotSha256
+              ticker=$ticker
+              trading_date=$tradingDate
+              ordinal=[int]$s.ordinal
+              semantic_bundle=$semanticBundle
+              bundle_line_number=[int]$s.bundle_line
+              source_row_first=[int]$s.first
+              source_row_last=[int]$s.last
+              data_rows=$expectedCount
+              first_datetime=$firstDt
+              last_datetime=$lastDt
+              header_line=$headerLine
+              header_fields=$headerFields
+              rows=@($arr)
+            }
+
+            $packetPath=Join-Path $outDir "$($ticker)_20241202_PACKET.json"
+            $packet | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $packetPath -Encoding UTF8
+
+            $rowsPath=Join-Path $outDir "$($ticker)_20241202_ROWS.jsonl"
+            foreach ($row in $arr) {
+              ($row | ConvertTo-Json -Depth 6 -Compress) | Add-Content -LiteralPath $rowsPath -Encoding UTF8
+            }
+
+            $proof += [pscustomobject][ordered]@{
+              ordinal=[int]$s.ordinal
+              ticker=$ticker
+              trading_date=$tradingDate
+              semantic_bundle=$semanticBundle
+              bundle_line_number=[int]$s.bundle_line
+              source_row_first=[int]$s.first
+              source_row_last=[int]$s.last
+              data_rows=$expectedCount
+              first_datetime=$firstDt
+              last_datetime=$lastDt
+            }
+            Write-Host "PASS ordinal=$($s.ordinal) ticker=$ticker rows=$expectedCount source=$($s.first)-$($s.last) first=$firstDt last=$lastDt"
+          }
+
+          [ordered]@{
+            status='PASS'
+            block_start_ordinal=[int]$cfg.block_start_ordinal
+            block_end_ordinal=[int]$cfg.block_end_ordinal
+            source_md5=$gotMd5
+            source_sha256=$gotSha256
+            trading_date=$tradingDate
+            semantic_bundle=$semanticBundle
+            tickers=$proof
+          } | ConvertTo-Json -Depth 7 | Set-Content -LiteralPath (Join-Path $outDir 'CHUNK_PROOF.json') -Encoding UTF8
+
+      - name: Upload governed evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-semantic-block-20241202-evidence
+          path: machine1_semantic_block_evidence/
+          if-no-files-found: error
+          retention-days: 7
