@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BUVA",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-buva-20241204",
+    "workflow_commit":  "beb24617fe93e5ba04cc53de6e2fb07bd0baf21e",
+    "github_run_id":  35776401694,
+    "github_artifact_id":  10716686586,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35776401694/artifacts/10716686586",
+    "github_artifact_digest":  "15fcc403dfb1be74ffca8eff5833007974227fb9162f699ffaef2f24b1f04de2",
+    "packet_sha256":  "ee0c5afdb3a56388408b2636c81003bd4090e565dfb9df81c6489210b288e831",
+    "rows_jsonl_sha256":  "92fbde3caf0305794f4ea6af21206f4e5a858c04d0d5798b17cd78a770109cca",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  343409,
+    "source_row_last":  343429,
+    "data_rows":  21,
+    "first_datetime":  "2024-12-04 09:19:00",
+    "last_datetime":  "2024-12-04 16:09:00"
+}
