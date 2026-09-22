@@ -1,0 +1,82 @@
+name: Machine1 KEJU KETR KIAS 2024-12-03 Governed Evidence Extract
+
+on:
+  push:
+    branches:
+      - machine1/evidence-keju-ketr-kias-20241203
+    paths:
+      - .github/workflows/machine1-keju-ketr-kias-20241203-evidence.yml
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract exact governed packets
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
+          $expectedSha256='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          if (-not (Test-Path -LiteralPath $raw -PathType Leaf)) { throw "RAW_MISSING $raw" }
+          $gotSha=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($gotSha -ne $expectedSha256) { throw "RAW_HASH_MISMATCH $gotSha" }
+
+          $specs=@(
+            [pscustomobject]@{ticker='KEJU'; first=929493; last=929529; count=37; ft='09:01:00'; lt='16:00:00'; bundleLine=140},
+            [pscustomobject]@{ticker='KETR'; first=931232; last=931274; count=43; ft='09:00:00'; lt='16:08:00'; bundleLine=141},
+            [pscustomobject]@{ticker='KIAS'; first=931079; last=931081; count=3; ft='09:55:00'; lt='14:55:00'; bundleLine=142}
+          )
+          $header=$null
+          $bucket=@{}
+          foreach($s in $specs){$bucket[$s.ticker]=New-Object 'System.Collections.Generic.List[string]'}
+          $maxLast=($specs|Measure-Object -Property last -Maximum).Maximum
+          $idx=0
+          foreach($line in [System.IO.File]::ReadLines($raw,[System.Text.Encoding]::UTF8)){
+            if($idx -eq 0){$header=$line}
+            foreach($s in $specs){if($idx -ge $s.first -and $idx -le $s.last){[void]$bucket[$s.ticker].Add($line)}}
+            if($idx -ge $maxLast){break}
+            $idx++
+          }
+          if($null -eq $header){throw 'RAW_HEADER_MISSING'}
+          New-Item -ItemType Directory -Force '.machine1_evidence' | Out-Null
+          $utf8=New-Object System.Text.UTF8Encoding($false)
+          foreach($s in $specs){
+            $lines=$bucket[$s.ticker]
+            if($lines.Count -ne $s.count){throw "$($s.ticker)_COUNT_MISMATCH got=$($lines.Count) expected=$($s.count)"}
+            $parsed=@((@($header)+@($lines))|ConvertFrom-Csv)
+            $records=@()
+            for($i=0;$i -lt $parsed.Count;$i++){
+              $o=[ordered]@{source_row=$s.first+$i}
+              foreach($p in $parsed[$i].PSObject.Properties.Name){$o[$p]=[string]$parsed[$i].$p}
+              $records += [pscustomobject]$o
+            }
+            $tickers=@($records|%{$_.RAW_TICKER}|Sort-Object -Unique)
+            if($tickers.Count -ne 1 -or $tickers[0] -ne $s.ticker){throw "$($s.ticker)_TICKER_MISMATCH"}
+            $dts=@($records|%{[string]$_.RAW_DATETIME_ISO})
+            if(@($dts|?{-not $_.StartsWith('2024-12-03')}).Count -gt 0){throw "$($s.ticker)_DATE_MISMATCH"}
+            function Clock([string]$dt){if($dt.Contains('T')){return $dt.Split('T',2)[1].Substring(0,8)};$a=$dt.Split(' ');return $a[$a.Length-1].Substring(0,8)}
+            if((Clock $dts[0]) -ne $s.ft -or (Clock $dts[-1]) -ne $s.lt){throw "$($s.ticker)_TIME_MISMATCH"}
+            $rowsPath=".machine1_evidence/$($s.ticker)_20241203_ROWS.jsonl"
+            $proofPath=".machine1_evidence/$($s.ticker)_20241203_PROOF.json"
+            [System.IO.File]::WriteAllLines($rowsPath,[string[]]@($records|%{$_|ConvertTo-Json -Compress -Depth 8}),$utf8)
+            $proof=[ordered]@{ticker=$s.ticker;trading_date='2024-12-03';source_sha256=$gotSha;semantic_bundle='Raw Des 02-31-2024__SEMANTIC_0007.jsonl';semantic_bundle_line_number=$s.bundleLine;source_row_first=$s.first;source_row_last=$s.last;data_rows=$records.Count;first_datetime=$dts[0];last_datetime=$dts[-1];rows_jsonl_sha256=(Get-FileHash $rowsPath -Algorithm SHA256).Hash.ToLowerInvariant()}
+            [System.IO.File]::WriteAllText($proofPath,($proof|ConvertTo-Json -Depth 8),$utf8)
+            Write-Host "$($s.ticker)_EVIDENCE_OK rows=$($records.Count) source_rows=$($s.first)-$($s.last)"
+          }
+      - name: Persist exact evidence
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add -f '.machine1_evidence/*_20241203_ROWS.jsonl'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_evidence/*_20241203_PROOF.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist KEJU KETR KIAS governed evidence [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-keju-ketr-kias-20241203
