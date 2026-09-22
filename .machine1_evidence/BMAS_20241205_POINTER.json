@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BMAS",
+    "trading_date":  "2024-12-05",
+    "branch":  "machine1/evidence-bmas-20241205",
+    "workflow_commit":  "2c5ddd13944180aa6e2f53e5510e3cb75525632f",
+    "github_run_id":  35730618455,
+    "github_artifact_id":  10695586927,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35730618455/artifacts/10695586927",
+    "github_artifact_digest":  "94b7b3e9b354437fd657b91a0216244531d5dd20f5a5954656c6cdbe9ded436b",
+    "packet_sha256":  "021c07f7d647a40b4f89759ffcb76fa728cf59b49454689fd7550a5912422c74",
+    "rows_jsonl_sha256":  "c2d6bd616d831c28fad860158f18804ec7e8bd851e28c2bb5af217ce171fe95b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  252816,
+    "source_row_last":  252817,
+    "data_rows":  2,
+    "first_datetime":  "2024-12-05 09:55:00",
+    "last_datetime":  "2024-12-05 14:55:00"
+}
