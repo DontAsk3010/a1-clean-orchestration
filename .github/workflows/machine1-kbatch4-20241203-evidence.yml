@@ -20,9 +20,9 @@ jobs:
           $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
           $expected='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
           $specs=@(
-            [pscustomobject]@{Ticker='KOMPAS100';First=952705;Last=953039;Count=335;FirstTime='09:00:00';LastTime='16:14:00';BundleLine=156},
-            [pscustomobject]@{Ticker='KONI';First=950758;Last=950807;Count=50;FirstTime='09:01:00';LastTime='15:49:00';BundleLine=157},
-            [pscustomobject]@{Ticker='KOPI';First=951985;Last=952005;Count=21;FirstTime='09:00:00';LastTime='15:46:00';BundleLine=158}
+            [pscustomobject]@{Ticker='KOTA';First=952265;Last=952271;Count=7;FirstTime='09:55:00';LastTime='16:14:00';BundleLine=159},
+            [pscustomobject]@{Ticker='KPIG';First=958744;Last=959035;Count=292;FirstTime='09:00:00';LastTime='16:14:00';BundleLine=1},
+            [pscustomobject]@{Ticker='KRAS';First=962989;Last=963096;Count=108;FirstTime='09:00:00';LastTime='16:00:00';BundleLine=2}
           )
           if(-not(Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING"}
           $got=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -51,7 +51,7 @@ jobs:
             if((Clock $dts[0])-ne$s.FirstTime -or (Clock $dts[-1])-ne$s.LastTime){throw "$($s.Ticker)_TIME"}
             $rp=Join-Path $out "$($s.Ticker)_20241203_ROWS.jsonl"
             [System.IO.File]::WriteAllLines($rp,[string[]]@($records|%{$_|ConvertTo-Json -Compress -Depth 8}),$enc)
-            $proof=[ordered]@{ticker=$s.Ticker;trading_date='2024-12-03';source_sha256=$got;semantic_bundle='Raw Des 02-31-2024__SEMANTIC_0007.jsonl';semantic_bundle_line_number=$s.BundleLine;source_row_first=$s.First;source_row_last=$s.Last;data_rows=$records.Count;first_datetime=$dts[0];last_datetime=$dts[-1];rows_jsonl_sha256=(Get-FileHash $rp -Algorithm SHA256).Hash.ToLowerInvariant()}
+            $proof=[ordered]@{ticker=$s.Ticker;trading_date='2024-12-03';source_sha256=$got;semantic_bundle='Raw Des 02-31-2024__SEMANTIC_0008.jsonl';semantic_bundle_line_number=$s.BundleLine;source_row_first=$s.First;source_row_last=$s.Last;data_rows=$records.Count;first_datetime=$dts[0];last_datetime=$dts[-1];rows_jsonl_sha256=(Get-FileHash $rp -Algorithm SHA256).Hash.ToLowerInvariant()}
             [System.IO.File]::WriteAllText((Join-Path $out "$($s.Ticker)_20241203_PROOF.json"),($proof|ConvertTo-Json -Depth 10),$enc)
             Write-Host "$($s.Ticker)_EVIDENCE_OK rows=$($records.Count)"
           }
