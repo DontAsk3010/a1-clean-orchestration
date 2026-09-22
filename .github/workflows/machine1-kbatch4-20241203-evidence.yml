@@ -20,9 +20,9 @@ jobs:
           $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
           $expected='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
           $specs=@(
-            [pscustomobject]@{Ticker='KOBX';First=947069;Last=947133;Count=65;FirstTime='09:00:00';LastTime='16:00:00';BundleLine=153},
-            [pscustomobject]@{Ticker='KOCI';First=948861;Last=948864;Count=4;FirstTime='09:22:00';LastTime='15:21:00';BundleLine=154},
-            [pscustomobject]@{Ticker='KOKA';First=949187;Last=949236;Count=50;FirstTime='09:00:00';LastTime='16:00:00';BundleLine=155}
+            [pscustomobject]@{Ticker='KOMPAS100';First=952705;Last=953039;Count=335;FirstTime='09:00:00';LastTime='16:14:00';BundleLine=156},
+            [pscustomobject]@{Ticker='KONI';First=950758;Last=950807;Count=50;FirstTime='09:01:00';LastTime='15:49:00';BundleLine=157},
+            [pscustomobject]@{Ticker='KOPI';First=951985;Last=952005;Count=21;FirstTime='09:00:00';LastTime='15:46:00';BundleLine=158}
           )
           if(-not(Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING"}
           $got=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
