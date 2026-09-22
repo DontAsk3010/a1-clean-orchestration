@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BUDI",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-budi-20241204",
+    "workflow_commit":  "1bdf6cba9f872e1d2214c5b2f30e90a45254cfff",
+    "github_run_id":  35763081963,
+    "github_artifact_id":  10711161237,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35763081963/artifacts/10711161237",
+    "github_artifact_digest":  "54d2a1a94481df097ea22b87733b369c8e50df4a46b237ed6c12262186d156d4",
+    "packet_sha256":  "3f9ee908b3fb37819df7349dd5bb3f1b2ede3d5576591cc69acfa7615e4a305b",
+    "rows_jsonl_sha256":  "889ca1f6a3cafe972be340367c23354376501250b76b2f6cf82a908e07a4c149",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  329875,
+    "source_row_last":  329913,
+    "data_rows":  39,
+    "first_datetime":  "2024-12-04 09:02:00",
+    "last_datetime":  "2024-12-04 16:00:00"
+}
