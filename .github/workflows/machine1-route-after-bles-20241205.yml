@@ -1,0 +1,46 @@
+name: Machine1 Route After BLES 2024-12-05
+on:
+  push:
+    branches: [machine1/route-after-bles-20241205]
+    paths: [.github/workflows/machine1-route-after-bles-20241205.yml]
+permissions:
+  contents: write
+jobs:
+  resolve:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve next Date05 manifest metadata only
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
+          $targetDate='2024-12-05'; $afterSourceRow=250615
+          $lineIndex=0; $found=$false; $ticker=$null; $first=$null; $last=$null; $count=0
+          foreach($line in [System.IO.File]::ReadLines($raw,[System.Text.Encoding]::UTF8)){
+            if($lineIndex -eq 0){
+              $header=$line.Split(','); $tickerIdx=-1; $dtIdx=-1
+              for($i=0;$i -lt $header.Length;$i++){ $h=$header[$i].Trim('"'); if($h -eq 'RAW_TICKER'){$tickerIdx=$i}; if($h -eq 'RAW_DATETIME_ISO'){$dtIdx=$i} }
+              if($tickerIdx -lt 0 -or $dtIdx -lt 0){throw 'HEADER_INDEX_MISSING'}; $lineIndex++; continue
+            }
+            if($lineIndex -le $afterSourceRow){$lineIndex++; continue}
+            $p=$line.Split(','); $tk=$p[$tickerIdx].Trim('"'); $dt=$p[$dtIdx].Trim('"')
+            if(-not $found){
+              if($dt.StartsWith($targetDate) -and $tk -ne 'BLES'){ $found=$true; $ticker=$tk; $first=$lineIndex; $last=$lineIndex; $count=1; $firstDt=$dt; $lastDt=$dt }
+            } else {
+              if($tk -eq $ticker){ if($dt.StartsWith($targetDate)){$last=$lineIndex; $count++; $lastDt=$dt} } else {break}
+            }
+            $lineIndex++
+          }
+          if(-not $found){throw 'NEXT_DATE05_TICKER_NOT_FOUND'}
+          $out=[ordered]@{ticker=$ticker;trading_date=$targetDate;semantic_bundle='Raw Des 02-31-2024__SEMANTIC_0014.jsonl';semantic_bundle_line_number=209;source_row_first=$first;source_row_last=$last;physical_line_first=$first+1;physical_line_last=$last+1;actual_rows=$count;first_datetime=$firstDt;last_datetime=$lastDt}
+          New-Item -ItemType Directory -Force '.machine1_route'|Out-Null
+          $out|ConvertTo-Json|Set-Content -Encoding UTF8 '.machine1_route/AFTER_BLES_DATE05.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_route/AFTER_BLES_DATE05.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Resolve Date05 route after BLES [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/route-after-bles-20241205
