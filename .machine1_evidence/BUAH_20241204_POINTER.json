@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BUAH",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-buah-20241204",
+    "workflow_commit":  "e0bd7e299e39b288b90b7c1833d8be893f26e534",
+    "github_run_id":  35760508710,
+    "github_artifact_id":  10710217510,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35760508710/artifacts/10710217510",
+    "github_artifact_digest":  "193672f12b00086e23abf93f4532e677dfdb65485e1a3c489e3b4a8d58a7ff35",
+    "packet_sha256":  "6dff8672fbd0f084dd8b2c097abad87766a6d5c1cc84eb12d542706768eb5213",
+    "rows_jsonl_sha256":  "90469a7df6830e3a662cf526bc6951e8cd50e43b6bfd5ea6a7297e9c9bd295ff",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  327491,
+    "source_row_last":  327649,
+    "data_rows":  159,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:00:00"
+}
