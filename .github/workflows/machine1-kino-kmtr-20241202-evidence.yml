@@ -98,7 +98,7 @@ jobs:
 
           $proof = @()
           foreach ($s in $specs) {
-            $arr = @($byTicker[$s.ticker])
+            $arr = $byTicker[$s.ticker]
             if ($arr.Count -ne $s.count) {
               throw "$($s.ticker)_ROW_COUNT_MISMATCH got=$($arr.Count) expected=$($s.count)"
             }
