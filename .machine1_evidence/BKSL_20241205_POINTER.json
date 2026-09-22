@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BKSL",
+    "trading_date":  "2024-12-05",
+    "branch":  "machine1/evidence-bksl-20241205",
+    "workflow_commit":  "b9348af364057b85596c1034a11c56e49e78b01a",
+    "github_run_id":  35714928792,
+    "github_artifact_id":  10688468019,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35714928792/artifacts/10688468019",
+    "github_artifact_digest":  "acb0d102a6dc05dc7c9835937ed42cc5d92933613469ff6d6d39224460c40082",
+    "packet_sha256":  "03f6c7ab655d8437ab6e12d05cefaf0642dff9fb7eb160252f67c53c02f6a1e2",
+    "rows_jsonl_sha256":  "314539679fc659b4a5879e6514380e3894c4efb5c1ab3ae46ad0b9c9ae2f4d68",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  242456,
+    "source_row_last":  242470,
+    "data_rows":  15,
+    "first_datetime":  "2024-12-05 09:55:00",
+    "last_datetime":  "2024-12-05 16:12:00"
+}

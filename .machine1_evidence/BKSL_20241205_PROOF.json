@@ -1,0 +1,15 @@
+{
+    "ticker":  "BKSL",
+    "trading_date":  "2024-12-05",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0014.jsonl",
+    "semantic_bundle_line_number":  205,
+    "source_row_first":  242456,
+    "source_row_last":  242470,
+    "data_rows":  15,
+    "first_datetime":  "2024-12-05 09:55:00",
+    "last_datetime":  "2024-12-05 16:12:00",
+    "packet_sha256":  "03f6c7ab655d8437ab6e12d05cefaf0642dff9fb7eb160252f67c53c02f6a1e2",
+    "rows_jsonl_sha256":  "314539679fc659b4a5879e6514380e3894c4efb5c1ab3ae46ad0b9c9ae2f4d68"
+}
