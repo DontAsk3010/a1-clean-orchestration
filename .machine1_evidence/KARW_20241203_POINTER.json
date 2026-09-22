@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "KARW",
+    "trading_date":  "2024-12-03",
+    "branch":  "machine1/evidence-karw-20241203",
+    "workflow_commit":  "9ac9219c38fe8715d48486454153b8c5b93c6dad",
+    "github_run_id":  35718303899,
+    "github_artifact_id":  10689972761,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35718303899/artifacts/10689972761",
+    "github_artifact_digest":  "80a89939f1e198186ca5285cebea89b3d7e61b72321ec005fff599f016713410",
+    "packet_sha256":  "3e0fad6866a50ec0f9022c97b23c237ff85904d546338194e924f71b0070b836",
+    "rows_jsonl_sha256":  "b540196b86fbf894f8ea54883b912f97d029dee1e1fb4959a437c67e7183e0eb",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  926717,
+    "source_row_last":  926724,
+    "data_rows":  8,
+    "first_datetime":  "2024-12-03 09:55:00",
+    "last_datetime":  "2024-12-03 16:04:00"
+}
