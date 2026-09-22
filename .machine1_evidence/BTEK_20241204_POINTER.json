@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BTEK",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-btek-20241204",
+    "workflow_commit":  "bde75a6de7e94182889e5eb0088984eea0b2a5a3",
+    "github_run_id":  35713367147,
+    "github_artifact_id":  10687456501,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35713367147/artifacts/10687456501",
+    "github_artifact_digest":  "e35f00982296425eac19f3413238636722cc67f05c2010285f9bca2e66ffb243",
+    "packet_sha256":  "0e1da2d60a3638f97c10ec4953623ef10f6dc16bf98e07cb1086266ee7b3934b",
+    "rows_jsonl_sha256":  "e8ae8fdd5dc834a805a49b28499fe2ce6817df9b4afb78d41189077a073d2d68",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  322740,
+    "source_row_last":  322749,
+    "data_rows":  10,
+    "first_datetime":  "2024-12-04 09:55:00",
+    "last_datetime":  "2024-12-04 16:07:00"
+}
