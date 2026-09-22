@@ -1,0 +1,13 @@
+﻿{
+    "ticker":  "BMRI",
+    "trading_date":  "2024-12-05",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0014.jsonl",
+    "semantic_bundle_line_number":  215,
+    "source_row_first":  261189,
+    "source_row_last":  261522,
+    "physical_line_first":  261190,
+    "physical_line_last":  261523,
+    "actual_rows":  334,
+    "first_datetime":  "2024-12-05 08:59:00",
+    "last_datetime":  "2024-12-05 16:13:00"
+}
