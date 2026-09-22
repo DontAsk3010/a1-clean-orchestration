@@ -1,0 +1,39 @@
+{
+  "candidate_pass": "ATOMIC_PASS449",
+  "ticker": "KICI",
+  "trading_date": "2024-12-03",
+  "source_row_first": 931904,
+  "source_row_last": 932050,
+  "actual_rows_read": 147,
+  "base_official_pass": "ATOMIC_PASS448",
+  "base_completed": 448,
+  "expected_after": {
+    "completed_ticker_context_paths": 449,
+    "remaining_count": 442,
+    "actual_source_rows_read": 51135,
+    "observations": 449,
+    "event_journey_objects": 787,
+    "open_carry_objects": 216
+  },
+  "changed_artifacts": [
+    "OBS",
+    "JRN",
+    "CKPT"
+  ],
+  "unchanged_artifacts": [
+    "OPEN"
+  ],
+  "duplicate_expectations": {
+    "observation_ids": 0,
+    "journey_ids": 0,
+    "event_ids": 0,
+    "open_carry_journey_ids": 0
+  },
+  "next_exact_resume_point": {
+    "ticker": "KIJA",
+    "semantic_bundle": "Raw Des 02-31-2024__SEMANTIC_0007.jsonl",
+    "bundle_line_number": 144
+  },
+  "semantic_delta_sha256": null,
+  "transport_status": "SEMANTIC_DELTA_PERSISTED_PENDING_OFFICIAL_DRIVE_PROMOTION_AND_4OF4_READBACK"
+}
