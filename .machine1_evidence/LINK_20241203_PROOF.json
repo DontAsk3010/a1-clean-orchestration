@@ -1,0 +1,13 @@
+{
+    "ticker":  "LINK",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  15,
+    "source_row_first":  973460,
+    "source_row_last":  973489,
+    "data_rows":  30,
+    "first_datetime":  "2024-12-03 09:39:00",
+    "last_datetime":  "2024-12-03 16:01:00",
+    "rows_jsonl_sha256":  "99c521647f0f0e4dc09fcc57caeebcded3865c3f85d50a39130247a5516527d8"
+}

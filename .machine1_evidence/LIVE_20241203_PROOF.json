@@ -1,0 +1,13 @@
+{
+    "ticker":  "LIVE",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  17,
+    "source_row_first":  977541,
+    "source_row_last":  977582,
+    "data_rows":  42,
+    "first_datetime":  "2024-12-03 09:10:00",
+    "last_datetime":  "2024-12-03 16:07:00",
+    "rows_jsonl_sha256":  "86a88fdfefba19faa8f158af5a7e5d76ea4c86da08377b35b6a57a74cb16be92"
+}
