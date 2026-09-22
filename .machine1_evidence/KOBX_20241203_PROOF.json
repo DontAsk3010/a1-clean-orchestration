@@ -1,0 +1,13 @@
+{
+    "ticker":  "KOBX",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0007.jsonl",
+    "semantic_bundle_line_number":  153,
+    "source_row_first":  947069,
+    "source_row_last":  947133,
+    "data_rows":  65,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:00:00",
+    "rows_jsonl_sha256":  "6968692a30d80dbb4842fb6e3e939ac2c499d646c760342b57c6a79c4a8b5fa1"
+}

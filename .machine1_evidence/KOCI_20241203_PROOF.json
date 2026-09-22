@@ -1,0 +1,13 @@
+{
+    "ticker":  "KOCI",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0007.jsonl",
+    "semantic_bundle_line_number":  154,
+    "source_row_first":  948861,
+    "source_row_last":  948864,
+    "data_rows":  4,
+    "first_datetime":  "2024-12-03 09:22:00",
+    "last_datetime":  "2024-12-03 15:21:00",
+    "rows_jsonl_sha256":  "6f72e7213b22db8e26e1dec219c8fc65952e207da9bbb2e621c3b2f53b81fdad"
+}

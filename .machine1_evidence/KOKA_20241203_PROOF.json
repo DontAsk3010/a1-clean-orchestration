@@ -1,0 +1,13 @@
+{
+    "ticker":  "KOKA",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0007.jsonl",
+    "semantic_bundle_line_number":  155,
+    "source_row_first":  949187,
+    "source_row_last":  949236,
+    "data_rows":  50,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:00:00",
+    "rows_jsonl_sha256":  "4bf577a985f61de3b1d6b14118037f521cda7506b4b4faa9cfa8b4f0d34e0401"
+}
