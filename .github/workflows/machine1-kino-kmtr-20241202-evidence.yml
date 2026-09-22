@@ -42,13 +42,13 @@ jobs:
           }
 
           $specs = @(
-            [ordered]@{ticker='KINO'; first=933908; last=933917; count=10; first_time='09:00:00'; last_time='16:13:00'; bundle_line=90},
-            [ordered]@{ticker='KIOS'; first=934062; last=934070; count=9; first_time='09:08:00'; last_time='15:32:00'; bundle_line=91},
-            [ordered]@{ticker='KJEN'; first=937360; last=937564; count=205; first_time='09:00:00'; last_time='16:11:00'; bundle_line=92},
-            [ordered]@{ticker='KKES'; first=937286; last=937289; count=4; first_time='09:55:00'; last_time='16:14:00'; bundle_line=93},
-            [ordered]@{ticker='KKGI'; first=940620; last=940758; count=139; first_time='09:00:00'; last_time='16:10:00'; bundle_line=94},
-            [ordered]@{ticker='KLAS'; first=943500; last=943666; count=167; first_time='09:00:00'; last_time='16:12:00'; bundle_line=95},
-            [ordered]@{ticker='KMTR'; first=946174; last=946186; count=13; first_time='09:00:00'; last_time='16:00:00'; bundle_line=96}
+            [pscustomobject][ordered]@{ticker='KINO'; first=933908; last=933917; count=10; first_time='09:00:00'; last_time='16:13:00'; bundle_line=90},
+            [pscustomobject][ordered]@{ticker='KIOS'; first=934062; last=934070; count=9; first_time='09:08:00'; last_time='15:32:00'; bundle_line=91},
+            [pscustomobject][ordered]@{ticker='KJEN'; first=937360; last=937564; count=205; first_time='09:00:00'; last_time='16:11:00'; bundle_line=92},
+            [pscustomobject][ordered]@{ticker='KKES'; first=937286; last=937289; count=4; first_time='09:55:00'; last_time='16:14:00'; bundle_line=93},
+            [pscustomobject][ordered]@{ticker='KKGI'; first=940620; last=940758; count=139; first_time='09:00:00'; last_time='16:10:00'; bundle_line=94},
+            [pscustomobject][ordered]@{ticker='KLAS'; first=943500; last=943666; count=167; first_time='09:00:00'; last_time='16:12:00'; bundle_line=95},
+            [pscustomobject][ordered]@{ticker='KMTR'; first=946174; last=946186; count=13; first_time='09:00:00'; last_time='16:00:00'; bundle_line=96}
           )
 
           $outDir = Join-Path $PWD 'machine1_kino_kmtr_20241202_evidence'
