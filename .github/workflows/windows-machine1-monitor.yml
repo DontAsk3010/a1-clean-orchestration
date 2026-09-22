@@ -1,6 +1,11 @@
 name: Windows Machine 1 Live Monitor
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/windows-machine1-monitor.yml'
+      - 'src/a1clean/machine1_monitor.py'
   schedule:
     - cron: '*/10 * * * *'
   workflow_dispatch:
@@ -21,6 +26,12 @@ jobs:
       - name: Checkout governed orchestration
         uses: actions/checkout@v4
 
+      - name: Provide Python 3.11 runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
       - name: Verify read-only Drive credential binding
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
@@ -36,14 +47,14 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          py -3.11 -m pip install -e .
+          python -m pip install -e .
 
       - name: Build Machine 1 monitor snapshot
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           $out = Join-Path $env:RUNNER_TEMP 'a1-machine1-monitor'
-          py -3.11 -m a1clean.machine1_monitor --output-dir $out
+          python -m a1clean.machine1_monitor --output-dir $out
           Get-Content -LiteralPath (Join-Path $out 'machine1-monitor-latest.md') -Raw | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           "A1_MACHINE1_MONITOR_OUT=$out" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
