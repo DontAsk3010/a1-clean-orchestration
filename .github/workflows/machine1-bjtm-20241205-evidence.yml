@@ -5,7 +5,7 @@ on:
     branches:
       - machine1/evidence-bkdp-20241205
     paths:
-      - .github/workflows/machine1-bkdp-20241205-evidence.yml
+      - .github/workflows/machine1-bjtm-20241205-evidence.yml
 
 permissions:
   contents: write
