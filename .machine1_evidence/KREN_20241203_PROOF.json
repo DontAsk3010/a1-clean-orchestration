@@ -1,0 +1,13 @@
+{
+    "ticker":  "KREN",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  3,
+    "source_row_first":  965219,
+    "source_row_last":  965224,
+    "data_rows":  6,
+    "first_datetime":  "2024-12-03 09:55:00",
+    "last_datetime":  "2024-12-03 16:03:00",
+    "rows_jsonl_sha256":  "c8ffeacd89a55583cd24f2ac2a9bb308eb21c01c337d55669fa607ad072f8412"
+}
