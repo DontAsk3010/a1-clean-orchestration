@@ -23,92 +23,151 @@ jobs:
           ref: machine1/evidence-kino-kmtr-20241202
 
       - name: Extract exact governed KINO-KMTR packets
-        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
-          @'
-          import csv, hashlib, json, os, pathlib
+          $raw = $env:RAW_FILE
+          $tradingDate = '2024-12-02'
+          $expectedMd5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
+          $expectedSha256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
 
-          raw = pathlib.Path(os.environ['RAW_FILE'])
-          trading_date = '2024-12-02'
-          expected_md5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
-          expected_sha256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
-          specs = [
-              ('KINO',933908,933917,10,'09:00:00','16:13:00',90),
-              ('KIOS',934062,934070,9,'09:08:00','15:32:00',91),
-              ('KJEN',937360,937564,205,'09:00:00','16:11:00',92),
-              ('KKES',937286,937289,4,'09:55:00','16:14:00',93),
-              ('KKGI',940620,940758,139,'09:00:00','16:10:00',94),
-              ('KLAS',943500,943666,167,'09:00:00','16:12:00',95),
-              ('KMTR',946174,946186,13,'09:00:00','16:00:00',96),
-          ]
+          if (-not (Test-Path -LiteralPath $raw -PathType Leaf)) {
+            throw "RAW_MISSING: $raw"
+          }
 
-          if not raw.is_file():
-              raise SystemExit(f'RAW_MISSING: {raw}')
+          $gotMd5 = (Get-FileHash -LiteralPath $raw -Algorithm MD5).Hash.ToLowerInvariant()
+          $gotSha256 = (Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($gotMd5 -ne $expectedMd5 -or $gotSha256 -ne $expectedSha256) {
+            throw "RAW_HASH_MISMATCH md5=$gotMd5 sha256=$gotSha256"
+          }
 
-          md5=hashlib.md5(); sha=hashlib.sha256()
-          with raw.open('rb') as f:
-              for chunk in iter(lambda:f.read(8*1024*1024),b''):
-                  md5.update(chunk); sha.update(chunk)
-          got_md5, got_sha = md5.hexdigest(), sha.hexdigest()
-          if got_md5 != expected_md5 or got_sha != expected_sha256:
-              raise SystemExit(f'RAW_HASH_MISMATCH md5={got_md5} sha256={got_sha}')
+          $specs = @(
+            [ordered]@{ticker='KINO'; first=933908; last=933917; count=10; first_time='09:00:00'; last_time='16:13:00'; bundle_line=90},
+            [ordered]@{ticker='KIOS'; first=934062; last=934070; count=9; first_time='09:08:00'; last_time='15:32:00'; bundle_line=91},
+            [ordered]@{ticker='KJEN'; first=937360; last=937564; count=205; first_time='09:00:00'; last_time='16:11:00'; bundle_line=92},
+            [ordered]@{ticker='KKES'; first=937286; last=937289; count=4; first_time='09:55:00'; last_time='16:14:00'; bundle_line=93},
+            [ordered]@{ticker='KKGI'; first=940620; last=940758; count=139; first_time='09:00:00'; last_time='16:10:00'; bundle_line=94},
+            [ordered]@{ticker='KLAS'; first=943500; last=943666; count=167; first_time='09:00:00'; last_time='16:12:00'; bundle_line=95},
+            [ordered]@{ticker='KMTR'; first=946174; last=946186; count=13; first_time='09:00:00'; last_time='16:00:00'; bundle_line=96}
+          )
 
-          wanted={s[0] for s in specs}
-          hits={k:[] for k in wanted}
-          with raw.open('r',encoding='utf-8-sig',newline='') as f:
-              reader=csv.DictReader(f)
-              for source_row,row in enumerate(reader,start=1):
-                  t=row.get('RAW_TICKER')
-                  dt=row.get('RAW_DATETIME_ISO','')
-                  if t in hits and dt.startswith(trading_date):
-                      hits[t].append((source_row,row))
+          $outDir = Join-Path $PWD 'machine1_kino_kmtr_20241202_evidence'
+          New-Item -ItemType Directory -Path $outDir -Force | Out-Null
 
-          out=pathlib.Path('machine1_kino_kmtr_20241202_evidence')
-          out.mkdir(exist_ok=True)
-          proof=[]
-          for ticker,first,last,count,ft,lt,bline in specs:
-              arr=hits[ticker]
-              rows=[n for n,_ in arr]
-              if len(arr)!=count:
-                  raise SystemExit(f'{ticker}_ROW_COUNT_MISMATCH got={len(arr)} expected={count}')
-              if rows != list(range(first,last+1)):
-                  raise SystemExit(f'{ticker}_SOURCE_ROW_MISMATCH got={rows[:3]}...{rows[-3:]} expected={first}-{last}')
-              first_dt=arr[0][1]['RAW_DATETIME_ISO']; last_dt=arr[-1][1]['RAW_DATETIME_ISO']
-              if first_dt[-8:]!=ft or last_dt[-8:]!=lt:
-                  raise SystemExit(f'{ticker}_BOUNDARY_TIME_MISMATCH first={first_dt} last={last_dt}')
-              packet={
-                  'source_name':raw.name,
-                  'source_md5':got_md5,
-                  'source_sha256':got_sha,
-                  'ticker':ticker,
-                  'trading_date':trading_date,
-                  'semantic_bundle':'Raw Des 02-31-2024__SEMANTIC_0003.jsonl',
-                  'bundle_line_number':bline,
-                  'source_row_first':first,
-                  'source_row_last':last,
-                  'data_rows':count,
-                  'first_datetime':first_dt,
-                  'last_datetime':last_dt,
-                  'header_fields':list(arr[0][1].keys()),
-                  'rows':[{'source_row':n,**r} for n,r in arr],
+          $byTicker = @{}
+          foreach ($s in $specs) {
+            $byTicker[$s.ticker] = New-Object System.Collections.Generic.List[object]
+          }
+
+          $minRow = ($specs | Measure-Object -Property first -Minimum).Minimum
+          $maxRow = ($specs | Measure-Object -Property last -Maximum).Maximum
+
+          $sr = New-Object System.IO.StreamReader($raw, [System.Text.Encoding]::UTF8, $true, 1048576)
+          try {
+            $headerLine = $sr.ReadLine()
+            if ($null -eq $headerLine) { throw 'RAW_EMPTY' }
+            $headerFields = @($headerLine.TrimStart([char]0xFEFF).Split(','))
+            $physicalLine = 1
+            while (-not $sr.EndOfStream) {
+              $line = $sr.ReadLine()
+              $physicalLine++
+              $sourceRow = $physicalLine - 1
+              if ($sourceRow -gt $maxRow) { break }
+              if ($sourceRow -lt $minRow) { continue }
+
+              foreach ($s in $specs) {
+                if ($sourceRow -ge $s.first -and $sourceRow -le $s.last) {
+                  $parsed = $line | ConvertFrom-Csv -Header $headerFields
+                  $fields = [ordered]@{}
+                  foreach ($h in $headerFields) { $fields[$h] = $parsed.$h }
+                  $rowObj = [ordered]@{
+                    source_row = [int]$sourceRow
+                    physical_line = [int]$physicalLine
+                    raw_line = $line
+                    fields = $fields
+                  }
+                  $byTicker[$s.ticker].Add([pscustomobject]$rowObj)
+                  break
+                }
               }
-              (out/f'{ticker}_20241202_PACKET.json').write_text(json.dumps(packet,ensure_ascii=False,indent=2),encoding='utf-8')
-              with (out/f'{ticker}_20241202_ROWS.jsonl').open('w',encoding='utf-8',newline='\n') as w:
-                  for n,r in arr:
-                      w.write(json.dumps({'source_row':n,**r},ensure_ascii=False,separators=(',',':'))+'\n')
-              proof.append({k:packet[k] for k in ['ticker','trading_date','semantic_bundle','bundle_line_number','source_row_first','source_row_last','data_rows','first_datetime','last_datetime']})
-              print(f'PASS {ticker} rows={count} source={first}-{last} first={first_dt} last={last_dt}')
+            }
+          }
+          finally {
+            $sr.Dispose()
+          }
 
-          (out/'CHUNK_PROOF.json').write_text(json.dumps({
-              'status':'PASS',
-              'source_md5':got_md5,
-              'source_sha256':got_sha,
-              'trading_date':trading_date,
-              'tickers':proof
-          },ensure_ascii=False,indent=2),encoding='utf-8')
-          '@ | Set-Content -LiteralPath extract_kino_kmtr_20241202.py -Encoding UTF8
-          py -3.11 extract_kino_kmtr_20241202.py
+          $proof = @()
+          foreach ($s in $specs) {
+            $arr = @($byTicker[$s.ticker])
+            if ($arr.Count -ne $s.count) {
+              throw "$($s.ticker)_ROW_COUNT_MISMATCH got=$($arr.Count) expected=$($s.count)"
+            }
+            for ($i=0; $i -lt $arr.Count; $i++) {
+              $expectedRow = $s.first + $i
+              if ($arr[$i].source_row -ne $expectedRow) {
+                throw "$($s.ticker)_SOURCE_ROW_MISMATCH at_index=$i got=$($arr[$i].source_row) expected=$expectedRow"
+              }
+              if ($arr[$i].fields.RAW_TICKER -ne $s.ticker) {
+                throw "$($s.ticker)_TICKER_MISMATCH source_row=$($arr[$i].source_row) got=$($arr[$i].fields.RAW_TICKER)"
+              }
+              if (-not $arr[$i].fields.RAW_DATETIME_ISO.StartsWith($tradingDate)) {
+                throw "$($s.ticker)_DATE_MISMATCH source_row=$($arr[$i].source_row) dt=$($arr[$i].fields.RAW_DATETIME_ISO)"
+              }
+            }
+
+            $firstDt = [string]$arr[0].fields.RAW_DATETIME_ISO
+            $lastDt = [string]$arr[-1].fields.RAW_DATETIME_ISO
+            if ($firstDt.Substring($firstDt.Length-8) -ne $s.first_time -or $lastDt.Substring($lastDt.Length-8) -ne $s.last_time) {
+              throw "$($s.ticker)_BOUNDARY_TIME_MISMATCH first=$firstDt last=$lastDt"
+            }
+
+            $packet = [ordered]@{
+              source_name = [System.IO.Path]::GetFileName($raw)
+              source_md5 = $gotMd5
+              source_sha256 = $gotSha256
+              ticker = $s.ticker
+              trading_date = $tradingDate
+              semantic_bundle = 'Raw Des 02-31-2024__SEMANTIC_0003.jsonl'
+              bundle_line_number = [int]$s.bundle_line
+              source_row_first = [int]$s.first
+              source_row_last = [int]$s.last
+              data_rows = [int]$s.count
+              first_datetime = $firstDt
+              last_datetime = $lastDt
+              header_line = $headerLine
+              header_fields = $headerFields
+              rows = $arr
+            }
+
+            $packetPath = Join-Path $outDir "$($s.ticker)_20241202_PACKET.json"
+            $packet | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $packetPath -Encoding UTF8
+
+            $rowsPath = Join-Path $outDir "$($s.ticker)_20241202_ROWS.jsonl"
+            foreach ($row in $arr) {
+              ($row | ConvertTo-Json -Depth 6 -Compress) | Add-Content -LiteralPath $rowsPath -Encoding UTF8
+            }
+
+            $proof += [pscustomobject][ordered]@{
+              ticker = $s.ticker
+              trading_date = $tradingDate
+              semantic_bundle = 'Raw Des 02-31-2024__SEMANTIC_0003.jsonl'
+              bundle_line_number = [int]$s.bundle_line
+              source_row_first = [int]$s.first
+              source_row_last = [int]$s.last
+              data_rows = [int]$s.count
+              first_datetime = $firstDt
+              last_datetime = $lastDt
+            }
+            Write-Host "PASS $($s.ticker) rows=$($s.count) source=$($s.first)-$($s.last) first=$firstDt last=$lastDt"
+          }
+
+          [ordered]@{
+            status = 'PASS'
+            source_md5 = $gotMd5
+            source_sha256 = $gotSha256
+            trading_date = $tradingDate
+            tickers = $proof
+          } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $outDir 'CHUNK_PROOF.json') -Encoding UTF8
 
       - name: Upload governed evidence
         uses: actions/upload-artifact@v4
