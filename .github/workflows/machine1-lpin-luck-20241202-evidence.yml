@@ -1,0 +1,107 @@
+name: Machine1 LPIN-LUCK 20241202 Evidence Extract
+
+on:
+  push:
+    branches: [machine1/evidence-lpin-luck-20241202]
+    paths: [.github/workflows/machine1-lpin-luck-20241202-evidence.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  extract-governed-lpin-luck:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: machine1/evidence-lpin-luck-20241202
+
+      - name: Extract exact governed LPIN-LUCK packets
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $raw = $env:RAW_FILE
+          $date = '2024-12-02'
+          $md5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
+          $sha = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          if (-not (Test-Path -LiteralPath $raw -PathType Leaf)) { throw "RAW_MISSING $raw" }
+          $gotMd5=(Get-FileHash -LiteralPath $raw -Algorithm MD5).Hash.ToLowerInvariant()
+          $gotSha=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($gotMd5 -ne $md5 -or $gotSha -ne $sha){throw "RAW_HASH_MISMATCH md5=$gotMd5 sha=$gotSha"}
+
+          $specs=@(
+            [pscustomobject][ordered]@{ticker='LPIN';first=985345;last=985361;count=17;first_time='09:08:00';last_time='16:05:00';bundle_line=127},
+            [pscustomobject][ordered]@{ticker='LPKR';first=985808;last=986021;count=214;first_time='09:00:00';last_time='16:10:00';bundle_line=128},
+            [pscustomobject][ordered]@{ticker='LPLI';first=985700;last=985704;count=5;first_time='09:00:00';last_time='13:40:00';bundle_line=129},
+            [pscustomobject][ordered]@{ticker='LPPF';first=990308;last=990454;count=147;first_time='09:00:00';last_time='16:13:00';bundle_line=130},
+            [pscustomobject][ordered]@{ticker='LPPS';first=992991;last=993094;count=104;first_time='09:00:00';last_time='16:12:00';bundle_line=131},
+            [pscustomobject][ordered]@{ticker='LQ45';first=995110;last=995444;count=335;first_time='09:00:00';last_time='16:14:00';bundle_line=132},
+            [pscustomobject][ordered]@{ticker='LRNA';first=994314;last=994337;count=24;first_time='09:00:00';last_time='16:00:00';bundle_line=133},
+            [pscustomobject][ordered]@{ticker='LSIP';first=1001478;last=1001750;count=273;first_time='09:00:00';last_time='16:14:00';bundle_line=134},
+            [pscustomobject][ordered]@{ticker='LTLS';first=1001221;last=1001235;count=15;first_time='09:02:00';last_time='16:00:00';bundle_line=135},
+            [pscustomobject][ordered]@{ticker='LUCK';first=1006589;last=1006626;count=38;first_time='09:00:00';last_time='16:00:00';bundle_line=136}
+          )
+
+          $out=Join-Path $PWD 'machine1_lpin_luck_20241202_evidence'
+          New-Item -ItemType Directory -Path $out -Force | Out-Null
+          $by=@{}
+          foreach($s in $specs){$by[$s.ticker]=New-Object System.Collections.Generic.List[object]}
+          $min=985345; $max=1006626
+          $sr=New-Object System.IO.StreamReader($raw,[System.Text.Encoding]::UTF8,$true,1048576)
+          try{
+            $headerLine=$sr.ReadLine()
+            if($null -eq $headerLine){throw 'RAW_EMPTY'}
+            $header=@($headerLine.TrimStart([char]0xFEFF).Split(','))
+            $physical=1
+            while(-not $sr.EndOfStream){
+              $line=$sr.ReadLine(); $physical++; $row=$physical-1
+              if($row -gt $max){break}
+              if($row -lt $min){continue}
+              foreach($s in $specs){
+                if($row -ge $s.first -and $row -le $s.last){
+                  $parsed=$line|ConvertFrom-Csv -Header $header
+                  $fields=[ordered]@{}; foreach($h in $header){$fields[$h]=$parsed.$h}
+                  $by[$s.ticker].Add([pscustomobject][ordered]@{source_row=[int]$row;physical_line=[int]$physical;raw_line=$line;fields=$fields})
+                  break
+                }
+              }
+            }
+          } finally {$sr.Dispose()}
+
+          $proof=@()
+          foreach($s in $specs){
+            $arr=$by[$s.ticker]
+            if($arr.Count -ne $s.count){throw "$($s.ticker)_COUNT got=$($arr.Count) expected=$($s.count)"}
+            for($i=0;$i -lt $arr.Count;$i++){
+              $er=$s.first+$i
+              if($arr[$i].source_row -ne $er){throw "$($s.ticker)_ROW index=$i got=$($arr[$i].source_row) expected=$er"}
+              if($arr[$i].fields.RAW_TICKER -ne $s.ticker){throw "$($s.ticker)_TICKER row=$er got=$($arr[$i].fields.RAW_TICKER)"}
+              if(-not ([string]$arr[$i].fields.RAW_DATETIME_ISO).StartsWith($date)){throw "$($s.ticker)_DATE row=$er"}
+            }
+            $fd=[string]$arr[0].fields.RAW_DATETIME_ISO
+            $ld=[string]$arr[$arr.Count-1].fields.RAW_DATETIME_ISO
+            if($fd.Substring($fd.Length-8)-ne $s.first_time -or $ld.Substring($ld.Length-8)-ne $s.last_time){throw "$($s.ticker)_TIME first=$fd last=$ld"}
+            [ordered]@{
+              source_name=[IO.Path]::GetFileName($raw);source_md5=$gotMd5;source_sha256=$gotSha;ticker=$s.ticker;trading_date=$date;
+              semantic_bundle='Raw Des 02-31-2024__SEMANTIC_0003.jsonl';bundle_line_number=[int]$s.bundle_line;
+              source_row_first=[int]$s.first;source_row_last=[int]$s.last;data_rows=[int]$s.count;
+              first_datetime=$fd;last_datetime=$ld;header_line=$headerLine;header_fields=$header;rows=$arr
+            }|ConvertTo-Json -Depth 8|Set-Content -LiteralPath (Join-Path $out "$($s.ticker)_20241202_PACKET.json") -Encoding UTF8
+            $rowsPath=Join-Path $out "$($s.ticker)_20241202_ROWS.jsonl"; if(Test-Path $rowsPath){Remove-Item $rowsPath -Force}
+            foreach($x in $arr){($x|ConvertTo-Json -Depth 6 -Compress)|Add-Content -LiteralPath $rowsPath -Encoding UTF8}
+            $proof+=[pscustomobject][ordered]@{ticker=$s.ticker;trading_date=$date;semantic_bundle='Raw Des 02-31-2024__SEMANTIC_0003.jsonl';bundle_line_number=[int]$s.bundle_line;source_row_first=[int]$s.first;source_row_last=[int]$s.last;data_rows=[int]$s.count;first_datetime=$fd;last_datetime=$ld}
+            Write-Host "PASS $($s.ticker) rows=$($s.count) source=$($s.first)-$($s.last) first=$fd last=$ld"
+          }
+          [ordered]@{status='PASS';source_md5=$gotMd5;source_sha256=$gotSha;trading_date=$date;tickers=$proof}|ConvertTo-Json -Depth 6|Set-Content -LiteralPath (Join-Path $out 'CHUNK_PROOF.json') -Encoding UTF8
+
+      - name: Upload governed evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-lpin-luck-20241202-evidence
+          path: machine1_lpin_luck_20241202_evidence/
+          if-no-files-found: error
+          retention-days: 7
