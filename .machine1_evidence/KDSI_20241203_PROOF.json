@@ -1,0 +1,13 @@
+{
+    "ticker":  "KDSI",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0007.jsonl",
+    "semantic_bundle_line_number":  137,
+    "source_row_first":  927778,
+    "source_row_last":  927788,
+    "data_rows":  11,
+    "first_datetime":  "2024-12-03 09:06:00",
+    "last_datetime":  "2024-12-03 14:47:00",
+    "rows_jsonl_sha256":  "bd8ec1717cd1e64d0da923b60b078ed62924dd0bca043049d0fdd5ccb5306ac4"
+}

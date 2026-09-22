@@ -1,0 +1,13 @@
+{
+    "ticker":  "KDTN",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0007.jsonl",
+    "semantic_bundle_line_number":  138,
+    "source_row_first":  928125,
+    "source_row_last":  928146,
+    "data_rows":  22,
+    "first_datetime":  "2024-12-03 09:02:00",
+    "last_datetime":  "2024-12-03 15:46:00",
+    "rows_jsonl_sha256":  "90b987d8786233f4363aea223a20c97af3660b615e5915beab6c24ebad138454"
+}

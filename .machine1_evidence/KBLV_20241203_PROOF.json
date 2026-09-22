@@ -1,0 +1,13 @@
+{
+    "ticker":  "KBLV",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0007.jsonl",
+    "semantic_bundle_line_number":  136,
+    "source_row_first":  928052,
+    "source_row_last":  928054,
+    "data_rows":  3,
+    "first_datetime":  "2024-12-03 09:55:00",
+    "last_datetime":  "2024-12-03 16:07:00",
+    "rows_jsonl_sha256":  "98347588d9de3e466ebe447e3cf3e55181ddd8e4625f7a30039d64fbd5edaf88"
+}
