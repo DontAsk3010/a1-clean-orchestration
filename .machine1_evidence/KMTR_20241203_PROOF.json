@@ -1,0 +1,13 @@
+{
+    "ticker":  "KMTR",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0007.jsonl",
+    "semantic_bundle_line_number":  152,
+    "source_row_first":  946187,
+    "source_row_last":  946212,
+    "data_rows":  26,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:00:00",
+    "rows_jsonl_sha256":  "5036a207e1dfe2c6f52d4e0006706e6aeaed2ba0fcead7d90c36dbbe5803d8a0"
+}
