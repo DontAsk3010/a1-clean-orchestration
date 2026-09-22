@@ -1,0 +1,56 @@
+{
+  "checkpoint": "PASS157_DATE04",
+  "trading_date": "2024-12-04",
+  "worker_id": "M1_20241204_20260914_CHAT02",
+  "state": "IN_PROGRESS",
+  "date_local_pass": "NO",
+  "assignment": "PINNED",
+  "last_verified_ticker": "BRIS",
+  "completed_ticker_context_paths": 157,
+  "total_ticker_context_paths": 899,
+  "actual_source_rows_read": 16839,
+  "total_date_source_rows": 91157,
+  "ticker_completed": {
+    "ticker": "BRIS",
+    "source_row_first": 293999,
+    "source_row_last": 294329,
+    "physical_line_first": 294000,
+    "physical_line_last": 294330,
+    "actual_rows": 331,
+    "coverage": "331/331"
+  },
+  "next_exact_resume": {
+    "ticker": "BRMS",
+    "semantic_bundle": "Raw Des 02-31-2024__SEMANTIC_0010.jsonl",
+    "bundle_line_number": 117,
+    "source_row_first": 300158,
+    "source_row_last": 300490,
+    "physical_line_first": 300159,
+    "physical_line_last": 300491,
+    "actual_rows": 333,
+    "first_clock_time": "09:00:00",
+    "last_clock_time": "16:14:00"
+  },
+  "reread_completed_tickers": "PROHIBITED",
+  "auto_advance": "PROHIBITED",
+  "atomic_artifact_readback": "PASS_CONTENT_DIRECT_DRIVE_READ",
+  "artifact_drive_ids": {
+    "observation": "1gM5VO2HjmDqlp3jZ-u-jdMpv9V9lreUI",
+    "event_journey": "1apBT25CDNhoL1c4sJtI5gz00Q1ShrZSy",
+    "checkpoint": null
+  },
+  "evidence": {
+    "mode": "GOOGLE_DRIVE_FILES_DIRECT_EXACT_RANGE_READ",
+    "source_drive_id": "1wvBmhpQIV-evJJOPN_g8nks3KZBzmVHC",
+    "source_sha256": "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_range": [
+      293999,
+      294329
+    ],
+    "physical_lines": [
+      294000,
+      294330
+    ],
+    "rows_read": 331
+  }
+}
