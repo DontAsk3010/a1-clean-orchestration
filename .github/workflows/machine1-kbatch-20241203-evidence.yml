@@ -1,0 +1,144 @@
+name: Machine1 K-batch 2024-12-03 Governed Evidence Extract
+
+on:
+  push:
+    branches:
+      - machine1/evidence-kbatch-20241203
+    paths:
+      - .github/workflows/machine1-kbatch-20241203-evidence.yml
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract governed packets
+        id: extract
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $raw = [System.IO.Path]::GetFullPath($env:RAW_FILE)
+          $expectedMd5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
+          $expectedSha256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          $specs = @(
+            [pscustomobject]@{Ticker='KEEN'; First=928545; Last=928579; Count=35; FirstTime='09:00:00'; LastTime='16:00:00'; BundleLine=139},
+            [pscustomobject]@{Ticker='KEJU'; First=929493; Last=929529; Count=37; FirstTime='09:01:00'; LastTime='16:00:00'; BundleLine=140},
+            [pscustomobject]@{Ticker='KETR'; First=931232; Last=931274; Count=43; FirstTime='09:00:00'; LastTime='16:08:00'; BundleLine=141},
+            [pscustomobject]@{Ticker='KIAS'; First=931079; Last=931081; Count=3; FirstTime='09:55:00'; LastTime='14:55:00'; BundleLine=142},
+            [pscustomobject]@{Ticker='KICI'; First=931904; Last=932050; Count=147; FirstTime='09:00:00'; LastTime='16:08:00'; BundleLine=143}
+          )
+          if (-not (Test-Path -LiteralPath $raw -PathType Leaf)) { throw "RAW_MISSING: $raw" }
+
+          $md5 = [System.Security.Cryptography.MD5]::Create()
+          $sha = [System.Security.Cryptography.SHA256]::Create()
+          $fs = [System.IO.File]::OpenRead($raw)
+          try {
+            $buffer = New-Object byte[] (4MB)
+            while (($read = $fs.Read($buffer, 0, $buffer.Length)) -gt 0) {
+              [void]$md5.TransformBlock($buffer, 0, $read, $buffer, 0)
+              [void]$sha.TransformBlock($buffer, 0, $read, $buffer, 0)
+            }
+            [void]$md5.TransformFinalBlock([byte[]]::new(0), 0, 0)
+            [void]$sha.TransformFinalBlock([byte[]]::new(0), 0, 0)
+            $gotMd5 = ([System.BitConverter]::ToString($md5.Hash)).Replace('-', '').ToLowerInvariant()
+            $gotSha256 = ([System.BitConverter]::ToString($sha.Hash)).Replace('-', '').ToLowerInvariant()
+          } finally {
+            $fs.Dispose(); $md5.Dispose(); $sha.Dispose()
+          }
+          if ($gotMd5 -ne $expectedMd5 -or $gotSha256 -ne $expectedSha256) { throw "RAW_HASH_MISMATCH md5=$gotMd5 sha256=$gotSha256" }
+
+          $header = $null
+          $captures = @{}
+          foreach ($s in $specs) { $captures[$s.Ticker] = New-Object 'System.Collections.Generic.List[string]' }
+          $lineIndex = 0
+          $maxLast = ($specs | Measure-Object -Property Last -Maximum).Maximum
+          foreach ($line in [System.IO.File]::ReadLines($raw, [System.Text.Encoding]::UTF8)) {
+            if ($lineIndex -eq 0) { $header = $line }
+            foreach ($s in $specs) {
+              if ($lineIndex -ge $s.First -and $lineIndex -le $s.Last) { [void]$captures[$s.Ticker].Add($line) }
+            }
+            if ($lineIndex -ge $maxLast) { break }
+            $lineIndex++
+          }
+          if ($null -eq $header) { throw 'RAW_HEADER_MISSING' }
+
+          $out = Join-Path $PWD 'machine1_kbatch_20241203_evidence'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+
+          foreach ($s in $specs) {
+            $lines = $captures[$s.Ticker]
+            if ($lines.Count -ne $s.Count) { throw "$($s.Ticker)_ROW_COUNT_MISMATCH got=$($lines.Count) expected=$($s.Count)" }
+            $parsed = @((@($header) + @($lines)) | ConvertFrom-Csv)
+            if ($parsed.Count -ne $s.Count) { throw "$($s.Ticker)_CSV_PARSE_COUNT_MISMATCH" }
+            $records = @()
+            for ($i=0; $i -lt $parsed.Count; $i++) {
+              $ordered = [ordered]@{ source_row = $s.First + $i }
+              foreach ($p in $parsed[$i].PSObject.Properties.Name) { $ordered[$p] = [string]$parsed[$i].$p }
+              $records += [pscustomobject]$ordered
+            }
+            $tickers = @($records | ForEach-Object { $_.RAW_TICKER } | Sort-Object -Unique)
+            if ($tickers.Count -ne 1 -or $tickers[0] -ne $s.Ticker) { throw "$($s.Ticker)_TICKER_MISMATCH got=$($tickers -join ',')" }
+            $dts = @($records | ForEach-Object { [string]$_.RAW_DATETIME_ISO })
+            if (@($dts | Where-Object { -not $_.StartsWith('2024-12-03') }).Count -gt 0) { throw "$($s.Ticker)_DATE_MISMATCH" }
+            function Clock([string]$dt) {
+              if ($dt.Contains('T')) { return $dt.Split('T',2)[1].Substring(0,8) }
+              $parts = $dt.Split(' '); return $parts[$parts.Length-1].Substring(0,8)
+            }
+            $ft = Clock $dts[0]; $lt = Clock $dts[$dts.Count-1]
+            if ($ft -ne $s.FirstTime -or $lt -ne $s.LastTime) { throw "$($s.Ticker)_TIME_RANGE_MISMATCH got=$ft-$lt" }
+
+            $rowsPath = Join-Path $out "$($s.Ticker)_20241203_ROWS.jsonl"
+            $proofPath = Join-Path $out "$($s.Ticker)_20241203_PROOF.json"
+            $jsonl = @($records | ForEach-Object { $_ | ConvertTo-Json -Compress -Depth 8 })
+            [System.IO.File]::WriteAllLines($rowsPath, [string[]]$jsonl, $utf8NoBom)
+            $rowsSha = (Get-FileHash -LiteralPath $rowsPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            $proof = [ordered]@{
+              ticker=$s.Ticker; trading_date='2024-12-03'; source_md5=$gotMd5; source_sha256=$gotSha256;
+              semantic_bundle='Raw Des 02-31-2024__SEMANTIC_0007.jsonl'; semantic_bundle_line_number=$s.BundleLine;
+              source_row_first=$s.First; source_row_last=$s.Last; data_rows=$records.Count;
+              first_datetime=$dts[0]; last_datetime=$dts[$dts.Count-1]; rows_jsonl_sha256=$rowsSha
+            }
+            [System.IO.File]::WriteAllText($proofPath, ($proof | ConvertTo-Json -Depth 10), $utf8NoBom)
+            Write-Host "$($s.Ticker)_EVIDENCE_OK rows=$($records.Count) source_rows=$($s.First)-$($s.Last) first=$($dts[0]) last=$($dts[$dts.Count-1]) rows_sha256=$rowsSha"
+          }
+
+      - name: Upload governed evidence
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-kbatch-20241203-evidence
+          path: machine1_kbatch_20241203_evidence/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Persist exact evidence rows
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force '.machine1_evidence' | Out-Null
+          Copy-Item 'machine1_kbatch_20241203_evidence/*' '.machine1_evidence/' -Force
+          $pointer = [ordered]@{
+            trading_date='2024-12-03'
+            tickers=@('KEEN','KEJU','KETR','KIAS','KICI')
+            branch='machine1/evidence-kbatch-20241203'
+            workflow_commit='${{ github.sha }}'
+            github_run_id=[int64]'${{ github.run_id }}'
+            github_artifact_id=[int64]'${{ steps.upload.outputs.artifact-id }}'
+            github_artifact_url='${{ steps.upload.outputs.artifact-url }}'
+            github_artifact_digest='${{ steps.upload.outputs.artifact-digest }}'
+          }
+          $pointer | ConvertTo-Json -Depth 5 | Set-Content -Encoding UTF8 '.machine1_evidence/KBATCH_20241203_POINTER.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add -f '.machine1_evidence/*_20241203_ROWS.jsonl'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_evidence/*_20241203_PROOF.json' '.machine1_evidence/KBATCH_20241203_POINTER.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist governed K-batch evidence [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-kbatch-20241203
