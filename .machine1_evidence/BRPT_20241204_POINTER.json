@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BRPT",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-brpt-20241204",
+    "workflow_commit":  "f6c898374d585250d9aca71dc3e37f3b7010e8a6",
+    "github_run_id":  35699689151,
+    "github_artifact_id":  10682195158,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35699689151/artifacts/10682195158",
+    "github_artifact_digest":  "b5a74ba97b8a6c2743823fce080a7804a4f8214aef996386626a6a8e89b2776b",
+    "packet_sha256":  "7678898be65cde58b477fccce89f555a1b4d2a30e59460470db1b3135def3cb4",
+    "rows_jsonl_sha256":  "f22e85a4626b470d0a6ffb12bc9ba2a549fc74ddab4b14dd3f2a2a01375f6bbe",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  306262,
+    "source_row_last":  306596,
+    "data_rows":  335,
+    "first_datetime":  "2024-12-04 08:59:00",
+    "last_datetime":  "2024-12-04 16:14:00"
+}
