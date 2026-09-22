@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BSSR",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-bssr-20241204",
+    "workflow_commit":  "ecbd2387e654a31d5ad4d0e19ad1808057f1a8b2",
+    "github_run_id":  35705763631,
+    "github_artifact_id":  10684781039,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35705763631/artifacts/10684781039",
+    "github_artifact_digest":  "07f8b6c7dc5e438f54f4bbfe285b4085900896a8e2bcc480dd53842a0bd0d3fd",
+    "packet_sha256":  "f746621b888e3c5300ff202d68b97f4db6dda6f6189af07801afae88170b13b6",
+    "rows_jsonl_sha256":  "32e9682e28244a227d512cb299a3d12a375d0630db1559d9283a069b58b7e81b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  323867,
+    "source_row_last":  324038,
+    "data_rows":  172,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:14:00"
+}
