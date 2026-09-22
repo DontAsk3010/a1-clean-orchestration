@@ -1,0 +1,13 @@
+{
+    "ticker":  "KPIG",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  1,
+    "source_row_first":  958744,
+    "source_row_last":  959035,
+    "data_rows":  292,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:14:00",
+    "rows_jsonl_sha256":  "c0167d2fb99f6b35b08ce6c0c4d6e429077ea073142d34c5e7a28a44fdff469c"
+}

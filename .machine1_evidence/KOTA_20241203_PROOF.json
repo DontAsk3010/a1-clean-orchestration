@@ -1,0 +1,13 @@
+{
+    "ticker":  "KOTA",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0007.jsonl",
+    "semantic_bundle_line_number":  159,
+    "source_row_first":  952265,
+    "source_row_last":  952271,
+    "data_rows":  7,
+    "first_datetime":  "2024-12-03 09:55:00",
+    "last_datetime":  "2024-12-03 16:14:00",
+    "rows_jsonl_sha256":  "ba61b016edb3c3dd7bc3d7f028890eb686f84b1acda1106e69e5008c1ebf05ba"
+}
