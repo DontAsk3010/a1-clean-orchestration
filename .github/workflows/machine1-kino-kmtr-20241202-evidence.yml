@@ -23,7 +23,7 @@ jobs:
           ref: machine1/evidence-kino-kmtr-20241202
 
       - name: Extract exact governed KINO-KMTR packets
-        shell: powershell
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           $raw = $env:RAW_FILE
