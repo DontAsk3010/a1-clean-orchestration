@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BMRI",
+    "trading_date":  "2024-12-05",
+    "branch":  "machine1/evidence-bmri-20241205",
+    "workflow_commit":  "46f22af835e5ca272f34d8e695353188cf42dba5",
+    "github_run_id":  35744649069,
+    "github_artifact_id":  10701142801,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35744649069/artifacts/10701142801",
+    "github_artifact_digest":  "3b6913a2e96230b5a7d49adf6350039f47ab977629dd463a8a90de91184d36c8",
+    "packet_sha256":  "cda824b024bfdc1855de47d6acaa7152d6f11296840841cde1494c255a3dd84a",
+    "rows_jsonl_sha256":  "544f358a641d52ab7e2f2ead1236ef4b4ba9e443ac8edccc8b4527a18f9fb0b0",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  261189,
+    "source_row_last":  261522,
+    "data_rows":  334,
+    "first_datetime":  "2024-12-05 08:59:00",
+    "last_datetime":  "2024-12-05 16:13:00"
+}
