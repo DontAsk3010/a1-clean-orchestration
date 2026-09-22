@@ -1,0 +1,15 @@
+{
+    "ticker":  "BSIM",
+    "trading_date":  "2024-12-04",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0010.jsonl",
+    "semantic_bundle_line_number":  122,
+    "source_row_first":  314428,
+    "source_row_last":  314452,
+    "data_rows":  25,
+    "first_datetime":  "2024-12-04 09:37:00",
+    "last_datetime":  "2024-12-04 16:06:00",
+    "packet_sha256":  "22e081f0ffa8cf3608161229a631393bb31f5d094ef62c5a5a41205137d941a7",
+    "rows_jsonl_sha256":  "db94a8e27cf36822c8d7e2a62639ec3b9619c5329e93a4e9a864a0ad7e057514"
+}
