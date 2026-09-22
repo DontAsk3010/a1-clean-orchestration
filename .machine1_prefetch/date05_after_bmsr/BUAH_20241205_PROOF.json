@@ -1,0 +1,19 @@
+{
+    "ticker":  "BUAH",
+    "trading_date":  "2024-12-05",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0014.jsonl",
+    "semantic_bundle_line_number":  243,
+    "source_row_first":  327650,
+    "source_row_last":  327834,
+    "physical_line_first":  327651,
+    "physical_line_last":  327835,
+    "actual_rows":  185,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:00:00",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "rows_jsonl_sha256":  "d1653c05ac0e16f9bb7d0c8d855a1f6162ca0a9c399c2a3ef342c9b4a9b94af3",
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}
