@@ -1,0 +1,13 @@
+{
+    "ticker":  "KONI",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0007.jsonl",
+    "semantic_bundle_line_number":  157,
+    "source_row_first":  950758,
+    "source_row_last":  950807,
+    "data_rows":  50,
+    "first_datetime":  "2024-12-03 09:01:00",
+    "last_datetime":  "2024-12-03 15:49:00",
+    "rows_jsonl_sha256":  "b3b96c3e0deaad992eebccb2c8b813077bf2187da99cbc0dbd3862d2b4a0b80a"
+}
