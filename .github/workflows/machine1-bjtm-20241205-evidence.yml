@@ -3,7 +3,7 @@ name: Machine1 BKDP 2024-12-05 Governed Evidence Extract
 on:
   push:
     branches:
-      - machine1/evidence-bkdp-20241205
+      - machine1/evidence-bjtm-20241205
     paths:
       - .github/workflows/machine1-bjtm-20241205-evidence.yml
 
@@ -174,7 +174,7 @@ jobs:
           $pointer = [ordered]@{
             ticker = 'BKDP'
             trading_date = '2024-12-05'
-            branch = 'machine1/evidence-bkdp-20241205'
+            branch = 'machine1/evidence-bjtm-20241205'
             workflow_commit = '${{ github.sha }}'
             github_run_id = [int64]'${{ github.run_id }}'
             github_artifact_id = [int64]'${{ steps.upload.outputs.artifact-id }}'
@@ -195,4 +195,4 @@ jobs:
           git -c safe.directory="$env:GITHUB_WORKSPACE" add -f '.machine1_evidence/BKDP_20241205_ROWS.jsonl'
           git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_evidence/BKDP_20241205_PROOF.json' '.machine1_evidence/BKDP_20241205_POINTER.json'
           git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist BKDP governed evidence [skip ci]'
-          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-bkdp-20241205
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-bjtm-20241205
