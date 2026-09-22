@@ -1,0 +1,13 @@
+﻿{
+    "ticker":  "BLES",
+    "trading_date":  "2024-12-05",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0014.jsonl",
+    "semantic_bundle_line_number":  208,
+    "source_row_first":  250466,
+    "source_row_last":  250615,
+    "physical_line_first":  250467,
+    "physical_line_last":  250616,
+    "actual_rows":  150,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:13:00"
+}
