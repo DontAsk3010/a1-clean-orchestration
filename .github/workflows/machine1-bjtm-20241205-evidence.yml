@@ -1,17 +1,17 @@
-name: Machine1 BJTM 2024-12-05 Governed Evidence Extract
+name: Machine1 BKDP 2024-12-05 Governed Evidence Extract
 
 on:
   push:
     branches:
-      - machine1/evidence-bjtm-20241205
+      - machine1/evidence-bkdp-20241205
     paths:
-      - .github/workflows/machine1-bjtm-20241205-evidence.yml
+      - .github/workflows/machine1-bkdp-20241205-evidence.yml
 
 permissions:
   contents: write
 
 jobs:
-  extract-bjtm:
+  extract-bkdp:
     runs-on: [self-hosted, windows, x64, a1-clean-machine1]
     timeout-minutes: 30
     env:
@@ -20,20 +20,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Extract exact governed BJTM packet
+      - name: Extract exact governed BKDP packet
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           $raw = [System.IO.Path]::GetFullPath($env:RAW_FILE)
-          $tickerExpected = 'BJTM'
+          $tickerExpected = 'BKDP'
           $tradingDate = '2024-12-05'
-          $sourceFirst = 243444
-          $sourceLast = 243666
-          $expectedCount = 223
-          $expectedFirstTime = '09:00:00'
-          $expectedLastTime = '16:11:00'
+          $sourceFirst = 242374
+          $sourceLast = 242379
+          $expectedCount = 6
+          $expectedFirstTime = '09:55:00'
+          $expectedLastTime = '16:06:00'
           $semanticBundle = 'Raw Des 02-31-2024__SEMANTIC_0014.jsonl'
-          $semanticBundleLine = 203
+          $semanticBundleLine = 204
           $expectedMd5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
           $expectedSha256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
 
@@ -103,10 +103,10 @@ jobs:
           $lt = Get-Clock $dts[$dts.Count-1]
           if ($ft -ne $expectedFirstTime -or $lt -ne $expectedLastTime) { throw "TIME_RANGE_MISMATCH got=$ft-$lt" }
 
-          $out = Join-Path $PWD 'machine1_bjtm_20241205_evidence'
+          $out = Join-Path $PWD 'machine1_bkdp_20241205_evidence'
           New-Item -ItemType Directory -Force -Path $out | Out-Null
-          $pp = Join-Path $out 'BJTM_20241205_PACKET.json'
-          $rp = Join-Path $out 'BJTM_20241205_ROWS.jsonl'
+          $pp = Join-Path $out 'BKDP_20241205_PACKET.json'
+          $rp = Join-Path $out 'BKDP_20241205_ROWS.jsonl'
           $proofPath = Join-Path $out 'EVIDENCE_PROOF.json'
           $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
@@ -152,14 +152,14 @@ jobs:
             rows_jsonl_sha256 = $rowsSha
           }
           [System.IO.File]::WriteAllText($proofPath, ($proof | ConvertTo-Json -Depth 10), $utf8NoBom)
-          Write-Host "BJTM_EVIDENCE_OK rows=$($records.Count) source_rows=$sourceFirst-$sourceLast first=$($dts[0]) last=$($dts[$dts.Count-1]) packet_sha256=$packetSha rows_sha256=$rowsSha"
+          Write-Host "BKDP_EVIDENCE_OK rows=$($records.Count) source_rows=$sourceFirst-$sourceLast first=$($dts[0]) last=$($dts[$dts.Count-1]) packet_sha256=$packetSha rows_sha256=$rowsSha"
 
-      - name: Upload governed BJTM evidence
+      - name: Upload governed BKDP evidence
         id: upload
         uses: actions/upload-artifact@v4
         with:
-          name: machine1-bjtm-20241205-evidence
-          path: machine1_bjtm_20241205_evidence/
+          name: machine1-bkdp-20241205-evidence
+          path: machine1_bkdp_20241205_evidence/
           if-no-files-found: error
           retention-days: 7
 
@@ -167,14 +167,14 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          $proof = Get-Content -Raw 'machine1_bjtm_20241205_evidence/EVIDENCE_PROOF.json' | ConvertFrom-Json
+          $proof = Get-Content -Raw 'machine1_bkdp_20241205_evidence/EVIDENCE_PROOF.json' | ConvertFrom-Json
           New-Item -ItemType Directory -Force '.machine1_evidence' | Out-Null
-          Copy-Item -LiteralPath 'machine1_bjtm_20241205_evidence/BJTM_20241205_ROWS.jsonl' -Destination '.machine1_evidence/BJTM_20241205_ROWS.jsonl' -Force
-          Copy-Item -LiteralPath 'machine1_bjtm_20241205_evidence/EVIDENCE_PROOF.json' -Destination '.machine1_evidence/BJTM_20241205_PROOF.json' -Force
+          Copy-Item -LiteralPath 'machine1_bkdp_20241205_evidence/BKDP_20241205_ROWS.jsonl' -Destination '.machine1_evidence/BKDP_20241205_ROWS.jsonl' -Force
+          Copy-Item -LiteralPath 'machine1_bkdp_20241205_evidence/EVIDENCE_PROOF.json' -Destination '.machine1_evidence/BKDP_20241205_PROOF.json' -Force
           $pointer = [ordered]@{
-            ticker = 'BJTM'
+            ticker = 'BKDP'
             trading_date = '2024-12-05'
-            branch = 'machine1/evidence-bjtm-20241205'
+            branch = 'machine1/evidence-bkdp-20241205'
             workflow_commit = '${{ github.sha }}'
             github_run_id = [int64]'${{ github.run_id }}'
             github_artifact_id = [int64]'${{ steps.upload.outputs.artifact-id }}'
@@ -189,10 +189,10 @@ jobs:
             first_datetime = $proof.first_datetime
             last_datetime = $proof.last_datetime
           }
-          $pointer | ConvertTo-Json -Depth 4 | Set-Content -Encoding UTF8 '.machine1_evidence/BJTM_20241205_POINTER.json'
+          $pointer | ConvertTo-Json -Depth 4 | Set-Content -Encoding UTF8 '.machine1_evidence/BKDP_20241205_POINTER.json'
           git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
           git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
-          git -c safe.directory="$env:GITHUB_WORKSPACE" add -f '.machine1_evidence/BJTM_20241205_ROWS.jsonl'
-          git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_evidence/BJTM_20241205_PROOF.json' '.machine1_evidence/BJTM_20241205_POINTER.json'
-          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist BJTM governed evidence [skip ci]'
-          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-bjtm-20241205
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add -f '.machine1_evidence/BKDP_20241205_ROWS.jsonl'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_evidence/BKDP_20241205_PROOF.json' '.machine1_evidence/BKDP_20241205_POINTER.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist BKDP governed evidence [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-bkdp-20241205
