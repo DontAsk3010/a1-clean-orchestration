@@ -1,0 +1,15 @@
+{
+    "ticker":  "BMHS",
+    "trading_date":  "2024-12-05",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0014.jsonl",
+    "semantic_bundle_line_number":  212,
+    "source_row_first":  254561,
+    "source_row_last":  254720,
+    "data_rows":  160,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:05:00",
+    "packet_sha256":  "32ea3cbde971574ab89cf0ffd270a9acc81f79eb439fd475101513f8113760d4",
+    "rows_jsonl_sha256":  "d5d60958a8601ad353668a7b9133486a925be23e1398f0d9df769bc17670b396"
+}

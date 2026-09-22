@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BMHS",
+    "trading_date":  "2024-12-05",
+    "branch":  "machine1/evidence-bmhs-20241205",
+    "workflow_commit":  "0ff6141b9455540b68a1cf575abfbe8bc26a2de3",
+    "github_run_id":  35742804819,
+    "github_artifact_id":  10700037726,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35742804819/artifacts/10700037726",
+    "github_artifact_digest":  "1b84f549d30644fd9ab6ef082977c39c8d42423d3bbf37599a8713084284ba4c",
+    "packet_sha256":  "32ea3cbde971574ab89cf0ffd270a9acc81f79eb439fd475101513f8113760d4",
+    "rows_jsonl_sha256":  "d5d60958a8601ad353668a7b9133486a925be23e1398f0d9df769bc17670b396",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  254561,
+    "source_row_last":  254720,
+    "data_rows":  160,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:05:00"
+}
