@@ -1,0 +1,16 @@
+﻿{
+    "trading_date":  "2024-12-03",
+    "tickers":  [
+                    "KEEN",
+                    "KEJU",
+                    "KETR",
+                    "KIAS",
+                    "KICI"
+                ],
+    "branch":  "machine1/evidence-kbatch-20241203",
+    "workflow_commit":  "6abc0d3c50c76ac85c56070aef289ee5195a88d5",
+    "github_run_id":  35742362751,
+    "github_artifact_id":  10700087205,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35742362751/artifacts/10700087205",
+    "github_artifact_digest":  "95a6524a65a81d76fad20b2e7a63256d0740977c67bcfdb477d9a4737b5fdcbc"
+}
