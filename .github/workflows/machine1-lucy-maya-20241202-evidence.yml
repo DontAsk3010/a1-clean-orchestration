@@ -1,0 +1,94 @@
+name: Machine1 LUCY-MAYA 20241202 Evidence Extract
+
+on:
+  push:
+    branches: [machine1/evidence-lucy-maya-20241202]
+    paths: [.github/workflows/machine1-lucy-maya-20241202-evidence.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  extract-governed-lucy-maya:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: machine1/evidence-lucy-maya-20241202
+
+      - name: Extract exact governed LUCY-MAYA packets
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=$env:RAW_FILE
+          $date='2024-12-02'
+          $md5='b8d42b35c90d2dff8b18ae4e1734523b'
+          $sha='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          if(-not(Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING $raw"}
+          $gotMd5=(Get-FileHash -LiteralPath $raw -Algorithm MD5).Hash.ToLowerInvariant()
+          $gotSha=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($gotMd5-ne$md5 -or $gotSha-ne$sha){throw "RAW_HASH_MISMATCH md5=$gotMd5 sha=$gotSha"}
+
+          $specs=@(
+            [pscustomobject][ordered]@{ticker='LUCY';first=1006198;last=1006231;count=34;first_time='09:00:00';last_time='16:00:00';bundle_line=137},
+            [pscustomobject][ordered]@{ticker='MAHA';first=1008348;last=1008483;count=136;first_time='09:00:00';last_time='16:12:00';bundle_line=138},
+            [pscustomobject][ordered]@{ticker='MAIN';first=1010571;last=1010675;count=105;first_time='09:00:00';last_time='16:00:00';bundle_line=139},
+            [pscustomobject][ordered]@{ticker='MANG';first=1013151;last=1013305;count=155;first_time='09:00:00';last_time='16:00:00';bundle_line=140},
+            [pscustomobject][ordered]@{ticker='MAPA';first=1016031;last=1016255;count=225;first_time='09:00:00';last_time='16:13:00';bundle_line=141},
+            [pscustomobject][ordered]@{ticker='MAPI';first=1020640;last=1020929;count=290;first_time='08:59:00';last_time='16:12:00';bundle_line=142},
+            [pscustomobject][ordered]@{ticker='MARI';first=1020427;last=1020441;count=15;first_time='09:00:00';last_time='15:40:00';bundle_line=143},
+            [pscustomobject][ordered]@{ticker='MARK';first=1026247;last=1026437;count=191;first_time='09:00:00';last_time='16:00:00';bundle_line=144},
+            [pscustomobject][ordered]@{ticker='MAXI';first=1025827;last=1025858;count=32;first_time='09:30:00';last_time='16:00:00';bundle_line=145},
+            [pscustomobject][ordered]@{ticker='MAYA';first=1030893;last=1031199;count=307;first_time='09:00:00';last_time='16:14:00';bundle_line=146}
+          )
+          $out=Join-Path $PWD 'machine1_lucy_maya_20241202_evidence'
+          New-Item -ItemType Directory -Path $out -Force|Out-Null
+          $by=@{};foreach($s in $specs){$by[$s.ticker]=New-Object System.Collections.Generic.List[object]}
+          $min=1006198;$max=1031199
+          $sr=New-Object System.IO.StreamReader($raw,[System.Text.Encoding]::UTF8,$true,1048576)
+          try{
+            $headerLine=$sr.ReadLine();if($null-eq$headerLine){throw 'RAW_EMPTY'}
+            $header=@($headerLine.TrimStart([char]0xFEFF).Split(','))
+            $physical=1
+            while(-not $sr.EndOfStream){
+              $line=$sr.ReadLine();$physical++;$row=$physical-1
+              if($row-gt$max){break};if($row-lt$min){continue}
+              foreach($s in $specs){
+                if($row-ge$s.first -and $row-le$s.last){
+                  $parsed=$line|ConvertFrom-Csv -Header $header
+                  $fields=[ordered]@{};foreach($h in $header){$fields[$h]=$parsed.$h}
+                  $by[$s.ticker].Add([pscustomobject][ordered]@{source_row=[int]$row;physical_line=[int]$physical;raw_line=$line;fields=$fields});break
+                }
+              }
+            }
+          }finally{$sr.Dispose()}
+          $proof=@()
+          foreach($s in $specs){
+            $arr=$by[$s.ticker]
+            if($arr.Count-ne$s.count){throw "$($s.ticker)_COUNT got=$($arr.Count) expected=$($s.count)"}
+            for($i=0;$i-lt$arr.Count;$i++){
+              $er=$s.first+$i
+              if($arr[$i].source_row-ne$er){throw "$($s.ticker)_ROW index=$i got=$($arr[$i].source_row) expected=$er"}
+              if($arr[$i].fields.RAW_TICKER-ne$s.ticker){throw "$($s.ticker)_TICKER row=$er got=$($arr[$i].fields.RAW_TICKER)"}
+              if(-not([string]$arr[$i].fields.RAW_DATETIME_ISO).StartsWith($date)){throw "$($s.ticker)_DATE row=$er"}
+            }
+            $fd=[string]$arr[0].fields.RAW_DATETIME_ISO;$ld=[string]$arr[$arr.Count-1].fields.RAW_DATETIME_ISO
+            if($fd.Substring($fd.Length-8)-ne$s.first_time -or $ld.Substring($ld.Length-8)-ne$s.last_time){throw "$($s.ticker)_TIME first=$fd last=$ld"}
+            [ordered]@{source_name=[IO.Path]::GetFileName($raw);source_md5=$gotMd5;source_sha256=$gotSha;ticker=$s.ticker;trading_date=$date;semantic_bundle='Raw Des 02-31-2024__SEMANTIC_0003.jsonl';bundle_line_number=[int]$s.bundle_line;source_row_first=[int]$s.first;source_row_last=[int]$s.last;data_rows=[int]$s.count;first_datetime=$fd;last_datetime=$ld;header_line=$headerLine;header_fields=$header;rows=$arr}|ConvertTo-Json -Depth 8|Set-Content -LiteralPath (Join-Path $out "$($s.ticker)_20241202_PACKET.json") -Encoding UTF8
+            $rp=Join-Path $out "$($s.ticker)_20241202_ROWS.jsonl";if(Test-Path $rp){Remove-Item $rp -Force};foreach($x in $arr){($x|ConvertTo-Json -Depth 6 -Compress)|Add-Content -LiteralPath $rp -Encoding UTF8}
+            $proof+=[pscustomobject][ordered]@{ticker=$s.ticker;trading_date=$date;semantic_bundle='Raw Des 02-31-2024__SEMANTIC_0003.jsonl';bundle_line_number=[int]$s.bundle_line;source_row_first=[int]$s.first;source_row_last=[int]$s.last;data_rows=[int]$s.count;first_datetime=$fd;last_datetime=$ld}
+            Write-Host "PASS $($s.ticker) rows=$($s.count) source=$($s.first)-$($s.last) first=$fd last=$ld"
+          }
+          [ordered]@{status='PASS';source_md5=$gotMd5;source_sha256=$gotSha;trading_date=$date;tickers=$proof}|ConvertTo-Json -Depth 6|Set-Content -LiteralPath (Join-Path $out 'CHUNK_PROOF.json') -Encoding UTF8
+
+      - name: Upload governed evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-lucy-maya-20241202-evidence
+          path: machine1_lucy_maya_20241202_evidence/
+          if-no-files-found: error
+          retention-days: 7
