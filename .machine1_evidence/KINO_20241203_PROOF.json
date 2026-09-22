@@ -1,0 +1,13 @@
+{
+    "ticker":  "KINO",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0007.jsonl",
+    "semantic_bundle_line_number":  146,
+    "source_row_first":  933918,
+    "source_row_last":  933927,
+    "data_rows":  10,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 15:39:00",
+    "rows_jsonl_sha256":  "cab1ed9bfdaa370598ba9a7b7e7bfadad092b210d16f2a0367b73bad346dd832"
+}

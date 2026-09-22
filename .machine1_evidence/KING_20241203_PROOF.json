@@ -1,0 +1,13 @@
+{
+    "ticker":  "KING",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0007.jsonl",
+    "semantic_bundle_line_number":  145,
+    "source_row_first":  933548,
+    "source_row_last":  933566,
+    "data_rows":  19,
+    "first_datetime":  "2024-12-03 09:01:00",
+    "last_datetime":  "2024-12-03 15:15:00",
+    "rows_jsonl_sha256":  "e39a9c6e32a6e6bfa11847392dfa189bf11d7d72893155d5467e95941a6c99cf"
+}
