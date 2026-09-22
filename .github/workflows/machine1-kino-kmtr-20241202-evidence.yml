@@ -1,0 +1,119 @@
+name: Machine1 KINO-KMTR 20241202 Evidence Extract
+
+on:
+  push:
+    branches:
+      - machine1/evidence-kino-kmtr-20241202
+    paths:
+      - .github/workflows/machine1-kino-kmtr-20241202-evidence.yml
+
+permissions:
+  contents: read
+
+jobs:
+  extract-governed-kino-kmtr:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: machine1/evidence-kino-kmtr-20241202
+
+      - name: Extract exact governed KINO-KMTR packets
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          @'
+          import csv, hashlib, json, os, pathlib
+
+          raw = pathlib.Path(os.environ['RAW_FILE'])
+          trading_date = '2024-12-02'
+          expected_md5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
+          expected_sha256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          specs = [
+              ('KINO',933908,933917,10,'09:00:00','16:13:00',90),
+              ('KIOS',934062,934070,9,'09:08:00','15:32:00',91),
+              ('KJEN',937360,937564,205,'09:00:00','16:11:00',92),
+              ('KKES',937286,937289,4,'09:55:00','16:14:00',93),
+              ('KKGI',940620,940758,139,'09:00:00','16:10:00',94),
+              ('KLAS',943500,943666,167,'09:00:00','16:12:00',95),
+              ('KMTR',946174,946186,13,'09:00:00','16:00:00',96),
+          ]
+
+          if not raw.is_file():
+              raise SystemExit(f'RAW_MISSING: {raw}')
+
+          md5=hashlib.md5(); sha=hashlib.sha256()
+          with raw.open('rb') as f:
+              for chunk in iter(lambda:f.read(8*1024*1024),b''):
+                  md5.update(chunk); sha.update(chunk)
+          got_md5, got_sha = md5.hexdigest(), sha.hexdigest()
+          if got_md5 != expected_md5 or got_sha != expected_sha256:
+              raise SystemExit(f'RAW_HASH_MISMATCH md5={got_md5} sha256={got_sha}')
+
+          wanted={s[0] for s in specs}
+          hits={k:[] for k in wanted}
+          with raw.open('r',encoding='utf-8-sig',newline='') as f:
+              reader=csv.DictReader(f)
+              for source_row,row in enumerate(reader,start=1):
+                  t=row.get('RAW_TICKER')
+                  dt=row.get('RAW_DATETIME_ISO','')
+                  if t in hits and dt.startswith(trading_date):
+                      hits[t].append((source_row,row))
+
+          out=pathlib.Path('machine1_kino_kmtr_20241202_evidence')
+          out.mkdir(exist_ok=True)
+          proof=[]
+          for ticker,first,last,count,ft,lt,bline in specs:
+              arr=hits[ticker]
+              rows=[n for n,_ in arr]
+              if len(arr)!=count:
+                  raise SystemExit(f'{ticker}_ROW_COUNT_MISMATCH got={len(arr)} expected={count}')
+              if rows != list(range(first,last+1)):
+                  raise SystemExit(f'{ticker}_SOURCE_ROW_MISMATCH got={rows[:3]}...{rows[-3:]} expected={first}-{last}')
+              first_dt=arr[0][1]['RAW_DATETIME_ISO']; last_dt=arr[-1][1]['RAW_DATETIME_ISO']
+              if first_dt[-8:]!=ft or last_dt[-8:]!=lt:
+                  raise SystemExit(f'{ticker}_BOUNDARY_TIME_MISMATCH first={first_dt} last={last_dt}')
+              packet={
+                  'source_name':raw.name,
+                  'source_md5':got_md5,
+                  'source_sha256':got_sha,
+                  'ticker':ticker,
+                  'trading_date':trading_date,
+                  'semantic_bundle':'Raw Des 02-31-2024__SEMANTIC_0003.jsonl',
+                  'bundle_line_number':bline,
+                  'source_row_first':first,
+                  'source_row_last':last,
+                  'data_rows':count,
+                  'first_datetime':first_dt,
+                  'last_datetime':last_dt,
+                  'header_fields':list(arr[0][1].keys()),
+                  'rows':[{'source_row':n,**r} for n,r in arr],
+              }
+              (out/f'{ticker}_20241202_PACKET.json').write_text(json.dumps(packet,ensure_ascii=False,indent=2),encoding='utf-8')
+              with (out/f'{ticker}_20241202_ROWS.jsonl').open('w',encoding='utf-8',newline='\n') as w:
+                  for n,r in arr:
+                      w.write(json.dumps({'source_row':n,**r},ensure_ascii=False,separators=(',',':'))+'\n')
+              proof.append({k:packet[k] for k in ['ticker','trading_date','semantic_bundle','bundle_line_number','source_row_first','source_row_last','data_rows','first_datetime','last_datetime']})
+              print(f'PASS {ticker} rows={count} source={first}-{last} first={first_dt} last={last_dt}')
+
+          (out/'CHUNK_PROOF.json').write_text(json.dumps({
+              'status':'PASS',
+              'source_md5':got_md5,
+              'source_sha256':got_sha,
+              'trading_date':trading_date,
+              'tickers':proof
+          },ensure_ascii=False,indent=2),encoding='utf-8')
+          '@ | Set-Content -LiteralPath extract_kino_kmtr_20241202.py -Encoding UTF8
+          py -3.11 extract_kino_kmtr_20241202.py
+
+      - name: Upload governed evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-kino-kmtr-20241202-evidence
+          path: machine1_kino_kmtr_20241202_evidence/
+          if-no-files-found: error
+          retention-days: 7
