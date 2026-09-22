@@ -1,0 +1,13 @@
+{
+    "ticker":  "KETR",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0007.jsonl",
+    "semantic_bundle_line_number":  141,
+    "source_row_first":  931232,
+    "source_row_last":  931274,
+    "data_rows":  43,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:08:00",
+    "rows_jsonl_sha256":  "fb9f01588c0ed102a872e3da7d902210ef52f76044b436dbeb94afde76cf0ff1"
+}
