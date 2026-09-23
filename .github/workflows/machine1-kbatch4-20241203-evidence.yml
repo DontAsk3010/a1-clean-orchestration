@@ -20,9 +20,9 @@ jobs:
           $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
           $expected='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
           $specs=@(
-            [pscustomobject]@{Ticker='LPKR';First=986022;Last=986291;Count=270;FirstTime='09:00:00';LastTime='16:12:00';Bundle='Raw Des 02-31-2024__SEMANTIC_0008.jsonl';BundleLine=24},
-            [pscustomobject]@{Ticker='LPLI';First=985705;Last=985706;Count=2;FirstTime='09:32:00';LastTime='16:00:00';Bundle='Raw Des 02-31-2024__SEMANTIC_0008.jsonl';BundleLine=25},
-            [pscustomobject]@{Ticker='LPPF';First=990455;Last=990598;Count=144;FirstTime='09:00:00';LastTime='16:03:00';Bundle='Raw Des 02-31-2024__SEMANTIC_0008.jsonl';BundleLine=26}
+            [pscustomobject]@{Ticker='LPPS';First=993095;Last=993179;Count=85;FirstTime='09:00:00';LastTime='16:13:00';Bundle='Raw Des 02-31-2024__SEMANTIC_0008.jsonl';BundleLine=27},
+            [pscustomobject]@{Ticker='LQ45';First=995445;Last=995779;Count=335;FirstTime='09:00:00';LastTime='16:14:00';Bundle='Raw Des 02-31-2024__SEMANTIC_0008.jsonl';BundleLine=28},
+            [pscustomobject]@{Ticker='LRNA';First=994338;Last=994351;Count=14;FirstTime='10:23:00';LastTime='16:00:00';Bundle='Raw Des 02-31-2024__SEMANTIC_0008.jsonl';BundleLine=29}
           )
           if(-not(Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING"}
           $got=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -41,21 +41,15 @@ jobs:
           function Clock([string]$dt){if($dt.Contains('T')){return $dt.Split('T',2)[1].Substring(0,8)};$a=$dt.Split(' ');return $a[-1].Substring(0,8)}
           foreach($s in $specs){
             $lines=$captures[$s.Ticker];if($lines.Count -ne $s.Count){throw "$($s.Ticker)_COUNT got=$($lines.Count)"}
-            $parsed=@((@($header)+@($lines))|ConvertFrom-Csv);if($parsed.Count -ne $s.Count){throw "$($s.Ticker)_PARSE"}
+            $parsed=@((@($header)+@($lines))|ConvertFrom-Csv);if($parsed.Count -ne$s.Count){throw "$($s.Ticker)_PARSE"}
             $records=@()
-            for($n=0;$n -lt $parsed.Count;$n++){
-              $o=[ordered]@{source_row=$s.First+$n};foreach($p in $parsed[$n].PSObject.Properties.Name){$o[$p]=[string]$parsed[$n].$p};$records+=[pscustomobject]$o
-            }
+            for($n=0;$n -lt $parsed.Count;$n++){$o=[ordered]@{source_row=$s.First+$n};foreach($p in $parsed[$n].PSObject.Properties.Name){$o[$p]=[string]$parsed[$n].$p};$records+=[pscustomobject]$o}
             $ts=@($records|%{$_.RAW_TICKER}|Sort-Object -Unique);if($ts.Count-ne1-or$ts[0]-ne$s.Ticker){throw "$($s.Ticker)_TICKER"}
             $dts=@($records|%{[string]$_.RAW_DATETIME_ISO});if(@($dts|?{-not $_.StartsWith('2024-12-03')}).Count-gt0){throw "$($s.Ticker)_DATE"}
             if((Clock $dts[0])-ne$s.FirstTime -or (Clock $dts[-1])-ne$s.LastTime){throw "$($s.Ticker)_TIME"}
-            $rp=Join-Path $out "$($s.Ticker)_20241203_ROWS.jsonl"
-            [System.IO.File]::WriteAllLines($rp,[string[]]@($records|%{$_|ConvertTo-Json -Compress -Depth 8}),$enc)
-            $cp=Join-Path $out "$($s.Ticker)_20241203_COMPACT.txt"
-            $compact=@($records|%{"$($_.source_row)|$(Clock ([string]$_.RAW_DATETIME_ISO))|$($_.RAW_OPEN)|$($_.RAW_HIGH)|$($_.RAW_LOW)|$($_.RAW_CLOSE)|V$($_.RAW_VOLUME)"})
-            [System.IO.File]::WriteAllLines($cp,[string[]]$compact,$enc)
-            $proof=[ordered]@{ticker=$s.Ticker;trading_date='2024-12-03';source_sha256=$got;semantic_bundle=$s.Bundle;semantic_bundle_line_number=$s.BundleLine;source_row_first=$s.First;source_row_last=$s.Last;data_rows=$records.Count;first_datetime=$dts[0];last_datetime=$dts[-1];rows_jsonl_sha256=(Get-FileHash $rp -Algorithm SHA256).Hash.ToLowerInvariant();compact_sha256=(Get-FileHash $cp -Algorithm SHA256).Hash.ToLowerInvariant()}
-            [System.IO.File]::WriteAllText((Join-Path $out "$($s.Ticker)_20241203_PROOF.json"),($proof|ConvertTo-Json -Depth 10),$enc)
+            $rp=Join-Path $out "$($s.Ticker)_20241203_ROWS.jsonl";[System.IO.File]::WriteAllLines($rp,[string[]]@($records|%{$_|ConvertTo-Json -Compress -Depth 8}),$enc)
+            $cp=Join-Path $out "$($s.Ticker)_20241203_COMPACT.txt";$compact=@($records|%{"$($_.source_row)|$(Clock ([string]$_.RAW_DATETIME_ISO))|$($_.RAW_OPEN)|$($_.RAW_HIGH)|$($_.RAW_LOW)|$($_.RAW_CLOSE)|V$($_.RAW_VOLUME)"});[System.IO.File]::WriteAllLines($cp,[string[]]$compact,$enc)
+            $proof=[ordered]@{ticker=$s.Ticker;trading_date='2024-12-03';source_sha256=$got;semantic_bundle=$s.Bundle;semantic_bundle_line_number=$s.BundleLine;source_row_first=$s.First;source_row_last=$s.Last;data_rows=$records.Count;first_datetime=$dts[0];last_datetime=$dts[-1];rows_jsonl_sha256=(Get-FileHash $rp -Algorithm SHA256).Hash.ToLowerInvariant();compact_sha256=(Get-FileHash $cp -Algorithm SHA256).Hash.ToLowerInvariant()};[System.IO.File]::WriteAllText((Join-Path $out "$($s.Ticker)_20241203_PROOF.json"),($proof|ConvertTo-Json -Depth 10),$enc)
             Write-Host "$($s.Ticker)_EVIDENCE_OK rows=$($records.Count)"
           }
       - name: Upload governed evidence
