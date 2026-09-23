@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "BYAN",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-byan-20241204",
+    "workflow_commit":  "33dc9370f9c0398251024daa48ed350e29b5cef9",
+    "github_run_id":  35824708612,
+    "github_artifact_id":  10734697785,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35824708612/artifacts/10734697785",
+    "github_artifact_digest":  "bbf809b68436e9b39a1aaec29f2fc9d41569b7cd6d3292252ad9f092ddeaf3df",
+    "packet_sha256":  "4a920ca4d7bb1561ff7fa5ee1614141be2b650312f033c2fa4a21e110e9160cb",
+    "rows_jsonl_sha256":  "ce5b1123ddaf23098688f65137bf9c9a742e99cbd51f3cbaefc9c4becea62693",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  351971,
+    "source_row_last":  352026,
+    "data_rows":  56,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:00:00"
+}
