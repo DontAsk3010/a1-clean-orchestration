@@ -1,5 +1,6 @@
 import json
 
+from a1clean.formula_research.v32_behavior_grouping_atlas import _signature
 from a1clean.formula_research.v32_behavior_grouping_atlas_v2 import (
     AXIS_VERSION,
     FORMULA_STAGE,
@@ -9,7 +10,6 @@ from a1clean.formula_research.v32_behavior_grouping_atlas_v2 import (
     _day_axes,
     _hindsight_axes,
     _lifecycle_axes,
-    _signature,
 )
 
 
