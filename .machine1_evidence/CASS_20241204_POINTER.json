@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "CASS",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-cass-20241204",
+    "workflow_commit":  "1cfccf32062355349596949ae612c1bc7912e847",
+    "github_run_id":  35876043988,
+    "github_artifact_id":  10756003995,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35876043988/artifacts/10756003995",
+    "github_artifact_digest":  "d6804d2ac4cbbccec161c4c397ad832d2c4998cbc2e288b6866ade93d1d959af",
+    "packet_sha256":  "07c82608ca1381b0782e1b405eb036355a17c28e25d0004dc9bcef1401146bad",
+    "rows_jsonl_sha256":  "f6d7828fcfe26ad2ee65cc64fece1b95c4a498e82dec1698b25d44cb9d6320fa",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  361614,
+    "source_row_last":  361645,
+    "data_rows":  32,
+    "first_datetime":  "2024-12-04 09:07:00",
+    "last_datetime":  "2024-12-04 16:00:00"
+}
