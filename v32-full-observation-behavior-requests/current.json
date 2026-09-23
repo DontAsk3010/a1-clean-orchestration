@@ -2,7 +2,8 @@
   "schema": "A1_V32_FULL_OBSERVATION_BEHAVIOR_REQUEST_V2",
   "enabled": true,
   "scope_class": "EVIDENCE_SUBSTRATE_ONLY_NOT_FINAL_ATLAS",
-  "purpose": "Build/reconcile the complete 18-source V3.2 source-supported evidence substrate under the latest handbook authority. This run proves data/evidence retrieval completeness and preserves chronology/lifecycle/path material needed by the downstream behavior atlas; it does not claim final atlas completeness or formula readiness.",
+  "purpose": "Build/reconcile the complete V3.2 source-supported evidence substrate under the latest handbook authority and PRESTART completeness gate. This run proves data/evidence retrieval completeness and preserves chronology/lifecycle/path material needed by the downstream behavior atlas; it does not claim final atlas completeness or formula readiness.",
+  "prestart_completeness_gate_required": true,
   "formula_stage": "CLOSED",
   "required_parent_revision": "f22dc09395a7967215f93fc832d0fe81ee77d3aa",
   "required_source_count": 18,
@@ -49,7 +50,7 @@
   "behavior_handbook_document_id": "1vDoz8E7nGVlYPl2SBneA2tCAiNNAL77nLgPPZzFlbaI",
   "behavior_handbook_revision_id": "ANLCKQkCMiCu8UcqXqgIR6asvyqgAunxTVI4raUGjhCWq45YUhhWcAvsZ0cTTf7Du5Sve3cOpWbbO7YMMuPC6CJtFKS83iPdseuiX3Sptlg",
   "github_automation_handbook_document_id": "12PK2RTlRlggPQAScAmzNPewatB5mZqOgJ3sZfRBsbO8",
-  "github_automation_handbook_revision_id": "ANLCKQkuxVSCswyMzrzzq63E--k2Ab9I-0rDHZ6AzWAg8zJyBD5jQsNJKgALd1sBDj7VBde1Q5UXi1Sk56WT9aAYHTzpe20ndMd2fUyTOfc",
+  "github_automation_handbook_revision_id": "ANLCKQlCPeYrw1s5_LAAfUTsBzw5qb8aUBVXIbWIsASH9Z5K3jTFSlyUgX8VD16YoQNvUktNZgmBt4hLqQXIgcg-b5fZk9aAHtZdphxswkg",
   "transition_bridge_document_id": "1WI79YymkVcOJTRDhLwSiAESkLWFakwL9pe0oj6q1kug",
   "transition_bridge_revision_id": "ANLCKQkCI_azkcX4jmlKwF4MEm7Fqh6TSTk4nkNqQ3sk4iK4Q5MyztjHvkBKqjUPQd9ofpGpS9J4e-hu7lWolBz0usLSK2XZwMAINYGyk64",
   "temporal_behavior_sequence_downstream_required": true,
@@ -74,9 +75,9 @@
     "L2_DEPTH_QUEUE_REFILL"
   ],
   "proof_note": "PASS of this workflow proves governed source/evidence completeness for the V3.2 substrate and exact second-run checkpoint reuse. It does not by itself prove final atlas grouping completeness, cross-corpus recurrence completeness, or formula readiness.",
-  "activation_reason": "Replacement of the stale authority metadata with the latest temporal/blind-spot/HPX-governed contract while retaining the unchanged semantic software revision. Durable PASS checkpoints may be reused only because semantic implementation drift is explicitly checked and forbidden.",
+  "activation_reason": "Replacement of stale authority metadata with the latest temporal/blind-spot/HPX/PRESTART governed contract while retaining the unchanged semantic software revision. Durable PASS checkpoints may be reused only because semantic implementation drift is explicitly checked and forbidden.",
   "service_runner_auto_recovery_enabled": true,
   "service_runner_auto_recovery_policy": "INFRA_INTERRUPTION_ONLY",
   "service_runner_auto_recovery_max_consecutive_interruptions": 6,
-  "operational_trigger": "REPLACE_STALE_AUTHORITY_FULL_OBSERVATION_RUN_20260924_01"
+  "operational_trigger": "PRESTART_AUTHORITY_REBIND_FULL_OBSERVATION_20260924_02"
 }
