@@ -1,0 +1,14 @@
+{
+    "ticker":  "LUCY",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  33,
+    "source_row_first":  1006232,
+    "source_row_last":  1006252,
+    "data_rows":  21,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:00:00",
+    "rows_jsonl_sha256":  "c627efc958394b461953278b5ee770731dd4d62615bf26f782230b8d66c9c7ec",
+    "compact_sha256":  "a20c1ed0716d541cff7207af677d8d02c05fd6929092834b8c974d1929e3e305"
+}
