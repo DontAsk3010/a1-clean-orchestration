@@ -1,0 +1,42 @@
+name: Machine1 Compact Evidence View 2024-12-03
+on:
+  push:
+    branches: [machine1/evidence-kbatch-20241203]
+    paths: [.github/workflows/machine1-compact-current-20241203.yml]
+permissions:
+  contents: write
+jobs:
+  compact:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build compact transport views from full evidence
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $tickers=@('LEAD','LFLO','LIFE')
+          $enc=New-Object System.Text.UTF8Encoding($false)
+          foreach($t in $tickers){
+            $src=".machine1_evidence/${t}_20241203_ROWS.jsonl"
+            if(-not(Test-Path -LiteralPath $src -PathType Leaf)){throw "MISSING_FULL_EVIDENCE $t"}
+            $rows=@([System.IO.File]::ReadLines((Resolve-Path $src)) | ForEach-Object { $_ | ConvertFrom-Json })
+            $out=@()
+            foreach($r in $rows){
+              $clock=([string]$r.RAW_DATETIME_ISO).Substring(11,8)
+              $out += ('{0}|{1}|{2}|{3}|{4}|{5}|V{6}' -f $r.source_row,$clock,$r.RAW_OPEN,$r.RAW_HIGH,$r.RAW_LOW,$r.RAW_CLOSE,$r.RAW_VOLUME)
+            }
+            $dst=".machine1_evidence/${t}_20241203_COMPACT.txt"
+            [System.IO.File]::WriteAllLines($dst,[string[]]$out,$enc)
+            if($out.Count -ne $rows.Count){throw "COMPACT_COUNT_MISMATCH $t"}
+            Write-Host "$t COMPACT_OK rows=$($rows.Count)"
+          }
+      - name: Persist compact views
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add -f '.machine1_evidence/*_20241203_COMPACT.txt'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist compact transport views [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-kbatch-20241203
