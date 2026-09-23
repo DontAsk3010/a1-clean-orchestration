@@ -15,7 +15,7 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference='Stop'
-          $tickers=@('LTLS')
+          $tickers=@('LUCK')
           $enc=New-Object System.Text.UTF8Encoding($false)
           foreach($t in $tickers){
             $src=".machine1_evidence/${t}_20241203_ROWS.jsonl"
