@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "CCSI",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-ccsi-20241204",
+    "workflow_commit":  "239992c9701e27299df9527ab3e06b05c1167356",
+    "github_run_id":  35906694956,
+    "github_artifact_id":  10771590922,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35906694956/artifacts/10771590922",
+    "github_artifact_digest":  "fff3d0d9d53096dcf63828cac305fd4f8eeb6356a0689c0af3948f237e1d3e86",
+    "packet_sha256":  "5e11afdc3200d8a19b31633f804d4b43ba4bd0c0e495a0e3c03049a1c79fd143",
+    "rows_jsonl_sha256":  "fbc7fd98ebea66b1f1ea529b7c0de88c8d014b3354f6c018b45eb71b80e01eec",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  363990,
+    "source_row_last":  364029,
+    "data_rows":  40,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:00:00"
+}
