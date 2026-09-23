@@ -1,0 +1,14 @@
+{
+    "ticker":  "LRNA",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  29,
+    "source_row_first":  994338,
+    "source_row_last":  994351,
+    "data_rows":  14,
+    "first_datetime":  "2024-12-03 10:23:00",
+    "last_datetime":  "2024-12-03 16:00:00",
+    "rows_jsonl_sha256":  "79000ab6ef6f12c23b15b5666a491941f6d40fadc15bda88d5e018371ce0e7ea",
+    "compact_sha256":  "4f168615d18c931c2195db151756e83b6e64a38f0191f0adad929468fa809e01"
+}
