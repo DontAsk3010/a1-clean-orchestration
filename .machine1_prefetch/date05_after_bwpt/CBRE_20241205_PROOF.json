@@ -1,0 +1,19 @@
+{
+    "ticker":  "CBRE",
+    "trading_date":  "2024-12-05",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0014.jsonl",
+    "semantic_bundle_line_number":  263,
+    "source_row_first":  363655,
+    "source_row_last":  363660,
+    "physical_line_first":  363656,
+    "physical_line_last":  363661,
+    "actual_rows":  6,
+    "first_datetime":  "2024-12-05 09:55:00",
+    "last_datetime":  "2024-12-05 16:12:00",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "rows_jsonl_sha256":  "e118aa490c2b8dba95bf39986fc6fb9b461d2ea485dda66e4895a2c692c6b808",
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

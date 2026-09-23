@@ -1,0 +1,19 @@
+{
+    "ticker":  "CITA",
+    "trading_date":  "2024-12-05",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0014.jsonl",
+    "semantic_bundle_line_number":  273,
+    "source_row_first":  376422,
+    "source_row_last":  376524,
+    "physical_line_first":  376423,
+    "physical_line_last":  376525,
+    "actual_rows":  103,
+    "first_datetime":  "2024-12-05 09:04:00",
+    "last_datetime":  "2024-12-05 15:49:00",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "rows_jsonl_sha256":  "9ef9de534bf6dc60b2490901c1a52f9c89999b2856a5d451329bfad87c40270f",
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

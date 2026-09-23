@@ -1,0 +1,19 @@
+{
+    "ticker":  "CINT",
+    "trading_date":  "2024-12-05",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0014.jsonl",
+    "semantic_bundle_line_number":  272,
+    "source_row_first":  374500,
+    "source_row_last":  374523,
+    "physical_line_first":  374501,
+    "physical_line_last":  374524,
+    "actual_rows":  24,
+    "first_datetime":  "2024-12-05 09:05:00",
+    "last_datetime":  "2024-12-05 15:47:00",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "rows_jsonl_sha256":  "cec2434c4c7f493f5ebbfcc612da0c3aa209f19fb74a81f4f5f8a060d0d1c2b2",
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

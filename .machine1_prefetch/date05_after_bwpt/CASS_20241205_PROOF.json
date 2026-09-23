@@ -1,0 +1,19 @@
+{
+    "ticker":  "CASS",
+    "trading_date":  "2024-12-05",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0014.jsonl",
+    "semantic_bundle_line_number":  261,
+    "source_row_first":  361646,
+    "source_row_last":  361688,
+    "physical_line_first":  361647,
+    "physical_line_last":  361689,
+    "actual_rows":  43,
+    "first_datetime":  "2024-12-05 09:04:00",
+    "last_datetime":  "2024-12-05 16:03:00",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "rows_jsonl_sha256":  "94c0d5694fd566860bec8130756d367560ce58d4680cdbcefd6780cd8894a17f",
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}
