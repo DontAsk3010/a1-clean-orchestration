@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "CBPE",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-cbpe-20241204",
+    "workflow_commit":  "1685c9a50bdb5882774f0465024e4a7f5dd2d010",
+    "github_run_id":  35877798166,
+    "github_artifact_id":  10757704543,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35877798166/artifacts/10757704543",
+    "github_artifact_digest":  "01d6b85317ab5aaf4f5632a5558578b9c247ca9e24d701eeca63be1bbf94b92a",
+    "packet_sha256":  "ae2b3209a9e4652642a6868b6ecf6ec2d063824c328d8c2b288c53bacf0b2bd2",
+    "rows_jsonl_sha256":  "62fdf5e74646057f3d1db94773c5566eef17c8000638d42192c54004aeecd5be",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  362411,
+    "source_row_last":  362451,
+    "data_rows":  41,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:07:00"
+}

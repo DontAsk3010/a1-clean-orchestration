@@ -1,0 +1,15 @@
+{
+    "ticker":  "CBPE",
+    "trading_date":  "2024-12-04",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0010.jsonl",
+    "semantic_bundle_line_number":  146,
+    "source_row_first":  362411,
+    "source_row_last":  362451,
+    "data_rows":  41,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:07:00",
+    "packet_sha256":  "ae2b3209a9e4652642a6868b6ecf6ec2d063824c328d8c2b288c53bacf0b2bd2",
+    "rows_jsonl_sha256":  "62fdf5e74646057f3d1db94773c5566eef17c8000638d42192c54004aeecd5be"
+}
