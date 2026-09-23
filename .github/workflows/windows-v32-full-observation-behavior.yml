@@ -97,7 +97,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'V32_SOFTWARE_REVISION_DIFF_CHECK_FAILED' }
           $allowedOperationalFiles = @(
             '.github/workflows/windows-v32-full-observation-behavior.yml',
-            'v32-full-observation-behavior-requests/current.json'
+            'v32-full-observation-behavior-requests/current.json',
+            '.github/workflows/windows-v32-behavior-grouping-atlas.yml',
+            'v32-behavior-grouping-requests/current.json',
+            'src/a1clean/formula_research/v32_behavior_grouping_atlas.py',
+            'tests/test_v32_behavior_grouping_atlas.py'
           )
           $unexpected = @($changed | Where-Object { $_ -notin $allowedOperationalFiles })
           if ($unexpected.Count -ne 0) { throw "V32_UNEXPECTED_CODE_CHANGE_SINCE_SOFTWARE_REVISION:$($unexpected -join ',')" }
