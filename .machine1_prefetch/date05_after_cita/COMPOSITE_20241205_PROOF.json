@@ -1,0 +1,19 @@
+{
+    "ticker":  "COMPOSITE",
+    "trading_date":  "2024-12-05",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0014.jsonl",
+    "semantic_bundle_line_number":  285,
+    "source_row_first":  396898,
+    "source_row_last":  397232,
+    "physical_line_first":  396899,
+    "physical_line_last":  397233,
+    "actual_rows":  335,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:14:00",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "rows_jsonl_sha256":  "e28d70251661e219306c2f50426fbc0a7fcb9b0d1f42e22d8ab0bb2e71600a95",
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

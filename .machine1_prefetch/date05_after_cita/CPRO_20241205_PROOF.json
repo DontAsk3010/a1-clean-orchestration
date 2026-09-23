@@ -1,0 +1,19 @@
+{
+    "ticker":  "CPRO",
+    "trading_date":  "2024-12-05",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0014.jsonl",
+    "semantic_bundle_line_number":  288,
+    "source_row_first":  407275,
+    "source_row_last":  407314,
+    "physical_line_first":  407276,
+    "physical_line_last":  407315,
+    "actual_rows":  40,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:04:00",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "rows_jsonl_sha256":  "1f9fcd36925f0fbd6ab9def1862b467f7078b3ffe248deaca31167a00c24067c",
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}
