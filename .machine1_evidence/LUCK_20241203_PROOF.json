@@ -1,0 +1,14 @@
+{
+    "ticker":  "LUCK",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  32,
+    "source_row_first":  1006627,
+    "source_row_last":  1006680,
+    "data_rows":  54,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:00:00",
+    "rows_jsonl_sha256":  "59b8ccc1ce70fdf5081fc909017083f46e16dcb0523df69ed11b03d729355cbe",
+    "compact_sha256":  "58feeb73fa89b1b46207087e2d8f0e0c71cf11213cdb7edf024e2f472d0d1247"
+}

@@ -1,0 +1,14 @@
+{
+    "ticker":  "LSIP",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  30,
+    "source_row_first":  1001751,
+    "source_row_last":  1002048,
+    "data_rows":  298,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:14:00",
+    "rows_jsonl_sha256":  "25167103c7a6b8b5b1dc945ff238a69f3d22ab5a71d789ac916aa93de290a52e",
+    "compact_sha256":  "766bc0d52cb6f8cb75ddfdce0e061bc0011e7bf2ad39a56bcd3c29b9c4fa2d52"
+}
