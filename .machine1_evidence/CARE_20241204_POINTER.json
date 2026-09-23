@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "CARE",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-care-20241204",
+    "workflow_commit":  "ccc439711d96451db208e067a09ff2d2935178a9",
+    "github_run_id":  35850580044,
+    "github_artifact_id":  10745341856,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35850580044/artifacts/10745341856",
+    "github_artifact_digest":  "3b2f27680803e995592338529b17c371971d5ee27e48f7311b6ee292791c0221",
+    "packet_sha256":  "d3c994b12187383b35314741dcf3b12ad2849f934143d7ff78b7bb079e7c0fe1",
+    "rows_jsonl_sha256":  "84acc657a3dc59c47e46429daf6dcaf24cf40ddefd59b2ec8e05e5a9ab003385",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  358111,
+    "source_row_last":  358218,
+    "data_rows":  108,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:14:00"
+}
