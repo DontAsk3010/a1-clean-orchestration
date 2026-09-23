@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "CAKK",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-cakk-20241204",
+    "workflow_commit":  "9515ca4d48328c0c8b52b5075c6b19e7ca906bbc",
+    "github_run_id":  35826489347,
+    "github_artifact_id":  10735775548,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35826489347/artifacts/10735775548",
+    "github_artifact_digest":  "86b6157659970a83cc275794b5a3f42688be60d2e38187b51976a3fc33a01652",
+    "packet_sha256":  "cac8ca4774b023d20b337fbc186f198ff7b23c16e42eab091b2796c0073e3569",
+    "rows_jsonl_sha256":  "ea1cf9eb950328e1523918526ec6e60c516344bc6bc582a11d43890b74126383",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  355374,
+    "source_row_last":  355416,
+    "data_rows":  43,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 15:12:00"
+}
