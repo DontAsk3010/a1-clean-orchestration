@@ -1,0 +1,43 @@
+{
+  "schema": "A1_CLEAN_ACTIVE_AUTHORITY_LOCK_V1",
+  "status": "ACTIVE",
+  "effective_date": "2026-09-24",
+  "prestart_completeness_gate_required": true,
+  "formula_stage": "CLOSED",
+  "documents": {
+    "formula_research": {
+      "document_id": "1sQu0l2qwvsjItmBycRh3siMajKEQknHOMBLlBQd3I-Q",
+      "revision_id": "ANLCKQmx9gVLSJ5gpGRNR8btoS2hqxdhnfEFC6kmFt55FSRxPgPHatpXneQC-zAgEB3JXt7t2t-p1eZIjhl0Q6aJId-9u5-PyxmpB0tCA0o"
+    },
+    "behavior_reading": {
+      "document_id": "1vDoz8E7nGVlYPl2SBneA2tCAiNNAL77nLgPPZzFlbaI",
+      "revision_id": "ANLCKQkCMiCu8UcqXqgIR6asvyqgAunxTVI4raUGjhCWq45YUhhWcAvsZ0cTTf7Du5Sve3cOpWbbO7YMMuPC6CJtFKS83iPdseuiX3Sptlg"
+    },
+    "github_automation": {
+      "document_id": "12PK2RTlRlggPQAScAmzNPewatB5mZqOgJ3sZfRBsbO8",
+      "revision_id": "ANLCKQlCPeYrw1s5_LAAfUTsBzw5qb8aUBVXIbWIsASH9Z5K3jTFSlyUgX8VD16YoQNvUktNZgmBt4hLqQXIgcg-b5fZk9aAHtZdphxswkg"
+    },
+    "stable_transition_bridge": {
+      "document_id": "1WI79YymkVcOJTRDhLwSiAESkLWFakwL9pe0oj6q1kug",
+      "revision_id": "ANLCKQkCI_azkcX4jmlKwF4MEm7Fqh6TSTk4nkNqQ3sk4iK4Q5MyztjHvkBKqjUPQd9ofpGpS9J4e-hu7lWolBz0usLSK2XZwMAINYGyk64"
+    }
+  },
+  "mandatory_owner_locks": [
+    "FULL_DATA_EXHAUSTIVE_MULTI_AXIS_BEHAVIOR_ATLAS",
+    "TEMPORAL_BEHAVIOR_SEQUENCE_CHRONOLOGICAL_TICKER_JOURNEY",
+    "PERMANENT_BLIND_SPOT_REGISTER",
+    "FUTURE_HPX_EVIDENCE_LANE_AND_FORMULA_ADMISSION_GATES",
+    "ANALYTICAL_JOB_PRESTART_COMPLETENESS_AUTHORITY_SYNC_GATE"
+  ],
+  "global_prohibitions": {
+    "formula_stage_open": false,
+    "sampling_or_winner_only": false,
+    "arbitrary_thresholds": false,
+    "manual_labels_as_hidden_targets": false,
+    "missing_as_zero": false,
+    "hindsight_backdating": false
+  },
+  "prestart_rule": "NO_HEAVY_SOURCE_READ_OR_COMPUTE_UNTIL_REQUEST_AND_IMPLEMENTATION_PASS_CURRENT_AUTHORITY_LOCK_AND_STAGE_CONTRACT",
+  "replacement_rule": "STALE_OR_INCOMPLETE_RUNNING_CONTRACT_MUST_BE_CANCELLED_OR_GOVERNEDLY_REPLACED_BEFORE_DATA_MUTATION",
+  "pass_claim_rule": "EACH_JOB_MUST_STATE_WHAT_PASS_PROVES_AND_WHAT_REMAINS_OUTSIDE_ITS_STAGE"
+}
