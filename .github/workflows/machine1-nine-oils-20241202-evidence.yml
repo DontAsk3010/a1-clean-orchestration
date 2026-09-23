@@ -15,12 +15,21 @@ jobs:
         with:
           ref: machine1/evidence-nine-oils-20241202
       - name: Extract exact governed packets
-        shell: powershell
-        run: ./scripts/extract-machine1-nine-oils-20241202.ps1
-      - name: Upload governed evidence
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          try {
+            & './scripts/extract-machine1-nine-oils-20241202.ps1'
+          } catch {
+            ($_ | Format-List * -Force | Out-String) | Set-Content -LiteralPath 'extraction_error.txt' -Encoding UTF8
+            throw
+          }
+      - name: Upload governed evidence or diagnostic
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: machine1-nine-oils-20241202-evidence
-          path: machine1_nine_oils_20241202_evidence/
+          path: |
+            machine1_nine_oils_20241202_evidence/
+            extraction_error.txt
           if-no-files-found: error
           retention-days: 7
