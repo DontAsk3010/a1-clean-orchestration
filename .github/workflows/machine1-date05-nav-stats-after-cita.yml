@@ -7,6 +7,7 @@ on:
     paths:
       - .machine1_prefetch/date05_after_cita/*_20241205_COMPACT_PROOF.json
       - .machine1_prefetch/date05_after_cita/*_20241205_ROWS_COMPACT.tsv
+      - .github/workflows/machine1-date05-nav-stats-after-cita.yml
 
 permissions:
   contents: write
