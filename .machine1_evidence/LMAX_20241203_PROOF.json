@@ -1,0 +1,14 @@
+{
+    "ticker":  "LMAX",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  18,
+    "source_row_first":  978610,
+    "source_row_last":  978701,
+    "data_rows":  92,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:00:00",
+    "rows_jsonl_sha256":  "d5a2eafd2e97aafb284bf9c829aa93d518987ce3b0f2ba7d416eb2ae93c379c7",
+    "compact_sha256":  "1ee5a5aa056f518001649ffb1fda882838931df9fc9c84b514f6d5cc926aad32"
+}
