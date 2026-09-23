@@ -1,0 +1,15 @@
+{
+    "ticker":  "CARS",
+    "trading_date":  "2024-12-04",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0010.jsonl",
+    "semantic_bundle_line_number":  142,
+    "source_row_first":  360141,
+    "source_row_last":  360167,
+    "data_rows":  27,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 15:49:00",
+    "packet_sha256":  "b18661e25dda4ff18930089e69990f9231f11024549aba0776b9d68c8433f67a",
+    "rows_jsonl_sha256":  "d018da31827e075fb3baaf816e8557b51279db8e141df5543da09f030b165d6b"
+}

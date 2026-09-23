@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "CARS",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-cars-20241204",
+    "workflow_commit":  "59e390bcc0a913f26cdb883d8588331c98a51663",
+    "github_run_id":  35864118113,
+    "github_artifact_id":  10751450777,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35864118113/artifacts/10751450777",
+    "github_artifact_digest":  "63b870d449135f0ef1b7b28f71715ce537b0849c8782b67d2de2fba495e4e72c",
+    "packet_sha256":  "b18661e25dda4ff18930089e69990f9231f11024549aba0776b9d68c8433f67a",
+    "rows_jsonl_sha256":  "d018da31827e075fb3baaf816e8557b51279db8e141df5543da09f030b165d6b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  360141,
+    "source_row_last":  360167,
+    "data_rows":  27,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 15:49:00"
+}
