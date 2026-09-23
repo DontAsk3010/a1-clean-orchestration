@@ -5,6 +5,7 @@ on:
     branches:
       - machine1/date05-prefetch-after-bmsr
     paths:
+      - .github/workflows/machine1-date05-compact-after-cita.yml
       - .machine1_prefetch/date05_after_cita/BATCH_MANIFEST.json
       - .machine1_prefetch/date05_after_cita/*_20241205_PROOF.json
       - .machine1_prefetch/date05_after_cita/*_20241205_ROWS.jsonl
