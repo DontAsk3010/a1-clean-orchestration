@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "CASA",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-casa-20241204",
+    "workflow_commit":  "9e7543c3b824030de03468447abca84af325faf0",
+    "github_run_id":  35870636751,
+    "github_artifact_id":  10755311314,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35870636751/artifacts/10755311314",
+    "github_artifact_digest":  "1e379abacc75192c98250f7b59f6ba5b79ab85e24919f0738fb2d804a9eefb36",
+    "packet_sha256":  "e1c91f9c9886099a0e2c73286a5d55ce88f5ad8ef4341d31573f91262855db5a",
+    "rows_jsonl_sha256":  "2f4223e4c135c34cc716ef52b05f0172a171878805fe1bdd40ddf1858a84e6a3",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  360918,
+    "source_row_last":  360937,
+    "data_rows":  20,
+    "first_datetime":  "2024-12-04 09:08:00",
+    "last_datetime":  "2024-12-04 16:03:00"
+}
