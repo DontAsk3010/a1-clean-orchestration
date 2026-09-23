@@ -1,0 +1,14 @@
+{
+    "ticker":  "MANG",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  36,
+    "source_row_first":  1013306,
+    "source_row_last":  1013463,
+    "data_rows":  158,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:07:00",
+    "rows_jsonl_sha256":  "fffabc568a449c4087b9df9045a4188c9108a7d4a00b554af9977bf2684d55af",
+    "compact_sha256":  "15775c4953bf92ff425263f9fb327a44f611d1cf590270ea7711399cadb51fa3"
+}

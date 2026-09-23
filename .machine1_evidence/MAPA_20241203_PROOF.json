@@ -1,0 +1,14 @@
+{
+    "ticker":  "MAPA",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  37,
+    "source_row_first":  1016256,
+    "source_row_last":  1016540,
+    "data_rows":  285,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:13:00",
+    "rows_jsonl_sha256":  "3d48afb3def5fbf341633fdcdfeaf8e2ff9309a263f1b35267f928bc6232f8c5",
+    "compact_sha256":  "92a514022ab0b3f679a71235c02499e21f47139345ee182074da9c69a3e31fa2"
+}

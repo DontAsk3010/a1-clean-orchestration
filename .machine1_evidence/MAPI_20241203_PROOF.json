@@ -1,0 +1,14 @@
+{
+    "ticker":  "MAPI",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  38,
+    "source_row_first":  1020930,
+    "source_row_last":  1021224,
+    "data_rows":  295,
+    "first_datetime":  "2024-12-03 08:59:00",
+    "last_datetime":  "2024-12-03 16:05:00",
+    "rows_jsonl_sha256":  "a760ca8f8087d6131bc57987aef867c2948b13f10ab4504de10b6269ae4ff979",
+    "compact_sha256":  "b5a09fa99423d6d0a774c54f8bb58ab5019ab99ab20b2480efc3f490ab6b7a5b"
+}
