@@ -1,0 +1,44 @@
+{
+    "ticker":  "CRAB",
+    "trading_date":  "2024-12-05",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_rows_sha256":  "b26e7b39ad08727ccb4f7a33e3c5f364a019d32d648bad52b31a8fead929be29",
+    "canonical_rows_jsonl_sha256":  "6fc6aea6fe85546a9837a0d59421dff5e111804c26903a0ed99d2ef11cbc93b1",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "actual_rows":  42,
+    "source_row_first":  406676,
+    "source_row_last":  406717,
+    "first_datetime":  "2024-12-05 09:08:00",
+    "last_datetime":  "2024-12-05 16:07:00",
+    "observed_high":  262,
+    "observed_low":  258,
+    "total_volume":  3294200,
+    "gap_transition_count":  37,
+    "largest_activity":  {
+                             "source_row":  406697,
+                             "datetime":  "2024-12-05 14:11:00",
+                             "open":  260,
+                             "high":  260,
+                             "low":  260,
+                             "close":  260,
+                             "volume":  410900
+                         },
+    "session_codes":  [
+                          "20",
+                          "40",
+                          "51",
+                          "60"
+                      ],
+    "raw_aux1_semantic_proven_codes":  [
+                                           "-1"
+                                       ],
+    "raw_aux2_fresh_semantic_proven_codes":  [
+                                                 "-1"
+                                             ],
+    "raw_openint_fresh_semantic_proven_codes":  [
+                                                    "-1"
+                                                ],
+    "navigation_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

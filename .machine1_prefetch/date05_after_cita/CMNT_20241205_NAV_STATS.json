@@ -1,0 +1,43 @@
+{
+    "ticker":  "CMNT",
+    "trading_date":  "2024-12-05",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_rows_sha256":  "e9b0aea735235599200d4487b72a01237ef0f9cfdcb17895026b2d78a7898aa1",
+    "canonical_rows_jsonl_sha256":  "8ba939e1c8bed9c7315d2201f0f0de2b64d211c02d6de7469d398689525b464d",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "actual_rows":  104,
+    "source_row_first":  387180,
+    "source_row_last":  387283,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:00:00",
+    "observed_high":  985,
+    "observed_low":  960,
+    "total_volume":  43165400,
+    "gap_transition_count":  49,
+    "largest_activity":  {
+                             "source_row":  387196,
+                             "datetime":  "2024-12-05 09:31:00",
+                             "open":  970,
+                             "high":  970,
+                             "low":  970,
+                             "close":  970,
+                             "volume":  5144400
+                         },
+    "session_codes":  [
+                          "20",
+                          "40",
+                          "51"
+                      ],
+    "raw_aux1_semantic_proven_codes":  [
+                                           "-1"
+                                       ],
+    "raw_aux2_fresh_semantic_proven_codes":  [
+                                                 "-1"
+                                             ],
+    "raw_openint_fresh_semantic_proven_codes":  [
+                                                    "-1"
+                                                ],
+    "navigation_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

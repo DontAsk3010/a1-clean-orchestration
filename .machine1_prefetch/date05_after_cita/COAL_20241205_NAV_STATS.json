@@ -1,0 +1,44 @@
+{
+    "ticker":  "COAL",
+    "trading_date":  "2024-12-05",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_rows_sha256":  "ae816519fa05adc31f91ad8b546ae39f424631457502484947f9eb3bfd3e2064",
+    "canonical_rows_jsonl_sha256":  "7b0819a03a9666908b8a22d956611fdae5384e7b753213388b5d7375ed3a86c0",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "actual_rows":  6,
+    "source_row_first":  395015,
+    "source_row_last":  395020,
+    "first_datetime":  "2024-12-05 09:55:00",
+    "last_datetime":  "2024-12-05 16:06:00",
+    "observed_high":  30,
+    "observed_low":  30,
+    "total_volume":  1626100,
+    "gap_transition_count":  5,
+    "largest_activity":  {
+                             "source_row":  395017,
+                             "datetime":  "2024-12-05 11:55:00",
+                             "open":  30,
+                             "high":  30,
+                             "low":  30,
+                             "close":  30,
+                             "volume":  1138400
+                         },
+    "session_codes":  [
+                          "20",
+                          "40",
+                          "51",
+                          "60"
+                      ],
+    "raw_aux1_semantic_proven_codes":  [
+                                           "-1"
+                                       ],
+    "raw_aux2_fresh_semantic_proven_codes":  [
+                                                 "-1"
+                                             ],
+    "raw_openint_fresh_semantic_proven_codes":  [
+                                                    "-1"
+                                                ],
+    "navigation_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

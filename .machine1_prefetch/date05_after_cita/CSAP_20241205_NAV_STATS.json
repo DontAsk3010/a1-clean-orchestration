@@ -1,0 +1,42 @@
+{
+    "ticker":  "CSAP",
+    "trading_date":  "2024-12-05",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_rows_sha256":  "c154e3b886472a526c87da5490fb5394a83d4b3a2c2e927e73d11509bb8cbe55",
+    "canonical_rows_jsonl_sha256":  "f55779c920c4b2249b95688b251a10e65f2226a05b3816521e0e3b0544bf4634",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "actual_rows":  10,
+    "source_row_first":  407945,
+    "source_row_last":  407954,
+    "first_datetime":  "2024-12-05 09:44:00",
+    "last_datetime":  "2024-12-05 15:41:00",
+    "observed_high":  454,
+    "observed_low":  446,
+    "total_volume":  7100,
+    "gap_transition_count":  8,
+    "largest_activity":  {
+                             "source_row":  407945,
+                             "datetime":  "2024-12-05 09:44:00",
+                             "open":  448,
+                             "high":  448,
+                             "low":  448,
+                             "close":  448,
+                             "volume":  3000
+                         },
+    "session_codes":  [
+                          "20",
+                          "40"
+                      ],
+    "raw_aux1_semantic_proven_codes":  [
+                                           "-1"
+                                       ],
+    "raw_aux2_fresh_semantic_proven_codes":  [
+                                                 "-1"
+                                             ],
+    "raw_openint_fresh_semantic_proven_codes":  [
+                                                    "-1"
+                                                ],
+    "navigation_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

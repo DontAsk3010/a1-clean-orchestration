@@ -1,0 +1,43 @@
+{
+    "ticker":  "CLPI",
+    "trading_date":  "2024-12-05",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_rows_sha256":  "df62441c753a41dd16c0bbf61ee8b5975b5ad74312b99af3b69c28d9b71f5720",
+    "canonical_rows_jsonl_sha256":  "a3ee3030d1035f193b161ae854a9408a4bae7b251f9409280ec37d7ac73514d9",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "actual_rows":  20,
+    "source_row_first":  381474,
+    "source_row_last":  381493,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:14:00",
+    "observed_high":  1070,
+    "observed_low":  1055,
+    "total_volume":  25800,
+    "gap_transition_count":  17,
+    "largest_activity":  {
+                             "source_row":  381476,
+                             "datetime":  "2024-12-05 09:17:00",
+                             "open":  1060,
+                             "high":  1070,
+                             "low":  1060,
+                             "close":  1070,
+                             "volume":  8600
+                         },
+    "session_codes":  [
+                          "20",
+                          "40",
+                          "60"
+                      ],
+    "raw_aux1_semantic_proven_codes":  [
+                                           "-1"
+                                       ],
+    "raw_aux2_fresh_semantic_proven_codes":  [
+                                                 "-1"
+                                             ],
+    "raw_openint_fresh_semantic_proven_codes":  [
+                                                    "-1"
+                                                ],
+    "navigation_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

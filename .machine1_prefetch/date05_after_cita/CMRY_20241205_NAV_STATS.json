@@ -1,0 +1,44 @@
+{
+    "ticker":  "CMRY",
+    "trading_date":  "2024-12-05",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_rows_sha256":  "346e13505628a9c7765a741727ef41d953e334572007269b86ca7e173a89bc22",
+    "canonical_rows_jsonl_sha256":  "aa535590cd0b0b40a4619fc2d55721437a75a87dc77cae992b01c3b63bf2c5a6",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "actual_rows":  114,
+    "source_row_first":  389672,
+    "source_row_last":  389785,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:03:00",
+    "observed_high":  5500,
+    "observed_low":  5400,
+    "total_volume":  1018100,
+    "gap_transition_count":  70,
+    "largest_activity":  {
+                             "source_row":  389769,
+                             "datetime":  "2024-12-05 15:26:00",
+                             "open":  5450,
+                             "high":  5475,
+                             "low":  5450,
+                             "close":  5475,
+                             "volume":  72400
+                         },
+    "session_codes":  [
+                          "20",
+                          "40",
+                          "51",
+                          "60"
+                      ],
+    "raw_aux1_semantic_proven_codes":  [
+                                           "-1"
+                                       ],
+    "raw_aux2_fresh_semantic_proven_codes":  [
+                                                 "-1"
+                                             ],
+    "raw_openint_fresh_semantic_proven_codes":  [
+                                                    "-1"
+                                                ],
+    "navigation_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

@@ -1,0 +1,44 @@
+{
+    "ticker":  "CLEO",
+    "trading_date":  "2024-12-05",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_rows_sha256":  "019588d8a472d708e0cf7b31499c1f4a1b7434b124ef680ed656168bae7a4275",
+    "canonical_rows_jsonl_sha256":  "79a15eb928784ef1f6793cb24d89f418a74bb5aa708c819414da57cda1d92d15",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "actual_rows":  193,
+    "source_row_first":  382841,
+    "source_row_last":  383033,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:10:00",
+    "observed_high":  632.5,
+    "observed_low":  607.5,
+    "total_volume":  10220000,
+    "gap_transition_count":  74,
+    "largest_activity":  {
+                             "source_row":  382953,
+                             "datetime":  "2024-12-05 13:52:00",
+                             "open":  625,
+                             "high":  627.5,
+                             "low":  625,
+                             "close":  627.5,
+                             "volume":  524000
+                         },
+    "session_codes":  [
+                          "20",
+                          "40",
+                          "51",
+                          "60"
+                      ],
+    "raw_aux1_semantic_proven_codes":  [
+                                           "-1"
+                                       ],
+    "raw_aux2_fresh_semantic_proven_codes":  [
+                                                 "-1"
+                                             ],
+    "raw_openint_fresh_semantic_proven_codes":  [
+                                                    "-1"
+                                                ],
+    "navigation_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}
