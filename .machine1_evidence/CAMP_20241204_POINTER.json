@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "CAMP",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-camp-20241204",
+    "workflow_commit":  "8c5de9d35f959878ce4916ae8f02cbed09063d1c",
+    "github_run_id":  35827404337,
+    "github_artifact_id":  10735208882,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35827404337/artifacts/10735208882",
+    "github_artifact_digest":  "25c35b40fc1b418ae43a72a8962ce17027386e3baa3d3f167a684984750a6c28",
+    "packet_sha256":  "c7a73dd2c8cc57209faca3da552723c42ef984571443a63907d7d930b8cf7729",
+    "rows_jsonl_sha256":  "5accf91c328da0c2322062bc5b3375dffc942956ffa7463ebbb56df7909bfe73",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  356335,
+    "source_row_last":  356443,
+    "data_rows":  109,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 16:06:00"
+}
