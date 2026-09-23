@@ -1,0 +1,43 @@
+{
+    "ticker":  "CASA",
+    "trading_date":  "2024-12-05",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_rows_sha256":  "38b825183c25a7f6b71a9bcdd2926eac1b9b82239f7a3d27326acb4de6babc32",
+    "canonical_rows_jsonl_sha256":  "9a072a4c3e12f44307e24ae3d277af646fd6d792c663c46882aa2e9be326e5b8",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "actual_rows":  21,
+    "source_row_first":  360938,
+    "source_row_last":  360958,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:00:00",
+    "observed_high":  525,
+    "observed_low":  515,
+    "total_volume":  620600,
+    "gap_transition_count":  15,
+    "largest_activity":  {
+                             "source_row":  360939,
+                             "datetime":  "2024-12-05 09:05:00",
+                             "open":  525,
+                             "high":  525,
+                             "low":  520,
+                             "close":  525,
+                             "volume":  186900
+                         },
+    "session_codes":  [
+                          "20",
+                          "40",
+                          "51"
+                      ],
+    "raw_aux1_semantic_proven_codes":  [
+                                           "-1"
+                                       ],
+    "raw_aux2_fresh_semantic_proven_codes":  [
+                                                 "-1"
+                                             ],
+    "raw_openint_fresh_semantic_proven_codes":  [
+                                                    "-1"
+                                                ],
+    "navigation_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

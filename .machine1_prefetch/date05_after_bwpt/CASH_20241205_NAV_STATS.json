@@ -1,0 +1,42 @@
+{
+    "ticker":  "CASH",
+    "trading_date":  "2024-12-05",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_rows_sha256":  "c7a2f6f64600699b61728c838ed5c0eed4f2fe1b1301a837125e27a8d7f565c3",
+    "canonical_rows_jsonl_sha256":  "5f49417fc001e2781e3c18fdf6ea998432dd50885240bd856bcdee43c61a8c41",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "actual_rows":  6,
+    "source_row_first":  361390,
+    "source_row_last":  361395,
+    "first_datetime":  "2024-12-05 09:25:00",
+    "last_datetime":  "2024-12-05 15:26:00",
+    "observed_high":  74,
+    "observed_low":  71,
+    "total_volume":  10800,
+    "gap_transition_count":  5,
+    "largest_activity":  {
+                             "source_row":  361391,
+                             "datetime":  "2024-12-05 09:49:00",
+                             "open":  71,
+                             "high":  71,
+                             "low":  71,
+                             "close":  71,
+                             "volume":  7300
+                         },
+    "session_codes":  [
+                          "20",
+                          "40"
+                      ],
+    "raw_aux1_semantic_proven_codes":  [
+                                           "-1"
+                                       ],
+    "raw_aux2_fresh_semantic_proven_codes":  [
+                                                 "-1"
+                                             ],
+    "raw_openint_fresh_semantic_proven_codes":  [
+                                                    "-1"
+                                                ],
+    "navigation_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

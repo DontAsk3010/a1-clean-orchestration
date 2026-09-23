@@ -1,0 +1,44 @@
+{
+    "ticker":  "CBRE",
+    "trading_date":  "2024-12-05",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_rows_sha256":  "89e5f9a263b144d650801f226c40f72615a1c810de3c9bda0d20b0975fb04a2b",
+    "canonical_rows_jsonl_sha256":  "e118aa490c2b8dba95bf39986fc6fb9b461d2ea485dda66e4895a2c692c6b808",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "actual_rows":  6,
+    "source_row_first":  363655,
+    "source_row_last":  363660,
+    "first_datetime":  "2024-12-05 09:55:00",
+    "last_datetime":  "2024-12-05 16:12:00",
+    "observed_high":  19,
+    "observed_low":  18,
+    "total_volume":  2481200,
+    "gap_transition_count":  5,
+    "largest_activity":  {
+                             "source_row":  363657,
+                             "datetime":  "2024-12-05 11:55:00",
+                             "open":  19,
+                             "high":  19,
+                             "low":  19,
+                             "close":  19,
+                             "volume":  1097700
+                         },
+    "session_codes":  [
+                          "20",
+                          "40",
+                          "51",
+                          "60"
+                      ],
+    "raw_aux1_semantic_proven_codes":  [
+                                           "-1"
+                                       ],
+    "raw_aux2_fresh_semantic_proven_codes":  [
+                                                 "-1"
+                                             ],
+    "raw_openint_fresh_semantic_proven_codes":  [
+                                                    "-1"
+                                                ],
+    "navigation_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

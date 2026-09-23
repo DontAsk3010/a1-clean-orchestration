@@ -1,0 +1,44 @@
+{
+    "ticker":  "CAMP",
+    "trading_date":  "2024-12-05",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_rows_sha256":  "9f3546c34e015b786df04000b1b77a114a6483781a540e4bb38e6fef8384bcbe",
+    "canonical_rows_jsonl_sha256":  "71d3a306b528e79d26831ce1c38fda6a453c8bd21b58e8a276b4637c3659fffa",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "actual_rows":  103,
+    "source_row_first":  356444,
+    "source_row_last":  356546,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:14:00",
+    "observed_high":  288,
+    "observed_low":  260,
+    "total_volume":  735100,
+    "gap_transition_count":  69,
+    "largest_activity":  {
+                             "source_row":  356540,
+                             "datetime":  "2024-12-05 15:47:00",
+                             "open":  268,
+                             "high":  270,
+                             "low":  268,
+                             "close":  270,
+                             "volume":  229500
+                         },
+    "session_codes":  [
+                          "20",
+                          "40",
+                          "51",
+                          "60"
+                      ],
+    "raw_aux1_semantic_proven_codes":  [
+                                           "-1"
+                                       ],
+    "raw_aux2_fresh_semantic_proven_codes":  [
+                                                 "-1"
+                                             ],
+    "raw_openint_fresh_semantic_proven_codes":  [
+                                                    "-1"
+                                                ],
+    "navigation_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

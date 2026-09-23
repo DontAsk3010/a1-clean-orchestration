@@ -1,0 +1,44 @@
+{
+    "ticker":  "CHEM",
+    "trading_date":  "2024-12-05",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_rows_sha256":  "484a64f74ea1231dc2dde5681c9a3845bcb57eaf30b0606f226a01960c35841d",
+    "canonical_rows_jsonl_sha256":  "8e7bd4f7206e9dc3b74dba8357ff821997a92708ca58c9ef99dddc981d96149d",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "actual_rows":  52,
+    "source_row_first":  371122,
+    "source_row_last":  371173,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:10:00",
+    "observed_high":  69,
+    "observed_low":  68,
+    "total_volume":  627800,
+    "gap_transition_count":  39,
+    "largest_activity":  {
+                             "source_row":  371169,
+                             "datetime":  "2024-12-05 15:45:00",
+                             "open":  68,
+                             "high":  68,
+                             "low":  68,
+                             "close":  68,
+                             "volume":  251300
+                         },
+    "session_codes":  [
+                          "20",
+                          "40",
+                          "51",
+                          "60"
+                      ],
+    "raw_aux1_semantic_proven_codes":  [
+                                           "-1"
+                                       ],
+    "raw_aux2_fresh_semantic_proven_codes":  [
+                                                 "-1"
+                                             ],
+    "raw_openint_fresh_semantic_proven_codes":  [
+                                                    "-1"
+                                                ],
+    "navigation_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

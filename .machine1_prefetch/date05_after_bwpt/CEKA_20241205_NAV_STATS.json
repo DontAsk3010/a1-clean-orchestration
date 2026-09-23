@@ -1,0 +1,42 @@
+{
+    "ticker":  "CEKA",
+    "trading_date":  "2024-12-05",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_rows_sha256":  "28fe42a679c355cc9b287b0099933830c753bf92a9fc90d61810476e9090869b",
+    "canonical_rows_jsonl_sha256":  "733a5a79bf6359156602e45547f06265aaa8d543638b53a9783cc6ce5f5a884e",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "actual_rows":  14,
+    "source_row_first":  365483,
+    "source_row_last":  365496,
+    "first_datetime":  "2024-12-05 09:31:00",
+    "last_datetime":  "2024-12-05 15:35:00",
+    "observed_high":  2050,
+    "observed_low":  2030,
+    "total_volume":  16600,
+    "gap_transition_count":  12,
+    "largest_activity":  {
+                             "source_row":  365496,
+                             "datetime":  "2024-12-05 15:35:00",
+                             "open":  2040,
+                             "high":  2040,
+                             "low":  2030,
+                             "close":  2030,
+                             "volume":  9300
+                         },
+    "session_codes":  [
+                          "20",
+                          "40"
+                      ],
+    "raw_aux1_semantic_proven_codes":  [
+                                           "-1"
+                                       ],
+    "raw_aux2_fresh_semantic_proven_codes":  [
+                                                 "-1"
+                                             ],
+    "raw_openint_fresh_semantic_proven_codes":  [
+                                                    "-1"
+                                                ],
+    "navigation_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}
