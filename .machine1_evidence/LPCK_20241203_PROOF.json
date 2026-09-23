@@ -1,0 +1,14 @@
+{
+    "ticker":  "LPCK",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  21,
+    "source_row_first":  984675,
+    "source_row_last":  984714,
+    "data_rows":  40,
+    "first_datetime":  "2024-12-03 09:07:00",
+    "last_datetime":  "2024-12-03 16:11:00",
+    "rows_jsonl_sha256":  "93c55c28d9eb19efc7696655a7acbe3d91ccbb9502080c6d3403dd01a4a2d316",
+    "compact_sha256":  "1b5318a004c613fee1836c046e1fbde535b29cb2960f983fa1c78cddecf5ef86"
+}

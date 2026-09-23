@@ -1,0 +1,14 @@
+{
+    "ticker":  "LPIN",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  23,
+    "source_row_first":  985362,
+    "source_row_last":  985375,
+    "data_rows":  14,
+    "first_datetime":  "2024-12-03 10:19:00",
+    "last_datetime":  "2024-12-03 15:46:00",
+    "rows_jsonl_sha256":  "1ef1352e56287de9d5d6d9d0be022fee885158720b44d8a372db32f2bd60a15c",
+    "compact_sha256":  "1f8c7cec57c77e399da8163de2ca6c6c8f9d6960bbfdb8bd9a65a1dd2bc9e340"
+}
