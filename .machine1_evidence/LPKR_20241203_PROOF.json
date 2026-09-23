@@ -1,0 +1,14 @@
+{
+    "ticker":  "LPKR",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  24,
+    "source_row_first":  986022,
+    "source_row_last":  986291,
+    "data_rows":  270,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:12:00",
+    "rows_jsonl_sha256":  "cd79150c662ba454e5d07e95802c436146d8dbf7ecfa10986ba9715de712e040",
+    "compact_sha256":  "48bd3c3e9335ea2f1196a84a58ae90564194905b7814ba10924be70c5cfce8ac"
+}

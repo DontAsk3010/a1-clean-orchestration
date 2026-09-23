@@ -1,0 +1,14 @@
+{
+    "ticker":  "LPLI",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  25,
+    "source_row_first":  985705,
+    "source_row_last":  985706,
+    "data_rows":  2,
+    "first_datetime":  "2024-12-03 09:32:00",
+    "last_datetime":  "2024-12-03 16:00:00",
+    "rows_jsonl_sha256":  "cf2db3b1a45af40a8c7a070f6726dc2e42343b7410b06855bac47bfa4f0bee07",
+    "compact_sha256":  "808443dfcd722049ba6fce3a160d0ca6e22c2793cae14254b773cf01a172adb8"
+}
