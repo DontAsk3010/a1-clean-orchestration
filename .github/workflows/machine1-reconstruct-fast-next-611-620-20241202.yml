@@ -1,0 +1,33 @@
+name: Machine1 Reconstruct Fast Next 611-620 20241202
+on:
+  push:
+    branches: [machine1/reconstruct-fast-next-611-620-20241202]
+    paths:
+      - '.github/workflows/machine1-reconstruct-fast-next-611-620-20241202.yml'
+      - 'scripts/reconstruct-fast-machine1-next-611-620-20241202.ps1'
+permissions:
+  contents: read
+jobs:
+  reconstruct-fast:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: machine1/reconstruct-fast-next-611-620-20241202
+      - name: Reconstruct fast and validate anchors
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          try { & './scripts/reconstruct-fast-machine1-next-611-620-20241202.ps1' }
+          catch { ($_ | Format-List * -Force | Out-String) | Set-Content 'reconstruction_error.txt' -Encoding UTF8; throw }
+      - name: Upload proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-reconstruct-fast-next-611-620-20241202
+          path: |
+            machine1_reconstruct_fast_next_611_620_20241202/
+            reconstruction_error.txt
+          if-no-files-found: error
+          retention-days: 7
