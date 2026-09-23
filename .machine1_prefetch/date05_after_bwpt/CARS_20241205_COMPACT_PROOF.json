@@ -1,0 +1,18 @@
+{
+    "ticker":  "CARS",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  360168,
+    "source_row_last":  360203,
+    "actual_rows":  36,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:00:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "2dccb9986ae5d03a23a8e3ccd06abf4e05c8787bb9c3fc8b8df8023457b6e841",
+    "compact_rows_sha256":  "2f28a653d86adb708cd7722000884cd1bd5a743d94d11238a1c0f37512150940",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  36,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

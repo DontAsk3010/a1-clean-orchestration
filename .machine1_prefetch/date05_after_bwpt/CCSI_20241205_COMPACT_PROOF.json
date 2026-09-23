@@ -1,0 +1,18 @@
+{
+    "ticker":  "CCSI",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  364030,
+    "source_row_last":  364066,
+    "actual_rows":  37,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:10:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "7e901eae66faaebd7cb4171d8719c512e91a6d2eab32353d36db2d63afcfbce4",
+    "compact_rows_sha256":  "86e78efad6a00335d28e91c42ee137a4931859c2280d88fe49ab9e3fea4905d9",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  37,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

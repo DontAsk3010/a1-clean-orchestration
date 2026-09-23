@@ -1,0 +1,18 @@
+{
+    "ticker":  "CGAS",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  368661,
+    "source_row_last":  368761,
+    "actual_rows":  101,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:06:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "236f8bfd51bfbb251029342bfc9214eb62cef6e1df782d1476a485a51f8a16cb",
+    "compact_rows_sha256":  "6e20fc37bcf5740704d0a1421d5b240e231c1d58e45d175ec8b5f4bf355223e9",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  101,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

@@ -1,0 +1,18 @@
+{
+    "ticker":  "CASS",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  361646,
+    "source_row_last":  361688,
+    "actual_rows":  43,
+    "first_datetime":  "2024-12-05 09:04:00",
+    "last_datetime":  "2024-12-05 16:03:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "94c0d5694fd566860bec8130756d367560ce58d4680cdbcefd6780cd8894a17f",
+    "compact_rows_sha256":  "ca2543660e9cbe61ed4a1f2295f7cfc5f7743e615a15fe3bf24605fe2acd2795",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  43,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

@@ -1,0 +1,18 @@
+{
+    "ticker":  "CITA",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  376422,
+    "source_row_last":  376524,
+    "actual_rows":  103,
+    "first_datetime":  "2024-12-05 09:04:00",
+    "last_datetime":  "2024-12-05 15:49:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "9ef9de534bf6dc60b2490901c1a52f9c89999b2856a5d451329bfad87c40270f",
+    "compact_rows_sha256":  "961901c309606ff11ebc747df11db7653e354799ffad073a52c0124517221e62",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  103,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}
