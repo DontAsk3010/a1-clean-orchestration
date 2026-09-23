@@ -1,4 +1,4 @@
-name: Windows V3.2 Machine 2 Behavior Grouping Atlas
+name: Windows V3.2 Machine 2 Behavior Grouping Atlas V2
 
 on:
   push:
@@ -13,13 +13,16 @@ permissions:
 
 concurrency:
   group: a1-windows-v32-machine2-behavior-grouping-atlas
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   grouping:
-    name: Group durable PASS Machine 2 behavior sources
+    name: Group durable PASS Machine 2 behavior sources with temporal/blindspot V2 contract
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 4320
+    env:
+      PSExecutionPolicyPreference: Bypass
+
     steps:
       - name: Checkout exact trigger revision
         uses: actions/checkout@v4
@@ -43,121 +46,140 @@ jobs:
             (Get-Content -LiteralPath $pth -Raw).Replace('#import site','import site') | Set-Content -LiteralPath $pth -Encoding ascii
             Invoke-WebRequest -UseBasicParsing -Uri 'https://bootstrap.pypa.io/get-pip.py' -OutFile $getPip
             & (Join-Path $pyRoot 'python.exe') $getPip --no-warn-script-location
-            if ($LASTEXITCODE -ne 0) { throw 'M2_GROUP_PORTABLE_PIP_BOOTSTRAP_FAILED' }
+            if ($LASTEXITCODE -ne 0) { throw 'M2_GROUP_V2_PORTABLE_PIP_BOOTSTRAP_FAILED' }
           }
           $py = Join-Path $pyRoot 'python.exe'
           & $py --version
-          if ($LASTEXITCODE -ne 0) { throw 'M2_GROUP_PORTABLE_PYTHON_UNAVAILABLE' }
+          if ($LASTEXITCODE -ne 0) { throw 'M2_GROUP_V2_PORTABLE_PYTHON_UNAVAILABLE' }
           "A1_PYTHON_EXE=$py" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           $pyRoot | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Validate governed grouping request and bind roots
+      - name: Validate latest authority-bound grouping request and roots
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           $req = Get-Content -LiteralPath 'v32-behavior-grouping-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
-          if ($req.schema -ne 'A1_V32_BEHAVIOR_GROUPING_REQUEST_V1') { throw 'M2_GROUP_REQUEST_SCHEMA_MISMATCH' }
-          if ($req.enabled -ne $true) { throw 'M2_GROUP_REQUEST_DISABLED' }
-          if ($req.machine -ne 'MACHINE_2') { throw 'M2_GROUP_MACHINE_SCOPE_FAIL' }
-          if ([int]$req.bootstrap_source_count -ne 8) { throw 'M2_GROUP_BOOTSTRAP_COUNT_FAIL' }
-          if ($req.bootstrap_first_source -ne 'Raw Des 02-31-2024.csv') { throw 'M2_GROUP_BOOTSTRAP_FIRST_FAIL' }
-          if ($req.bootstrap_last_source -ne 'Raw Juli 01-31-2025.csv') { throw 'M2_GROUP_BOOTSTRAP_LAST_FAIL' }
-          if ($req.consume_only_durable_semantic_pass -ne $true) { throw 'M2_GROUP_DURABLE_PASS_GATE_REQUIRED' }
-          if ($req.auto_absorb_new_durable_pass_sources -ne $true) { throw 'M2_GROUP_AUTO_ABSORB_REQUIRED' }
-          if ($req.existing_signature_maps_to_existing_group -ne $true) { throw 'M2_GROUP_EXISTING_MATCH_REQUIRED' }
-          if ($req.new_signature_creates_new_group -ne $true) { throw 'M2_GROUP_NEW_SIGNATURE_REQUIRED' }
-          if ($req.consumed_source_digest_drift_policy -ne 'HARD_HOLD_NO_SILENT_REMAP') { throw 'M2_GROUP_DRIFT_POLICY_FAIL' }
-          if ($req.provisional_behavior_atlas -ne $true) { throw 'M2_GROUP_PROVISIONAL_ATLAS_REQUIRED' }
-          if ($req.formula_stage -ne 'CLOSED') { throw 'M2_GROUP_FORMULA_STAGE_MUST_BE_CLOSED' }
-          if ($req.manual_labels_used_as_hidden_targets -ne $false) { throw 'M2_GROUP_MANUAL_HIDDEN_TARGET_FORBIDDEN' }
-          if ($req.arbitrary_thresholds_added -ne $false) { throw 'M2_GROUP_ARBITRARY_THRESHOLD_FORBIDDEN' }
-          if ($req.missing_as_zero -ne $false) { throw 'M2_GROUP_MISSING_AS_ZERO_FORBIDDEN' }
-          if ($req.machine1_semantic_reader_remains_independent -ne $true) { throw 'M2_GROUP_MACHINE1_INDEPENDENCE_REQUIRED' }
-          if ($req.full_machine1_semantic_parity_claimed -ne $false) { throw 'M2_GROUP_FALSE_PARITY_CLAIM' }
+
+          if ($req.schema -ne 'A1_V32_BEHAVIOR_GROUPING_REQUEST_V2') { throw 'M2_GROUP_V2_REQUEST_SCHEMA_MISMATCH' }
+          if ($req.enabled -ne $true) { throw 'M2_GROUP_V2_REQUEST_DISABLED' }
+          if ($req.machine -ne 'MACHINE_2') { throw 'M2_GROUP_V2_MACHINE_SCOPE_FAIL' }
+          if ($req.axis_version -ne 'M2_MULTI_AXIS_EXACT_SIGNATURE_TEMPORAL_BLINDSPOT_V2') { throw 'M2_GROUP_V2_AXIS_VERSION_FAIL' }
+          if ($req.formula_stage -ne 'CLOSED') { throw 'M2_GROUP_V2_FORMULA_STAGE_MUST_BE_CLOSED' }
+          if ($req.consume_only_durable_semantic_pass -ne $true) { throw 'M2_GROUP_V2_DURABLE_PASS_GATE_REQUIRED' }
+          if ($req.auto_absorb_new_durable_pass_sources -ne $true) { throw 'M2_GROUP_V2_AUTO_ABSORB_REQUIRED' }
+          if ($req.existing_signature_maps_to_existing_group -ne $true) { throw 'M2_GROUP_V2_EXISTING_MATCH_REQUIRED' }
+          if ($req.new_signature_creates_new_group -ne $true) { throw 'M2_GROUP_V2_NEW_SIGNATURE_REQUIRED' }
+          if ($req.consumed_source_digest_drift_policy -ne 'HARD_HOLD_NO_SILENT_REMAP') { throw 'M2_GROUP_V2_DRIFT_POLICY_FAIL' }
+          if ($req.provisional_behavior_atlas -ne $true) { throw 'M2_GROUP_V2_PROVISIONAL_ATLAS_REQUIRED' }
+          if ($req.manual_labels_used_as_hidden_targets -ne $false) { throw 'M2_GROUP_V2_MANUAL_HIDDEN_TARGET_FORBIDDEN' }
+          if ($req.arbitrary_thresholds_added -ne $false) { throw 'M2_GROUP_V2_ARBITRARY_THRESHOLD_FORBIDDEN' }
+          if ($req.missing_as_zero -ne $false) { throw 'M2_GROUP_V2_MISSING_AS_ZERO_FORBIDDEN' }
+          if ($req.sampling_or_winner_only -ne $false) { throw 'M2_GROUP_V2_SAMPLING_FORBIDDEN' }
+          if ($req.machine1_semantic_reader_remains_independent -ne $true) { throw 'M2_GROUP_V2_MACHINE1_INDEPENDENCE_REQUIRED' }
+          if ($req.full_machine1_semantic_parity_claimed -ne $false) { throw 'M2_GROUP_V2_FALSE_PARITY_CLAIM' }
+          if ($req.temporal_behavior_sequence_required -ne $true) { throw 'M2_GROUP_V2_TEMPORAL_LOCK_REQUIRED' }
+          if ($req.permanent_blindspot_register_required -ne $true) { throw 'M2_GROUP_V2_BLINDSPOT_LOCK_REQUIRED' }
+          if ($req.future_hpx_evidence_lane_gate_required -ne $true) { throw 'M2_GROUP_V2_HPX_GATE_REQUIRED' }
+          if ($req.no_silent_unmapped_source_supported_axis -ne $true) { throw 'M2_GROUP_V2_NO_SILENT_GAP_REQUIRED' }
+
+          if ($req.formula_research_handbook_document_id -ne '1sQu0l2qwvsjItmBycRh3siMajKEQknHOMBLlBQd3I-Q') { throw 'M2_GROUP_V2_FORMULA_HANDBOOK_ID_FAIL' }
+          if ($req.formula_research_handbook_revision_id -ne 'ANLCKQmx9gVLSJ5gpGRNR8btoS2hqxdhnfEFC6kmFt55FSRxPgPHatpXneQC-zAgEB3JXt7t2t-p1eZIjhl0Q6aJId-9u5-PyxmpB0tCA0o') { throw 'M2_GROUP_V2_FORMULA_HANDBOOK_REVISION_FAIL' }
+          if ($req.behavior_handbook_document_id -ne '1vDoz8E7nGVlYPl2SBneA2tCAiNNAL77nLgPPZzFlbaI') { throw 'M2_GROUP_V2_BEHAVIOR_HANDBOOK_ID_FAIL' }
+          if ($req.behavior_handbook_revision_id -ne 'ANLCKQkCMiCu8UcqXqgIR6asvyqgAunxTVI4raUGjhCWq45YUhhWcAvsZ0cTTf7Du5Sve3cOpWbbO7YMMuPC6CJtFKS83iPdseuiX3Sptlg') { throw 'M2_GROUP_V2_BEHAVIOR_HANDBOOK_REVISION_FAIL' }
+          if ($req.github_automation_handbook_document_id -ne '12PK2RTlRlggPQAScAmzNPewatB5mZqOgJ3sZfRBsbO8') { throw 'M2_GROUP_V2_GITHUB_HANDBOOK_ID_FAIL' }
+          if ($req.github_automation_handbook_revision_id -ne 'ANLCKQkuxVSCswyMzrzzq63E--k2Ab9I-0rDHZ6AzWAg8zJyBD5jQsNJKgALd1sBDj7VBde1Q5UXi1Sk56WT9aAYHTzpe20ndMd2fUyTOfc') { throw 'M2_GROUP_V2_GITHUB_HANDBOOK_REVISION_FAIL' }
+          if ($req.transition_bridge_document_id -ne '1WI79YymkVcOJTRDhLwSiAESkLWFakwL9pe0oj6q1kug') { throw 'M2_GROUP_V2_BRIDGE_ID_FAIL' }
+          if ($req.transition_bridge_revision_id -ne 'ANLCKQkCI_azkcX4jmlKwF4MEm7Fqh6TSTk4nkNqQ3sk4iK4Q5MyztjHvkBKqjUPQd9ofpGpS9J4e-hu7lWolBz0usLSK2XZwMAINYGyk64') { throw 'M2_GROUP_V2_BRIDGE_REVISION_FAIL' }
+
+          if ([int]$req.bootstrap_source_count -ne 8) { throw 'M2_GROUP_V2_BOOTSTRAP_COUNT_FAIL' }
+          if ($req.bootstrap_first_source -ne 'Raw Des 02-31-2024.csv') { throw 'M2_GROUP_V2_BOOTSTRAP_FIRST_FAIL' }
+          if ($req.bootstrap_last_source -ne 'Raw Juli 01-31-2025.csv') { throw 'M2_GROUP_V2_BOOTSTRAP_LAST_FAIL' }
           $revision = [string]$req.semantic_software_revision
-          if ($revision -ne 'f22dc09395a7967215f93fc832d0fe81ee77d3aa') { throw 'M2_GROUP_SEMANTIC_REVISION_BINDING_FAIL' }
+          if ($revision -ne 'f22dc09395a7967215f93fc832d0fe81ee77d3aa') { throw 'M2_GROUP_V2_SEMANTIC_REVISION_BINDING_FAIL' }
+
           $semanticRoot = Join-Path 'C:\Users\feri-admin\.a1clean\v32_full_observation_behavior\schema-v3' $revision
-          $outputRoot = Join-Path 'C:\Users\feri-admin\.a1clean\v32_behavior_grouping_atlas\schema-v1' $revision
-          if (-not (Test-Path -LiteralPath $semanticRoot -PathType Container)) { throw 'M2_GROUP_SEMANTIC_ROOT_MISSING' }
+          $outputRoot = Join-Path 'C:\Users\feri-admin\.a1clean\v32_behavior_grouping_atlas\schema-v2' $revision
+          if (-not (Test-Path -LiteralPath $semanticRoot -PathType Container)) { throw 'M2_GROUP_V2_SEMANTIC_ROOT_MISSING' }
           New-Item -ItemType Directory -Force -Path $outputRoot | Out-Null
           "A1_M2_GROUP_SEMANTIC_REVISION=$revision" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "A1_M2_GROUP_SEMANTIC_ROOT=$semanticRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "A1_M2_GROUP_OUTPUT_ROOT=$outputRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Install compile and test grouping implementation
+      - name: Install compile and test exact V2 contract before reading durable data
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           & $env:A1_PYTHON_EXE -m pip install -e '.[test]'
-          if ($LASTEXITCODE -ne 0) { throw 'M2_GROUP_INSTALL_FAILED' }
-          & $env:A1_PYTHON_EXE -m py_compile src/a1clean/formula_research/v32_behavior_grouping_atlas.py
-          if ($LASTEXITCODE -ne 0) { throw 'M2_GROUP_COMPILE_FAILED' }
-          & $env:A1_PYTHON_EXE -m pytest -q tests/test_v32_behavior_grouping_atlas.py tests/test_v32_observation_envelope.py
-          if ($LASTEXITCODE -ne 0) { throw 'M2_GROUP_TEST_FAILED' }
+          if ($LASTEXITCODE -ne 0) { throw 'M2_GROUP_V2_INSTALL_FAILED' }
+          & $env:A1_PYTHON_EXE -m py_compile src/a1clean/formula_research/v32_behavior_grouping_atlas.py src/a1clean/formula_research/v32_behavior_grouping_atlas_v2.py
+          if ($LASTEXITCODE -ne 0) { throw 'M2_GROUP_V2_COMPILE_FAILED' }
+          & $env:A1_PYTHON_EXE -m pytest -q tests/test_v32_behavior_grouping_atlas.py tests/test_v32_behavior_grouping_atlas_v2.py tests/test_v32_observation_envelope.py
+          if ($LASTEXITCODE -ne 0) { throw 'M2_GROUP_V2_TEST_FAILED' }
+          & $env:A1_PYTHON_EXE -c "import json; from a1clean.formula_research.v32_behavior_grouping_atlas_v2 import REQUIRED_CURRENT_STAGE_AXES,AXIS_VERSION; r=json.load(open('v32-behavior-grouping-requests/current.json',encoding='utf-8')); assert r['axis_version']==AXIS_VERSION; assert tuple(r['required_current_stage_axes'])==REQUIRED_CURRENT_STAGE_AXES; print('M2_GROUP_V2_REQUEST_AXIS_CONTRACT_PASS=' + str(len(REQUIRED_CURRENT_STAGE_AXES)))"
+          if ($LASTEXITCODE -ne 0) { throw 'M2_GROUP_V2_REQUEST_AXIS_CONTRACT_FAIL' }
 
-      - name: Bootstrap provisional atlas from Dec 2024 through Jul 2025 durable PASS only
+      - name: Bootstrap fresh V2 provisional atlas from Dec 2024 through Jul 2025 durable PASS only
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          & $env:A1_PYTHON_EXE -m a1clean.formula_research.v32_behavior_grouping_atlas `
+          & $env:A1_PYTHON_EXE -m a1clean.formula_research.v32_behavior_grouping_atlas_v2 `
             --semantic-root $env:A1_M2_GROUP_SEMANTIC_ROOT `
             --output-root $env:A1_M2_GROUP_OUTPUT_ROOT `
             --software-revision $env:A1_M2_GROUP_SEMANTIC_REVISION `
             --bootstrap-source-count 8
-          if ($LASTEXITCODE -ne 0) { throw "M2_GROUP_BOOTSTRAP_RUNTIME_FAILED:$LASTEXITCODE" }
+          if ($LASTEXITCODE -ne 0) { throw "M2_GROUP_V2_BOOTSTRAP_RUNTIME_FAILED:$LASTEXITCODE" }
           $m = Get-Content -LiteralPath (Join-Path $env:A1_M2_GROUP_OUTPUT_ROOT 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-          if ($m.schema -ne 'A1_V32_BEHAVIOR_GROUPING_ATLAS_V1') { throw 'M2_GROUP_MANIFEST_SCHEMA_FAIL' }
-          if ($m.status -ne 'PROVISIONAL_BEHAVIOR_ATLAS') { throw 'M2_GROUP_STATUS_FAIL' }
-          if ([int]$m.source_count_consumed -lt 8) { throw "M2_GROUP_BOOTSTRAP_NOT_COMPLETE:$($m.source_count_consumed)" }
-          if (@($m.consumed_sources)[0] -ne 'Raw Des 02-31-2024.csv') { throw 'M2_GROUP_CONSUMED_FIRST_FAIL' }
-          if (@($m.consumed_sources)[7] -ne 'Raw Juli 01-31-2025.csv') { throw 'M2_GROUP_CONSUMED_EIGHTH_FAIL' }
-          if ($m.formula_stage -ne 'CLOSED') { throw 'M2_GROUP_FORMULA_GATE_FAIL' }
-          if ($m.machine1_labels_used_as_hidden_targets -ne $false) { throw 'M2_GROUP_HIDDEN_TARGET_FAIL' }
-          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value '### Machine 2 provisional behavior atlas bootstrap'
-          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Durable sources consumed: $($m.source_count_consumed)/18"
-          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Latest consumed source: $($m.latest_consumed_source)"
-          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Ticker-day memberships: $($m.ticker_day_memberships)"
-          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Journey memberships: $($m.journey_memberships)"
-          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Near-twin divergence formation groups: $($m.near_twin_divergence_formation_group_count)"
-          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value '- Formula stage: CLOSED'
+          if ($m.schema -ne 'A1_V32_BEHAVIOR_GROUPING_ATLAS_V2') { throw 'M2_GROUP_V2_MANIFEST_SCHEMA_FAIL' }
+          if ($m.axis_version -ne 'M2_MULTI_AXIS_EXACT_SIGNATURE_TEMPORAL_BLINDSPOT_V2') { throw 'M2_GROUP_V2_MANIFEST_AXIS_VERSION_FAIL' }
+          if ($m.status -ne 'PROVISIONAL_BEHAVIOR_ATLAS') { throw 'M2_GROUP_V2_STATUS_FAIL' }
+          if ([int]$m.source_count_consumed -lt 8) { throw "M2_GROUP_V2_BOOTSTRAP_NOT_COMPLETE:$($m.source_count_consumed)" }
+          if ($m.required_current_stage_axes_present -ne $true) { throw 'M2_GROUP_V2_REQUIRED_AXES_NOT_PRESENT' }
+          if ($m.coverage_contract_status -ne 'PASS_CURRENT_STAGE_WITH_EXPLICIT_DEFERRED_GATES') { throw 'M2_GROUP_V2_COVERAGE_CONTRACT_FAIL' }
+          if ($m.formula_stage -ne 'CLOSED') { throw 'M2_GROUP_V2_FORMULA_GATE_FAIL' }
 
-      - name: Prepare bootstrap summary artifact
+      - name: Prepare V2 bootstrap summary artifact
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          New-Item -ItemType Directory -Force -Path 'm2-behavior-grouping-bootstrap-summary' | Out-Null
-          Copy-Item -LiteralPath 'v32-behavior-grouping-requests\current.json' -Destination 'm2-behavior-grouping-bootstrap-summary\request.json' -Force
-          Copy-Item -LiteralPath (Join-Path $env:A1_M2_GROUP_OUTPUT_ROOT 'manifest.json') -Destination 'm2-behavior-grouping-bootstrap-summary\manifest.json' -Force
-          Copy-Item -LiteralPath (Join-Path $env:A1_M2_GROUP_OUTPUT_ROOT 'axis-summary.json') -Destination 'm2-behavior-grouping-bootstrap-summary\axis-summary.json' -Force
-          Copy-Item -LiteralPath (Join-Path $env:A1_M2_GROUP_OUTPUT_ROOT 'source-consumption-registry.json') -Destination 'm2-behavior-grouping-bootstrap-summary\source-consumption-registry.json' -Force
-          Copy-Item -LiteralPath (Join-Path $env:A1_M2_GROUP_OUTPUT_ROOT 'current-checkpoint.json') -Destination 'm2-behavior-grouping-bootstrap-summary\current-checkpoint.json' -Force
+          New-Item -ItemType Directory -Force -Path 'm2-behavior-grouping-v2-bootstrap-summary' | Out-Null
+          Copy-Item -LiteralPath 'v32-behavior-grouping-requests\current.json' -Destination 'm2-behavior-grouping-v2-bootstrap-summary\request.json' -Force
+          Copy-Item -LiteralPath (Join-Path $env:A1_M2_GROUP_OUTPUT_ROOT 'manifest.json') -Destination 'm2-behavior-grouping-v2-bootstrap-summary\manifest.json' -Force
+          Copy-Item -LiteralPath (Join-Path $env:A1_M2_GROUP_OUTPUT_ROOT 'axis-summary.json') -Destination 'm2-behavior-grouping-v2-bootstrap-summary\axis-summary.json' -Force
+          Copy-Item -LiteralPath (Join-Path $env:A1_M2_GROUP_OUTPUT_ROOT 'source-consumption-registry.json') -Destination 'm2-behavior-grouping-v2-bootstrap-summary\source-consumption-registry.json' -Force
+          Copy-Item -LiteralPath (Join-Path $env:A1_M2_GROUP_OUTPUT_ROOT 'current-checkpoint.json') -Destination 'm2-behavior-grouping-v2-bootstrap-summary\current-checkpoint.json' -Force
 
-      - name: Upload bootstrap summary artifact
+      - name: Upload V2 bootstrap summary
         uses: actions/upload-artifact@v4
         with:
-          name: m2-behavior-grouping-bootstrap-${{ github.run_id }}
-          path: m2-behavior-grouping-bootstrap-summary
+          name: m2-behavior-grouping-v2-bootstrap-${{ github.run_id }}
+          path: m2-behavior-grouping-v2-bootstrap-summary
           if-no-files-found: error
           retention-days: 90
 
-      - name: Watch and auto-absorb later durable PASS sources
+      - name: Watch and auto-absorb later durable PASS sources into the same V2 atlas
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          & $env:A1_PYTHON_EXE -m a1clean.formula_research.v32_behavior_grouping_atlas `
+          & $env:A1_PYTHON_EXE -m a1clean.formula_research.v32_behavior_grouping_atlas_v2 `
             --semantic-root $env:A1_M2_GROUP_SEMANTIC_ROOT `
             --output-root $env:A1_M2_GROUP_OUTPUT_ROOT `
             --software-revision $env:A1_M2_GROUP_SEMANTIC_REVISION `
             --bootstrap-source-count 8 `
             --watch `
             --poll-seconds 300
-          if ($LASTEXITCODE -ne 0) { throw "M2_GROUP_WATCH_RUNTIME_FAILED:$LASTEXITCODE" }
+          if ($LASTEXITCODE -ne 0) { throw "M2_GROUP_V2_WATCH_RUNTIME_FAILED:$LASTEXITCODE" }
 
-      - name: Assert full 18-source grouping consumption when watcher completes
+      - name: Assert full 18-source V2 grouping consumption when watcher completes
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           $m = Get-Content -LiteralPath (Join-Path $env:A1_M2_GROUP_OUTPUT_ROOT 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-          if ([int]$m.source_count_consumed -ne 18) { throw "M2_GROUP_FULL_SOURCE_COUNT_FAIL:$($m.source_count_consumed)" }
-          if ($m.status -ne 'PROVISIONAL_BEHAVIOR_ATLAS') { throw 'M2_GROUP_FINAL_STATUS_FAIL' }
-          if ($m.formula_stage -ne 'CLOSED') { throw 'M2_GROUP_FINAL_FORMULA_GATE_FAIL' }
+          if ([int]$m.source_count_consumed -ne 18) { throw "M2_GROUP_V2_FULL_SOURCE_COUNT_FAIL:$($m.source_count_consumed)" }
+          if ($m.status -ne 'PROVISIONAL_BEHAVIOR_ATLAS') { throw 'M2_GROUP_V2_FINAL_STATUS_FAIL' }
+          if ($m.required_current_stage_axes_present -ne $true) { throw 'M2_GROUP_V2_FINAL_REQUIRED_AXES_FAIL' }
+          if ($m.formula_stage -ne 'CLOSED') { throw 'M2_GROUP_V2_FINAL_FORMULA_GATE_FAIL' }
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value '### Machine 2 V2 atlas full-source consumption'
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Durable sources consumed: $($m.source_count_consumed)/18"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Required current-stage axes present: $($m.required_current_stage_axes_present)"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Coverage contract: $($m.coverage_contract_status)"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value '- Formula stage remains CLOSED'
