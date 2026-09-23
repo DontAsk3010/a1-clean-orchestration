@@ -1,0 +1,99 @@
+name: Windows V3.2 Data Richness Probe
+
+on:
+  push:
+    branches:
+      - formula/current-clean-research-v1
+    paths:
+      - '.github/workflows/windows-v32-data-richness-probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Read-only durable V3.2 data richness inspection
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 15
+    steps:
+      - name: Inspect durable outputs and schemas
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = 'C:\Users\feri-admin\.a1clean\v32_full_observation_behavior\schema-v3\f22dc09395a7967215f93fc832d0fe81ee77d3aa'
+          if (-not (Test-Path -LiteralPath $root -PathType Container)) { throw 'V32_DATA_ROOT_MISSING' }
+          $sources = @(
+            'Raw Des 02-31-2024.csv','Raw Jan 01-31-2025.csv','Raw Feb 03-28-2025.csv','Raw Maret 03-31-2025.csv',
+            'Raw April 01-30-2025.csv','Raw Mei 01-30-2025.csv','Raw Juni 02-30-2025.csv','Raw Juli 01-31-2025.csv',
+            'Raw Agust 01-29-2025.csv','Raw Sep 01-30-2025.csv','Raw Oct 01-31-2025.csv','Raw Nov 03-29-2025.csv',
+            'Raw Des 01-31-2025.csv','Raw Jan 01-30-2026.csv','Raw Feb 02-27-2026.csv','Raw Mar 02-31-2026.csv',
+            'Raw Apr 01-30-2026.csv','Raw Mei 01-29-2026.csv'
+          )
+          function Get-Slug([string]$s) {
+            $sha=[System.Security.Cryptography.SHA256]::Create()
+            try {
+              $bytes=[System.Text.Encoding]::UTF8.GetBytes($s)
+              $hash=$sha.ComputeHash($bytes)
+              return (($hash|ForEach-Object{$_.ToString('x2')}) -join '').Substring(0,16)
+            } finally { $sha.Dispose() }
+          }
+          function Read-FirstJson([string]$path) {
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { return $null }
+            $fs=[System.IO.File]::OpenRead($path)
+            try {
+              $gz=New-Object System.IO.Compression.GzipStream($fs,[System.IO.Compression.CompressionMode]::Decompress)
+              try {
+                $sr=New-Object System.IO.StreamReader($gz,[System.Text.Encoding]::UTF8)
+                try {
+                  while (($line=$sr.ReadLine()) -ne $null) {
+                    if (-not [string]::IsNullOrWhiteSpace($line)) { return ($line | ConvertFrom-Json) }
+                  }
+                } finally { $sr.Dispose() }
+              } finally { $gz.Dispose() }
+            } finally { $fs.Dispose() }
+            return $null
+          }
+          $latestSource=$null; $latestDir=$null; $latestCp=$null; $pass=0
+          foreach($source in $sources){
+            $dir=Join-Path $root (Get-Slug $source)
+            $cpPath=Join-Path $dir 'checkpoint.json'
+            if(-not (Test-Path -LiteralPath $cpPath -PathType Leaf)){ continue }
+            $cp=Get-Content -LiteralPath $cpPath -Raw -Encoding UTF8 | ConvertFrom-Json
+            if([string]$cp.status -ne 'PASS'){ continue }
+            $pass++
+            $full=Read-FirstJson (Join-Path $dir ([string]$cp.full_observation_layer_file))
+            $hdr=@($full.source_header)
+            Write-Output ('V32_SOURCE_PASS|source={0}|ticker_days={1}|source_rows={2}|regular_rows={3}|nonregular_rows={4}|event_journeys={5}|behavior_paths={6}|lifecycle={7}|no_forced_event={8}|phase_context={9}|source_header_count={10}|source_header={11}' -f $source,$cp.ticker_days,$cp.source_rows,$cp.regular_rows,$cp.nonregular_rows,$cp.event_journeys,$cp.behavior_paths,$cp.behavior_lifecycle_journeys,$cp.no_forced_event_ticker_days,$cp.phase_context_records,$hdr.Count,($hdr -join ','))
+            $latestSource=$source; $latestDir=$dir; $latestCp=$cp
+          }
+          Write-Output ('V32_PASS_COUNT|{0}/18|latest_pass_source={1}' -f $pass,$latestSource)
+          if($null -eq $latestCp){ throw 'NO_PASS_SOURCE_FOUND' }
+          function Show-Schema([string]$label,[string]$fileName){
+            if([string]::IsNullOrWhiteSpace($fileName)){ Write-Output ("V32_SCHEMA|$label|NO_FILE_NAME"); return }
+            $obj=Read-FirstJson (Join-Path $latestDir $fileName)
+            if($null -eq $obj){ Write-Output ("V32_SCHEMA|$label|EMPTY_OR_MISSING"); return }
+            $keys=@($obj.PSObject.Properties.Name)
+            Write-Output ('V32_SCHEMA|{0}|keys={1}' -f $label,($keys -join ','))
+          }
+          Show-Schema 'ticker_days' ([string]$latestCp.ticker_day_file)
+          Show-Schema 'formation_runs' ([string]$latestCp.formation_run_file)
+          Show-Schema 'event_journeys' ([string]$latestCp.event_journey_file)
+          Show-Schema 'phase_context' ([string]$latestCp.phase_context_file)
+          Show-Schema 'full_observation' ([string]$latestCp.full_observation_layer_file)
+          Show-Schema 'regular_behavior_stream' ([string]$latestCp.regular_behavior_stream_file)
+          Show-Schema 'behavior_day_profiles' ([string]$latestCp.behavior_day_profile_file)
+          Show-Schema 'behavior_lifecycle' ([string]$latestCp.behavior_lifecycle_file)
+          Show-Schema 'behavior_paths' ([string]$latestCp.behavior_path_file)
+          $full=Read-FirstJson (Join-Path $latestDir ([string]$latestCp.full_observation_layer_file))
+          if($null -ne $full){
+            $bar=@($full.bars)[0]
+            Write-Output ('V32_FULL_TOP|source={0}|ticker={1}|date={2}|layer={3}|all_source_columns_retained={4}|header_count={5}|packet_fingerprint={6}' -f $full.source,$full.ticker,$full.date,$full.layer,$full.all_source_columns_retained,@($full.source_header).Count,$full.source_packet_fingerprint)
+            if($null -ne $bar){
+              Write-Output ('V32_BAR_KEYS|{0}' -f (@($bar.PSObject.Properties.Name) -join ','))
+              Write-Output ('V32_BAR_SAMPLE|timestamp={0}|source_row={1}|phase={2}|role={3}|open={4}|high={5}|low={6}|close={7}|volume={8}|trade_value={9}|nbss={10}|haka={11}|haki={12}|haka_haki_status={13}|flow_available={14}|regular_behavior_eligible={15}|source_field_values_count={16}' -f $bar.timestamp,$bar.source_row,$bar.source_phase,$bar.observation_role,$bar.open,$bar.high,$bar.low,$bar.close,$bar.volume,$bar.trade_value,$bar.nbss,$bar.haka,$bar.haki,$bar.haka_haki_status,$bar.flow_available,$bar.regular_behavior_eligible,@($bar.source_field_values).Count)
+            }
+          }
+          $bd=Read-FirstJson (Join-Path $latestDir ([string]$latestCp.behavior_day_profile_file))
+          if($null -ne $bd){ Write-Output ('V32_BEHAVIOR_DAY_SAMPLE|{0}' -f (($bd | ConvertTo-Json -Depth 4 -Compress))) }
+          $bp=Read-FirstJson (Join-Path $latestDir ([string]$latestCp.behavior_path_file))
+          if($null -ne $bp){ Write-Output ('V32_BEHAVIOR_PATH_SAMPLE|{0}' -f (($bp | ConvertTo-Json -Depth 5 -Compress))) }
