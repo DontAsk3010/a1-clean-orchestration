@@ -1,0 +1,18 @@
+{
+    "ticker":  "COAL",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  395015,
+    "source_row_last":  395020,
+    "actual_rows":  6,
+    "first_datetime":  "2024-12-05 09:55:00",
+    "last_datetime":  "2024-12-05 16:06:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "7b0819a03a9666908b8a22d956611fdae5384e7b753213388b5d7375ed3a86c0",
+    "compact_rows_sha256":  "ae816519fa05adc31f91ad8b546ae39f424631457502484947f9eb3bfd3e2064",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  6,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

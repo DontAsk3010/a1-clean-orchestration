@@ -1,0 +1,18 @@
+{
+    "ticker":  "CRSN",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  408209,
+    "source_row_last":  408241,
+    "actual_rows":  33,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:07:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "fdc4ae567ca5d614fe41d0a2d682b570af279d8f245df39ab30f11a1fe329f42",
+    "compact_rows_sha256":  "74c0204800b24a9c889f2577a8207d3c98a61fe62f01cc121072a27275a9624a",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  33,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

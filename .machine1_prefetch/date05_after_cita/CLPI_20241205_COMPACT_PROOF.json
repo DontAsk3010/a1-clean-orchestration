@@ -1,0 +1,18 @@
+{
+    "ticker":  "CLPI",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  381474,
+    "source_row_last":  381493,
+    "actual_rows":  20,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:14:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "a3ee3030d1035f193b161ae854a9408a4bae7b251f9409280ec37d7ac73514d9",
+    "compact_rows_sha256":  "df62441c753a41dd16c0bbf61ee8b5975b5ad74312b99af3b69c28d9b71f5720",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  20,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

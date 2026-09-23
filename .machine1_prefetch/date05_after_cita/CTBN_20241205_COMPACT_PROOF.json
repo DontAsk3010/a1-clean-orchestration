@@ -1,0 +1,18 @@
+{
+    "ticker":  "CTBN",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  409432,
+    "source_row_last":  409434,
+    "actual_rows":  3,
+    "first_datetime":  "2024-12-05 10:55:00",
+    "last_datetime":  "2024-12-05 16:00:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "f383451d21926e1024d6275bfd4bf748775ba1e842def698770ed7977757b316",
+    "compact_rows_sha256":  "eb72a0f481aa8f9303fa3d2d295124b34ccea9b14f5d78c5045b5583f2283113",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  3,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

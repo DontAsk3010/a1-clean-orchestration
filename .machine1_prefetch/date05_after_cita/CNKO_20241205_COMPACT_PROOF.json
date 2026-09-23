@@ -1,0 +1,18 @@
+{
+    "ticker":  "CNKO",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  388966,
+    "source_row_last":  388971,
+    "actual_rows":  6,
+    "first_datetime":  "2024-12-05 09:55:00",
+    "last_datetime":  "2024-12-05 16:13:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "ac37a7a559c7ca68932036aa7da5c71d52533ca87e6e98a8f69219757b8bcca5",
+    "compact_rows_sha256":  "e29f89f0fda1b0e18c1d2e81afd8510c764fec81e58ec6fc0f357f6a55325e80",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  6,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

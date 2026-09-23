@@ -1,0 +1,18 @@
+{
+    "ticker":  "CSAP",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  407945,
+    "source_row_last":  407954,
+    "actual_rows":  10,
+    "first_datetime":  "2024-12-05 09:44:00",
+    "last_datetime":  "2024-12-05 15:41:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "f55779c920c4b2249b95688b251a10e65f2226a05b3816521e0e3b0544bf4634",
+    "compact_rows_sha256":  "c154e3b886472a526c87da5490fb5394a83d4b3a2c2e927e73d11509bb8cbe55",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  10,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

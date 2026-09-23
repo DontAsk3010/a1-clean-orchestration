@@ -1,0 +1,18 @@
+{
+    "ticker":  "COCO",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  395288,
+    "source_row_last":  395333,
+    "actual_rows":  46,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:00:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "293e6b54b46e375d8cf672ed8db51f207ffa445b1052721559266ea50cb4dc96",
+    "compact_rows_sha256":  "066f8795bf9ac66fa0a52582a04b18e4db5b51c2f4967cce1a62f72f7f71b2ea",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  46,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

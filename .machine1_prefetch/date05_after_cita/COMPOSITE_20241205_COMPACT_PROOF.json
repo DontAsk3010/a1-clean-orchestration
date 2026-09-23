@@ -1,0 +1,18 @@
+{
+    "ticker":  "COMPOSITE",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  396898,
+    "source_row_last":  397232,
+    "actual_rows":  335,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:14:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "e28d70251661e219306c2f50426fbc0a7fcb9b0d1f42e22d8ab0bb2e71600a95",
+    "compact_rows_sha256":  "95262a7488b4e389dc86ad216d3d58e2c6fcefb051eec63df799f50fb2e90db3",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  335,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

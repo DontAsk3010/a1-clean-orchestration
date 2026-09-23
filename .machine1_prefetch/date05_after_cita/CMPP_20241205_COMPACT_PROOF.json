@@ -1,0 +1,18 @@
+{
+    "ticker":  "CMPP",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  386792,
+    "source_row_last":  386795,
+    "actual_rows":  4,
+    "first_datetime":  "2024-12-05 09:55:00",
+    "last_datetime":  "2024-12-05 16:13:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "82e96db54c680b27c5b90f92ac63adca34a2d47390d6aef282687f357d530131",
+    "compact_rows_sha256":  "102d003df214b3c6356966636438f4175a54ad4c10baea1e23d07d5bba3b4787",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  4,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

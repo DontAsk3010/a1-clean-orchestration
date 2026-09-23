@@ -1,0 +1,18 @@
+{
+    "ticker":  "CITY",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  377964,
+    "source_row_last":  378181,
+    "actual_rows":  218,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:14:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "709eec55b8e6d69070b77377ee3390a1e29bae12b3c6c009e36f05d08d705c8c",
+    "compact_rows_sha256":  "2b48cb6807a3b20cd051fc695d4a0c6db0d15ed654aef106d1bfaff25257c53c",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  218,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

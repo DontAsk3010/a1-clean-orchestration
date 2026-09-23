@@ -1,0 +1,18 @@
+{
+    "ticker":  "CMRY",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  389672,
+    "source_row_last":  389785,
+    "actual_rows":  114,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:03:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "aa535590cd0b0b40a4619fc2d55721437a75a87dc77cae992b01c3b63bf2c5a6",
+    "compact_rows_sha256":  "346e13505628a9c7765a741727ef41d953e334572007269b86ca7e173a89bc22",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  114,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

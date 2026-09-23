@@ -1,0 +1,18 @@
+{
+    "ticker":  "CPIN",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  402869,
+    "source_row_last":  403080,
+    "actual_rows":  212,
+    "first_datetime":  "2024-12-05 08:59:00",
+    "last_datetime":  "2024-12-05 16:00:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "2b64ccfa0e733c38e8cffc3f5f138a8f36e2f850015db88a912dcb66847c8c22",
+    "compact_rows_sha256":  "465f02265d850a4c8a607e11cf15625060eef8f7a10d57e739ae5454ae4e3495",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  212,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

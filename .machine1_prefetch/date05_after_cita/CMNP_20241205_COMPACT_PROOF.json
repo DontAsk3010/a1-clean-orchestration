@@ -1,0 +1,18 @@
+{
+    "ticker":  "CMNP",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  382032,
+    "source_row_last":  382044,
+    "actual_rows":  13,
+    "first_datetime":  "2024-12-05 09:02:00",
+    "last_datetime":  "2024-12-05 16:00:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "933dadbed1796b4b7bc63bb4cbceb9b058299cf8e6806682d1b0a41bfafaca24",
+    "compact_rows_sha256":  "8bc2f7d632199efae756eae0499c1d6e0615e487104062c83ab574b6a8d51f8a",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  13,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}
