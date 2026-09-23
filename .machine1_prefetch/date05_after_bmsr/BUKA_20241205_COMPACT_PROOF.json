@@ -1,0 +1,18 @@
+{
+    "ticker":  "BUKA",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  336338,
+    "source_row_last":  336587,
+    "actual_rows":  250,
+    "first_datetime":  "2024-12-05 08:59:00",
+    "last_datetime":  "2024-12-05 16:13:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "4ad1bcfe00245b01c45804e8a35165b10739e6d156665a2684122b7c6d524233",
+    "compact_rows_sha256":  "392b3bdfaf3df44f41f26538bb536a9ede222852c79cd0cbb0ce91820d14bad2",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  250,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

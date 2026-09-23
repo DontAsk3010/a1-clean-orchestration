@@ -1,0 +1,18 @@
+{
+    "ticker":  "BSML",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  320323,
+    "source_row_last":  320428,
+    "actual_rows":  106,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:01:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "0e20c03acb2efe730c9b62c68d115aaef36bfcf31b4e9bee21de86607c3ef1d7",
+    "compact_rows_sha256":  "ba1b4fe9894a47e9c9193e1227670cf05c6f10770f297d26b9c12653073b52e9",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  106,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

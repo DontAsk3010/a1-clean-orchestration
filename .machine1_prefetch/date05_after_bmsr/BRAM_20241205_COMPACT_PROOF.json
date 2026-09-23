@@ -1,0 +1,18 @@
+{
+    "ticker":  "BRAM",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  286676,
+    "source_row_last":  286684,
+    "actual_rows":  9,
+    "first_datetime":  "2024-12-05 10:05:00",
+    "last_datetime":  "2024-12-05 15:46:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "18a3c53cf5bc53c8b0f454ce4706683fc00e5ab9ab16cafc2bda6b6175756017",
+    "compact_rows_sha256":  "3190a2a9c8c6366ca9dc9045bd673161e466c8504e3821fbbbb6ea527621c8bb",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  9,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

@@ -1,0 +1,18 @@
+{
+    "ticker":  "BMRI",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  261189,
+    "source_row_last":  261522,
+    "actual_rows":  334,
+    "first_datetime":  "2024-12-05 08:59:00",
+    "last_datetime":  "2024-12-05 16:13:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "544f358a641d52ab7e2f2ead1236ef4b4ba9e443ac8edccc8b4527a18f9fb0b0",
+    "compact_rows_sha256":  "a15dc3fa338b6305590e25a597cba0a7d38b8430ebec298e2164f53f82d70ede",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  334,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

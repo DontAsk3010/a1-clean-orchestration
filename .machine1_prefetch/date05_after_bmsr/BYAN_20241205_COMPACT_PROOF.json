@@ -1,0 +1,18 @@
+{
+    "ticker":  "BYAN",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  352027,
+    "source_row_last":  352057,
+    "actual_rows":  31,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:00:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "d31cf3de3aaeeb09617cc5800eac111ed9050b8022616858456b2a36d81984bc",
+    "compact_rows_sha256":  "c9b3f01b7d96e521ff84316d061868ec4765c11ff6794b65f6a668ea200c68f6",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  31,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

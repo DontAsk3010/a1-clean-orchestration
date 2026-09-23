@@ -1,0 +1,18 @@
+{
+    "ticker":  "BWPT",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  353811,
+    "source_row_last":  353893,
+    "actual_rows":  83,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:05:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "ad283f8659d9b4e69dd995c0966525afec00c731374bf47a5ce806343c0a1073",
+    "compact_rows_sha256":  "9951fd8ae010020e92dcb33652ad1133902dd7c313655d7c70740c8961ae6d7f",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  83,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

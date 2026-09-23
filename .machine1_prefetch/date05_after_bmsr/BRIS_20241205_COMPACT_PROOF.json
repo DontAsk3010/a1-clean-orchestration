@@ -1,0 +1,18 @@
+{
+    "ticker":  "BRIS",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  294330,
+    "source_row_last":  294654,
+    "actual_rows":  325,
+    "first_datetime":  "2024-12-05 08:59:00",
+    "last_datetime":  "2024-12-05 16:14:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "ed107122db46941592bce0da974b269f2a7a1f223384a80ba0109eebcd3b3c57",
+    "compact_rows_sha256":  "6189b64acb391a61fc80eb93ebeb628b75e2b41c2bd12943ef14418b2ce285d4",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  325,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

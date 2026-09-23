@@ -1,0 +1,18 @@
+{
+    "ticker":  "BOLT",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  282580,
+    "source_row_last":  282831,
+    "actual_rows":  252,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:00:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "4c2c10b781367659247a962b3abc8eb108d9fa93dccb569e6308358ed381f862",
+    "compact_rows_sha256":  "5fb61c332e089a9b6fc3d9d75975fb2875898fd474d9bd5497ad47771a104b5d",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  252,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

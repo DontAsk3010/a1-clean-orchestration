@@ -1,0 +1,18 @@
+{
+    "ticker":  "BTEK",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  322750,
+    "source_row_last":  322758,
+    "actual_rows":  9,
+    "first_datetime":  "2024-12-05 09:55:00",
+    "last_datetime":  "2024-12-05 16:12:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "d734495d52d525b8bd952b0aab75e0319bf9029d838949918421e08a553fd428",
+    "compact_rows_sha256":  "31f7b0c388e35f9a9be2402059c55ef31c51f2956a7f2a5d26ec75aa9fcbbf94",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  9,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

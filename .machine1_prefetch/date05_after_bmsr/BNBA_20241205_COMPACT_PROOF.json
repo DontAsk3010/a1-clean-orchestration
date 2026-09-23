@@ -1,0 +1,18 @@
+{
+    "ticker":  "BNBA",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  266433,
+    "source_row_last":  266456,
+    "actual_rows":  24,
+    "first_datetime":  "2024-12-05 09:01:00",
+    "last_datetime":  "2024-12-05 16:00:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "b199ed471b7ad067cd2097506e166c64048ebb7bdf5c173d47626127c0d49952",
+    "compact_rows_sha256":  "71e3e0bc30e12a84b4403f6ce292110a5bf6d2eb8d45fcd50ccb36841f979818",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  24,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

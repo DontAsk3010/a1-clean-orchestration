@@ -1,0 +1,18 @@
+{
+    "ticker":  "BSDE",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  315746,
+    "source_row_last":  315989,
+    "actual_rows":  244,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:13:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "ad2c1ac90efc7e575030a894b9c274dd10733f3e4e3f9f6e722ea93c42bc81b1",
+    "compact_rows_sha256":  "166e6f97e14378344be9a82837ecb9880b0faf1ed97ff4b19441e6cf2fcb5a51",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  244,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

@@ -1,0 +1,18 @@
+{
+    "ticker":  "BTPN",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  323177,
+    "source_row_last":  323202,
+    "actual_rows":  26,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:12:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "4e03f165409489e5895b1d5f6778215d2092fe1715287d72515db531898c35c5",
+    "compact_rows_sha256":  "28fc0020768803b3ffed6b81834a8f62fb2be4f2f8a7445601a45f2407f0a0d0",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  26,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

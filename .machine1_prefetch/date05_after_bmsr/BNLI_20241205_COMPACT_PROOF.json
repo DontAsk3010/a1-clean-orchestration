@@ -1,0 +1,18 @@
+{
+    "ticker":  "BNLI",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  268480,
+    "source_row_last":  268534,
+    "actual_rows":  55,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:13:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "8b2322ae37198cc51b64479f1bb5906d540c2dc3cb2176c8d430083ba93da851",
+    "compact_rows_sha256":  "1e0a552ef2fbbfdf2883dcb731239f720df4016692e3ec1dc3f605e075b64857",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  55,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

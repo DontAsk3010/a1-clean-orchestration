@@ -1,0 +1,18 @@
+{
+    "ticker":  "BUKK",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  335235,
+    "source_row_last":  335246,
+    "actual_rows":  12,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 15:33:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "077ed2457ef83b42e597818ce26d219425563c56ae9252a23f5fb202489eda71",
+    "compact_rows_sha256":  "65d70e44cf43383db1540c36b0d7e8e7c0530fbb4ad3db537829b5d1b2ed7f07",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  12,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

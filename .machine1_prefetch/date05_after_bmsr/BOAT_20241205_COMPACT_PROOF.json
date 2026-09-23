@@ -1,0 +1,18 @@
+{
+    "ticker":  "BOAT",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  276336,
+    "source_row_last":  276658,
+    "actual_rows":  323,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:14:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "dabc8afdf303352fe541b286fb1eeede01061ef62f2ee87a69780b2e17f63c8d",
+    "compact_rows_sha256":  "6b362f33b3fe2d73675a32551d1bceb31598852a4105ad59aa9aef39417fd2a9",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  323,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

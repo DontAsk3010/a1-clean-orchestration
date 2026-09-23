@@ -1,0 +1,18 @@
+{
+    "ticker":  "BRPT",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  306597,
+    "source_row_last":  306932,
+    "actual_rows":  336,
+    "first_datetime":  "2024-12-05 08:59:00",
+    "last_datetime":  "2024-12-05 16:14:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "ef24274d4400a148439ebf768c3a10a05581949435df3aa2c12aab18060d4829",
+    "compact_rows_sha256":  "e5e8aa38ff9a8d16776c6137009817e6a2be32952d439c4db0bd967f68d403d5",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  336,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

@@ -1,0 +1,18 @@
+{
+    "ticker":  "BUDI",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  329914,
+    "source_row_last":  329982,
+    "actual_rows":  69,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:02:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "30b6c7da3dd8b2d4839f14fabfd7bd81a0e74704af05292e59270e2ab4049b7a",
+    "compact_rows_sha256":  "7c13964f129fa8ee9bcc6a7a824f946ba750320efd99c9c497b41401c4053284",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  69,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

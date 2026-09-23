@@ -1,0 +1,18 @@
+{
+    "ticker":  "BNII",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  267358,
+    "source_row_last":  267401,
+    "actual_rows":  44,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:13:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "a559ac083726c7101c64a7a2fb8436609efdb254cc91f5a475a7df6a59a5aad7",
+    "compact_rows_sha256":  "b2032d861d846458651a55c33e3ef1f4e3a10d9310307f6525d379366f734ddd",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  44,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

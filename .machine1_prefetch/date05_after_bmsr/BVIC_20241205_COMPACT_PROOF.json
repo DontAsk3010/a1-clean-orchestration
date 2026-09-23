@@ -1,0 +1,18 @@
+{
+    "ticker":  "BVIC",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  350768,
+    "source_row_last":  350833,
+    "actual_rows":  66,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:00:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "5dd46f62438b2a056cc958a8591799421e4151484ca9f4e674c5bebdf4e2b82d",
+    "compact_rows_sha256":  "71a30a4a892dfde53a39c7e9ff750709f1986badf71bf9ebb7534b1d535c37c8",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  66,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}
