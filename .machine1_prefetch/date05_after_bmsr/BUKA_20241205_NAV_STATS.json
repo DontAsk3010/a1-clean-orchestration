@@ -1,0 +1,45 @@
+{
+    "ticker":  "BUKA",
+    "trading_date":  "2024-12-05",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_rows_sha256":  "392b3bdfaf3df44f41f26538bb536a9ede222852c79cd0cbb0ce91820d14bad2",
+    "canonical_rows_jsonl_sha256":  "4ad1bcfe00245b01c45804e8a35165b10739e6d156665a2684122b7c6d524233",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "actual_rows":  250,
+    "source_row_first":  336338,
+    "source_row_last":  336587,
+    "first_datetime":  "2024-12-05 08:59:00",
+    "last_datetime":  "2024-12-05 16:13:00",
+    "observed_high":  123,
+    "observed_low":  121,
+    "total_volume":  67363600,
+    "gap_transition_count":  53,
+    "largest_activity":  {
+                             "source_row":  336581,
+                             "datetime":  "2024-12-05 16:00:00",
+                             "open":  121,
+                             "high":  121,
+                             "low":  121,
+                             "close":  121,
+                             "volume":  15867300
+                         },
+    "session_codes":  [
+                          "11",
+                          "20",
+                          "40",
+                          "51",
+                          "60"
+                      ],
+    "raw_aux1_semantic_proven_codes":  [
+                                           "-1"
+                                       ],
+    "raw_aux2_fresh_semantic_proven_codes":  [
+                                                 "-1"
+                                             ],
+    "raw_openint_fresh_semantic_proven_codes":  [
+                                                    "-1"
+                                                ],
+    "navigation_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

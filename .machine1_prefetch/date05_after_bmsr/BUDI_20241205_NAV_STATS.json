@@ -1,0 +1,44 @@
+{
+    "ticker":  "BUDI",
+    "trading_date":  "2024-12-05",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_rows_sha256":  "7c13964f129fa8ee9bcc6a7a824f946ba750320efd99c9c497b41401c4053284",
+    "canonical_rows_jsonl_sha256":  "30b6c7da3dd8b2d4839f14fabfd7bd81a0e74704af05292e59270e2ab4049b7a",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "actual_rows":  69,
+    "source_row_first":  329914,
+    "source_row_last":  329982,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:02:00",
+    "observed_high":  244,
+    "observed_low":  218,
+    "total_volume":  4659800,
+    "gap_transition_count":  39,
+    "largest_activity":  {
+                             "source_row":  329959,
+                             "datetime":  "2024-12-05 15:12:00",
+                             "open":  226,
+                             "high":  244,
+                             "low":  226,
+                             "close":  244,
+                             "volume":  1369600
+                         },
+    "session_codes":  [
+                          "20",
+                          "40",
+                          "51",
+                          "60"
+                      ],
+    "raw_aux1_semantic_proven_codes":  [
+                                           "-1"
+                                       ],
+    "raw_aux2_fresh_semantic_proven_codes":  [
+                                                 "-1"
+                                             ],
+    "raw_openint_fresh_semantic_proven_codes":  [
+                                                    "-1"
+                                                ],
+    "navigation_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

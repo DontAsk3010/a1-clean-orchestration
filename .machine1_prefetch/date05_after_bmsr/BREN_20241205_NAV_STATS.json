@@ -1,0 +1,44 @@
+{
+    "ticker":  "BREN",
+    "trading_date":  "2024-12-05",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_rows_sha256":  "a861c290d30b14124983586b2d4432a0bf99dfb18b04368d91123ed2f2c44572",
+    "canonical_rows_jsonl_sha256":  "9ada09c8d8b37cf4103678d69151d3575e3290c4162d91ea371ea1e8af43762b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "actual_rows":  334,
+    "source_row_first":  288267,
+    "source_row_last":  288600,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:14:00",
+    "observed_high":  7675,
+    "observed_low":  7300,
+    "total_volume":  33477500,
+    "gap_transition_count":  3,
+    "largest_activity":  {
+                             "source_row":  288505,
+                             "datetime":  "2024-12-05 14:28:00",
+                             "open":  7575,
+                             "high":  7575,
+                             "low":  7425,
+                             "close":  7475,
+                             "volume":  1502600
+                         },
+    "session_codes":  [
+                          "20",
+                          "40",
+                          "51",
+                          "60"
+                      ],
+    "raw_aux1_semantic_proven_codes":  [
+                                           "-1"
+                                       ],
+    "raw_aux2_fresh_semantic_proven_codes":  [
+                                                 "-1"
+                                             ],
+    "raw_openint_fresh_semantic_proven_codes":  [
+                                                    "-1"
+                                                ],
+    "navigation_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

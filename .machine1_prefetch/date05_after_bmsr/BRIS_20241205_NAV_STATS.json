@@ -1,0 +1,45 @@
+{
+    "ticker":  "BRIS",
+    "trading_date":  "2024-12-05",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_rows_sha256":  "6189b64acb391a61fc80eb93ebeb628b75e2b41c2bd12943ef14418b2ce285d4",
+    "canonical_rows_jsonl_sha256":  "ed107122db46941592bce0da974b269f2a7a1f223384a80ba0109eebcd3b3c57",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "actual_rows":  325,
+    "source_row_first":  294330,
+    "source_row_last":  294654,
+    "first_datetime":  "2024-12-05 08:59:00",
+    "last_datetime":  "2024-12-05 16:14:00",
+    "observed_high":  2990,
+    "observed_low":  2930,
+    "total_volume":  12003400,
+    "gap_transition_count":  13,
+    "largest_activity":  {
+                             "source_row":  294519,
+                             "datetime":  "2024-12-05 13:45:00",
+                             "open":  2970,
+                             "high":  2970,
+                             "low":  2970,
+                             "close":  2970,
+                             "volume":  683700
+                         },
+    "session_codes":  [
+                          "11",
+                          "20",
+                          "40",
+                          "51",
+                          "60"
+                      ],
+    "raw_aux1_semantic_proven_codes":  [
+                                           "-1"
+                                       ],
+    "raw_aux2_fresh_semantic_proven_codes":  [
+                                                 "-1"
+                                             ],
+    "raw_openint_fresh_semantic_proven_codes":  [
+                                                    "-1"
+                                                ],
+    "navigation_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

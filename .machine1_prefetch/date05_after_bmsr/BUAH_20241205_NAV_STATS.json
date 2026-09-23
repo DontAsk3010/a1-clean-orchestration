@@ -1,0 +1,43 @@
+{
+    "ticker":  "BUAH",
+    "trading_date":  "2024-12-05",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_rows_sha256":  "c8505218e540b22e8a7b698f7050cdad349459dbe9d0ce91ce5bfb00d5bea277",
+    "canonical_rows_jsonl_sha256":  "d1653c05ac0e16f9bb7d0c8d855a1f6162ca0a9c399c2a3ef342c9b4a9b94af3",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "actual_rows":  185,
+    "source_row_first":  327650,
+    "source_row_last":  327834,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:00:00",
+    "observed_high":  1025,
+    "observed_low":  1005,
+    "total_volume":  238200,
+    "gap_transition_count":  64,
+    "largest_activity":  {
+                             "source_row":  327778,
+                             "datetime":  "2024-12-05 14:06:00",
+                             "open":  1010,
+                             "high":  1015,
+                             "low":  1005,
+                             "close":  1005,
+                             "volume":  20000
+                         },
+    "session_codes":  [
+                          "20",
+                          "40",
+                          "51"
+                      ],
+    "raw_aux1_semantic_proven_codes":  [
+                                           "-1"
+                                       ],
+    "raw_aux2_fresh_semantic_proven_codes":  [
+                                                 "-1"
+                                             ],
+    "raw_openint_fresh_semantic_proven_codes":  [
+                                                    "-1"
+                                                ],
+    "navigation_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}
