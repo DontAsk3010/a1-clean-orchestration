@@ -1,0 +1,59 @@
+name: Machine1 Date05 Deterministic Navigation Stats After CITA
+
+on:
+  push:
+    branches:
+      - machine1/date05-prefetch-after-bmsr
+    paths:
+      - .machine1_prefetch/date05_after_cita/*_20241205_COMPACT_PROOF.json
+      - .machine1_prefetch/date05_after_cita/*_20241205_ROWS_COMPACT.tsv
+
+permissions:
+  contents: write
+
+jobs:
+  navstats:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build deterministic navigation stats after CITA
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $batchDir=Join-Path $PWD '.machine1_prefetch/date05_after_cita'
+          $targetDate='2024-12-05'
+          $utf8NoBom=New-Object System.Text.UTF8Encoding($false)
+          $proofFiles=@(Get-ChildItem -LiteralPath $batchDir -Filter '*_20241205_COMPACT_PROOF.json' | Sort-Object Name)
+          if($proofFiles.Count -lt 1){throw 'NO_COMPACT_PROOFS_FOUND'}
+          foreach($pf in $proofFiles){
+            $proof=Get-Content -Raw -LiteralPath $pf.FullName | ConvertFrom-Json
+            $tk=[string]$proof.ticker
+            if([string]$proof.trading_date -ne $targetDate){throw "PROOF_DATE_MISMATCH ticker=$tk"}
+            $compactPath=Join-Path $batchDir ($tk+'_20241205_ROWS_COMPACT.tsv')
+            if(-not (Test-Path -LiteralPath $compactPath -PathType Leaf)){throw "COMPACT_MISSING ticker=$tk"}
+            $compactSha=(Get-FileHash -LiteralPath $compactPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            if($compactSha -ne [string]$proof.compact_rows_sha256){throw "COMPACT_SHA_MISMATCH ticker=$tk"}
+            $rows=@(Import-Csv -LiteralPath $compactPath -Delimiter "`t")
+            if($rows.Count -ne [int]$proof.actual_rows){throw "COMPACT_ROW_COUNT_MISMATCH ticker=$tk"}
+            if([int64]$rows[0].source_row -ne [int64]$proof.source_row_first -or [int64]$rows[$rows.Count-1].source_row -ne [int64]$proof.source_row_last){throw "SOURCE_ROW_BOUNDARY_MISMATCH ticker=$tk"}
+            [int64]$totalVolume=0;[double]$high=[double]::NegativeInfinity;[double]$low=[double]::PositiveInfinity;[int]$gapCount=0;$maxRow=$null;[int64]$maxVolume=-1
+            $sessions=New-Object 'System.Collections.Generic.HashSet[string]';$aux1=New-Object 'System.Collections.Generic.HashSet[string]';$aux2=New-Object 'System.Collections.Generic.HashSet[string]';$oi=New-Object 'System.Collections.Generic.HashSet[string]'
+            foreach($r in $rows){
+              [int64]$vol=[int64]$r.RAW_VOLUME;$totalVolume+=$vol;[double]$rh=[double]$r.RAW_HIGH;[double]$rl=[double]$r.RAW_LOW
+              if($rh -gt $high){$high=$rh};if($rl -lt $low){$low=$rl};if([string]$r.OBS_GAP_GT_BASE_INTERVAL_FLAG -eq '1'){$gapCount++}
+              if($vol -gt $maxVolume){$maxVolume=$vol;$maxRow=$r}
+              [void]$sessions.Add([string]$r.IDX_REGULAR_CLOCK_SESSION_CODE);[void]$aux1.Add([string]$r.RAW_AUX1_SEMANTIC_PROVEN_CODE);[void]$aux2.Add([string]$r.RAW_AUX2_FRESH_SEMANTIC_PROVEN_CODE);[void]$oi.Add([string]$r.RAW_OPENINT_FRESH_SEMANTIC_PROVEN_CODE)
+            }
+            $stats=[ordered]@{ticker=$tk;trading_date=$targetDate;compact_schema_version=[string]$proof.compact_schema_version;compact_rows_sha256=$compactSha;canonical_rows_jsonl_sha256=[string]$proof.canonical_rows_jsonl_sha256;source_sha256=[string]$proof.source_sha256;actual_rows=$rows.Count;source_row_first=[int64]$rows[0].source_row;source_row_last=[int64]$rows[$rows.Count-1].source_row;first_datetime=[string]$rows[0].RAW_DATETIME_ISO;last_datetime=[string]$rows[$rows.Count-1].RAW_DATETIME_ISO;observed_high=$high;observed_low=$low;total_volume=$totalVolume;gap_transition_count=$gapCount;largest_activity=[ordered]@{source_row=[int64]$maxRow.source_row;datetime=[string]$maxRow.RAW_DATETIME_ISO;open=[double]$maxRow.RAW_OPEN;high=[double]$maxRow.RAW_HIGH;low=[double]$maxRow.RAW_LOW;close=[double]$maxRow.RAW_CLOSE;volume=[int64]$maxRow.RAW_VOLUME};session_codes=@($sessions|Sort-Object);raw_aux1_semantic_proven_codes=@($aux1|Sort-Object);raw_aux2_fresh_semantic_proven_codes=@($aux2|Sort-Object);raw_openint_fresh_semantic_proven_codes=@($oi|Sort-Object);navigation_only=$true;semantic_read_performed=$false;durable_pass=$false}
+            [System.IO.File]::WriteAllText((Join-Path $batchDir ($tk+'_20241205_NAV_STATS.json')),($stats|ConvertTo-Json -Depth 8),$utf8NoBom)
+            Write-Host "NAV_STATS_OK ticker=$tk rows=$($rows.Count) volume=$totalVolume gaps=$gapCount"
+          }
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add -f '.machine1_prefetch/date05_after_cita/*_20241205_NAV_STATS.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" diff --cached --quiet
+          if($LASTEXITCODE -eq 0){Write-Host 'DATE05_NAV_STATS_AFTER_CITA_NO_CHANGES';exit 0}
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Add Date05 deterministic navigation stats after CITA [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/date05-prefetch-after-bmsr
