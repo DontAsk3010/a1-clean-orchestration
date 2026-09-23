@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "CASH",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-cash-20241204",
+    "workflow_commit":  "c43f10ea64906060f06d735ed4868cf2926ea16d",
+    "github_run_id":  35874134849,
+    "github_artifact_id":  10757091294,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/35874134849/artifacts/10757091294",
+    "github_artifact_digest":  "1e180536b3fce081ffa8fa396852c1993c9fee14d7a90a27562d630ca27532f1",
+    "packet_sha256":  "2970084b805e783f7002915cec622a082c24253e1622fbccbbe23473593bbfcb",
+    "rows_jsonl_sha256":  "0be9aae1c1e245f52ec7eede460f11c7a57b6be8458270c20366594d55d3d6f8",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  361378,
+    "source_row_last":  361389,
+    "data_rows":  12,
+    "first_datetime":  "2024-12-04 09:00:00",
+    "last_datetime":  "2024-12-04 14:57:00"
+}
