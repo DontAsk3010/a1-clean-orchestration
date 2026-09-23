@@ -20,9 +20,9 @@ jobs:
           $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
           $expected='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
           $specs=@(
-            [pscustomobject]@{Ticker='LINK';First=973460;Last=973489;Count=30;FirstTime='09:39:00';LastTime='16:01:00';Bundle='Raw Des 02-31-2024__SEMANTIC_0008.jsonl';BundleLine=15},
-            [pscustomobject]@{Ticker='LION';First=973691;Last=973691;Count=1;FirstTime='09:55:00';LastTime='09:55:00';Bundle='Raw Des 02-31-2024__SEMANTIC_0008.jsonl';BundleLine=16},
-            [pscustomobject]@{Ticker='LIVE';First=977541;Last=977582;Count=42;FirstTime='09:10:00';LastTime='16:07:00';Bundle='Raw Des 02-31-2024__SEMANTIC_0008.jsonl';BundleLine=17}
+            [pscustomobject]@{Ticker='LMAX';First=978610;Last=978701;Count=92;FirstTime='09:00:00';LastTime='16:00:00';Bundle='Raw Des 02-31-2024__SEMANTIC_0008.jsonl';BundleLine=18},
+            [pscustomobject]@{Ticker='LMPI';First=980011;Last=980247;Count=237;FirstTime='09:00:00';LastTime='16:14:00';Bundle='Raw Des 02-31-2024__SEMANTIC_0008.jsonl';BundleLine=19},
+            [pscustomobject]@{Ticker='LOPI';First=982852;Last=982904;Count=53;FirstTime='09:00:00';LastTime='16:00:00';Bundle='Raw Des 02-31-2024__SEMANTIC_0008.jsonl';BundleLine=20}
           )
           if(-not(Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING"}
           $got=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -51,7 +51,10 @@ jobs:
             if((Clock $dts[0])-ne$s.FirstTime -or (Clock $dts[-1])-ne$s.LastTime){throw "$($s.Ticker)_TIME"}
             $rp=Join-Path $out "$($s.Ticker)_20241203_ROWS.jsonl"
             [System.IO.File]::WriteAllLines($rp,[string[]]@($records|%{$_|ConvertTo-Json -Compress -Depth 8}),$enc)
-            $proof=[ordered]@{ticker=$s.Ticker;trading_date='2024-12-03';source_sha256=$got;semantic_bundle=$s.Bundle;semantic_bundle_line_number=$s.BundleLine;source_row_first=$s.First;source_row_last=$s.Last;data_rows=$records.Count;first_datetime=$dts[0];last_datetime=$dts[-1];rows_jsonl_sha256=(Get-FileHash $rp -Algorithm SHA256).Hash.ToLowerInvariant()}
+            $cp=Join-Path $out "$($s.Ticker)_20241203_COMPACT.txt"
+            $compact=@($records|%{"$($_.source_row)|$(Clock ([string]$_.RAW_DATETIME_ISO))|$($_.RAW_OPEN)|$($_.RAW_HIGH)|$($_.RAW_LOW)|$($_.RAW_CLOSE)|V$($_.RAW_VOLUME)"})
+            [System.IO.File]::WriteAllLines($cp,[string[]]$compact,$enc)
+            $proof=[ordered]@{ticker=$s.Ticker;trading_date='2024-12-03';source_sha256=$got;semantic_bundle=$s.Bundle;semantic_bundle_line_number=$s.BundleLine;source_row_first=$s.First;source_row_last=$s.Last;data_rows=$records.Count;first_datetime=$dts[0];last_datetime=$dts[-1];rows_jsonl_sha256=(Get-FileHash $rp -Algorithm SHA256).Hash.ToLowerInvariant();compact_sha256=(Get-FileHash $cp -Algorithm SHA256).Hash.ToLowerInvariant()}
             [System.IO.File]::WriteAllText((Join-Path $out "$($s.Ticker)_20241203_PROOF.json"),($proof|ConvertTo-Json -Depth 10),$enc)
             Write-Host "$($s.Ticker)_EVIDENCE_OK rows=$($records.Count)"
           }
@@ -70,7 +73,7 @@ jobs:
           Copy-Item 'machine1_kbatch4_20241203_evidence/*' '.machine1_evidence/' -Force
           git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
           git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
-          git -c safe.directory="$env:GITHUB_WORKSPACE" add -f '.machine1_evidence/*_20241203_ROWS.jsonl'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add -f '.machine1_evidence/*_20241203_ROWS.jsonl' '.machine1_evidence/*_20241203_COMPACT.txt'
           git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_evidence/*_20241203_PROOF.json'
           git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist governed K-batch4 evidence [skip ci]'
           git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-kbatch-20241203
