@@ -1,0 +1,60 @@
+name: Machine1 CEKA 2024-12-04 Governed Successor Proof
+
+on:
+  push:
+    branches:
+      - machine1/evidence-ceka-20241204
+    paths:
+      - .github/workflows/machine1-ceka-20241204-successor.yml
+
+permissions:
+  contents: write
+
+jobs:
+  prove-successor:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prove exact successor from governed semantic bundle
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $bundleName='Raw Des 02-31-2024__SEMANTIC_0010.jsonl'
+          $roots=@('C:\Users\feri-admin\My Drive','D:\TRADING SYSTEM')
+          $candidates=New-Object 'System.Collections.Generic.List[string]'
+          foreach($root in $roots){
+            if(Test-Path -LiteralPath $root){
+              Get-ChildItem -LiteralPath $root -Filter $bundleName -File -Recurse -ErrorAction SilentlyContinue | ForEach-Object { [void]$candidates.Add($_.FullName) }
+            }
+          }
+          if($candidates.Count -eq 0){ throw 'SEMANTIC_BUNDLE_NOT_FOUND' }
+          $matches=@()
+          foreach($p in ($candidates | Sort-Object -Unique)){
+            $n=0; $line150=$null; $line151=$null
+            foreach($line in [System.IO.File]::ReadLines($p,[System.Text.Encoding]::UTF8)){
+              $n++
+              if($n -eq 150){$line150=$line}
+              elseif($n -eq 151){$line151=$line; break}
+            }
+            if($null -eq $line150 -or $null -eq $line151){ continue }
+            try {$j150=$line150 | ConvertFrom-Json; $j151=$line151 | ConvertFrom-Json} catch { continue }
+            $s150=$line150.ToUpperInvariant()
+            if($s150.Contains('CEKA') -and $s150.Contains('2024-12-04')){
+              $matches += [pscustomobject]@{path=$p;sha256=(Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLowerInvariant();line150=$j150;line151=$j151;line150_raw=$line150;line151_raw=$line151}
+            }
+          }
+          if($matches.Count -eq 0){ throw 'NO_BUNDLE_COPY_MATCHES_CEKA_LINE150' }
+          $uniqueHashes=@($matches.sha256 | Sort-Object -Unique)
+          if($uniqueHashes.Count -ne 1){ throw "CONFLICTING_MATCHING_BUNDLE_HASHES: $($uniqueHashes -join ',')" }
+          $m=$matches[0]
+          $proof=[ordered]@{mode='DIRECT_CANONICAL_SEMANTIC_BUNDLE_LINE_READ';bundle_name=$bundleName;bundle_sha256=$m.sha256;matching_copy_count=$matches.Count;matching_paths=@($matches.path);current_line_number=150;current_line=$m.line150;successor_line_number=151;successor_line=$m.line151;current_line_raw=$m.line150_raw;successor_line_raw=$m.line151_raw}
+          New-Item -ItemType Directory -Force '.machine1_evidence' | Out-Null
+          $proof | ConvertTo-Json -Depth 30 | Set-Content -Encoding UTF8 '.machine1_evidence/CEKA_20241204_SUCCESSOR_PROOF.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_evidence/CEKA_20241204_SUCCESSOR_PROOF.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist CEKA successor proof [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-ceka-20241204
