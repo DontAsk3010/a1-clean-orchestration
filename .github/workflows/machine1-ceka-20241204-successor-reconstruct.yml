@@ -1,0 +1,76 @@
+name: Machine1 CEKA 2024-12-04 Deterministic Successor Reconstruction
+
+on:
+  push:
+    branches:
+      - machine1/evidence-ceka-20241204
+    paths:
+      - .github/workflows/machine1-ceka-20241204-successor-reconstruct.yml
+
+permissions:
+  contents: write
+
+jobs:
+  reconstruct-successor:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct governed semantic packing and exact successor
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
+          if(-not(Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING: $raw"}
+          $expectedSha='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          $gotSha=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($gotSha -ne $expectedSha){throw "RAW_SHA_MISMATCH got=$gotSha"}
+          $generation='BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01'
+          $sourceDriveId='1wvBmhpQIV-evJJOPN_g8nks3KZBzmVHC'
+          $sourceName='Raw Des 02-31-2024.csv'
+          $maxBytes=6*1024*1024
+          $header=[System.IO.File]::ReadLines($raw,[System.Text.Encoding]::UTF8) | Select-Object -First 1
+          $rows=New-Object 'System.Collections.Generic.List[object]'
+          $idx=0
+          foreach($line in [System.IO.File]::ReadLines($raw,[System.Text.Encoding]::UTF8)){
+            if($idx -eq 0){$idx++; continue}
+            $obj=(@($header,$line) -join "`n") | ConvertFrom-Csv
+            $dt=[string]$obj.RAW_DATETIME_ISO
+            if([string]::IsNullOrWhiteSpace($dt)){$idx++; continue}
+            $date=$dt.Substring(0,10); $time=$dt.Substring(11,8); $ticker=[string]$obj.RAW_TICKER
+            $rows.Add([pscustomobject]@{n=$idx;d=$date;tm=$time;ticker=$ticker;raw=$line})
+            $idx++
+          }
+          $groups=$rows | Group-Object d,ticker | Sort-Object @{Expression={($_.Group[0].d)}},@{Expression={($_.Group[0].ticker)}}
+          function Segments([int[]]$nums){
+            $out=@(); if($nums.Count -eq 0){return $out}; $s=$nums[0];$p=$nums[0]
+            for($i=1;$i -lt $nums.Count;$i++){ $x=$nums[$i]; if($x -ne ($p+1)){ $out+=,@($s,$p); $s=$x }; $p=$x }
+            $out+=,@($s,$p); return $out
+          }
+          $bundleNo=1;$bundleBytes=0;$bundleLine=0;$meta=@();
+          foreach($g in $groups){
+            $gg=@($g.Group | Sort-Object n); $d=$gg[0].d;$ticker=$gg[0].ticker
+            $nums=@($gg|ForEach-Object{[int]$_.n}); $raws=@($gg|ForEach-Object{[string]$_.raw}); $times=@($gg|ForEach-Object{[string]$_.tm})
+            $rec=[ordered]@{generation_id=$generation;source_drive_id=$sourceDriveId;source_name=$sourceName;source_sha256=$gotSha;trading_date=$d;ticker=$ticker;first_clock_time=($times|Sort-Object|Select-Object -First 1);last_clock_time=($times|Sort-Object|Select-Object -Last 1);data_row_count=$gg.Count;source_row_first=($nums|Measure-Object -Minimum).Minimum;source_row_last=($nums|Measure-Object -Maximum).Maximum;source_row_segments=(Segments $nums);raw_header=$header;raw_rows=$raws;all_source_columns_retained=$true;semantic_reader_contract=[ordered]@{read_complete_ticker_day=$true;read_all_source_supported_sessions=$true;do_not_filter_flat_weak_failure_no_event=$true;preserve_actual_event_clock_times=$true;create_event_journey_objects_in_ai_not_python=$true;carry_open_journeys_across_dates=$true}}
+            $json=($rec|ConvertTo-Json -Compress -Depth 20)+"`n"; $nbytes=[Text.Encoding]::UTF8.GetByteCount($json)
+            if($bundleLine -gt 0 -and ($bundleBytes+$nbytes) -gt $maxBytes){$bundleNo++;$bundleBytes=0;$bundleLine=0}
+            $bundleLine++;$bundleBytes+=$nbytes
+            if($d -eq '2024-12-04'){$meta += [pscustomobject]@{trading_date=$d;ticker=$ticker;bundle_name=('Raw Des 02-31-2024__SEMANTIC_{0:D4}.jsonl' -f $bundleNo);bundle_line_number=$bundleLine;data_row_count=$gg.Count;first_clock_time=$rec.first_clock_time;last_clock_time=$rec.last_clock_time;source_row_first=$rec.source_row_first;source_row_last=$rec.source_row_last}}
+          }
+          $cur=@($meta|Where-Object ticker -eq 'CEKA')
+          if($cur.Count -ne 1){throw "CEKA_META_COUNT=$($cur.Count)"}
+          if($cur[0].bundle_name -ne 'Raw Des 02-31-2024__SEMANTIC_0010.jsonl' -or [int]$cur[0].bundle_line_number -ne 150 -or [int]$cur[0].source_row_first -ne 365470 -or [int]$cur[0].source_row_last -ne 365482){throw ('CEKA_RECONSTRUCTION_MISMATCH '+($cur[0]|ConvertTo-Json -Compress))}
+          $arr=@($meta);$pos=-1;for($i=0;$i -lt $arr.Count;$i++){if($arr[$i].ticker -eq 'CEKA'){$pos=$i;break}}
+          if($pos -lt 0 -or $pos+1 -ge $arr.Count){throw 'SUCCESSOR_NOT_FOUND'}
+          $succ=$arr[$pos+1]
+          $proof=[ordered]@{mode='DETERMINISTIC_RECONSTRUCTION_FROM_CANONICAL_RAW_USING_LOCKED_DATA_PLANE_ROUTING_PACKING';data_plane_impl_version='UNIVERSAL_DELTA_DATA_PLANE_V2_20260911';max_semantic_bundle_bytes=$maxBytes;source_sha256=$gotSha;trading_date='2024-12-04';current=$cur[0];successor=$succ}
+          New-Item -ItemType Directory -Force '.machine1_evidence'|Out-Null
+          $proof|ConvertTo-Json -Depth 20|Set-Content -Encoding UTF8 '.machine1_evidence/CEKA_20241204_SUCCESSOR_RECONSTRUCT_PROOF.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_evidence/CEKA_20241204_SUCCESSOR_RECONSTRUCT_PROOF.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist CEKA deterministic successor proof [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-ceka-20241204
+          Write-Host ('SUCCESSOR_PROOF_OK '+($succ|ConvertTo-Json -Compress))
