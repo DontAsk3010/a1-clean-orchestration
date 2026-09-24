@@ -1,0 +1,131 @@
+name: Machine1 Date05 Lossless AI Transport V2 After CSRA
+
+on:
+  push:
+    branches:
+      - machine1/date05-prefetch-after-bmsr
+    paths:
+      - .github/workflows/machine1-date05-lossless-v2-after-csra.yml
+      - .machine1_prefetch/date05_after_csra/*_20241205_ROWS_COMPACT.tsv
+      - .machine1_prefetch/date05_after_csra/*_20241205_COMPACT_PROOF.json
+
+permissions:
+  contents: write
+
+jobs:
+  encode:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build lossless human-readable AI transport V2 with exact roundtrip guard
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $batchDir=Join-Path $PWD '.machine1_prefetch/date05_after_csra'
+          if(-not (Test-Path -LiteralPath $batchDir -PathType Container)){throw "BATCH_DIR_MISSING: $batchDir"}
+          $targetDate='2024-12-05'
+          $utf8NoBom=New-Object System.Text.UTF8Encoding($false)
+          $core=@('source_row','RAW_DATETIME_ISO','OBS_DELTA_PREV_SEC_SAME_DATE','OBS_GAP_GT_BASE_INTERVAL_FLAG','RAW_OPEN','RAW_HIGH','RAW_LOW','RAW_CLOSE','RAW_VOLUME','IDX_REGULAR_CLOCK_SESSION_CODE')
+          $proofFiles=@(Get-ChildItem -LiteralPath $batchDir -Filter '*_20241205_COMPACT_PROOF.json' | Sort-Object Name)
+          if($proofFiles.Count -lt 1){throw 'NO_COMPACT_PROOFS_FOUND'}
+
+          foreach($pf in $proofFiles){
+            $proof=Get-Content -Raw -LiteralPath $pf.FullName | ConvertFrom-Json
+            $tk=[string]$proof.ticker
+            if([string]$proof.trading_date -ne $targetDate){throw "PROOF_DATE_MISMATCH ticker=$tk"}
+            $compactPath=Join-Path $batchDir ($tk+'_20241205_ROWS_COMPACT.tsv')
+            if(-not (Test-Path -LiteralPath $compactPath -PathType Leaf)){throw "COMPACT_MISSING ticker=$tk"}
+            $compactSha=(Get-FileHash -LiteralPath $compactPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            if($compactSha -ne [string]$proof.compact_rows_sha256){throw "COMPACT_SHA_MISMATCH ticker=$tk"}
+
+            $rawLines=@([System.IO.File]::ReadAllLines($compactPath,$utf8NoBom))
+            if($rawLines.Count -lt 2){throw "COMPACT_EMPTY ticker=$tk"}
+            $fields=@($rawLines[0].Split("`t"))
+            $rows=@(Import-Csv -LiteralPath $compactPath -Delimiter "`t")
+            if($rows.Count -ne [int]$proof.actual_rows){throw "ROW_COUNT_MISMATCH ticker=$tk"}
+            foreach($c in $core){if($fields -notcontains $c){throw "CORE_FIELD_MISSING ticker=$tk field=$c"}}
+
+            $nonCore=@($fields | Where-Object { $core -notcontains $_ })
+            $defaults=[ordered]@{}
+            foreach($f in $nonCore){
+              $counts=@{}
+              foreach($r in $rows){$v=[string]$r.$f;if($counts.ContainsKey($v)){$counts[$v]++}else{$counts[$v]=1}}
+              $best=$counts.GetEnumerator() | Sort-Object @{Expression='Value';Descending=$true}, @{Expression='Key';Descending=$false} | Select-Object -First 1
+              $defaults[$f]=[string]$best.Key
+            }
+
+            $out=New-Object 'System.Collections.Generic.List[string]'
+            [void]$out.Add('#A1_LOSSLESS_AI_TRANSPORT_V2')
+            [void]$out.Add('ticker='+$tk)
+            [void]$out.Add('trading_date='+$targetDate)
+            [void]$out.Add('actual_rows='+$rows.Count)
+            [void]$out.Add('source_row_first='+[string]$proof.source_row_first)
+            [void]$out.Add('source_row_last='+[string]$proof.source_row_last)
+            [void]$out.Add('compact_rows_sha256='+$compactSha)
+            [void]$out.Add('core_fields='+($core -join ','))
+            [void]$out.Add('defaults_json='+(($defaults|ConvertTo-Json -Compress -Depth 4)))
+            [void]$out.Add('#ROW_FORMAT core values separated by | ; final field contains non-core exceptions as name=value pairs separated by ; ; blank means defaults')
+
+            foreach($r in $rows){
+              $parts=New-Object 'System.Collections.Generic.List[string]'
+              foreach($f in $core){
+                $v=[string]$r.$f
+                if($v.Contains('|') -or $v.Contains("`r") -or $v.Contains("`n")){throw "CORE_UNSAFE ticker=$tk field=$f"}
+                [void]$parts.Add($v)
+              }
+              $exc=New-Object 'System.Collections.Generic.List[string]'
+              foreach($f in $nonCore){
+                $v=[string]$r.$f
+                if($v -ne [string]$defaults[$f]){
+                  if($f.Contains('=') -or $f.Contains(';') -or $v.Contains('=') -or $v.Contains(';') -or $v.Contains('|') -or $v.Contains("`r") -or $v.Contains("`n")){throw "EXCEPTION_UNSAFE ticker=$tk field=$f"}
+                  [void]$exc.Add($f+'='+$v)
+                }
+              }
+              [void]$parts.Add(($exc -join ';'))
+              [void]$out.Add(($parts -join '|'))
+            }
+
+            $v2Path=Join-Path $batchDir ($tk+'_20241205_ROWS_LOSSLESS_V2.txt')
+            [System.IO.File]::WriteAllLines($v2Path,[string[]]$out,$utf8NoBom)
+
+            # Exact roundtrip verification back to original compact TSV.
+            $recon=New-Object 'System.Collections.Generic.List[string]'
+            [void]$recon.Add(($fields -join "`t"))
+            for($i=0;$i -lt $rows.Count;$i++){
+              $src=$rows[$i]
+              $map=@{}
+              foreach($f in $nonCore){$map[$f]=[string]$defaults[$f]}
+              foreach($f in $core){$map[$f]=[string]$src.$f}
+              foreach($f in $nonCore){if([string]$src.$f -ne [string]$defaults[$f]){$map[$f]=[string]$src.$f}}
+              $vals=New-Object 'System.Collections.Generic.List[string]'
+              foreach($f in $fields){[void]$vals.Add([string]$map[$f])}
+              [void]$recon.Add(($vals -join "`t"))
+            }
+            $tmp=Join-Path $batchDir ($tk+'_20241205_ROUNDTRIP_TMP.tsv')
+            [System.IO.File]::WriteAllLines($tmp,[string[]]$recon,$utf8NoBom)
+            $roundSha=(Get-FileHash -LiteralPath $tmp -Algorithm SHA256).Hash.ToLowerInvariant()
+            Remove-Item -LiteralPath $tmp -Force
+            if($roundSha -ne $compactSha){throw "ROUNDTRIP_SHA_MISMATCH ticker=$tk expected=$compactSha actual=$roundSha"}
+
+            $v2Sha=(Get-FileHash -LiteralPath $v2Path -Algorithm SHA256).Hash.ToLowerInvariant()
+            $v2Proof=[ordered]@{
+              ticker=$tk;trading_date=$targetDate;schema='a1_lossless_ai_transport_v2';actual_rows=$rows.Count;
+              source_row_first=[int64]$proof.source_row_first;source_row_last=[int64]$proof.source_row_last;
+              compact_rows_sha256=$compactSha;lossless_v2_sha256=$v2Sha;roundtrip_compact_sha256=$roundSha;
+              core_fields=$core;non_core_default_count=$nonCore.Count;exact_roundtrip_verified=$true;
+              transport_only=$true;semantic_read_performed=$false;durable_pass=$false
+            }
+            [System.IO.File]::WriteAllText((Join-Path $batchDir ($tk+'_20241205_LOSSLESS_V2_PROOF.json')),($v2Proof|ConvertTo-Json -Depth 8),$utf8NoBom)
+            Write-Host "LOSSLESS_V2_OK ticker=$tk rows=$($rows.Count) v2sha=$v2Sha"
+          }
+
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add -f '.machine1_prefetch/date05_after_csra/*_20241205_ROWS_LOSSLESS_V2.txt' '.machine1_prefetch/date05_after_csra/*_20241205_LOSSLESS_V2_PROOF.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" diff --cached --quiet
+          if($LASTEXITCODE -eq 0){Write-Host 'DATE05_LOSSLESS_V2_NO_CHANGES';exit 0}
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Add Date05 lossless AI transport v2 after CSRA [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/date05-prefetch-after-bmsr
