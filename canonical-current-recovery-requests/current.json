@@ -26,5 +26,6 @@
   "raw_write_allowed": false,
   "heavy_behavior_research_allowed": false,
   "formula_stage": "CLOSED",
-  "next_gate_after_pass": "SEPARATE_GOVERNED_PROMOTION_AND_POST_PROMOTION_READBACK_REQUIRED"
+  "next_gate_after_pass": "SEPARATE_GOVERNED_PROMOTION_AND_POST_PROMOTION_READBACK_REQUIRED",
+  "trigger_revision": "20260925_01"
 }
