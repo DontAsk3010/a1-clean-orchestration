@@ -1,0 +1,19 @@
+{
+    "ticker":  "CUAN",
+    "trading_date":  "2024-12-05",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0014.jsonl",
+    "semantic_bundle_line_number":  296,
+    "source_row_first":  416203,
+    "source_row_last":  416482,
+    "physical_line_first":  416204,
+    "physical_line_last":  416483,
+    "actual_rows":  280,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:12:00",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "rows_jsonl_sha256":  "7eb683cb878dbd0e55075efb47dfdaf38581124926b5608aa0c5157d51fd9c39",
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

@@ -1,0 +1,19 @@
+{
+    "ticker":  "DILD",
+    "trading_date":  "2024-12-05",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0014.jsonl",
+    "semantic_bundle_line_number":  312,
+    "source_row_first":  451405,
+    "source_row_last":  451570,
+    "physical_line_first":  451406,
+    "physical_line_last":  451571,
+    "actual_rows":  166,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:11:00",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "rows_jsonl_sha256":  "98fcb47d980e3f6afa48f2d5341d25d9f9321b2a50ea0ab425a654deb497c2b0",
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

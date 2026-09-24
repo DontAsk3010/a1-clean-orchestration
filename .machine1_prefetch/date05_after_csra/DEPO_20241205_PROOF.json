@@ -1,0 +1,19 @@
+{
+    "ticker":  "DEPO",
+    "trading_date":  "2024-12-05",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0014.jsonl",
+    "semantic_bundle_line_number":  303,
+    "source_row_first":  431401,
+    "source_row_last":  431424,
+    "physical_line_first":  431402,
+    "physical_line_last":  431425,
+    "actual_rows":  24,
+    "first_datetime":  "2024-12-05 09:06:00",
+    "last_datetime":  "2024-12-05 16:04:00",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "rows_jsonl_sha256":  "661bc1978d59118caae9cf04787754285270698e0ac17a2711a5f4e3047246c4",
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

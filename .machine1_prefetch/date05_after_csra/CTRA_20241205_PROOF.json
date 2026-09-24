@@ -1,0 +1,19 @@
+{
+    "ticker":  "CTRA",
+    "trading_date":  "2024-12-05",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0014.jsonl",
+    "semantic_bundle_line_number":  295,
+    "source_row_first":  411168,
+    "source_row_last":  411393,
+    "physical_line_first":  411169,
+    "physical_line_last":  411394,
+    "actual_rows":  226,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:06:00",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "rows_jsonl_sha256":  "1fa614fe55d556c126fa93d0be07a13bd7cbe700c7c65e2cf30431ac88782310",
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

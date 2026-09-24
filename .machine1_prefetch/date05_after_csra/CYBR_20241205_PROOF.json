@@ -1,0 +1,19 @@
+{
+    "ticker":  "CYBR",
+    "trading_date":  "2024-12-05",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0014.jsonl",
+    "semantic_bundle_line_number":  297,
+    "source_row_first":  421652,
+    "source_row_last":  421850,
+    "physical_line_first":  421653,
+    "physical_line_last":  421851,
+    "actual_rows":  199,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:09:00",
+    "source_md5":  "b8d42b35c90d2dff8b18ae4e1734523b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "rows_jsonl_sha256":  "1512c5a377ca2b235652c6113cc69f7c2d51699fed83ca5c7beca1ab690c500b",
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}
