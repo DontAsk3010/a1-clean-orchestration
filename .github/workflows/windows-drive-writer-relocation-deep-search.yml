@@ -27,9 +27,17 @@ jobs:
           $ErrorActionPreference = 'Stop'
           Set-StrictMode -Version Latest
 
-          if ($env:RUNNER_NAME -ne 'A1-WINDOWS-COMPUTE-02') {
-            throw "Wrong runner: expected A1-WINDOWS-COMPUTE-02, observed $env:RUNNER_NAME"
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') {
+            throw "Wrong physical host: expected PORSCHE-DESIGN, observed $env:COMPUTERNAME"
           }
+          $machine2Services = @(Get-CimInstance Win32_Service -ErrorAction SilentlyContinue | Where-Object {
+            ([string]$_.DisplayName -like '*A1-WINDOWS-COMPUTE-02*') -or
+            ([string]$_.PathName -like '*actions-runner-a1-02*')
+          })
+          if ($machine2Services.Count -lt 1) {
+            throw 'Current Machine-2 runner service A1-WINDOWS-COMPUTE-02 was not found on PORSCHE-DESIGN.'
+          }
+          Write-Host "HOST_GATE_PASS|executing_runner=$env:RUNNER_NAME|computer=$env:COMPUTERNAME|machine2_service_count=$($machine2Services.Count)|target_service_present=true"
 
           function Sha256Text([string]$text) {
             if ([string]::IsNullOrWhiteSpace($text)) { return 'NONE' }
