@@ -1,0 +1,14 @@
+{
+    "ticker":  "MDKI",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  51,
+    "source_row_first":  1044291,
+    "source_row_last":  1044323,
+    "data_rows":  33,
+    "first_datetime":  "2024-12-03 09:09:00",
+    "last_datetime":  "2024-12-03 16:06:00",
+    "rows_jsonl_sha256":  "af9f6b4ed83768f2f55b1be3a7e99d4bfc4fb4f3dc2020f12cee690a6cbe6d19",
+    "compact_sha256":  "23aab08a745dfd6887aa7c66556dc6cd731ab63905fe549a9d95dbb8a68bf226"
+}

@@ -1,0 +1,14 @@
+{
+    "ticker":  "MDRN",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  53,
+    "source_row_first":  1045901,
+    "source_row_last":  1045905,
+    "data_rows":  5,
+    "first_datetime":  "2024-12-03 09:55:00",
+    "last_datetime":  "2024-12-03 16:00:00",
+    "rows_jsonl_sha256":  "0925e6a174a5d0cfc38aa6995da4fd708e1c84ff5be8996764789f675283aae0",
+    "compact_sha256":  "077b96a35df8e5d7c5ab60bf96270581683aebb9e90fc87081885183ff39f9cd"
+}
