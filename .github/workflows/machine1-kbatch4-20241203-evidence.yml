@@ -20,9 +20,9 @@ jobs:
           $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
           $expected='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
           $specs=@(
-            [pscustomobject]@{Ticker='MANG';First=1013306;Last=1013463;Count=158;FirstTime='09:00:00';LastTime='16:07:00';Bundle='Raw Des 02-31-2024__SEMANTIC_0008.jsonl';BundleLine=36},
-            [pscustomobject]@{Ticker='MAPA';First=1016256;Last=1016540;Count=285;FirstTime='09:00:00';LastTime='16:13:00';Bundle='Raw Des 02-31-2024__SEMANTIC_0008.jsonl';BundleLine=37},
-            [pscustomobject]@{Ticker='MAPI';First=1020930;Last=1021224;Count=295;FirstTime='08:59:00';LastTime='16:05:00';Bundle='Raw Des 02-31-2024__SEMANTIC_0008.jsonl';BundleLine=38}
+            [pscustomobject]@{Ticker='MARI';First=1020442;Last=1020458;Count=17;FirstTime='09:30:00';LastTime='15:34:00';Bundle='Raw Des 02-31-2024__SEMANTIC_0008.jsonl';BundleLine=39},
+            [pscustomobject]@{Ticker='MARK';First=1026438;Last=1026568;Count=131;FirstTime='09:00:00';LastTime='16:00:00';Bundle='Raw Des 02-31-2024__SEMANTIC_0008.jsonl';BundleLine=40},
+            [pscustomobject]@{Ticker='MAXI';First=1025859;Last=1025883;Count=25;FirstTime='09:00:00';LastTime='15:41:00';Bundle='Raw Des 02-31-2024__SEMANTIC_0008.jsonl';BundleLine=41}
           )
           if(-not(Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING"}
           $got=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
