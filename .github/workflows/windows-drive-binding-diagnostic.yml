@@ -98,7 +98,8 @@ jobs:
             try {
               $cim = Get-CimInstance Win32_Service -Filter ("Name='{0}'" -f $svc.Name.Replace("'","''")) -ErrorAction Stop
               $startName = [string]$cim.StartName
-              $accountClass = if ($startName -match '(?i)localsystem|system') { 'SYSTEM' } elseif ($startName -match '(?i)networkservice') { 'NETWORK_SERVICE' } elseif ($startName -match '(?i)localservice') { 'LOCAL_SERVICE' } else { 'NAMED_ACCOUNT' }
+              $normalized = ($startName -replace '[^A-Za-z0-9]','').ToUpperInvariant()
+              $accountClass = if ($normalized -match 'LOCALSYSTEM$|^SYSTEM$') { 'SYSTEM' } elseif ($normalized -match 'NETWORKSERVICE$') { 'NETWORK_SERVICE' } elseif ($normalized -match 'LOCALSERVICE$') { 'LOCAL_SERVICE' } else { 'NAMED_ACCOUNT' }
               Write-Host ("RUNNER_SERVICE_IDENTITY|service={0}|account_class={1}|status={2}" -f $svc.Name,$accountClass,$svc.Status)
               $p = [string]$cim.PathName
               if ($p -match '^["]?([^\"]+?RunnerService\.exe)') {
