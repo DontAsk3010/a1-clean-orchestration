@@ -1,0 +1,63 @@
+{
+  "schema": "A1_DRIVE_WRITER_RELOCATION_SEARCH_V1",
+  "status": "HOLD_INTERACTIVE_USER_CONTEXT_RELOCATION_SEARCH_REQUIRED",
+  "branch": "fix/v32-dynamic-source-universe-v1",
+  "machine": "PORSCHE-DESIGN",
+  "machine2_runner": "A1-WINDOWS-COMPUTE-02",
+  "owner_corrected_blocker": "HOLD_WRITER_CREDENTIAL_LOCATION_UNRESOLVED",
+  "current_request_enabled": false,
+  "writer_reauthorization_authorized": false,
+  "writer_replacement_authorized": false,
+  "reader_may_be_repurposed_as_writer": false,
+  "canonical_current_mutation_authorized": false,
+  "formula_stage": "CLOSED",
+  "historical_writer_path": "C:\\Users\\feri-admin\\a1-drive-auth\\client_writer.json",
+  "current_reader": {
+    "path": "C:\\Users\\feri-admin\\a1-drive-auth\\reader_credentials.json",
+    "sha256": "3806f7bdf8cdbcc0a377e0866b9125a1ac0abb18113751c2d2b00dfbf679e0c7",
+    "credential_kind": "AUTHORIZED_USER_RUNTIME_CREDENTIAL"
+  },
+  "governed_search_evidence": {
+    "process_user_machine_writer_binding": "ABSENT_ON_MACHINE2_RUNNER_CONTEXT",
+    "runner_service_writer_binding": "NOT_FOUND",
+    "current_runner_roots_checked": [
+      "C:\\Users\\feri-admin\\actions-runner-a1",
+      "C:\\Users\\feri-admin\\actions-runner-a1-02"
+    ],
+    "fixed_volumes_observed": ["C:", "D:", "G:"],
+    "exact_filename_volume_search": "NO_MATCH_FOR_client_writer.json_OR_writer_oauth_client.json",
+    "generic_filename_and_config_reference_search": "NO_EXISTING_WRITER_CANDIDATE",
+    "recycle_bin_structural_search": "NO_CREDENTIAL_CANDIDATE_ON_C_OR_D",
+    "historical_absolute_writer_references": [
+      "C:\\Users\\feri-admin\\a1-drive-auth\\client_writer.json"
+    ],
+    "historical_reference_currently_exists": false,
+    "direct_path_probe_v2": {
+      "run_id": 36073241495,
+      "job_id": 107878708168,
+      "status": "PASS_SEARCH_STEP",
+      "positive_control_reader_read": true,
+      "candidate_directory_count": 10,
+      "candidate_filename_count": 16,
+      "existing_writer_candidate_files": 0,
+      "runtime_candidates_distinct_from_reader": 0,
+      "drive_write_scope_declared_distinct_candidates": 0,
+      "binding_changed": false,
+      "drive_write": false,
+      "oauth_reauthorization": false,
+      "canonical_current_mutation": false
+    },
+    "service_directory_enumeration_limitation": "PROVEN: exact-path Reader file can be read but was not encountered by recursive directory enumeration under runner service identity; therefore service-side directory scan zero-results cannot prove exhaustive absence of an arbitrarily renamed credential in protected user storage"
+  },
+  "governed_decision": "DO_NOT_DECLARE_WRITER_MISSING_AND_DO_NOT_REAUTHORIZE_OR_REPLACE_YET. COMPLETE ONE INTERACTIVE feri-admin USER-CONTEXT STRUCTURAL SEARCH OF CURRENT LOCAL STORAGE BECAUSE RUNNER SERVICE DIRECTORY ENUMERATION IS NOT AUTHORITATIVE IN THE PROTECTED AUTH LOCATION.",
+  "next_exact_gate": "INTERACTIVE_FERI_ADMIN_RELOCATION_SEARCH -> IF_CANDIDATE_FOUND_VERIFY_TYPE_IDENTITY_NOT_READER_SCOPE -> BIND_A1_DRIVE_WRITER_CREDENTIALS -> DRIVE_GUARDRAIL -> RECOVERY_PREPARE -> EXACT_READBACK -> LIGHTWEIGHT_PRESTART",
+  "forbidden": [
+    "DO_NOT_CREATE_NEW_OAUTH_WRITER",
+    "DO_NOT_REAUTHORIZE_WRITER",
+    "DO_NOT_USE_READER_AS_WRITER",
+    "DO_NOT_CREATE_FAKE_CREDENTIAL",
+    "DO_NOT_BYPASS_DRIVE_GUARDRAIL",
+    "DO_NOT_MUTATE_CANONICAL_CURRENT",
+    "DO_NOT_START_HEAVY_MACHINE2"
+  ]
+}
