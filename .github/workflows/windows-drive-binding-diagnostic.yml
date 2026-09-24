@@ -30,15 +30,8 @@ jobs:
             $value = [Environment]::GetEnvironmentVariable($name, $scope)
             $present = -not [string]::IsNullOrWhiteSpace($value)
             $fileExists = $false
-            if ($present) {
-              $fileExists = Test-Path -LiteralPath $value -PathType Leaf
-            }
-            [PSCustomObject]@{
-              Name = $name
-              Scope = $scope
-              Present = $present
-              FileExists = $fileExists
-            }
+            if ($present) { $fileExists = Test-Path -LiteralPath $value -PathType Leaf }
+            [PSCustomObject]@{ Name=$name; Scope=$scope; Present=$present; FileExists=$fileExists }
           }
 
           Write-Host "Computer=$env:COMPUTERNAME"
@@ -57,15 +50,10 @@ jobs:
           $runnerRoot = $null
           if (-not [string]::IsNullOrWhiteSpace($workspace)) {
             $workDir = Split-Path -Parent $workspace
-            if (-not [string]::IsNullOrWhiteSpace($workDir)) {
-              $runnerRoot = Split-Path -Parent $workDir
-            }
+            if (-not [string]::IsNullOrWhiteSpace($workDir)) { $runnerRoot = Split-Path -Parent $workDir }
           }
 
-          $envFileExists = $false
-          $envHasReader = $false
-          $envHasWriter = $false
-          $envHasGeneric = $false
+          $envFileExists = $false; $envHasReader = $false; $envHasWriter = $false; $envHasGeneric = $false
           if ($runnerRoot) {
             $envFile = Join-Path $runnerRoot '.env'
             $envFileExists = Test-Path -LiteralPath $envFile -PathType Leaf
@@ -81,41 +69,64 @@ jobs:
           Write-Host "RUNNER_ENV|exists=$envFileExists|reader_key=$envHasReader|writer_key=$envHasWriter|generic_key=$envHasGeneric"
 
           $readerPath = [Environment]::GetEnvironmentVariable('A1_DRIVE_READER_CREDENTIALS','Machine')
-          if ([string]::IsNullOrWhiteSpace($readerPath)) {
-            $readerPath = [Environment]::GetEnvironmentVariable('A1_DRIVE_READER_CREDENTIALS','Process')
-          }
+          if ([string]::IsNullOrWhiteSpace($readerPath)) { $readerPath = [Environment]::GetEnvironmentVariable('A1_DRIVE_READER_CREDENTIALS','Process') }
+          $readerFull = $null; $credDir = $null; $userHome = $null
           if (-not [string]::IsNullOrWhiteSpace($readerPath) -and (Test-Path -LiteralPath $readerPath -PathType Leaf)) {
             $readerFull = [IO.Path]::GetFullPath($readerPath)
             $credDir = Split-Path -Parent $readerFull
-            $candidates = @(Get-ChildItem -LiteralPath $credDir -File -Filter '*.json' -ErrorAction Stop)
-            Write-Host "CREDENTIAL_SIBLING_SCAN|json_count=$($candidates.Count)|directory_disclosed=false"
-            $i = 0
-            foreach ($candidate in $candidates) {
-              $i += 1
-              $sameAsReader = ([IO.Path]::GetFullPath($candidate.FullName) -eq $readerFull)
-              $hash = (Get-FileHash -LiteralPath $candidate.FullName -Algorithm SHA256).Hash.ToLowerInvariant().Substring(0,16)
-              $type = 'UNREADABLE_OR_NONCREDENTIAL'
-              $hasIdentity = $false
-              try {
-                $payload = Get-Content -LiteralPath $candidate.FullName -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
-                if ($payload.type) { $type = [string]$payload.type }
-                $hasIdentity = (-not [string]::IsNullOrWhiteSpace([string]$payload.client_email)) -or (-not [string]::IsNullOrWhiteSpace([string]$payload.client_id))
-              } catch {
-                $type = 'UNREADABLE_OR_NONCREDENTIAL'
+            $userHome = Split-Path -Parent $credDir
+            $readerLeaf = Split-Path -Leaf $readerFull
+            $readerHash = (Get-FileHash -LiteralPath $readerFull -Algorithm SHA256).Hash.ToLowerInvariant().Substring(0,16)
+            Write-Host "READER_FILE|leaf=$readerLeaf|sha256_16=$readerHash|path_disclosed=false"
+            try {
+              $candidates = @(Get-ChildItem -LiteralPath $credDir -File -Filter '*.json' -ErrorAction Stop)
+              Write-Host "CREDENTIAL_SIBLING_SCAN|json_count=$($candidates.Count)|directory_disclosed=false"
+              $i=0
+              foreach ($candidate in $candidates) {
+                $i++
+                $sameAsReader = ([IO.Path]::GetFullPath($candidate.FullName) -eq $readerFull)
+                $hash = (Get-FileHash -LiteralPath $candidate.FullName -Algorithm SHA256).Hash.ToLowerInvariant().Substring(0,16)
+                Write-Host ("CREDENTIAL_CANDIDATE|index={0}|sha256_16={1}|same_as_reader={2}|path_disclosed=false" -f $i,$hash,$sameAsReader)
               }
-              Write-Host ("CREDENTIAL_CANDIDATE|index={0}|sha256_16={1}|same_as_reader={2}|type={3}|has_identity={4}|path_disclosed=false" -f $i,$hash,$sameAsReader,$type,$hasIdentity)
+            } catch {
+              Write-Host "CREDENTIAL_SIBLING_SCAN|accessible=false|error_type=$($_.Exception.GetType().Name)|path_disclosed=false"
             }
           } else {
             Write-Host 'CREDENTIAL_SIBLING_SCAN|skipped=true|reason=reader_path_unavailable'
           }
 
-          $services = Get-Service -ErrorAction SilentlyContinue | Where-Object { $_.Name -like 'actions.runner*' }
-          if ($services) {
-            foreach ($svc in $services) {
-              Write-Host ("RUNNER_SERVICE|name={0}|status={1}|start_type={2}" -f $svc.Name,$svc.Status,$svc.StartType)
+          $historyMatches = 0; $historyCandidateCount = 0
+          if ($userHome) {
+            $historyFiles = @(
+              (Join-Path $userHome 'AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt'),
+              (Join-Path $userHome 'AppData\Roaming\Microsoft\PowerShell\PSReadLine\ConsoleHost_history.txt')
+            )
+            foreach ($historyFile in $historyFiles) {
+              if (-not (Test-Path -LiteralPath $historyFile -PathType Leaf)) { continue }
+              try {
+                $matchingLines = @(Get-Content -LiteralPath $historyFile -ErrorAction Stop | Where-Object { $_ -match 'A1_DRIVE_WRITER_CREDENTIALS' })
+                $historyMatches += $matchingLines.Count
+                foreach ($line in $matchingLines) {
+                  $jsonMatches = [regex]::Matches($line, '(?i)([A-Za-z]:\\[^"'';]+?\.json)')
+                  foreach ($m in $jsonMatches) {
+                    $candidatePath = $m.Groups[1].Value.Trim()
+                    if (Test-Path -LiteralPath $candidatePath -PathType Leaf) {
+                      $historyCandidateCount++
+                      $sameAsReader = $readerFull -and ([IO.Path]::GetFullPath($candidatePath) -eq $readerFull)
+                      $hash = (Get-FileHash -LiteralPath $candidatePath -Algorithm SHA256).Hash.ToLowerInvariant().Substring(0,16)
+                      Write-Host ("HISTORY_WRITER_CANDIDATE|sha256_16={0}|same_as_reader={1}|file_exists=true|path_disclosed=false" -f $hash,$sameAsReader)
+                    }
+                  }
+                }
+                Write-Host "HISTORY_FILE_SCAN|readable=true|matching_lines=$($matchingLines.Count)|path_disclosed=false"
+              } catch {
+                Write-Host "HISTORY_FILE_SCAN|readable=false|error_type=$($_.Exception.GetType().Name)|path_disclosed=false"
+              }
             }
-          } else {
-            Write-Host 'RUNNER_SERVICE|none_detected=true'
           }
+          Write-Host "HISTORY_SUMMARY|matching_lines=$historyMatches|existing_json_candidates=$historyCandidateCount"
+
+          $services = Get-Service -ErrorAction SilentlyContinue | Where-Object { $_.Name -like 'actions.runner*' }
+          foreach ($svc in $services) { Write-Host ("RUNNER_SERVICE|name={0}|status={1}|start_type={2}" -f $svc.Name,$svc.Status,$svc.StartType) }
 
           Write-Host 'DIAGNOSTIC_PASS|no_drive_access=true|no_credential_values_emitted=true|no_mutation=true'
