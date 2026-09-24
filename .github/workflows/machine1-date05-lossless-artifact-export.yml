@@ -1,0 +1,48 @@
+name: Machine1 Date05 Lossless Artifact Export
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - machine1/date05-prefetch-after-bmsr
+    paths:
+      - .github/workflows/machine1-date05-lossless-artifact-export.yml
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout pinned branch state
+        uses: actions/checkout@v4
+
+      - name: Build SHA256 artifact manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          batch='.machine1_prefetch/date05_after_csra'
+          test -d "$batch"
+          mapfile -t files < <(find "$batch" -maxdepth 1 -type f \( -name '*_20241205_ROWS_LOSSLESS_V2.txt' -o -name '*_20241205_LOSSLESS_V2_PROOF.json' -o -name '*_20241205_PROOF.json' -o -name '*_20241205_NAV_STATS.json' \) | sort)
+          test "${#files[@]}" -gt 0
+          printf '%s\n' "${files[@]}" | xargs sha256sum > "$batch/_DATE05_LOSSLESS_ARTIFACT_SHA256.txt"
+          printf 'artifact_source_commit=%s\n' "$GITHUB_SHA" > "$batch/_DATE05_LOSSLESS_ARTIFACT_META.txt"
+          printf 'file_count=%s\n' "${#files[@]}" >> "$batch/_DATE05_LOSSLESS_ARTIFACT_META.txt"
+          cat "$batch/_DATE05_LOSSLESS_ARTIFACT_META.txt"
+
+      - name: Upload Date05 lossless transport bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date05-lossless-bundle
+          path: |
+            .machine1_prefetch/date05_after_csra/*_20241205_ROWS_LOSSLESS_V2.txt
+            .machine1_prefetch/date05_after_csra/*_20241205_LOSSLESS_V2_PROOF.json
+            .machine1_prefetch/date05_after_csra/*_20241205_PROOF.json
+            .machine1_prefetch/date05_after_csra/*_20241205_NAV_STATS.json
+            .machine1_prefetch/date05_after_csra/_DATE05_LOSSLESS_ARTIFACT_SHA256.txt
+            .machine1_prefetch/date05_after_csra/_DATE05_LOSSLESS_ARTIFACT_META.txt
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 30
