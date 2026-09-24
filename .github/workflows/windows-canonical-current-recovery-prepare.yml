@@ -1,0 +1,93 @@
+name: Windows Canonical CURRENT Recovery Prepare
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - canonical-current-recovery-requests/current.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-canonical-current-recovery-prepare
+  cancel-in-progress: false
+
+jobs:
+  recovery-prepare:
+    name: Reconstruct missing CURRENT into parity staging only
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    env:
+      A1_RAW_DIR: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
+    steps:
+      - name: Require exact recovery branch
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ('${{ github.ref_name }}' -ne 'fix/v32-dynamic-source-universe-v1') {
+            throw 'Recovery prepare is locked to fix/v32-dynamic-source-universe-v1.'
+          }
+
+      - name: Checkout governed recovery revision
+        uses: actions/checkout@v4
+
+      - name: Verify separate Drive credential bindings exist
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bindings = @(
+            @{ Name = 'A1_DRIVE_READER_CREDENTIALS'; Path = $env:A1_DRIVE_READER_CREDENTIALS },
+            @{ Name = 'A1_DRIVE_WRITER_CREDENTIALS'; Path = $env:A1_DRIVE_WRITER_CREDENTIALS }
+          )
+          foreach ($binding in $bindings) {
+            if ([string]::IsNullOrWhiteSpace($binding.Path)) {
+              throw "$($binding.Name) is not configured for the runner process."
+            }
+            if (-not (Test-Path -LiteralPath $binding.Path -PathType Leaf)) {
+              throw "$($binding.Name) points to a credential file that does not exist."
+            }
+          }
+          Write-Host 'Drive credential bindings: PRESENT'
+
+      - name: Install recovery revision
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e .
+
+      - name: Compile recovery module
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m py_compile src\a1clean\canonical_recovery.py
+
+      - name: Run recovery unit gates
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pytest tests\test_canonical_recovery.py -q
+
+      - name: Verify canonical RAW source identity
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m a1clean.cli source-preflight
+
+      - name: Prepare restart-safe recovered CURRENT candidate under parity staging
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m a1clean.canonical_recovery
+
+      - name: Safety declaration
+        if: always()
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          Write-Host 'CANONICAL CURRENT RECOVERY PREPARE GATE.'
+          Write-Host 'This workflow may write only recovery evidence/candidate bodies below PARITY_STAGING.'
+          Write-Host 'It does not write RAW, does not create or replace canonical CURRENT, and does not authorize heavy behavior research.'
+          Write-Host 'Recovered source bodies must match prior PASS evidence exactly for filename/size/MD5 plus exact semantic manifest and market index JSON.'
+          Write-Host 'A PASS here requires a separate governed promotion transaction and post-promotion readback before PRESTART can be rerun.'
