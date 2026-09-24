@@ -1,0 +1,44 @@
+{
+    "ticker":  "DEPO",
+    "trading_date":  "2024-12-05",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_rows_sha256":  "ea8aa6532bfd0fd8e6c0a083e83bb0fc1ff86746c4f5794b3f98633924858876",
+    "canonical_rows_jsonl_sha256":  "661bc1978d59118caae9cf04787754285270698e0ac17a2711a5f4e3047246c4",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "actual_rows":  24,
+    "source_row_first":  431401,
+    "source_row_last":  431424,
+    "first_datetime":  "2024-12-05 09:06:00",
+    "last_datetime":  "2024-12-05 16:04:00",
+    "observed_high":  258,
+    "observed_low":  240,
+    "total_volume":  21200,
+    "gap_transition_count":  18,
+    "largest_activity":  {
+                             "source_row":  431412,
+                             "datetime":  "2024-12-05 13:38:00",
+                             "open":  242,
+                             "high":  242,
+                             "low":  242,
+                             "close":  242,
+                             "volume":  3500
+                         },
+    "session_codes":  [
+                          "20",
+                          "40",
+                          "51",
+                          "60"
+                      ],
+    "raw_aux1_semantic_proven_codes":  [
+                                           "-1"
+                                       ],
+    "raw_aux2_fresh_semantic_proven_codes":  [
+                                                 "-1"
+                                             ],
+    "raw_openint_fresh_semantic_proven_codes":  [
+                                                    "-1"
+                                                ],
+    "navigation_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

@@ -1,0 +1,44 @@
+{
+    "ticker":  "CYBR",
+    "trading_date":  "2024-12-05",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_rows_sha256":  "7c819458d4d7137f2151145b7f84790522525c1cbb8e2a21dc0529006f581b0b",
+    "canonical_rows_jsonl_sha256":  "1512c5a377ca2b235652c6113cc69f7c2d51699fed83ca5c7beca1ab690c500b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "actual_rows":  199,
+    "source_row_first":  421652,
+    "source_row_last":  421850,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:09:00",
+    "observed_high":  169,
+    "observed_low":  155,
+    "total_volume":  63675200,
+    "gap_transition_count":  58,
+    "largest_activity":  {
+                             "source_row":  421654,
+                             "datetime":  "2024-12-05 09:02:00",
+                             "open":  158,
+                             "high":  165,
+                             "low":  158,
+                             "close":  165,
+                             "volume":  1712800
+                         },
+    "session_codes":  [
+                          "20",
+                          "40",
+                          "51",
+                          "60"
+                      ],
+    "raw_aux1_semantic_proven_codes":  [
+                                           "-1"
+                                       ],
+    "raw_aux2_fresh_semantic_proven_codes":  [
+                                                 "-1"
+                                             ],
+    "raw_openint_fresh_semantic_proven_codes":  [
+                                                    "-1"
+                                                ],
+    "navigation_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

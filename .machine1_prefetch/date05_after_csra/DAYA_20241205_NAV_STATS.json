@@ -1,0 +1,42 @@
+{
+    "ticker":  "DAYA",
+    "trading_date":  "2024-12-05",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_rows_sha256":  "b40190d84485c24203a6e9ac017e9d844ff43724b84d852be4ed8470df85d7b4",
+    "canonical_rows_jsonl_sha256":  "e9ea9f009542ee1fe937151029e3672ceeccce4e2ce88c4eb03517ba9817a87f",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "actual_rows":  36,
+    "source_row_first":  430545,
+    "source_row_last":  430580,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 15:39:00",
+    "observed_high":  610,
+    "observed_low":  555,
+    "total_volume":  124700,
+    "gap_transition_count":  22,
+    "largest_activity":  {
+                             "source_row":  430572,
+                             "datetime":  "2024-12-05 10:47:00",
+                             "open":  565,
+                             "high":  570,
+                             "low":  565,
+                             "close":  570,
+                             "volume":  44100
+                         },
+    "session_codes":  [
+                          "20",
+                          "40"
+                      ],
+    "raw_aux1_semantic_proven_codes":  [
+                                           "-1"
+                                       ],
+    "raw_aux2_fresh_semantic_proven_codes":  [
+                                                 "-1"
+                                             ],
+    "raw_openint_fresh_semantic_proven_codes":  [
+                                                    "-1"
+                                                ],
+    "navigation_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

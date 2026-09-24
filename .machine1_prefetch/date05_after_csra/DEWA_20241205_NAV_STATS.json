@@ -1,0 +1,44 @@
+{
+    "ticker":  "DEWA",
+    "trading_date":  "2024-12-05",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_rows_sha256":  "b0b0038afec39d11a0b178c7ab83fe907b711c5965c90ce06144c8b35e5a5c3e",
+    "canonical_rows_jsonl_sha256":  "8dcb7dc06775f15c0c93658b3ad523814b12943b5173d18d331fbf2fad144479",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "actual_rows":  329,
+    "source_row_first":  434805,
+    "source_row_last":  435133,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:13:00",
+    "observed_high":  123,
+    "observed_low":  113,
+    "total_volume":  515366600,
+    "gap_transition_count":  6,
+    "largest_activity":  {
+                             "source_row":  434988,
+                             "datetime":  "2024-12-05 13:38:00",
+                             "open":  120,
+                             "high":  121,
+                             "low":  120,
+                             "close":  121,
+                             "volume":  29172500
+                         },
+    "session_codes":  [
+                          "20",
+                          "40",
+                          "51",
+                          "60"
+                      ],
+    "raw_aux1_semantic_proven_codes":  [
+                                           "-1"
+                                       ],
+    "raw_aux2_fresh_semantic_proven_codes":  [
+                                                 "-1"
+                                             ],
+    "raw_openint_fresh_semantic_proven_codes":  [
+                                                    "-1"
+                                                ],
+    "navigation_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}
