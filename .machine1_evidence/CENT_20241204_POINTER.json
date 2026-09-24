@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "CENT",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-cent-20241204",
+    "workflow_commit":  "363deadd5ad33e074065841f287921b2ffd33b1a",
+    "github_run_id":  36068718576,
+    "github_artifact_id":  10837482126,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/36068718576/artifacts/10837482126",
+    "github_artifact_digest":  "abcf6a4e2a6961da5ce84002e8102f45af78836d8c7ce3d5273c09adfceac148",
+    "packet_sha256":  "84f787e5bd490f9b3be4e15ee2ffd7fa1aea6ac60cb548e1f337c75438bbc378",
+    "rows_jsonl_sha256":  "623296673c2370232acab10c5eeb604f47a31473dd79615c0aad34156516e08b",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  365796,
+    "source_row_last":  365798,
+    "data_rows":  3,
+    "first_datetime":  "2024-12-04 10:55:00",
+    "last_datetime":  "2024-12-04 14:55:00"
+}
