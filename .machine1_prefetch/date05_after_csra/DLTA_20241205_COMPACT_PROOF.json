@@ -1,0 +1,18 @@
+{
+    "ticker":  "DLTA",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  454374,
+    "source_row_last":  454398,
+    "actual_rows":  25,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:06:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "e34438948673ca48fbd00ccf8ebc3f1308eedae12679d4ba1c76a0bdfa1c7c23",
+    "compact_rows_sha256":  "41bbf2e5427f94739151b6b015b9dcd3fb9d0700e643306db2de2001bc08d7c6",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  25,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

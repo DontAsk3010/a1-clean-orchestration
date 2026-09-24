@@ -1,0 +1,18 @@
+{
+    "ticker":  "DEWI",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  440030,
+    "source_row_last":  440267,
+    "actual_rows":  238,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:00:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "baf3b2eb8cebe01f9c31eb015251b15b7b8ab48d7ade59a6466ba2c522d73988",
+    "compact_rows_sha256":  "668368d8be1fff911be5f6703a921ad84be05a2f16bc1fd88adcc84cad5c6095",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  238,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

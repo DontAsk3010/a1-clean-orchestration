@@ -1,0 +1,18 @@
+{
+    "ticker":  "DIGI",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  446425,
+    "source_row_last":  446430,
+    "actual_rows":  6,
+    "first_datetime":  "2024-12-05 09:55:00",
+    "last_datetime":  "2024-12-05 16:11:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "ea6ee67ec885c3a9ee001a354904d486a0f6f2df150a82dc6a180bdcc7cd09df",
+    "compact_rows_sha256":  "13df1cf2e4ad8f7060c6f4c914144bf5f5e435a4545410d069feb1aee3dbebb1",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  6,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

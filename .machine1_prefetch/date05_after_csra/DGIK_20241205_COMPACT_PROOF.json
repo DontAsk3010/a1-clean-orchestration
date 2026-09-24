@@ -1,0 +1,18 @@
+{
+    "ticker":  "DGIK",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  444457,
+    "source_row_last":  444500,
+    "actual_rows":  44,
+    "first_datetime":  "2024-12-05 09:22:00",
+    "last_datetime":  "2024-12-05 15:24:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "e44494dc8d2e99de14b09d95c9c074cda5d0b61d9d2819e5a9c2d981f6e97db7",
+    "compact_rows_sha256":  "246cf4f7fd7fad482fa64fdb32abfc84531be08e546807c08ad3b7a1d019b441",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  44,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

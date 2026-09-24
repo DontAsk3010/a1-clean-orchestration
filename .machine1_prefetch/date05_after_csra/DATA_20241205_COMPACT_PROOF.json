@@ -1,0 +1,18 @@
+{
+    "ticker":  "DATA",
+    "trading_date":  "2024-12-05",
+    "source_row_first":  432069,
+    "source_row_last":  432170,
+    "actual_rows":  102,
+    "first_datetime":  "2024-12-05 09:00:00",
+    "last_datetime":  "2024-12-05 16:08:00",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "canonical_rows_jsonl_sha256":  "b53d6b39631c518c0998f1a4c7aabc71212de9d86ae110fc8a081464f3c95bc1",
+    "compact_rows_sha256":  "33adbe6cc7fb9504d014a651259f81cf3eed8da6b702c66ac9942f57262deed2",
+    "compact_schema_version":  "date05_compact_v1",
+    "compact_field_count":  32,
+    "compact_data_row_count":  102,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}
