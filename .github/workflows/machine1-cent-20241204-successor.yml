@@ -1,0 +1,45 @@
+name: Machine1 CENT 2024-12-04 Successor Proof
+
+on:
+  push:
+    branches:
+      - machine1/evidence-cent-20241204
+    paths:
+      - .github/workflows/machine1-cent-20241204-successor.yml
+
+permissions:
+  contents: write
+
+jobs:
+  prove-successor:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Reconstruct exact locked semantic packing
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $expected='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          $got=(Get-FileHash -LiteralPath $env:RAW_FILE -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($got -ne $expected){throw "RAW_HASH_MISMATCH:$got"};$env:RAW_SHA256=$got
+          @'
+          const fs=require('fs'),readline=require('readline');
+          const RAW=process.env.RAW_FILE,SHA='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c',MAX=6291456,TD='2024-12-04',TT='CENT';
+          if((process.env.RAW_SHA256||'').toLowerCase()!==SHA)throw Error('RAW_HASH_ENV_MISMATCH');
+          function csv(s){let a=[],c='',q=false;for(let i=0;i<s.length;i++){let x=s[i];if(q){if(x==='"'&&s[i+1]==='"'){c+='"';i++;}else if(x==='"')q=false;else c+=x;}else{if(x==='"')q=true;else if(x===','){a.push(c);c='';}else c+=x;}}a.push(c);return a;}
+          function seg(ns){if(!ns.length)return[];let o=[],a=ns[0],b=a;for(let i=1;i<ns.length;i++){let n=ns[i];if(n===b+1)b=n;else{o.push([a,b]);a=b=n;}}o.push([a,b]);return o;}
+          (async()=>{let rl=readline.createInterface({input:fs.createReadStream(RAW,{encoding:'utf8'}),crlfDelay:Infinity}),head=null,ti=-1,di=-1,n=0,m=new Map();for await(let l of rl){if(head===null){if(l.charCodeAt(0)===0xFEFF)l=l.slice(1);head=l;let f=csv(l);ti=f.indexOf('RAW_TICKER');di=f.indexOf('RAW_DATETIME_ISO');if(ti<0||di<0)throw Error('FIELDS_MISSING');continue;}n++;let f=csv(l),t=(f[ti]||'').trim(),dt=(f[di]||'').trim();if(!t||dt.length<16)throw Error('ROUTING_'+n);let d=dt.slice(0,10),tm=dt.slice(11,19);if(d>TD)continue;let k=d+'\u0000'+t,g=m.get(k);if(!g){g={d,t,ns:[],rs:[],f:tm,l:tm};m.set(k,g);}g.ns.push(n);g.rs.push(l);if(tm<g.f)g.f=tm;if(tm>g.l)g.l=tm;}
+          let ar=[...m.values()].sort((a,b)=>a.d===b.d?a.t.localeCompare(b.t):a.d.localeCompare(b.d)),bn=1,bb=0,bl=0,cur=null,suc=null,found=false;for(let g of ar){let rec={generation_id:'BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01',source_drive_id:'1wvBmhpQIV-evJJOPN_g8nks3KZBzmVHC',source_name:'Raw Des 02-31-2024.csv',source_sha256:SHA,trading_date:g.d,ticker:g.t,first_clock_time:g.f,last_clock_time:g.l,data_row_count:g.ns.length,source_row_first:g.ns[0],source_row_last:g.ns[g.ns.length-1],source_row_segments:seg(g.ns),raw_header:head,raw_rows:g.rs,all_source_columns_retained:true,semantic_reader_contract:{read_complete_ticker_day:true,read_all_source_supported_sessions:true,do_not_filter_flat_weak_failure_no_event:true,preserve_actual_event_clock_times:true,create_event_journey_objects_in_ai_not_python:true,carry_open_journeys_across_dates:true}},rb=Buffer.byteLength(JSON.stringify(rec)+'\n');if(bl>0&&bb+rb>MAX){bn++;bb=0;bl=0;}let e={trading_date:g.d,ticker:g.t,bundle_name:`Raw Des 02-31-2024__SEMANTIC_${String(bn).padStart(4,'0')}.jsonl`,bundle_line_number:bl+1,data_row_count:g.ns.length,first_clock_time:g.f,last_clock_time:g.l,source_row_first:g.ns[0],source_row_last:g.ns[g.ns.length-1],record_bytes:rb,bundle_bytes_before:bb};bb+=rb;bl++;e.bundle_bytes_after=bb;if(found){suc=e;break;}if(g.d===TD&&g.t===TT){cur=e;found=true;}}
+          if(!cur||!suc)throw Error('TARGET_OR_SUCCESSOR_NOT_FOUND');let ex={bundle_name:'Raw Des 02-31-2024__SEMANTIC_0010.jsonl',bundle_line_number:151,data_row_count:3,source_row_first:365796,source_row_last:365798,first_clock_time:'10:55:00',last_clock_time:'14:55:00'};for(let[k,v]of Object.entries(ex))if(cur[k]!==v)throw Error(`CURRENT_MISMATCH ${k} ${cur[k]} ${v}`);let p={mode:'DETERMINISTIC_RECONSTRUCTION_FROM_CANONICAL_RAW_USING_LOCKED_DATA_PLANE_ROUTING_PACKING',data_plane_impl_version:'UNIVERSAL_DELTA_DATA_PLANE_V2_20260911',max_semantic_bundle_bytes:MAX,ordering:'GROUP_BY_TRADING_DATE_TICKER_ORDER_BY_TRADING_DATE_TICKER',source_sha256:SHA,current_verified:cur,derived_successor:suc,current_expected_crosscheck_pass:true};fs.mkdirSync('.machine1_evidence',{recursive:true});fs.writeFileSync('.machine1_evidence/CENT_20241204_SUCCESSOR_PROOF.json',JSON.stringify(p,null,2));console.log('CENT_SUCCESSOR_OK '+JSON.stringify({cur,suc}));})().catch(e=>{console.error(e.stack||e);process.exit(1)});
+          '@ | Set-Content -Encoding UTF8 reconstruct_cent_successor.js
+          $runnerRoot=Split-Path (Split-Path $env:RUNNER_TEMP -Parent) -Parent
+          $node=Get-ChildItem -LiteralPath (Join-Path $runnerRoot 'externals') -Filter node.exe -File -Recurse -ErrorAction Stop|Sort-Object FullName -Descending|Select-Object -First 1
+          if($null -eq $node){throw 'RUNNER_BUNDLED_NODE_NOT_FOUND'};& $node.FullName reconstruct_cent_successor.js;if($LASTEXITCODE -ne 0){throw "NODE_FAILED_$LASTEXITCODE"}
+      - name: Persist successor proof
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop';git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot';git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com';git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_evidence/CENT_20241204_SUCCESSOR_PROOF.json';git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist CENT exact successor proof [skip ci]';git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-cent-20241204
