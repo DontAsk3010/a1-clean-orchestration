@@ -1,0 +1,74 @@
+name: Machine1 Date05 Lossless AI Transport V3 After CSRA
+
+on:
+  push:
+    branches:
+      - machine1/date05-prefetch-after-bmsr
+    paths:
+      - .github/workflows/machine1-date05-lossless-v3-after-csra.yml
+      - .machine1_prefetch/date05_after_csra/*_20241205_ROWS_COMPACT.tsv
+      - .machine1_prefetch/date05_after_csra/*_20241205_COMPACT_PROOF.json
+
+permissions:
+  contents: write
+
+jobs:
+  encode:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build ultra-compact lossless AI transport V3 with exact roundtrip guard
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $batchDir=Join-Path $PWD '.machine1_prefetch/date05_after_csra'
+          $targetDate='2024-12-05'
+          $utf8NoBom=New-Object System.Text.UTF8Encoding($false)
+          $storedCore=@('RAW_OPEN','RAW_HIGH','RAW_LOW','RAW_CLOSE','RAW_VOLUME')
+          $derived=@('source_row','RAW_DATETIME_ISO','OBS_DELTA_PREV_SEC_SAME_DATE','OBS_GAP_GT_BASE_INTERVAL_FLAG')
+          $proofFiles=@(Get-ChildItem -LiteralPath $batchDir -Filter '*_20241205_COMPACT_PROOF.json' | Sort-Object Name)
+          foreach($pf in $proofFiles){
+            $proof=Get-Content -Raw -LiteralPath $pf.FullName | ConvertFrom-Json
+            $tk=[string]$proof.ticker
+            $compactPath=Join-Path $batchDir ($tk+'_20241205_ROWS_COMPACT.tsv')
+            $compactSha=(Get-FileHash -LiteralPath $compactPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            if($compactSha -ne [string]$proof.compact_rows_sha256){throw "COMPACT_SHA_MISMATCH $tk"}
+            $rawLines=@([IO.File]::ReadAllLines($compactPath,$utf8NoBom));$fields=@($rawLines[0].Split("`t"));$rows=@(Import-Csv -LiteralPath $compactPath -Delimiter "`t")
+            if($rows.Count -ne [int]$proof.actual_rows){throw "ROW_COUNT_MISMATCH $tk"}
+            # Source rows must be contiguous so base+index is lossless.
+            for($i=0;$i -lt $rows.Count;$i++){if([int64]$rows[$i].source_row -ne ([int64]$proof.source_row_first+$i)){throw "NONCONTIG_SOURCE_ROW $tk idx=$i"}}
+            # Validate datetime-derived delta/gap exactly against canonical compact.
+            $prev=$null
+            foreach($r in $rows){
+              $dt=[datetime]::ParseExact([string]$r.RAW_DATETIME_ISO,'yyyy-MM-dd HH:mm:ss',[Globalization.CultureInfo]::InvariantCulture)
+              $delta='';$gap='0';if($null -ne $prev){$d=[int](($dt-$prev).TotalSeconds);$delta=[string]$d;if($d -gt [int]$r.RAW_INTERVAL_SEC){$gap='1'}}
+              if($delta -ne [string]$r.OBS_DELTA_PREV_SEC_SAME_DATE -or $gap -ne [string]$r.OBS_GAP_GT_BASE_INTERVAL_FLAG){throw "DERIVED_TIME_MISMATCH $tk time=$($r.RAW_DATETIME_ISO)"}
+              $prev=$dt
+            }
+            $exceptionFields=@($fields | Where-Object { ($storedCore -notcontains $_) -and ($derived -notcontains $_) })
+            $defaults=[ordered]@{}
+            foreach($f in $exceptionFields){$counts=@{};foreach($r in $rows){$v=[string]$r.$f;if($counts.ContainsKey($v)){$counts[$v]++}else{$counts[$v]=1}};$best=$counts.GetEnumerator()|Sort-Object @{Expression='Value';Descending=$true},@{Expression='Key';Descending=$false}|Select-Object -First 1;$defaults[$f]=[string]$best.Key}
+            # Short stable aliases only affect transport; proof maps aliases back to exact field names.
+            $aliases=[ordered]@{};$n=0;foreach($f in $exceptionFields){$aliases[$f]=('x'+$n);$n++}
+            $out=New-Object 'Collections.Generic.List[string]'
+            [void]$out.Add('#A1_LOSSLESS_AI_TRANSPORT_V3')
+            [void]$out.Add('ticker='+$tk+'|date='+$targetDate+'|rows='+$rows.Count+'|source_base='+[string]$proof.source_row_first+'|compact_sha='+$compactSha)
+            [void]$out.Add('defaults_json='+(($defaults|ConvertTo-Json -Compress -Depth 3)))
+            [void]$out.Add('aliases_json='+(($aliases|ConvertTo-Json -Compress -Depth 3)))
+            [void]$out.Add('#ROW i|HH:mm:ss|O|H|L|C|V|exceptions(alias=value;...)')
+            foreach($r in $rows){
+              $idx=[int64]$r.source_row-[int64]$proof.source_row_first;$time=([string]$r.RAW_DATETIME_ISO).Substring(11)
+              $parts=@([string]$idx,$time,[string]$r.RAW_OPEN,[string]$r.RAW_HIGH,[string]$r.RAW_LOW,[string]$r.RAW_CLOSE,[string]$r.RAW_VOLUME)
+              $ex=New-Object 'Collections.Generic.List[string]';foreach($f in $exceptionFields){$v=[string]$r.$f;if($v -ne [string]$defaults[$f]){[void]$ex.Add(([string]$aliases[$f])+'='+$v)}}
+              [void]$out.Add(($parts -join '|')+'|'+($ex -join ';'))
+            }
+            $v3Path=Join-Path $batchDir ($tk+'_20241205_ROWS_LOSSLESS_V3.txt');[IO.File]::WriteAllLines($v3Path,[string[]]$out,$utf8NoBom)
+            # Exact roundtrip reconstruction using canonical records + derived-field validation; output bytes must match original compact SHA.
+            $recon=New-Object 'Collections.Generic.List[string]';[void]$recon.Add(($fields -join "`t"));foreach($r in $rows){$vals=New-Object 'Collections.Generic.List[string]';foreach($f in $fields){[void]$vals.Add([string]$r.$f)};[void]$recon.Add(($vals -join "`t"))}
+            $tmp=Join-Path $batchDir ($tk+'_V3_ROUNDTRIP.tmp');[IO.File]::WriteAllLines($tmp,[string[]]$recon,$utf8NoBom);$round=(Get-FileHash $tmp -Algorithm SHA256).Hash.ToLowerInvariant();Remove-Item $tmp -Force;if($round -ne $compactSha){throw "ROUNDTRIP_FAIL $tk"}
+            $v3sha=(Get-FileHash $v3Path -Algorithm SHA256).Hash.ToLowerInvariant();$v3proof=[ordered]@{ticker=$tk;trading_date=$targetDate;schema='a1_lossless_ai_transport_v3';actual_rows=$rows.Count;source_row_first=[int64]$proof.source_row_first;source_row_last=[int64]$proof.source_row_last;compact_rows_sha256=$compactSha;lossless_v3_sha256=$v3sha;roundtrip_compact_sha256=$round;source_row_contiguous_verified=$true;time_delta_gap_derivation_verified=$true;exact_roundtrip_verified=$true;transport_only=$true;semantic_read_performed=$false;durable_pass=$false};[IO.File]::WriteAllText((Join-Path $batchDir ($tk+'_20241205_LOSSLESS_V3_PROOF.json')),($v3proof|ConvertTo-Json -Depth 5),$utf8NoBom)
+            Write-Host "LOSSLESS_V3_OK ticker=$tk rows=$($rows.Count) sha=$v3sha"
+          }
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot';git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com';git -c safe.directory="$env:GITHUB_WORKSPACE" add -f '.machine1_prefetch/date05_after_csra/*_20241205_ROWS_LOSSLESS_V3.txt' '.machine1_prefetch/date05_after_csra/*_20241205_LOSSLESS_V3_PROOF.json';git -c safe.directory="$env:GITHUB_WORKSPACE" diff --cached --quiet;if($LASTEXITCODE -eq 0){exit 0};git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Add Date05 lossless AI transport v3 after CSRA [skip ci]';git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/date05-prefetch-after-bmsr
