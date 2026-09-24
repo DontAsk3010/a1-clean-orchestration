@@ -1,0 +1,14 @@
+{
+    "ticker":  "MCAS",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  47,
+    "source_row_first":  1039968,
+    "source_row_last":  1040003,
+    "data_rows":  36,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:05:00",
+    "rows_jsonl_sha256":  "12482b34047ac03f0600af6edf836c017b18ddc8cf92110c6569b929285f5c3e",
+    "compact_sha256":  "7b2ea6b7e891a00e96885a5084b4c34288d19047d6a2a914b2b295928a493f0d"
+}

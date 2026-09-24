@@ -1,0 +1,14 @@
+{
+    "ticker":  "MBTO",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  46,
+    "source_row_first":  1034701,
+    "source_row_last":  1034720,
+    "data_rows":  20,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:00:00",
+    "rows_jsonl_sha256":  "1e401fc554f644c7871a3339761aa67ad4fadd16b01f0ab41ef06c97bfb39c8f",
+    "compact_sha256":  "271022924ab98e542b0e9b95f1bf852f654070561a93cd3b9c0ae262272a3686"
+}
