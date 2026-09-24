@@ -1,0 +1,17 @@
+{
+    "ticker":  "DGNS",
+    "trading_date":  "2024-12-05",
+    "schema":  "a1_lossless_ai_transport_v3",
+    "actual_rows":  54,
+    "source_row_first":  445334,
+    "source_row_last":  445387,
+    "compact_rows_sha256":  "87f39c4b5802f398fd72da157ca19ee338076f365a591211de3dd830c4e2a67f",
+    "lossless_v3_sha256":  "040edc846945cf13f9ad499850cddfe4a3b3d94a578d422731ec2b5b1574e350",
+    "roundtrip_compact_sha256":  "87f39c4b5802f398fd72da157ca19ee338076f365a591211de3dd830c4e2a67f",
+    "source_row_contiguous_verified":  true,
+    "time_delta_gap_derivation_verified":  true,
+    "exact_roundtrip_verified":  true,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

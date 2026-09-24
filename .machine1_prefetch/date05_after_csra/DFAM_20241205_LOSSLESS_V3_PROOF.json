@@ -1,0 +1,17 @@
+{
+    "ticker":  "DFAM",
+    "trading_date":  "2024-12-05",
+    "schema":  "a1_lossless_ai_transport_v3",
+    "actual_rows":  6,
+    "source_row_first":  444211,
+    "source_row_last":  444216,
+    "compact_rows_sha256":  "f7d90e0e16e2447bb50e7d1c2b9b4fcdf94ad41578e8061b302afe68d1b7f61d",
+    "lossless_v3_sha256":  "bd6391d3de6b4d212ddd298f0a32e1264f67f0bcf53c69ea58c3ae6e70c9a846",
+    "roundtrip_compact_sha256":  "f7d90e0e16e2447bb50e7d1c2b9b4fcdf94ad41578e8061b302afe68d1b7f61d",
+    "source_row_contiguous_verified":  true,
+    "time_delta_gap_derivation_verified":  true,
+    "exact_roundtrip_verified":  true,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

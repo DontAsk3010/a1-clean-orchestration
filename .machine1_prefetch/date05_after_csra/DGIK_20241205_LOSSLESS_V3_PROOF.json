@@ -1,0 +1,17 @@
+{
+    "ticker":  "DGIK",
+    "trading_date":  "2024-12-05",
+    "schema":  "a1_lossless_ai_transport_v3",
+    "actual_rows":  44,
+    "source_row_first":  444457,
+    "source_row_last":  444500,
+    "compact_rows_sha256":  "246cf4f7fd7fad482fa64fdb32abfc84531be08e546807c08ad3b7a1d019b441",
+    "lossless_v3_sha256":  "d05e5eccd9fa39ebf070dbe90b73b5258422708f511fbe5da493be95f90cb540",
+    "roundtrip_compact_sha256":  "246cf4f7fd7fad482fa64fdb32abfc84531be08e546807c08ad3b7a1d019b441",
+    "source_row_contiguous_verified":  true,
+    "time_delta_gap_derivation_verified":  true,
+    "exact_roundtrip_verified":  true,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

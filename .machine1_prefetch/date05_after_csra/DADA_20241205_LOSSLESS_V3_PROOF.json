@@ -1,0 +1,17 @@
+{
+    "ticker":  "DADA",
+    "trading_date":  "2024-12-05",
+    "schema":  "a1_lossless_ai_transport_v3",
+    "actual_rows":  5,
+    "source_row_first":  424826,
+    "source_row_last":  424830,
+    "compact_rows_sha256":  "9d7039a0d4724b7484c3be5cf6cf5c79257988b8fcf6e44ad9093b86af07b9c9",
+    "lossless_v3_sha256":  "259cd6d15f29d7bd8d5cf099fdd2be33e5be41f42dbf7e2b9176b32656c89b09",
+    "roundtrip_compact_sha256":  "9d7039a0d4724b7484c3be5cf6cf5c79257988b8fcf6e44ad9093b86af07b9c9",
+    "source_row_contiguous_verified":  true,
+    "time_delta_gap_derivation_verified":  true,
+    "exact_roundtrip_verified":  true,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

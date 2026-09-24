@@ -1,0 +1,17 @@
+{
+    "ticker":  "DIVA",
+    "trading_date":  "2024-12-05",
+    "schema":  "a1_lossless_ai_transport_v3",
+    "actual_rows":  222,
+    "source_row_first":  447351,
+    "source_row_last":  447572,
+    "compact_rows_sha256":  "e502a6219f9f69d9f2a615424192cd29d291f0b33817ea07502685164fc62158",
+    "lossless_v3_sha256":  "f4a47ba15be61a4c26f9d8a5a167ceebca19f9e50f63601e6e9f7e3805b64a02",
+    "roundtrip_compact_sha256":  "e502a6219f9f69d9f2a615424192cd29d291f0b33817ea07502685164fc62158",
+    "source_row_contiguous_verified":  true,
+    "time_delta_gap_derivation_verified":  true,
+    "exact_roundtrip_verified":  true,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

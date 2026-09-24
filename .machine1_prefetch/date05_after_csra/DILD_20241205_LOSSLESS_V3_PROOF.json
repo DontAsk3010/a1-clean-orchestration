@@ -1,0 +1,17 @@
+{
+    "ticker":  "DILD",
+    "trading_date":  "2024-12-05",
+    "schema":  "a1_lossless_ai_transport_v3",
+    "actual_rows":  166,
+    "source_row_first":  451405,
+    "source_row_last":  451570,
+    "compact_rows_sha256":  "9cb3f049a68095371df3dd322b99601bbca4051c2e82c9064df3bf335a97e438",
+    "lossless_v3_sha256":  "e95a598277c507bad56bf1082feea468f6b0f213e49971e07d75f9b6f831c7d7",
+    "roundtrip_compact_sha256":  "9cb3f049a68095371df3dd322b99601bbca4051c2e82c9064df3bf335a97e438",
+    "source_row_contiguous_verified":  true,
+    "time_delta_gap_derivation_verified":  true,
+    "exact_roundtrip_verified":  true,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

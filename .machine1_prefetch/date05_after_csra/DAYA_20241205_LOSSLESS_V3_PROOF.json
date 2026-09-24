@@ -1,0 +1,17 @@
+{
+    "ticker":  "DAYA",
+    "trading_date":  "2024-12-05",
+    "schema":  "a1_lossless_ai_transport_v3",
+    "actual_rows":  36,
+    "source_row_first":  430545,
+    "source_row_last":  430580,
+    "compact_rows_sha256":  "b40190d84485c24203a6e9ac017e9d844ff43724b84d852be4ed8470df85d7b4",
+    "lossless_v3_sha256":  "ed7210a8b5bd398264207fc3096b5fa9201537bf220f296292a3f9b8345ba479",
+    "roundtrip_compact_sha256":  "b40190d84485c24203a6e9ac017e9d844ff43724b84d852be4ed8470df85d7b4",
+    "source_row_contiguous_verified":  true,
+    "time_delta_gap_derivation_verified":  true,
+    "exact_roundtrip_verified":  true,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

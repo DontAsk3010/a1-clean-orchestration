@@ -1,0 +1,17 @@
+{
+    "ticker":  "DEWA",
+    "trading_date":  "2024-12-05",
+    "schema":  "a1_lossless_ai_transport_v3",
+    "actual_rows":  329,
+    "source_row_first":  434805,
+    "source_row_last":  435133,
+    "compact_rows_sha256":  "b0b0038afec39d11a0b178c7ab83fe907b711c5965c90ce06144c8b35e5a5c3e",
+    "lossless_v3_sha256":  "1e08162e8b3c10a92a3a9b8a08962bb5da9214f561638affd783cd50c092d086",
+    "roundtrip_compact_sha256":  "b0b0038afec39d11a0b178c7ab83fe907b711c5965c90ce06144c8b35e5a5c3e",
+    "source_row_contiguous_verified":  true,
+    "time_delta_gap_derivation_verified":  true,
+    "exact_roundtrip_verified":  true,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

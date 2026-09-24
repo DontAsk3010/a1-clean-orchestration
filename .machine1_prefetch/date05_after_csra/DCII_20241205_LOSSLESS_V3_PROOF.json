@@ -1,0 +1,17 @@
+{
+    "ticker":  "DCII",
+    "trading_date":  "2024-12-05",
+    "schema":  "a1_lossless_ai_transport_v3",
+    "actual_rows":  1,
+    "source_row_first":  431289,
+    "source_row_last":  431289,
+    "compact_rows_sha256":  "95902081883df280a6c5d24da2e8684774233edb14dc0cd1bb4f8b8b50497daf",
+    "lossless_v3_sha256":  "d05bcb83847f89a25a86372977d239c9630f1e37e6d29b17e61010f6f91b0609",
+    "roundtrip_compact_sha256":  "95902081883df280a6c5d24da2e8684774233edb14dc0cd1bb4f8b8b50497daf",
+    "source_row_contiguous_verified":  true,
+    "time_delta_gap_derivation_verified":  true,
+    "exact_roundtrip_verified":  true,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

@@ -1,0 +1,17 @@
+{
+    "ticker":  "CYBR",
+    "trading_date":  "2024-12-05",
+    "schema":  "a1_lossless_ai_transport_v3",
+    "actual_rows":  199,
+    "source_row_first":  421652,
+    "source_row_last":  421850,
+    "compact_rows_sha256":  "7c819458d4d7137f2151145b7f84790522525c1cbb8e2a21dc0529006f581b0b",
+    "lossless_v3_sha256":  "1c796ded67f9b21e7b8e77b9dda2c96318a854d6354e32f4f861ebca93bfd1fb",
+    "roundtrip_compact_sha256":  "7c819458d4d7137f2151145b7f84790522525c1cbb8e2a21dc0529006f581b0b",
+    "source_row_contiguous_verified":  true,
+    "time_delta_gap_derivation_verified":  true,
+    "exact_roundtrip_verified":  true,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

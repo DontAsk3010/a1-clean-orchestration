@@ -1,0 +1,17 @@
+{
+    "ticker":  "CTTH",
+    "trading_date":  "2024-12-05",
+    "schema":  "a1_lossless_ai_transport_v3",
+    "actual_rows":  1,
+    "source_row_first":  410240,
+    "source_row_last":  410240,
+    "compact_rows_sha256":  "9ed3c2c91d0c66ad9d955f9a63a7c446a2f2cd017e7a05c2b0ca9444b0fd62f7",
+    "lossless_v3_sha256":  "7e7204ff037c01e55d378c1c43822190a333ce460925821f829ee5a59b6d0e5a",
+    "roundtrip_compact_sha256":  "9ed3c2c91d0c66ad9d955f9a63a7c446a2f2cd017e7a05c2b0ca9444b0fd62f7",
+    "source_row_contiguous_verified":  true,
+    "time_delta_gap_derivation_verified":  true,
+    "exact_roundtrip_verified":  true,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}
