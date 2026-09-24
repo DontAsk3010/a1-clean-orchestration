@@ -1,0 +1,90 @@
+name: Windows Drive Binding Diagnostic
+
+on:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - '.github/workflows/windows-drive-binding-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-drive-binding-diagnostic
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    name: Diagnose Drive credential binding without exposing values
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 10
+    steps:
+      - name: Inspect binding scopes safely
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function ScopeState([string]$name, [string]$scope) {
+            $value = [Environment]::GetEnvironmentVariable($name, $scope)
+            $present = -not [string]::IsNullOrWhiteSpace($value)
+            $fileExists = $false
+            if ($present) {
+              $fileExists = Test-Path -LiteralPath $value -PathType Leaf
+            }
+            [PSCustomObject]@{
+              Name = $name
+              Scope = $scope
+              Present = $present
+              FileExists = $fileExists
+            }
+          }
+
+          Write-Host "Computer=$env:COMPUTERNAME"
+          Write-Host "RunnerName=$env:RUNNER_NAME"
+          Write-Host "Identity=$([Security.Principal.WindowsIdentity]::GetCurrent().Name)"
+
+          $names = @('A1_DRIVE_READER_CREDENTIALS','A1_DRIVE_WRITER_CREDENTIALS')
+          foreach ($name in $names) {
+            foreach ($scope in @('Process','User','Machine')) {
+              $s = ScopeState $name $scope
+              Write-Host ("BINDING|name={0}|scope={1}|present={2}|file_exists={3}" -f $s.Name,$s.Scope,$s.Present,$s.FileExists)
+            }
+          }
+
+          $workspace = $env:RUNNER_WORKSPACE
+          $runnerRoot = $null
+          if (-not [string]::IsNullOrWhiteSpace($workspace)) {
+            $workDir = Split-Path -Parent $workspace
+            if (-not [string]::IsNullOrWhiteSpace($workDir)) {
+              $runnerRoot = Split-Path -Parent $workDir
+            }
+          }
+
+          $envFileExists = $false
+          $envHasReader = $false
+          $envHasWriter = $false
+          if ($runnerRoot) {
+            $envFile = Join-Path $runnerRoot '.env'
+            $envFileExists = Test-Path -LiteralPath $envFile -PathType Leaf
+            if ($envFileExists) {
+              $lines = Get-Content -LiteralPath $envFile -ErrorAction Stop
+              foreach ($line in $lines) {
+                if ($line -match '^\s*A1_DRIVE_READER_CREDENTIALS\s*=') { $envHasReader = $true }
+                if ($line -match '^\s*A1_DRIVE_WRITER_CREDENTIALS\s*=') { $envHasWriter = $true }
+              }
+            }
+          }
+          Write-Host "RUNNER_ENV|exists=$envFileExists|reader_key=$envHasReader|writer_key=$envHasWriter"
+
+          $services = Get-Service -ErrorAction SilentlyContinue | Where-Object { $_.Name -like 'actions.runner*' }
+          if ($services) {
+            foreach ($svc in $services) {
+              Write-Host ("RUNNER_SERVICE|name={0}|status={1}|start_type={2}" -f $svc.Name,$svc.Status,$svc.StartType)
+            }
+          } else {
+            Write-Host 'RUNNER_SERVICE|none_detected=true'
+          }
+
+          Write-Host 'DIAGNOSTIC_PASS|no_drive_access=true|no_credential_values_emitted=true|no_mutation=true'
