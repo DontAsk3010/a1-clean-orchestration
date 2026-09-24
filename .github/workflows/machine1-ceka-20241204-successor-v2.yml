@@ -1,0 +1,162 @@
+name: Machine1 CEKA 2024-12-04 Successor Proof V2
+
+on:
+  push:
+    branches:
+      - machine1/evidence-ceka-20241204
+    paths:
+      - .github/workflows/machine1-ceka-20241204-successor-v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  prove-successor-v2:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reconstruct exact semantic packing and prove successor
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          @'
+          import csv, json, hashlib, os, sqlite3, tempfile
+          from pathlib import Path
+
+          RAW = Path(os.environ['RAW_FILE'])
+          EXPECTED_SHA256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          GENERATION_ID = 'BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01'
+          SOURCE_DRIVE_ID = '1wvBmhpQIV-evJJOPN_g8nks3KZBzmVHC'
+          SOURCE_NAME = 'Raw Des 02-31-2024.csv'
+          MAX_SEMANTIC_BUNDLE_BYTES = 6*1024*1024
+          TARGET_DATE = '2024-12-04'
+          TARGET_TICKER = 'CEKA'
+
+          if not RAW.is_file():
+              raise RuntimeError(f'RAW_MISSING:{RAW}')
+          h=hashlib.sha256()
+          with RAW.open('rb') as f:
+              for chunk in iter(lambda:f.read(4*1024*1024), b''):
+                  h.update(chunk)
+          got=h.hexdigest()
+          if got != EXPECTED_SHA256:
+              raise RuntimeError(f'RAW_HASH_MISMATCH:{got}')
+
+          with RAW.open('rb') as f:
+              header_raw=f.readline()
+          enc='utf-8-sig'
+          header_text=header_raw.decode(enc).rstrip('\r\n')
+          header=next(csv.reader([header_text]))
+          try:
+              ticker_idx=header.index('RAW_TICKER')
+              dt_idx=header.index('RAW_DATETIME_ISO')
+          except ValueError as e:
+              raise RuntimeError(f'REQUIRED_CANONICAL_FIELD_MISSING:{e}')
+
+          db=Path(tempfile.gettempdir())/'a1_ceka_successor_v2.sqlite'
+          try: db.unlink()
+          except FileNotFoundError: pass
+          con=sqlite3.connect(str(db))
+          con.execute('PRAGMA journal_mode=OFF')
+          con.execute('PRAGMA synchronous=OFF')
+          con.execute('CREATE TABLE r(n INTEGER PRIMARY KEY,d TEXT,ticker TEXT,tm TEXT,raw BLOB)')
+          con.execute('CREATE INDEX ix ON r(d,ticker,n)')
+          batch=[]; total=0
+          with RAW.open('rb') as f:
+              f.readline()
+              for raw in f:
+                  total += 1
+                  line=raw.decode(enc).rstrip('\r\n')
+                  fields=next(csv.reader([line]))
+                  if len(fields)!=len(header):
+                      raise RuntimeError(f'CSV_FIELD_COUNT_MISMATCH_ROW_{total}')
+                  ticker=fields[ticker_idx].strip()
+                  dt=fields[dt_idx].strip()
+                  if len(dt) < 16 or not ticker:
+                      raise RuntimeError(f'ROUTING_UNRESOLVED_ROW_{total}')
+                  d=dt[:10]; tm=dt[11:19]
+                  batch.append((total,d,ticker,tm,sqlite3.Binary(raw)))
+                  if len(batch)>=5000:
+                      con.executemany('INSERT INTO r VALUES (?,?,?,?,?)',batch); con.commit(); batch=[]
+              if batch:
+                  con.executemany('INSERT INTO r VALUES (?,?,?,?,?)',batch); con.commit()
+
+          def segments(nums):
+              if not nums: return []
+              out=[]; a=b=nums[0]
+              for n in nums[1:]:
+                  if n==b+1: b=n
+                  else: out.append([a,b]); a=b=n
+              out.append([a,b]); return out
+
+          groups=con.execute('SELECT d,ticker,COUNT(*),MIN(n),MAX(n),MIN(tm),MAX(tm) FROM r GROUP BY d,ticker ORDER BY d,ticker').fetchall()
+          bundle_no=1; bbytes=0; bline=0
+          current=None; successor=None; found=False
+          for d,ticker,n,minr,maxr,mint,maxt in groups:
+              rr=con.execute('SELECT n,raw FROM r WHERE d=? AND ticker=? ORDER BY n',(d,ticker)).fetchall()
+              nums=[x[0] for x in rr]
+              raws=[bytes(x[1]).decode(enc).rstrip('\r\n') for x in rr]
+              rec={
+                  'generation_id':GENERATION_ID,'source_drive_id':SOURCE_DRIVE_ID,'source_name':SOURCE_NAME,'source_sha256':got,
+                  'trading_date':d,'ticker':ticker,'first_clock_time':mint,'last_clock_time':maxt,'data_row_count':n,
+                  'source_row_first':minr,'source_row_last':maxr,'source_row_segments':segments(nums),
+                  'raw_header':header_text,'raw_rows':raws,'all_source_columns_retained':True,
+                  'semantic_reader_contract':{
+                      'read_complete_ticker_day':True,'read_all_source_supported_sessions':True,
+                      'do_not_filter_flat_weak_failure_no_event':True,'preserve_actual_event_clock_times':True,
+                      'create_event_journey_objects_in_ai_not_python':True,'carry_open_journeys_across_dates':True
+                  }
+              }
+              enc_rec=(json.dumps(rec,ensure_ascii=False,separators=(',',':'))+'\n').encode('utf-8')
+              if bline>0 and bbytes+len(enc_rec)>MAX_SEMANTIC_BUNDLE_BYTES:
+                  bundle_no += 1; bbytes=0; bline=0
+              line_no=bline+1
+              ent={'trading_date':d,'ticker':ticker,'bundle_name':f'Raw Des 02-31-2024__SEMANTIC_{bundle_no:04d}.jsonl','bundle_line_number':line_no,'data_row_count':n,'first_clock_time':mint,'last_clock_time':maxt,'source_row_first':minr,'source_row_last':maxr,'record_bytes':len(enc_rec),'bundle_bytes_before':bbytes}
+              bbytes += len(enc_rec); bline += 1
+              ent['bundle_bytes_after']=bbytes
+              if found:
+                  successor=ent
+                  break
+              if d==TARGET_DATE and ticker==TARGET_TICKER:
+                  current=ent; found=True
+
+          con.close()
+          try: db.unlink()
+          except FileNotFoundError: pass
+          if current is None or successor is None:
+              raise RuntimeError('TARGET_OR_SUCCESSOR_NOT_FOUND')
+          expected={'bundle_name':'Raw Des 02-31-2024__SEMANTIC_0010.jsonl','bundle_line_number':150,'data_row_count':13,'source_row_first':365470,'source_row_last':365482,'first_clock_time':'09:23:00','last_clock_time':'15:26:00'}
+          for k,v in expected.items():
+              if current[k] != v:
+                  raise RuntimeError(f'CURRENT_RECONSTRUCTION_MISMATCH {k} got={current[k]} expected={v}')
+          proof={
+              'mode':'DETERMINISTIC_RECONSTRUCTION_FROM_CANONICAL_RAW_USING_LOCKED_DATA_PLANE_ROUTING_PACKING',
+              'data_plane_impl_version':'UNIVERSAL_DELTA_DATA_PLANE_V2_20260911',
+              'max_semantic_bundle_bytes':MAX_SEMANTIC_BUNDLE_BYTES,
+              'ordering':'GROUP_BY_TRADING_DATE_TICKER_ORDER_BY_TRADING_DATE_TICKER',
+              'source_sha256':got,
+              'current_verified':current,
+              'derived_successor':successor,
+              'current_expected_crosscheck_pass':True
+          }
+          out=Path('.machine1_evidence')
+          out.mkdir(exist_ok=True)
+          (out/'CEKA_20241204_SUCCESSOR_PROOF_V2.json').write_text(json.dumps(proof,indent=2,ensure_ascii=False),encoding='utf-8')
+          print('CEKA_SUCCESSOR_PROOF_V2_OK',json.dumps({'current':current,'successor':successor},separators=(',',':')))
+          '@ | Set-Content -Encoding UTF8 reconstruct_ceka_successor_v2.py
+          python reconstruct_ceka_successor_v2.py
+
+      - name: Persist successor proof
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_evidence/CEKA_20241204_SUCCESSOR_PROOF_V2.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist CEKA exact successor proof v2 [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-ceka-20241204
