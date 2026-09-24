@@ -1,0 +1,14 @@
+{
+    "ticker":  "MAYA",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  42,
+    "source_row_first":  1031200,
+    "source_row_last":  1031444,
+    "data_rows":  245,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:12:00",
+    "rows_jsonl_sha256":  "159fd196c5ecb97d91e5741f2e0a8c659720740fcbc263c7ca4052eae4637d5d",
+    "compact_sha256":  "c83a20bd2dd2b948db31637b71aaf24effd09b6e637aafdb02cf8614544fa608"
+}

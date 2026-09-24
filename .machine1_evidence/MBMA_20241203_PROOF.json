@@ -1,0 +1,14 @@
+{
+    "ticker":  "MBMA",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  44,
+    "source_row_first":  1035309,
+    "source_row_last":  1035516,
+    "data_rows":  208,
+    "first_datetime":  "2024-12-03 08:59:00",
+    "last_datetime":  "2024-12-03 16:14:00",
+    "rows_jsonl_sha256":  "513f300f514529c728002363c4a921a16fb4aa7caf3da8d7b9ca1ade2f439d93",
+    "compact_sha256":  "2ad727c04e121ba49a960673616ee052ed2f5a8da40fa7b99b355661ed97ace3"
+}

@@ -1,0 +1,14 @@
+{
+    "ticker":  "MBAP",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  43,
+    "source_row_first":  1029561,
+    "source_row_last":  1029680,
+    "data_rows":  120,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:13:00",
+    "rows_jsonl_sha256":  "885ef9e8555e9de930d11371b51670f6546b77654941e46b9e1cdb27ce066d34",
+    "compact_sha256":  "4cf68843623513653ead892e0da519b50aeeee0b5d7101111db6706ce3422a62"
+}
