@@ -93,7 +93,7 @@
   "machine1_dispatch_registry_document_id": "1hI1HAksSGktmjL0sqB1SUhGDaS7NQILHdBoSnE2vR7Q",
   "machine1_dispatch_registry_revision_id": "ANLCKQnMrUgLynkTv-WX5a_kPLMw4cgN0JgD1gZ-DGlrKs0-LiqiOD2V5AxUQsAPDAOvZedLK9aI0g6wXJ34-wWzaQ5nm6LhRjCfheKBa2E",
   "current_execution_document_id": "1AdtN9N7oIYwsHr_7-R6UzBREx9DJd4s291iZJou6GZU",
-  "current_execution_revision_id": "ANLCKQli5llQdw5SgVCeiPH5kB2lYACC8Gkh5psnPDILWfbzUJxpPWIwraxqPGM-36CnRDAUFzFLzNevL0l1S3TR7a0X04QL2KpAwxAmOqo",
+  "current_execution_revision_id": "ANLCKQm-INfvQgWUs2xPNHrky5G7NwMn2cHVniT6CfJdBqchRAAzLKGRx7gig6UljShgoMyP58i21BJDQNCQiPm_4inx63SFvkzgVmG8FAk",
   "temporal_behavior_sequence_downstream_required": true,
   "permanent_blindspot_register_downstream_required": true,
   "future_hpx_lane_gate_downstream_required": true,
@@ -108,16 +108,22 @@
   "canonical_current_observed_state": "MISSING_OR_INACCESSIBLE_404_NO_NAME_MATCH_20260925",
   "preserved_control_bundle_drive_id": "1m1iartlCLQCPb8nV2PJX4Z56K2P-hF3a",
   "raw_rebuild_without_exact_committed_evidence_reconciliation_forbidden": true,
+  "drive_writer_credential_required_for_recovery_prepare": true,
+  "drive_writer_credential_environment_variable": "A1_DRIVE_WRITER_CREDENTIALS",
+  "drive_writer_credential_last_known_path": "C:\\Users\\feri-admin\\a1-drive-auth\\client_writer.json",
+  "drive_writer_credential_observed_state": "MISSING_ON_WINDOWS_RUNNER_20260925",
+  "drive_reader_credential_may_be_repurposed_as_writer": false,
+  "recovery_prepare_current_status": "HOLD_WRITER_CREDENTIAL_MISSING",
   "last_governed_canonical_evidence": {
     "canonical_promotion_git_sha": "2f0f52523e0ffcaa807e72676cfb9a66b1329d53",
     "post_commit_readback_status": "PASS",
     "baseline_state_fingerprint": "a3856491f94ffe036144c78e4056853346ee296e4ff5841ce9b3de90ff756b14",
     "canonical_control_snapshot_fingerprint": "aa91545d20dc16533569a3b09c5777818795af652e35508a81f0706c224fe44a"
   },
-  "hold_reason": "CANONICAL_CURRENT_FOLDER_MISSING_OR_INACCESSIBLE_AT_FROZEN_ID; LAST_GOVERNED_READBACK_AND_PROMOTION_EVIDENCE PLUS PRESERVED CONTROL_BUNDLE ARE AVAILABLE FOR GOVERNED PREPARE_PROOF; RECOVERY_OR AUTHORITY_SUPPORTED_MIGRATION MUST RECONCILE EXACT COMMITTED SOURCE AND CONTROL EVIDENCE BEFORE PRESTART CAN PASS",
+  "hold_reason": "CANONICAL_CURRENT_FOLDER_MISSING_OR_INACCESSIBLE_AT_FROZEN_ID; GOVERNED RECOVERY PREPARE IS CURRENTLY BLOCKED BECAUSE THE SEPARATE DRIVE WRITER CREDENTIAL IS MISSING ON THE WINDOWS RUNNER; RESTORE THE LEGITIMATE WRITER CREDENTIAL AND BIND A1_DRIVE_WRITER_CREDENTIALS BEFORE DRIVE GUARDRAIL AND RECOVERY PREPARE MAY PASS; DO NOT REPURPOSE READER CREDENTIAL OR BYPASS RECOVERY/READBACK GATES",
   "service_runner_auto_recovery_enabled": false,
   "service_runner_auto_recovery_policy": "HOLD_NO_HEAVY_EXECUTION",
   "service_runner_auto_recovery_max_consecutive_interruptions": 0,
   "transport_rule": "OPTIMIZE_TRANSPORT_NEVER_REDUCE_EVIDENCE; USE_GOVERNED_LOSSLESS_FILE_OR_ARTIFACT_FOR_LARGE_PAYLOADS_WHEN_AVAILABLE; VERIFY_MANIFEST_DIGEST_COUNTS_RANGES_ORDER_EXTRACTION_AND_FULL_READ_BEFORE_PASS; KEEP_CONNECTOR_CHAT_AS_THIN_CONTROL_PLANE_AFTER_VERIFIED_INTAKE",
-  "operational_trigger": "GOVERNED_HOLD_CANONICAL_CURRENT_RECOVERY_AUTHORITY_REBOUND_LOSSLESS_ARTIFACT_TRANSPORT_20260925_03"
+  "operational_trigger": "GOVERNED_HOLD_CANONICAL_CURRENT_RECOVERY_WRITER_CREDENTIAL_REQUIRED_20260925_04"
 }
