@@ -1,0 +1,59 @@
+{
+  "schema": "A1_CANONICAL_CURRENT_RECOVERY_PREPARE_BLOCKER_V1",
+  "status": "BLOCKED_EXTERNAL_WRITER_CREDENTIAL_FILE_MISSING",
+  "observed_at_utc": "2026-09-24T21:24:15Z",
+  "branch": "fix/v32-dynamic-source-universe-v1",
+  "authority_effective_date": "2026-09-25",
+  "authority_lock_status": "ACTIVE",
+  "recovery_request_trigger_revision": "20260925_03",
+  "recovery_request_mode": "PREPARE_ONLY_NO_CANONICAL_WRITE",
+  "machine2_request_enabled": false,
+  "canonical_current_recovery_commit_authorized": false,
+  "formula_stage": "CLOSED",
+  "expected_missing_current_folder_id": "1SRN-WWkHJefLGLSN6_SktpVU0Ugjwqc-",
+  "parity_staging_folder_id": "1WTb_lGBD6Tuwfcb-1WhsICjyJqzzBtwU",
+  "committed_control_bundle_folder_id": "1IKflAPURwdcPPNxYDdCNLQt7TTcLsnl9",
+  "committed_control_bundle_origin_shadow_run_id": "1m_5nrgeNExTqluSEmAl0fFr-KpjkQwLg",
+  "committed_control_bundle_origin_promotion_git_sha": "2f0f52523e0ffcaa807e72676cfb9a66b1329d53",
+  "last_governed_baseline_state_fingerprint": "a3856491f94ffe036144c78e4056853346ee296e4ff5841ce9b3de90ff756b14",
+  "last_governed_canonical_control_snapshot_fingerprint": "aa91545d20dc16533569a3b09c5777818795af652e35508a81f0706c224fe44a",
+  "promotion_reconciliation": {
+    "promotion_transaction_folder_id": "1OptxpyjR8szQD07vNYFJnzIBSm8AxoxS",
+    "promotion_status": "CANONICAL_PROMOTION_COMMITTED",
+    "canonical_write_performed": true,
+    "raw_write_performed": false,
+    "control_bundle_origin_reconciled": true
+  },
+  "writer_binding_diagnostic": {
+    "diagnostic_commit_sha": "a59e5a01b1db3004f14ac65a683c8f7246e03177",
+    "workflow_run_id": 36061238649,
+    "job_id": 107840406696,
+    "runner_name": "A1-WINDOWS-COMPUTE-02",
+    "machine_name": "PORSCHE-DESIGN",
+    "historically_governed_writer_path": "C:\\Users\\feri-admin\\a1-drive-auth\\client_writer.json",
+    "path_exists": false,
+    "credential_content_read": false,
+    "credential_content_disclosed": false,
+    "mutation_performed": false
+  },
+  "prior_binding_reconciliation": {
+    "reader_binding_present_and_valid": true,
+    "writer_binding_present_process_scope": false,
+    "writer_binding_present_user_scope": false,
+    "writer_binding_present_machine_scope": false,
+    "runner_service_registry_writer_entries": 0,
+    "runner_owned_existing_writer_candidates": 0,
+    "broad_disk_scan_required": false
+  },
+  "governed_decision": "DO_NOT_RUN_RECOVERY_PREPARE_UNTIL_A_PREVIOUSLY_GOVERNED_DISTINCT_WRITER_CREDENTIAL_FILE_IS_RESTORED_OR_REBOUND_WITH_PROVEN_IDENTITY_AND_THE_SEPARATE_READER_WRITER_GUARDRAIL_PASSES",
+  "forbidden_shortcuts": [
+    "DO_NOT_USE_READER_AS_WRITER",
+    "DO_NOT_INVENT_OR_RECONSTRUCT_CREDENTIAL_SECRET",
+    "DO_NOT_WRITE_RAW",
+    "DO_NOT_MUTATE_CANONICAL_CURRENT",
+    "DO_NOT_BYPASS_RECOVERY_PREPARE",
+    "DO_NOT_START_HEAVY_MACHINE2_RESEARCH"
+  ],
+  "next_exact_gate": "RESTORE_OR_REBIND_PROVEN_DISTINCT_WRITER_CREDENTIAL -> WINDOWS_DRIVE_GUARDRAIL_PREFLIGHT_PASS -> CANONICAL_CURRENT_RECOVERY_PREPARE -> EXACT_READBACK",
+  "checkpoint_role": "DURABLE_BLOCKER_PROOF_TO_PREVENT_REPEAT_DIAGNOSIS_AFTER_CHAT_OR_WORKER_INTERRUPTION"
+}
