@@ -1,0 +1,36 @@
+{
+  "mode": "DETERMINISTIC_RECONSTRUCTION_FROM_CANONICAL_RAW_USING_LOCKED_DATA_PLANE_ROUTING_PACKING",
+  "data_plane_impl_version": "UNIVERSAL_DELTA_DATA_PLANE_V2_20260911",
+  "max_semantic_bundle_bytes": 6291456,
+  "ordering": "GROUP_BY_TRADING_DATE_TICKER_ORDER_BY_TRADING_DATE_TICKER",
+  "source_sha256": "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+  "current_verified": {
+    "trading_date": "2024-12-04",
+    "ticker": "CENT",
+    "bundle_name": "Raw Des 02-31-2024__SEMANTIC_0010.jsonl",
+    "bundle_line_number": 151,
+    "data_row_count": 3,
+    "first_clock_time": "10:55:00",
+    "last_clock_time": "14:55:00",
+    "source_row_first": 365796,
+    "source_row_last": 365798,
+    "record_bytes": 3239,
+    "bundle_bytes_before": 4865018,
+    "bundle_bytes_after": 4868257
+  },
+  "derived_successor": {
+    "trading_date": "2024-12-04",
+    "ticker": "CFIN",
+    "bundle_name": "Raw Des 02-31-2024__SEMANTIC_0010.jsonl",
+    "bundle_line_number": 152,
+    "data_row_count": 151,
+    "first_clock_time": "09:00:00",
+    "last_clock_time": "16:13:00",
+    "source_row_first": 366143,
+    "source_row_last": 366293,
+    "record_bytes": 44419,
+    "bundle_bytes_before": 4868257,
+    "bundle_bytes_after": 4912676
+  },
+  "current_expected_crosscheck_pass": true
+}
