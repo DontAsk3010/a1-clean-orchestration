@@ -1,0 +1,44 @@
+name: Machine1 CEKA 2024-12-04 Successor Proof V2B
+
+on:
+  push:
+    branches:
+      - machine1/evidence-ceka-20241204
+    paths:
+      - .github/workflows/machine1-ceka-20241204-successor-v2b.yml
+
+permissions:
+  contents: write
+
+jobs:
+  prove-successor-v2b:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run exact reconstruction with bypassed PowerShell policy
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $src = Get-Content -Raw '.github/workflows/machine1-ceka-20241204-successor-v2.yml'
+          $m = [regex]::Match($src, "(?ms)^          @'\r?\n(?<py>.*?)^          '@ \| Set-Content -Encoding UTF8 reconstruct_ceka_successor_v2.py")
+          if (-not $m.Success) { throw 'EMBEDDED_PYTHON_NOT_FOUND' }
+          $lines = $m.Groups['py'].Value -split "`r?`n"
+          $clean = foreach($line in $lines) { if($line.StartsWith('          ')) { $line.Substring(10) } else { $line } }
+          [System.IO.File]::WriteAllLines((Join-Path $PWD 'reconstruct_ceka_successor_v2.py'), [string[]]$clean, (New-Object System.Text.UTF8Encoding($false)))
+          python reconstruct_ceka_successor_v2.py
+          if ($LASTEXITCODE -ne 0) { throw "PYTHON_FAILED_EXIT_$LASTEXITCODE" }
+
+      - name: Persist successor proof
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_evidence/CEKA_20241204_SUCCESSOR_PROOF_V2.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist CEKA exact successor proof v2 [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-ceka-20241204
