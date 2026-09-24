@@ -1,0 +1,28 @@
+{
+    "ticker":  "CTRA",
+    "trading_date":  "2024-12-05",
+    "schema":  "a1_lossless_ai_transport_v2",
+    "actual_rows":  226,
+    "source_row_first":  411168,
+    "source_row_last":  411393,
+    "compact_rows_sha256":  "3d05947032a5c9b20e37e6e7259ca34390810fe492004676b2d826c30154c1a0",
+    "lossless_v2_sha256":  "4977800a28d870481c2e5a706f1765a4cd5d81be5027cf4e61bdf614d8deb508",
+    "roundtrip_compact_sha256":  "3d05947032a5c9b20e37e6e7259ca34390810fe492004676b2d826c30154c1a0",
+    "core_fields":  [
+                        "source_row",
+                        "RAW_DATETIME_ISO",
+                        "OBS_DELTA_PREV_SEC_SAME_DATE",
+                        "OBS_GAP_GT_BASE_INTERVAL_FLAG",
+                        "RAW_OPEN",
+                        "RAW_HIGH",
+                        "RAW_LOW",
+                        "RAW_CLOSE",
+                        "RAW_VOLUME",
+                        "IDX_REGULAR_CLOCK_SESSION_CODE"
+                    ],
+    "non_core_default_count":  22,
+    "exact_roundtrip_verified":  true,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

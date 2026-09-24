@@ -1,0 +1,28 @@
+{
+    "ticker":  "CUAN",
+    "trading_date":  "2024-12-05",
+    "schema":  "a1_lossless_ai_transport_v2",
+    "actual_rows":  280,
+    "source_row_first":  416203,
+    "source_row_last":  416482,
+    "compact_rows_sha256":  "e30722f47ac5cf7a4eb05caf413beefc2fc028318a852f2fd74d9e691641d3d4",
+    "lossless_v2_sha256":  "f1ef2e1157bbb4c9e5aa6efdabef98d96e2ffcb37efe8a2431a5c9b348866c85",
+    "roundtrip_compact_sha256":  "e30722f47ac5cf7a4eb05caf413beefc2fc028318a852f2fd74d9e691641d3d4",
+    "core_fields":  [
+                        "source_row",
+                        "RAW_DATETIME_ISO",
+                        "OBS_DELTA_PREV_SEC_SAME_DATE",
+                        "OBS_GAP_GT_BASE_INTERVAL_FLAG",
+                        "RAW_OPEN",
+                        "RAW_HIGH",
+                        "RAW_LOW",
+                        "RAW_CLOSE",
+                        "RAW_VOLUME",
+                        "IDX_REGULAR_CLOCK_SESSION_CODE"
+                    ],
+    "non_core_default_count":  22,
+    "exact_roundtrip_verified":  true,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

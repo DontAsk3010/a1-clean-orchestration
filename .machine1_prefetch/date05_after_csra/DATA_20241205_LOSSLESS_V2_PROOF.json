@@ -1,0 +1,28 @@
+{
+    "ticker":  "DATA",
+    "trading_date":  "2024-12-05",
+    "schema":  "a1_lossless_ai_transport_v2",
+    "actual_rows":  102,
+    "source_row_first":  432069,
+    "source_row_last":  432170,
+    "compact_rows_sha256":  "33adbe6cc7fb9504d014a651259f81cf3eed8da6b702c66ac9942f57262deed2",
+    "lossless_v2_sha256":  "57cb2c34be364b26c1d4c9cae30d2e185525eddbf75481815ee04f03a4a7a1a4",
+    "roundtrip_compact_sha256":  "33adbe6cc7fb9504d014a651259f81cf3eed8da6b702c66ac9942f57262deed2",
+    "core_fields":  [
+                        "source_row",
+                        "RAW_DATETIME_ISO",
+                        "OBS_DELTA_PREV_SEC_SAME_DATE",
+                        "OBS_GAP_GT_BASE_INTERVAL_FLAG",
+                        "RAW_OPEN",
+                        "RAW_HIGH",
+                        "RAW_LOW",
+                        "RAW_CLOSE",
+                        "RAW_VOLUME",
+                        "IDX_REGULAR_CLOCK_SESSION_CODE"
+                    ],
+    "non_core_default_count":  22,
+    "exact_roundtrip_verified":  true,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

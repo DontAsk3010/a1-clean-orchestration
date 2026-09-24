@@ -1,0 +1,28 @@
+{
+    "ticker":  "DEPO",
+    "trading_date":  "2024-12-05",
+    "schema":  "a1_lossless_ai_transport_v2",
+    "actual_rows":  24,
+    "source_row_first":  431401,
+    "source_row_last":  431424,
+    "compact_rows_sha256":  "ea8aa6532bfd0fd8e6c0a083e83bb0fc1ff86746c4f5794b3f98633924858876",
+    "lossless_v2_sha256":  "4d9471dec99f7c6ad2a04655dd4cfb0eafc6bb4214a33b6d38cf6f85c6e99a8f",
+    "roundtrip_compact_sha256":  "ea8aa6532bfd0fd8e6c0a083e83bb0fc1ff86746c4f5794b3f98633924858876",
+    "core_fields":  [
+                        "source_row",
+                        "RAW_DATETIME_ISO",
+                        "OBS_DELTA_PREV_SEC_SAME_DATE",
+                        "OBS_GAP_GT_BASE_INTERVAL_FLAG",
+                        "RAW_OPEN",
+                        "RAW_HIGH",
+                        "RAW_LOW",
+                        "RAW_CLOSE",
+                        "RAW_VOLUME",
+                        "IDX_REGULAR_CLOCK_SESSION_CODE"
+                    ],
+    "non_core_default_count":  22,
+    "exact_roundtrip_verified":  true,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

@@ -1,0 +1,28 @@
+{
+    "ticker":  "DLTA",
+    "trading_date":  "2024-12-05",
+    "schema":  "a1_lossless_ai_transport_v2",
+    "actual_rows":  25,
+    "source_row_first":  454374,
+    "source_row_last":  454398,
+    "compact_rows_sha256":  "41bbf2e5427f94739151b6b015b9dcd3fb9d0700e643306db2de2001bc08d7c6",
+    "lossless_v2_sha256":  "8d7cbc72a1167582e2fdb3ad398bf80575de4ccda702af795431f61a702d2c0d",
+    "roundtrip_compact_sha256":  "41bbf2e5427f94739151b6b015b9dcd3fb9d0700e643306db2de2001bc08d7c6",
+    "core_fields":  [
+                        "source_row",
+                        "RAW_DATETIME_ISO",
+                        "OBS_DELTA_PREV_SEC_SAME_DATE",
+                        "OBS_GAP_GT_BASE_INTERVAL_FLAG",
+                        "RAW_OPEN",
+                        "RAW_HIGH",
+                        "RAW_LOW",
+                        "RAW_CLOSE",
+                        "RAW_VOLUME",
+                        "IDX_REGULAR_CLOCK_SESSION_CODE"
+                    ],
+    "non_core_default_count":  22,
+    "exact_roundtrip_verified":  true,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

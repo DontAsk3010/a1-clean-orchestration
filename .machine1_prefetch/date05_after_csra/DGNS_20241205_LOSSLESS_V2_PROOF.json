@@ -1,0 +1,28 @@
+{
+    "ticker":  "DGNS",
+    "trading_date":  "2024-12-05",
+    "schema":  "a1_lossless_ai_transport_v2",
+    "actual_rows":  54,
+    "source_row_first":  445334,
+    "source_row_last":  445387,
+    "compact_rows_sha256":  "87f39c4b5802f398fd72da157ca19ee338076f365a591211de3dd830c4e2a67f",
+    "lossless_v2_sha256":  "756c4cb5b02b05b5bceae1203db9467919159beda75a9e157bc115ee56ba6a78",
+    "roundtrip_compact_sha256":  "87f39c4b5802f398fd72da157ca19ee338076f365a591211de3dd830c4e2a67f",
+    "core_fields":  [
+                        "source_row",
+                        "RAW_DATETIME_ISO",
+                        "OBS_DELTA_PREV_SEC_SAME_DATE",
+                        "OBS_GAP_GT_BASE_INTERVAL_FLAG",
+                        "RAW_OPEN",
+                        "RAW_HIGH",
+                        "RAW_LOW",
+                        "RAW_CLOSE",
+                        "RAW_VOLUME",
+                        "IDX_REGULAR_CLOCK_SESSION_CODE"
+                    ],
+    "non_core_default_count":  22,
+    "exact_roundtrip_verified":  true,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}

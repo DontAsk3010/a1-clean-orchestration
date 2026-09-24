@@ -1,0 +1,28 @@
+{
+    "ticker":  "DART",
+    "trading_date":  "2024-12-05",
+    "schema":  "a1_lossless_ai_transport_v2",
+    "actual_rows":  22,
+    "source_row_first":  430160,
+    "source_row_last":  430181,
+    "compact_rows_sha256":  "3de9dff292daaab09f2561c818d5a6df27e676cc492f4a07874a365d3d819ff1",
+    "lossless_v2_sha256":  "f152ef384cbaf4abbe684eb15b9783661e26c4452143e7b01c7974d014dd444d",
+    "roundtrip_compact_sha256":  "3de9dff292daaab09f2561c818d5a6df27e676cc492f4a07874a365d3d819ff1",
+    "core_fields":  [
+                        "source_row",
+                        "RAW_DATETIME_ISO",
+                        "OBS_DELTA_PREV_SEC_SAME_DATE",
+                        "OBS_GAP_GT_BASE_INTERVAL_FLAG",
+                        "RAW_OPEN",
+                        "RAW_HIGH",
+                        "RAW_LOW",
+                        "RAW_CLOSE",
+                        "RAW_VOLUME",
+                        "IDX_REGULAR_CLOCK_SESSION_CODE"
+                    ],
+    "non_core_default_count":  22,
+    "exact_roundtrip_verified":  true,
+    "transport_only":  true,
+    "semantic_read_performed":  false,
+    "durable_pass":  false
+}
