@@ -1,7 +1,7 @@
 {
   "schema": "A1_CLEAN_ACTIVE_AUTHORITY_LOCK_V1",
   "status": "ACTIVE",
-  "effective_date": "2026-09-24",
+  "effective_date": "2026-09-25",
   "prestart_completeness_gate_required": true,
   "dynamic_source_universe_required": true,
   "fixed_source_count_as_invariant_forbidden": true,
@@ -25,46 +25,49 @@
   "no_predetermined_formula_menu_required": true,
   "emergent_formula_discovery_required": true,
   "predetermined_formula_targets_authorized": false,
-  "candidate_formula_research_authorized": true,
+  "candidate_formula_research_authorized": false,
+  "formula_readiness_research_allowed": true,
+  "formula_candidate_construction_authorized": false,
+  "formula_discovery_admission_open": false,
   "machine2_atlas_to_authoritative_formula_admission_open": false,
   "production_live_telegram_formula_promotion_open": false,
   "formula_stage": "CLOSED",
   "documents": {
     "master_handbook": {
       "document_id": "1FVWKgoeWU9MsnOd3i8HOpprg36XrxgKInf6BQU6QTKQ",
-      "revision_id": "ANLCKQlU5xwDz07HGtQk35ef6hVChfD29A7gd2kj5RUvKAIoZQpkELD2uZyL_7J7NqZYoTAapU-eZ3EZtlIyGDUyI6QYSyCoz5zabDJ6S_Y"
+      "revision_id": "ANLCKQmQTtPMncoyUYb_mHm3YoBuG8MePIxnDhDc0qsuaF69wqxqdwmOQvVHVoJ7qvD6gZq1IxBeuYnMMtIlxQWNAT3jZcS49ayVYtREfRM"
     },
     "sub_master_index": {
       "document_id": "1jpL6rPU5us0z18Gw8MxNQfbxKNdmZxVJe4vA71f7TyA",
-      "revision_id": "ANLCKQnJwcn9QBnQWpVTB3ZO-aA_o-EWxSH-hO4D46kB5tpwFbr-HQ1L3mk5FiDVbRUMSx-64tgjCkKLOLDTiBMQiIlhswKjaQ2s_SeW_Hs"
+      "revision_id": "ANLCKQn8GFeI_jsc8bpaXGIso4r9x_VqhCTQQEU5LpnKM_U90agQcFIhyRbpi83GFOMa5WqA1o3t-apCwvjOF5tC-DTBLCAMVu87WG1w62o"
     },
     "source_capture": {
       "document_id": "12uknstiWZxoXeDk5r0Zd5iCRBQM4k3N9obSSLKWGG6M",
-      "revision_id": "ANLCKQnHOXqKQlFq-S1yJUkN9xG78rcpkWo-Vw4Ff-NUy6yP2kgc3VlkZH2dQwrsbNoWfVM4NbL5cuI3DJ99ZguLtKapsmRBRAm-Eg5H6lQ"
+      "revision_id": "ANLCKQmcRc5sn18trbeHwSrSLRGzfVmRTRDChdUUegys5nmHeBZNr-_0ZlyWAERfzv_dIlDcXuGE1pr7YhnW63cABduAiAzfsRq53m9xLlM"
     },
     "formula_research": {
       "document_id": "1sQu0l2qwvsjItmBycRh3siMajKEQknHOMBLlBQd3I-Q",
-      "revision_id": "ANLCKQm2woLnrwb7OTPu2bQsDmms2i0VXxEBu6lwqjr7RcYfYZMQG0uiFScc5F0LG3WJZxPMWnJUbT9VkFf6EyOAakfauYePziKNIZSs0kc"
+      "revision_id": "ANLCKQlN9xO1JjA-Fj7c3txr8lO2xgEo46SHH_NdUbO2ZOTNYw3jLFXYE6i2KRGEKMJAXFk4pRvItFmIGLLst2bUt88CDw3ri127ErGB60E"
     },
     "behavior_reading": {
       "document_id": "1vDoz8E7nGVlYPl2SBneA2tCAiNNAL77nLgPPZzFlbaI",
-      "revision_id": "ANLCKQlMgHFfhBfbB3uGXrX5BVQK_7UUoBUEHYoXKHEtg01EfB4lBNHoHImCSShNepDHBABhTrQN4fMqYbJ_RkQAPxT1tt0Ix8WRHAWPwCA"
+      "revision_id": "ANLCKQlC8yRb9gYAhM7rJJ66fLi8cRMu88OoXFz10x0opEJzYyrFlsMafJ0XYN7d7Zlvq9dOFgFFnH3A2Rz8BcYGnGOfHmPG62TwMF89vCs"
     },
     "github_automation": {
       "document_id": "12PK2RTlRlggPQAScAmzNPewatB5mZqOgJ3sZfRBsbO8",
-      "revision_id": "ANLCKQn6-m4KQFGaLO1WDmIs25zF3Rka9wBOZH5AEy2l7YGLenqaN_b-YYQP4IC3iWnr3Bbi7AURVkOvRcIcEsDVZA5hH9-vDJpKVQYPxmY"
+      "revision_id": "ANLCKQlPn2vOUKs-grottjjmfJGhx-MWBazdO7_cYH7A-UBSwCkhyqv0mRg31NR4K7vxUoiaPKDrjVlw1Usd2-ebW-gT-ISHyvtnplA4u3I"
     },
     "stable_transition_bridge": {
       "document_id": "1WI79YymkVcOJTRDhLwSiAESkLWFakwL9pe0oj6q1kug",
-      "revision_id": "ANLCKQnRhC_3oh-geNg_Xn-H8DQATa4ghAqeJpHHpU7gwl5nikV3tUcvaUxEL_EJASxgtFJIfBfl1JgjeFI5FZ35pThmRhRzU3RA1cO-Nmg"
+      "revision_id": "ANLCKQkBo1CAHR8k_j4hVT_utjxmDTFPxITjgBgaCQTD1UNb9A7RsWFaxKoL1ErMtKAV6dXaF8TS1D5SXG6p5cl47JKF7ACIt8A6MUoSRXQ"
     },
     "machine1_dispatch_registry": {
       "document_id": "1hI1HAksSGktmjL0sqB1SUhGDaS7NQILHdBoSnE2vR7Q",
-      "revision_id": "ANLCKQmrMAQHe_MUjjk_Hdl5E0U65ZF6jNWYjX1IgDpG-QZ_A9gxORBGq4TP_iTk49VuVxBKgSuYD5QorFahmW1xQemH4iEjLXLEnoXtslQ"
+      "revision_id": "ANLCKQln-KSpNh5xx7o911RRR9W7iWpjSJY4clCyjJ1Cxz5pc0CuL7bxpN5EAZtOQJrrrM8QNOroPRcZGkY2d3fMq7-aPsKh7teA-9ik8AI"
     },
     "current_execution": {
       "document_id": "1AdtN9N7oIYwsHr_7-R6UzBREx9DJd4s291iZJou6GZU",
-      "revision_id": "ANLCKQluOOEPzcDj5a3bOUMIP-dNnELqqR6V5rxwHJWlotK0mnIpRVl0jfGn-y5Y9LqxcfH7D7FppGs0x3XXEUldlhtUAc-wKl4zniMNa10"
+      "revision_id": "ANLCKQnN2FfPVRs_c49ygx9Up2-YyTrz1w2K0FnKNoHU5QD641l4qXZNnrQZ7b8mwfBfNKWdJ4h8ffQHr1lM3JLd4qd-Ug-35ahJ-eoRkng"
     }
   },
   "mandatory_owner_locks": [
@@ -79,11 +82,14 @@
     "GLOBAL_FULL_READ_NEW_OR_RESUMED_CHAT_BOOTSTRAP",
     "DUAL_INDEPENDENT_FULL_DEPTH_RESEARCH_ENGINES_NO_DIVISION_OF_LABOR",
     "SAME_MAXIMUM_SOURCE_SUPPORTED_COMPLETENESS_TARGET_PER_MACHINE",
-    "NO_PREDETERMINED_FORMULA_MENU_EMERGENT_FORMULA_DISCOVERY"
+    "NO_PREDETERMINED_FORMULA_MENU_EMERGENT_FORMULA_DISCOVERY",
+    "FORMULA_CREATION_CLOSED_READINESS_ONLY_UNTIL_EXPLICIT_ADMISSION"
   ],
   "global_prohibitions": {
     "formula_stage_open": false,
     "predetermined_formula_menu": false,
+    "candidate_formula_construction": false,
+    "afl_candidate_construction": false,
     "sampling_or_winner_only": false,
     "arbitrary_thresholds": false,
     "manual_labels_as_hidden_targets": false,
@@ -112,10 +118,10 @@
   "dual_engine_rule": "MACHINE_1_AND_MACHINE_2_INDEPENDENTLY_TARGET_THE_SAME_MAXIMUM_SOURCE_SUPPORTED_FACT_DERIVATION_SEMANTIC_TEMPORAL_GROUPING_RECURRENCE_DISCRIMINATOR_READY_CORPUS; DIFFERENCE_IS_METHOD_AND_EXECUTION_ONLY_NOT_SCIENTIFIC_SCOPE",
   "coverage_gap_rule": "IF_A_SUPPORTED_DIMENSION_IS_MISSING_FROM_ONE_MACHINE_RECORD_MACHINE_SPECIFIC_COVERAGE_GAP_AND_ENRICH_OR_BACKFILL_WHERE_GOVERNED; DO_NOT_DELEGATE_PERMANENT_OWNERSHIP_TO_THE_OTHER_MACHINE",
   "disagreement_rule": "PRESERVE_INDEPENDENT_OUTPUTS_AND_PROVENANCE; INVESTIGATE_DISAGREEMENT_AS_AMBIGUITY_COVERAGE_SEMANTIC_IMPLEMENTATION_OR_SCIENTIFIC_SIGNAL; NEVER_FORCE_AGREEMENT_BY_COPYING",
-  "formula_discovery_rule": "DO_NOT_PRESELECT_REQUIRED_FORMULAS_OR_HORIZONS; BUILD_RICH_GOVERNED_EVIDENCE_AND_ALLOW_RECURRENT_COMBINATIONS_CONDITIONAL_RECURRENCE_NEAR_TWINS_NEGATIVE_EVIDENCE_AND_CAUSAL_DISCRIMINATORS_TO_PRODUCE_LATER_CANDIDATES_UNDER_GOVERNED_GATES",
+  "formula_discovery_rule": "CURRENT FORMULA CREATION IS CLOSED; DO NOT PRESELECT REQUIRED FORMULAS OR HORIZONS; BUILD RICH GOVERNED EVIDENCE AND ALLOW RECURRENT COMBINATIONS CONDITIONAL_RECURRENCE NEAR_TWINS NEGATIVE_EVIDENCE AND CAUSAL_DISCRIMINATORS TO SUPPORT A LATER EXPLICIT GOVERNED FORMULA_DISCOVERY_ADMISSION",
   "correction_first_rule": "OWNER_INSTRUCTION_OR_CORRECTION -> FRESH_CURRENT_AUTHORITY_READ -> LIVE_REGISTRY_REQUEST_CHECKPOINT_SOURCE_SCHEMA_MANIFEST_RECONCILIATION -> CONFLICT_GAP_CHECK -> CORRECTED_EXECUTION_DECISION -> EXECUTE -> EXACT_READBACK_PROOF",
   "prestart_rule": "NO_HEAVY_SOURCE_READ_OR_COMPUTE_UNTIL_REQUEST_AND_IMPLEMENTATION_PASS_CURRENT_AUTHORITY_LOCK_AND_STAGE_CONTRACT",
-  "source_universe_rule": "CANONICAL_OR_GOVERNED_READY_SOURCE_MEMBERSHIP_IS_DISCOVERED_DURING_PREFLIGHT; OBSERVED_COUNTS_ARE_EVIDENCE_ONLY; EXTRA_OR_MISSING_SOURCE_MUST_NOT_BE_SILENTLY_OMITTED",
+  "source_universe_rule": "CANONICAL_OR_GOVERNED_READY_SOURCE_MEMBERSHIP_IS_DISCOVERED_DURING_PREFLIGHT; OBSERVED_COUNTS_ARE EVIDENCE ONLY; EXTRA_OR_MISSING_SOURCE_MUST_NOT_BE_SILENTLY_OMITTED",
   "durable_work_rule": "ALREADY_DURABLE_READBACK_VERIFIED_WORK_IS_PRESERVED_AND_NOT_RESTARTED_SOLELY_BECAUSE_GOVERNANCE_IS_NEWER; REOPEN_ONLY_ON_GOVERNED_MATERIAL_INTEGRITY_FINDING",
   "replacement_rule": "STALE_OR_INCOMPLETE_RUNNING_CONTRACT_MUST_BE_CANCELLED_OR_GOVERNEDLY_REPLACED_BEFORE_DATA_MUTATION",
   "pass_claim_rule": "EACH_JOB_OR_WORKER_MUST_HAVE_CURRENT_READBACK_EVIDENCE_AND_STATE_WHAT_PASS_PROVES_WHAT_PER_MACHINE_COVERAGE_REMAINS_AND_WHAT_REMAINS_OUTSIDE_ITS_STAGE"
