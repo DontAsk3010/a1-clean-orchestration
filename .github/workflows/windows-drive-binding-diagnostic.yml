@@ -97,6 +97,9 @@ jobs:
 
             try {
               $cim = Get-CimInstance Win32_Service -Filter ("Name='{0}'" -f $svc.Name.Replace("'","''")) -ErrorAction Stop
+              $startName = [string]$cim.StartName
+              $accountClass = if ($startName -match '(?i)localsystem|system') { 'SYSTEM' } elseif ($startName -match '(?i)networkservice') { 'NETWORK_SERVICE' } elseif ($startName -match '(?i)localservice') { 'LOCAL_SERVICE' } else { 'NAMED_ACCOUNT' }
+              Write-Host ("RUNNER_SERVICE_IDENTITY|service={0}|account_class={1}|status={2}" -f $svc.Name,$accountClass,$svc.Status)
               $p = [string]$cim.PathName
               if ($p -match '^["]?([^\"]+?RunnerService\.exe)') {
                 $binDir = Split-Path -Parent $Matches[1]
@@ -104,7 +107,7 @@ jobs:
                 if ($root) { [void]$runnerRoots.Add($root) }
               }
             } catch {
-              # Current RUNNER_WORKSPACE remains available even if CIM is restricted.
+              Write-Host ("RUNNER_SERVICE_IDENTITY|service={0}|account_class=UNREADABLE|status={1}" -f $svc.Name,$svc.Status)
             }
           }
           Write-Host "SERVICE_REGISTRY_ENV|writer_entries=$serviceEnvWriterCount|values_disclosed=false"
