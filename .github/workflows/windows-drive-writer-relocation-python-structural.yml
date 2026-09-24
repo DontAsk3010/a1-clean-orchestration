@@ -1,0 +1,176 @@
+name: Windows Drive Writer Relocation Python Structural Scan
+
+on:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - '.github/workflows/windows-drive-writer-relocation-python-structural.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-drive-writer-relocation-python-structural
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    name: Positive-control structural scan for relocated writer credential
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 60
+    steps:
+      - name: Verify host and export current reader reference
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "Wrong host: $env:COMPUTERNAME" }
+          $m2=@(Get-CimInstance Win32_Service -ErrorAction SilentlyContinue | Where-Object { ([string]$_.DisplayName -like '*A1-WINDOWS-COMPUTE-02*') -or ([string]$_.PathName -like '*actions-runner-a1-02*') })
+          if ($m2.Count -lt 1) { throw 'Machine-2 service not found.' }
+          $reader=$env:A1_DRIVE_READER_CREDENTIALS
+          if ([string]::IsNullOrWhiteSpace($reader)) { $reader=[Environment]::GetEnvironmentVariable('A1_DRIVE_READER_CREDENTIALS','Machine') }
+          if ([string]::IsNullOrWhiteSpace($reader) -or -not (Test-Path -LiteralPath $reader -PathType Leaf)) { throw 'Reader positive-control credential file is unavailable.' }
+          "A1_RELOCATION_READER_PATH=$reader" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "PY_STRUCTURAL_HOST_PASS|runner=$env:RUNNER_NAME|computer=$env:COMPUTERNAME|machine2_service_present=true|reader_positive_control_present=true"
+
+      - name: Scan local credential JSON structures with reader positive control
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          @'
+          import hashlib, json, os, sys
+          from pathlib import Path
+
+          reader = Path(os.environ['A1_RELOCATION_READER_PATH']).resolve()
+          if not reader.is_file():
+              raise SystemExit('reader positive control missing')
+          reader_hash = hashlib.sha256(reader.read_bytes()).hexdigest()
+
+          def inspect(path: Path):
+              try:
+                  st = path.stat()
+                  if st.st_size < 2 or st.st_size > 4 * 1024 * 1024:
+                      return None
+                  with path.open('r', encoding='utf-8-sig') as f:
+                      p = json.load(f)
+                  if not isinstance(p, dict):
+                      return None
+              except Exception:
+                  return None
+              props = sorted(p.keys())
+              typ = str(p.get('type') or '')
+              kind = None
+              identity = ''
+              if typ == 'authorized_user':
+                  kind = 'AUTHORIZED_USER_RUNTIME_CREDENTIAL'
+                  identity = str(p.get('client_id') or '')
+              elif all(k in p for k in ('refresh_token','client_id','client_secret','token_uri')):
+                  kind = 'AUTHORIZED_USER_RUNTIME_CREDENTIAL_SHAPE'
+                  identity = str(p.get('client_id') or '')
+              elif typ == 'service_account' and all(k in p for k in ('client_email','private_key')):
+                  kind = 'SERVICE_ACCOUNT_RUNTIME_CREDENTIAL'
+                  identity = str(p.get('client_email') or '')
+              elif 'installed' in p or 'web' in p:
+                  root = p.get('installed') or p.get('web')
+                  if isinstance(root, dict) and root.get('client_id'):
+                      kind = 'OAUTH_CLIENT_CONFIG_NOT_RUNTIME_CREDENTIAL'
+                      identity = str(root.get('client_id') or '')
+              if not kind:
+                  return None
+              h = hashlib.sha256(path.read_bytes()).hexdigest()
+              scopes = p.get('scopes') if isinstance(p.get('scopes'), list) else []
+              return {
+                  'path': str(path),
+                  'size': st.st_size,
+                  'sha256': h,
+                  'same_as_reader': h == reader_hash,
+                  'credential_kind': kind,
+                  'type': typ,
+                  'identity_fp16': hashlib.sha256(identity.encode()).hexdigest()[:16] if identity else 'NONE',
+                  'scope_count': len(scopes),
+                  'drive_write_scope_declared': 'https://www.googleapis.com/auth/drive' in scopes,
+              }
+
+          # Local relocation scope: current user/config + all custom C:\ project/runner roots + D:\ data volume.
+          roots = []
+          for p in [Path(r'C:\Users\feri-admin'), Path(r'C:\ProgramData'), Path(r'D:\')]:
+              if p.exists(): roots.append(p)
+          skip_top = {'windows','program files','program files (x86)','$recycle.bin','system volume information','recovery','perflogs','users','programdata'}
+          try:
+              for p in Path('C:/').iterdir():
+                  if p.is_dir() and p.name.lower() not in skip_top:
+                      roots.append(p)
+          except Exception:
+              pass
+          roots.append(reader.parent)
+
+          # dedupe roots, keeping broad roots; positive control is checked separately regardless traversal.
+          unique = []
+          seen = set()
+          for r in roots:
+              try: key = str(r.resolve()).lower()
+              except Exception: key = str(r).lower()
+              if key not in seen:
+                  seen.add(key); unique.append(r)
+
+          excluded_parts = {'node_modules','.git','.venv','venv','__pycache__'}
+          excluded_fragments = [
+              os.sep + 'AppData' + os.sep + 'Local' + os.sep + 'Packages' + os.sep,
+              os.sep + 'AppData' + os.sep + 'Local' + os.sep + 'Google' + os.sep + 'Chrome' + os.sep,
+              os.sep + 'AppData' + os.sep + 'Local' + os.sep + 'Microsoft' + os.sep + 'Edge' + os.sep,
+              os.sep + 'AppData' + os.sep + 'Local' + os.sep + 'Temp' + os.sep,
+          ]
+          files_seen = 0
+          parse_candidates = 0
+          credential_rows = []
+          visited_files = set()
+
+          def should_skip_dir(path_str, name):
+              if name.lower() in excluded_parts:
+                  return True
+              low = path_str.lower()
+              return any(f.lower() in low for f in excluded_fragments)
+
+          for root in unique:
+              print(f'PY_STRUCTURAL_ROOT_START|path={root}')
+              try:
+                  for dirpath, dirnames, filenames in os.walk(root, topdown=True, followlinks=False):
+                      dirnames[:] = [d for d in dirnames if not should_skip_dir(os.path.join(dirpath,d), d)]
+                      for name in filenames:
+                          if not name.lower().endswith('.json'):
+                              continue
+                          p = Path(dirpath) / name
+                          key = str(p).lower()
+                          if key in visited_files:
+                              continue
+                          visited_files.add(key)
+                          files_seen += 1
+                          row = inspect(p)
+                          parse_candidates += 1
+                          if row:
+                              credential_rows.append(row)
+              except Exception as exc:
+                  print(f'PY_STRUCTURAL_ROOT_WARNING|path={root}|error_type={type(exc).__name__}|contents_disclosed=false')
+              print(f'PY_STRUCTURAL_ROOT_DONE|path={root}')
+
+          # Positive control must be found and classified independently.
+          reader_row = inspect(reader)
+          if not reader_row or reader_row['credential_kind'] != 'AUTHORIZED_USER_RUNTIME_CREDENTIAL' or not reader_row['same_as_reader']:
+              raise SystemExit('POSITIVE_CONTROL_FAIL: active reader credential was not structurally recognized')
+          traversed_reader = any(Path(r['path']).resolve() == reader for r in credential_rows)
+          if not traversed_reader:
+              raise SystemExit('POSITIVE_CONTROL_FAIL: active reader file was not encountered by relocation traversal')
+
+          runtime = [r for r in credential_rows if r['credential_kind'] in ('AUTHORIZED_USER_RUNTIME_CREDENTIAL','AUTHORIZED_USER_RUNTIME_CREDENTIAL_SHAPE','SERVICE_ACCOUNT_RUNTIME_CREDENTIAL')]
+          distinct = [r for r in runtime if not r['same_as_reader']]
+          write_declared = [r for r in distinct if r['drive_write_scope_declared']]
+          oauth_cfg = [r for r in credential_rows if r['credential_kind'] == 'OAUTH_CLIENT_CONFIG_NOT_RUNTIME_CREDENTIAL']
+
+          for r in sorted(credential_rows, key=lambda x: x['path'].lower()):
+              print('PY_STRUCTURAL_CREDENTIAL|' + json.dumps(r, separators=(',',':'), sort_keys=True))
+
+          print(f'PY_STRUCTURAL_POSITIVE_CONTROL|reader_found=true|reader_sha256={reader_hash}|reader_path={reader}|secret_values_disclosed=false')
+          print(f'PY_STRUCTURAL_SUMMARY|roots={len(unique)}|json_files_seen={files_seen}|json_files_checked={parse_candidates}|credential_shapes={len(credential_rows)}|runtime_candidates={len(runtime)}|runtime_distinct_from_reader={len(distinct)}|distinct_runtime_drive_write_scope_declared={len(write_declared)}|oauth_client_configs={len(oauth_cfg)}|mutation=false|secret_values_disclosed=false')
+          print('PY_STRUCTURAL_COMPLETE|positive_control_pass=true|binding_changed=false|drive_write=false|oauth_reauthorization=false|canonical_current_mutation=false')
+          '@ | py -3.11 -
