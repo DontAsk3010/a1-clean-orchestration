@@ -1,0 +1,75 @@
+name: Machine1 Date05 Additive Compact Transport After CSRA
+
+on:
+  push:
+    branches:
+      - machine1/date05-prefetch-after-bmsr
+    paths:
+      - .github/workflows/machine1-date05-compact-after-csra.yml
+      - .machine1_prefetch/date05_after_csra/BATCH_MANIFEST.json
+      - .machine1_prefetch/date05_after_csra/*_20241205_PROOF.json
+      - .machine1_prefetch/date05_after_csra/*_20241205_ROWS.jsonl
+
+permissions:
+  contents: write
+
+jobs:
+  compact:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build additive compact transport with proof guards after CSRA
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $batchDir=Join-Path $PWD '.machine1_prefetch/date05_after_csra'
+          if(-not (Test-Path -LiteralPath $batchDir -PathType Container)){throw "BATCH_DIR_MISSING: $batchDir"}
+          $targetDate='2024-12-05'
+          $expectedSourceSha='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          $schemaVersion='date05_compact_v1'
+          $utf8NoBom=New-Object System.Text.UTF8Encoding($false)
+          $fields=@('source_row','RAW_TICKER','RAW_DATETIME_ISO','RAW_INTERVAL_SEC','OBS_DELTA_PREV_SEC_SAME_DATE','OBS_GAP_GT_BASE_INTERVAL_FLAG','OBS_DUP_OR_OUT_OF_ORDER_TIME_FLAG','RAW_OPEN','RAW_HIGH','RAW_LOW','RAW_CLOSE','RAW_VOLUME','IDX_REGULAR_CLOCK_SESSION_CODE','DATE_CHANGE_FROM_PREV_FLAG','DATE_FIRST_OBS_IN_RANGE_FLAG','ANALYSIS_RANGE_LAST_OBS_FLAG','CLK_PREOPEN_INPUT_FLAG','CLK_REGULAR_SESSION1_FLAG','CLK_OFFICIAL_MIDDAY_BREAK_FLAG','CLK_REGULAR_SESSION2_FLAG','CLK_PRECLOSE_INPUT_FLAG','CLK_POSTCLOSE_FLAG','BND_PRE_REG_OPEN_5M_FLAG','BND_FIRST_S1_5M_FLAG','BND_LAST_S1_5M_FLAG','BND_PRE_S2_5M_FLAG','BND_FIRST_S2_5M_FLAG','BND_LAST_REGULAR_5M_FLAG','BND_FIRST_PRECLOSE_5M_FLAG','RAW_AUX1_SEMANTIC_PROVEN_CODE','RAW_AUX2_FRESH_SEMANTIC_PROVEN_CODE','RAW_OPENINT_FRESH_SEMANTIC_PROVEN_CODE')
+          $proofFiles=@(Get-ChildItem -LiteralPath $batchDir -Filter '*_20241205_PROOF.json' | Where-Object { $_.Name -notlike '*_COMPACT_PROOF.json' } | Sort-Object Name)
+          if($proofFiles.Count -lt 1){throw 'NO_CANONICAL_PROOFS_FOUND'}
+          foreach($pf in $proofFiles){
+            $proof=Get-Content -Raw -LiteralPath $pf.FullName | ConvertFrom-Json
+            $tk=[string]$proof.ticker
+            if([string]::IsNullOrWhiteSpace($tk)){throw "PROOF_TICKER_MISSING file=$($pf.Name)"}
+            if([string]$proof.trading_date -ne $targetDate){throw "PROOF_DATE_MISMATCH ticker=$tk"}
+            if([string]$proof.source_sha256 -ne $expectedSourceSha){throw "PROOF_SOURCE_SHA_MISMATCH ticker=$tk"}
+            if(-not [bool]$proof.transport_only -or [bool]$proof.semantic_read_performed -or [bool]$proof.durable_pass){throw "PROOF_FLAGS_MISMATCH ticker=$tk"}
+            $rowsPath=Join-Path $batchDir ($tk+'_20241205_ROWS.jsonl')
+            if(-not (Test-Path -LiteralPath $rowsPath -PathType Leaf)){throw "ROWS_MISSING ticker=$tk"}
+            $rowsSha=(Get-FileHash -LiteralPath $rowsPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            if($rowsSha -ne [string]$proof.rows_jsonl_sha256){throw "ROWS_SHA_MISMATCH ticker=$tk"}
+            $lines=@([System.IO.File]::ReadAllLines($rowsPath,$utf8NoBom))
+            if($lines.Count -ne [int]$proof.actual_rows){throw "ROWS_COUNT_MISMATCH ticker=$tk"}
+            $records=New-Object 'System.Collections.Generic.List[object]'
+            foreach($ln in $lines){if([string]::IsNullOrWhiteSpace($ln)){throw "BLANK_CANONICAL_ROW ticker=$tk"};[void]$records.Add(($ln|ConvertFrom-Json))}
+            if([int64]$records[0].source_row -ne [int64]$proof.source_row_first -or [int64]$records[$records.Count-1].source_row -ne [int64]$proof.source_row_last){throw "SOURCE_ROW_BOUNDARY_MISMATCH ticker=$tk"}
+            if([string]$records[0].RAW_DATETIME_ISO -ne [string]$proof.first_datetime -or [string]$records[$records.Count-1].RAW_DATETIME_ISO -ne [string]$proof.last_datetime){throw "DATETIME_BOUNDARY_MISMATCH ticker=$tk"}
+            foreach($r in $records){if([string]$r.RAW_TICKER -ne $tk){throw "ROW_TICKER_MISMATCH ticker=$tk"};if(-not ([string]$r.RAW_DATETIME_ISO).StartsWith($targetDate)){throw "ROW_DATE_MISMATCH ticker=$tk"}}
+            $compactPath=Join-Path $batchDir ($tk+'_20241205_ROWS_COMPACT.tsv')
+            $compactLines=New-Object 'System.Collections.Generic.List[string]';[void]$compactLines.Add(($fields -join "`t"))
+            foreach($r in $records){
+              $vals=New-Object 'System.Collections.Generic.List[string]'
+              foreach($f in $fields){$prop=$r.PSObject.Properties[$f];if($null -eq $prop){throw "COMPACT_FIELD_MISSING ticker=$tk field=$f"};$v=[string]$prop.Value;if($v.Contains("`t") -or $v.Contains("`r") -or $v.Contains("`n")){throw "COMPACT_FIELD_UNSAFE ticker=$tk field=$f"};[void]$vals.Add($v)}
+              [void]$compactLines.Add(($vals -join "`t"))
+            }
+            [System.IO.File]::WriteAllLines($compactPath,[string[]]$compactLines,$utf8NoBom)
+            $check=@([System.IO.File]::ReadAllLines($compactPath,$utf8NoBom));if(($check.Count-1) -ne $records.Count){throw "COMPACT_COUNT_MISMATCH ticker=$tk"}
+            $compactSha=(Get-FileHash -LiteralPath $compactPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            $compactProof=[ordered]@{ticker=$tk;trading_date=$targetDate;source_row_first=[int64]$proof.source_row_first;source_row_last=[int64]$proof.source_row_last;actual_rows=[int]$proof.actual_rows;first_datetime=[string]$proof.first_datetime;last_datetime=[string]$proof.last_datetime;source_sha256=[string]$proof.source_sha256;canonical_rows_jsonl_sha256=$rowsSha;compact_rows_sha256=$compactSha;compact_schema_version=$schemaVersion;compact_field_count=$fields.Count;compact_data_row_count=$records.Count;transport_only=$true;semantic_read_performed=$false;durable_pass=$false}
+            [System.IO.File]::WriteAllText((Join-Path $batchDir ($tk+'_20241205_COMPACT_PROOF.json')),($compactProof|ConvertTo-Json -Depth 8),$utf8NoBom)
+            Write-Host "COMPACT_OK ticker=$tk rows=$($records.Count) sha=$compactSha"
+          }
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add -f '.machine1_prefetch/date05_after_csra/*_20241205_ROWS_COMPACT.tsv' '.machine1_prefetch/date05_after_csra/*_20241205_COMPACT_PROOF.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" diff --cached --quiet
+          if($LASTEXITCODE -eq 0){Write-Host 'DATE05_COMPACT_AFTER_CSRA_NO_CHANGES';exit 0}
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Add Date05 compact transport after CSRA [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/date05-prefetch-after-bmsr
