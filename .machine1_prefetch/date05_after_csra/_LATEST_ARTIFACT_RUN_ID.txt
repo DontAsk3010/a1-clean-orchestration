@@ -1,0 +1,4 @@
+run_id=36066275092
+run_attempt=1
+source_sha=dda1623be3f2b1aa2079a9d7cbf74cce07e826e3
+artifact_name=machine1-date05-lossless-bundle
