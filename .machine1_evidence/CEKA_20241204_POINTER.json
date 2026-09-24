@@ -1,0 +1,18 @@
+﻿{
+    "ticker":  "CEKA",
+    "trading_date":  "2024-12-04",
+    "branch":  "machine1/evidence-ceka-20241204",
+    "workflow_commit":  "9a1eec17c92ab408e4e2ff65f092e488691af046",
+    "github_run_id":  36065619463,
+    "github_artifact_id":  10835879564,
+    "github_artifact_url":  "https://github.com/DontAsk3010/a1-clean-orchestration/actions/runs/36065619463/artifacts/10835879564",
+    "github_artifact_digest":  "e70f53902e481cea2492cc79cfb0039e15bc6e0c39df24275fbd6f3d447dd286",
+    "packet_sha256":  "9f355f38aff4637c1d3e3d2038563d6e6f842f650777d34ff56c193e1bed7d65",
+    "rows_jsonl_sha256":  "8ce3d4c973dda1f4aa1c24eb6c2a7eade10d5419abfa3e4a4e745c2b65d5271d",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  365470,
+    "source_row_last":  365482,
+    "data_rows":  13,
+    "first_datetime":  "2024-12-04 09:23:00",
+    "last_datetime":  "2024-12-04 15:26:00"
+}
