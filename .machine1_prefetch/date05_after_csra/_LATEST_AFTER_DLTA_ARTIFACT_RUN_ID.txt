@@ -1,0 +1,4 @@
+﻿run_id=36069123255
+run_attempt=1
+source_sha=67527f9e70d169748ed339cc51745b01f83369d1
+artifact_name=machine1-date05-after-dlta-lossless
