@@ -1,0 +1,121 @@
+name: Machine1 CEKA 2024-12-04 Successor Proof V2C
+
+on:
+  push:
+    branches:
+      - machine1/evidence-ceka-20241204
+    paths:
+      - .github/workflows/machine1-ceka-20241204-successor-v2c.yml
+
+permissions:
+  contents: write
+
+jobs:
+  prove-successor-v2c:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reconstruct exact semantic packing with runner Node
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $expected='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          $got=(Get-FileHash -LiteralPath $env:RAW_FILE -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($got -ne $expected){throw "RAW_HASH_MISMATCH:$got"}
+          $env:RAW_SHA256=$got
+          @'
+          const fs=require('fs');
+          const path=require('path');
+          const readline=require('readline');
+          const RAW=process.env.RAW_FILE;
+          const EXPECTED='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c';
+          const GENERATION_ID='BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01';
+          const SOURCE_DRIVE_ID='1wvBmhpQIV-evJJOPN_g8nks3KZBzmVHC';
+          const SOURCE_NAME='Raw Des 02-31-2024.csv';
+          const MAX_BYTES=6*1024*1024;
+          const TARGET_DATE='2024-12-04';
+          const TARGET_TICKER='CEKA';
+          if((process.env.RAW_SHA256||'').toLowerCase()!==EXPECTED) throw new Error('RAW_HASH_ENV_MISMATCH');
+
+          function parseCsv(s){
+            const out=[]; let cur=''; let q=false;
+            for(let i=0;i<s.length;i++){
+              const c=s[i];
+              if(q){
+                if(c==='"' && s[i+1]==='"'){cur+='"';i++;}
+                else if(c==='"'){q=false;}
+                else cur+=c;
+              } else {
+                if(c==='"') q=true;
+                else if(c===','){out.push(cur);cur='';}
+                else cur+=c;
+              }
+            }
+            out.push(cur); return out;
+          }
+          function segments(nums){
+            if(!nums.length)return [];
+            const out=[];let a=nums[0],b=nums[0];
+            for(let i=1;i<nums.length;i++){const n=nums[i];if(n===b+1)b=n;else{out.push([a,b]);a=b=n;}}
+            out.push([a,b]);return out;
+          }
+          (async()=>{
+            const rl=readline.createInterface({input:fs.createReadStream(RAW,{encoding:'utf8'}),crlfDelay:Infinity});
+            let header=null, tickerIdx=-1, dtIdx=-1, n=0;
+            const groups=new Map();
+            for await (let line of rl){
+              if(header===null){
+                if(line.charCodeAt(0)===0xFEFF) line=line.slice(1);
+                header=line; const f=parseCsv(line); tickerIdx=f.indexOf('RAW_TICKER');dtIdx=f.indexOf('RAW_DATETIME_ISO');
+                if(tickerIdx<0||dtIdx<0)throw new Error('REQUIRED_CANONICAL_FIELD_MISSING');
+                continue;
+              }
+              n++;
+              const f=parseCsv(line); const ticker=(f[tickerIdx]||'').trim(); const dt=(f[dtIdx]||'').trim();
+              if(!ticker||dt.length<16)throw new Error('ROUTING_UNRESOLVED_ROW_'+n);
+              const d=dt.slice(0,10), tm=dt.slice(11,19);
+              if(d>TARGET_DATE) continue;
+              const key=d+'\u0000'+ticker;
+              let g=groups.get(key);
+              if(!g){g={d,ticker,nums:[],raws:[],mint:tm,maxt:tm};groups.set(key,g);}
+              g.nums.push(n); g.raws.push(line); if(tm<g.mint)g.mint=tm;if(tm>g.maxt)g.maxt=tm;
+            }
+            const arr=[...groups.values()].sort((a,b)=>a.d===b.d?a.ticker.localeCompare(b.ticker):a.d.localeCompare(b.d));
+            let bundleNo=1,bbytes=0,bline=0,current=null,successor=null,found=false;
+            for(const g of arr){
+              const rec={generation_id:GENERATION_ID,source_drive_id:SOURCE_DRIVE_ID,source_name:SOURCE_NAME,source_sha256:EXPECTED,trading_date:g.d,ticker:g.ticker,first_clock_time:g.mint,last_clock_time:g.maxt,data_row_count:g.nums.length,source_row_first:g.nums[0],source_row_last:g.nums[g.nums.length-1],source_row_segments:segments(g.nums),raw_header:header,raw_rows:g.raws,all_source_columns_retained:true,semantic_reader_contract:{read_complete_ticker_day:true,read_all_source_supported_sessions:true,do_not_filter_flat_weak_failure_no_event:true,preserve_actual_event_clock_times:true,create_event_journey_objects_in_ai_not_python:true,carry_open_journeys_across_dates:true}};
+              const recBytes=Buffer.byteLength(JSON.stringify(rec)+'\n','utf8');
+              if(bline>0 && bbytes+recBytes>MAX_BYTES){bundleNo++;bbytes=0;bline=0;}
+              const ent={trading_date:g.d,ticker:g.ticker,bundle_name:`Raw Des 02-31-2024__SEMANTIC_${String(bundleNo).padStart(4,'0')}.jsonl`,bundle_line_number:bline+1,data_row_count:g.nums.length,first_clock_time:g.mint,last_clock_time:g.maxt,source_row_first:g.nums[0],source_row_last:g.nums[g.nums.length-1],record_bytes:recBytes,bundle_bytes_before:bbytes};
+              bbytes+=recBytes;bline++;ent.bundle_bytes_after=bbytes;
+              if(found){successor=ent;break;}
+              if(g.d===TARGET_DATE&&g.ticker===TARGET_TICKER){current=ent;found=true;}
+            }
+            if(!current||!successor)throw new Error('TARGET_OR_SUCCESSOR_NOT_FOUND');
+            const expected={bundle_name:'Raw Des 02-31-2024__SEMANTIC_0010.jsonl',bundle_line_number:150,data_row_count:13,source_row_first:365470,source_row_last:365482,first_clock_time:'09:23:00',last_clock_time:'15:26:00'};
+            for(const [k,v] of Object.entries(expected)){if(current[k]!==v)throw new Error(`CURRENT_RECONSTRUCTION_MISMATCH ${k} got=${current[k]} expected=${v}`);}
+            const proof={mode:'DETERMINISTIC_RECONSTRUCTION_FROM_CANONICAL_RAW_USING_LOCKED_DATA_PLANE_ROUTING_PACKING',data_plane_impl_version:'UNIVERSAL_DELTA_DATA_PLANE_V2_20260911',max_semantic_bundle_bytes:MAX_BYTES,ordering:'GROUP_BY_TRADING_DATE_TICKER_ORDER_BY_TRADING_DATE_TICKER',source_sha256:EXPECTED,current_verified:current,derived_successor:successor,current_expected_crosscheck_pass:true};
+            fs.mkdirSync('.machine1_evidence',{recursive:true});fs.writeFileSync('.machine1_evidence/CEKA_20241204_SUCCESSOR_PROOF_V2.json',JSON.stringify(proof,null,2),'utf8');
+            console.log('CEKA_SUCCESSOR_PROOF_V2C_OK '+JSON.stringify({current,successor}));
+          })().catch(e=>{console.error(e.stack||e);process.exit(1);});
+          '@ | Set-Content -Encoding UTF8 reconstruct_ceka_successor_v2c.js
+          $runnerRoot=Split-Path (Split-Path $env:RUNNER_TEMP -Parent) -Parent
+          $node=Get-ChildItem -LiteralPath (Join-Path $runnerRoot 'externals') -Filter node.exe -File -Recurse -ErrorAction Stop | Sort-Object FullName -Descending | Select-Object -First 1
+          if($null -eq $node){throw 'RUNNER_BUNDLED_NODE_NOT_FOUND'}
+          & $node.FullName reconstruct_ceka_successor_v2c.js
+          if($LASTEXITCODE -ne 0){throw "NODE_FAILED_EXIT_$LASTEXITCODE"}
+
+      - name: Persist successor proof
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_evidence/CEKA_20241204_SUCCESSOR_PROOF_V2.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist CEKA exact successor proof v2 [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-ceka-20241204
