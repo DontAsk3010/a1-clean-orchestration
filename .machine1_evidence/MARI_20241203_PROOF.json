@@ -1,0 +1,14 @@
+{
+    "ticker":  "MARI",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  39,
+    "source_row_first":  1020442,
+    "source_row_last":  1020458,
+    "data_rows":  17,
+    "first_datetime":  "2024-12-03 09:30:00",
+    "last_datetime":  "2024-12-03 15:34:00",
+    "rows_jsonl_sha256":  "abf4cb28ae066741e5303f68e642345125c4c2a7ecfe2747a044ed6c15647540",
+    "compact_sha256":  "c764105ba9c64f54843ee0f0c0e957c9c3e60d509dbc61680c2b4d92713d0fc4"
+}

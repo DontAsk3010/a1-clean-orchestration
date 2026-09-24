@@ -1,0 +1,14 @@
+{
+    "ticker":  "MARK",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  40,
+    "source_row_first":  1026438,
+    "source_row_last":  1026568,
+    "data_rows":  131,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:00:00",
+    "rows_jsonl_sha256":  "22341a21cf2a2edcb9922d0554daa45357e495b127cbdb7b68fd466bf4b5a13c",
+    "compact_sha256":  "2d7f7b066fc09938ba6925dfe53e2889b60283cf1b5928c04d42556c609dc31f"
+}

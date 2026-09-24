@@ -1,0 +1,14 @@
+{
+    "ticker":  "MAXI",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  41,
+    "source_row_first":  1025859,
+    "source_row_last":  1025883,
+    "data_rows":  25,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 15:41:00",
+    "rows_jsonl_sha256":  "bb11df27de8554997b35b94b226911032e55ad63d94003b7486ea8db76fe34c6",
+    "compact_sha256":  "c14abb8b8e1c82ac835c8027ea1695a1ba05852c0849597424f69cbbd1f497c1"
+}
