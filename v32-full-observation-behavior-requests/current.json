@@ -2,7 +2,7 @@
   "schema": "A1_V32_FULL_OBSERVATION_BEHAVIOR_REQUEST_V2",
   "enabled": false,
   "scope_class": "EVIDENCE_SUBSTRATE_ONLY_NOT_FINAL_ATLAS",
-  "purpose": "Governed HOLD while full-observation is refactored to dynamic source-universe discovery plus the same maximum source-supported full-depth research target required independently of Machine 1. Existing durable evidence remains preserved and reusable only under exact digest/schema/checkpoint compatibility.",
+  "purpose": "Governed HOLD while the missing canonical CURRENT control/data plane is recovered or migrated from last governed committed evidence; dynamic source-universe and the same maximum source-supported full-depth research target required independently of Machine 1 remain bound to current authority. Existing durable evidence remains preserved and reusable only under exact digest/schema/checkpoint compatibility.",
   "prestart_completeness_gate_required": true,
   "project_wide_correction_first_required": true,
   "renewable_authority_sync_required": true,
@@ -79,7 +79,7 @@
   "machine1_dispatch_registry_document_id": "1hI1HAksSGktmjL0sqB1SUhGDaS7NQILHdBoSnE2vR7Q",
   "machine1_dispatch_registry_revision_id": "ANLCKQmrMAQHe_MUjjk_Hdl5E0U65ZF6jNWYjX1IgDpG-QZ_A9gxORBGq4TP_iTk49VuVxBKgSuYD5QorFahmW1xQemH4iEjLXLEnoXtslQ",
   "current_execution_document_id": "1AdtN9N7oIYwsHr_7-R6UzBREx9DJd4s291iZJou6GZU",
-  "current_execution_revision_id": "ANLCKQn9pDFbfAlzttAguoeb5-Pg37K5H6OVvXf7RhDTpP_lWfYVTVWWIk9ZTgtAwzE5oLgBHiNrPl221D7kr07KHyyxAAmiPHrLqvaTZRs",
+  "current_execution_revision_id": "ANLCKQluOOEPzcDj5a3bOUMIP-dNnELqqR6V5rxwHJWlotK0mnIpRVl0jfGn-y5Y9LqxcfH7D7FppGs0x3XXEUldlhtUAc-wKl4zniMNa10",
   "temporal_behavior_sequence_downstream_required": true,
   "permanent_blindspot_register_downstream_required": true,
   "future_hpx_lane_gate_downstream_required": true,
@@ -87,9 +87,19 @@
   "future_unavailable_lanes_must_remain_explicit": ["PARTICIPANT_BROKER_FLOW", "TICK_TIME_AND_TRADE_AGGRESSOR", "L1_BBO", "L2_DEPTH_QUEUE_REFILL"],
   "authority_sync_renewal_triggers": ["NEW_OWNER_INSTRUCTION_OR_CORRECTION", "AUTHORITY_REVISION_CHANGE", "CHECKPOINT_CHANGE", "SOURCE_OR_MANIFEST_CHANGE", "REQUEST_OR_SCHEMA_CHANGE", "WORKER_HANDOFF_OR_REPLACEMENT", "RESUMED_EXECUTION_AFTER_INTERRUPTION", "MATERIAL_CONTEXT_CHANGE_BEFORE_NEXT_DURABLE_MUTATION"],
   "proof_note": "No PASS is permitted while this request is HOLD. After implementation, PASS must prove Machine 2 independently satisfies the current full-depth source/evidence/behavior contract; combined Machine 1 plus Machine 2 union coverage is not a substitute for Machine 2 completeness.",
-  "hold_reason": "CURRENT_FULL_OBSERVATION_WORKFLOW_AND_SOURCE_CATALOG_STILL_ENFORCE_FIXED_SOURCE_ASSUMPTIONS_AND_DO_NOT_YET_ENFORCE_DYNAMIC_SOURCE_PLUS_RENEWABLE_AUTHORITY_PLUS_DUAL_INDEPENDENT_FULL_DEPTH_PARITY_END_TO_END",
+  "canonical_current_recovery_required": true,
+  "canonical_current_expected_folder_id": "1SRN-WWkHJefLGLSN6_SktpVU0Ugjwqc-",
+  "canonical_current_observed_state": "MISSING_OR_INACCESSIBLE_404_NO_NAME_MATCH_20260925",
+  "raw_rebuild_without_exact_committed_evidence_reconciliation_forbidden": true,
+  "last_governed_canonical_evidence": {
+    "canonical_promotion_git_sha": "2f0f52523e0ffcaa807e72676cfb9a66b1329d53",
+    "post_commit_readback_status": "PASS",
+    "baseline_state_fingerprint": "a3856491f94ffe036144c78e4056853346ee296e4ff5841ce9b3de90ff756b14",
+    "canonical_control_snapshot_fingerprint": "aa91545d20dc16533569a3b09c5777818795af652e35508a81f0706c224fe44a"
+  },
+  "hold_reason": "CANONICAL_CURRENT_FOLDER_MISSING_OR_INACCESSIBLE_AT_FROZEN_ID; LAST_GOVERNED_READBACK_AND_PROMOTION_EVIDENCE_EXIST_BUT_DO_NOT_BY_THEMSELVES_CONTAIN_ALL_CANONICAL_BODY_ARTIFACTS; RECOVERY_OR_AUTHORITY_SUPPORTED_MIGRATION_MUST_RECONCILE_EXACT_COMMITTED_SOURCE_AND_CONTROL_EVIDENCE_BEFORE_PRESTART_CAN_PASS",
   "service_runner_auto_recovery_enabled": false,
   "service_runner_auto_recovery_policy": "HOLD_NO_HEAVY_EXECUTION",
   "service_runner_auto_recovery_max_consecutive_interruptions": 0,
-  "operational_trigger": "GOVERNED_HOLD_DUAL_FULL_DEPTH_PARITY_20260924_08"
+  "operational_trigger": "GOVERNED_HOLD_CANONICAL_CURRENT_RECOVERY_20260925_01"
 }
