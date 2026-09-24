@@ -1,0 +1,15 @@
+﻿{
+    "transport":  "M1_DATE04_REMAINING_ARTIFACT_V1_20260925",
+    "trading_date":  "2024-12-04",
+    "starting_checkpoint":  "PASS192_DATE04",
+    "starting_ticker":  "CFIN",
+    "github_run_id":  36069421289,
+    "github_artifact_id":  10837955769,
+    "github_artifact_digest":  "7f85a5ea56413fc4dae8241fa98ec3d73e37d751ac86444f4a62eaabca9e4d36",
+    "manifest_sha256":  "fd3fec7408cf431c9943480cc73ae87d67129fb747b5b746dcd6ceef4479c5ae",
+    "remaining_entries":  707,
+    "remaining_rows":  70721,
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "row_transport_via_chat":  false,
+    "semantic_read_performed_by_runner":  false
+}
