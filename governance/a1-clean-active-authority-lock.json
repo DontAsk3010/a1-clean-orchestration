@@ -32,10 +32,17 @@
   "machine2_atlas_to_authoritative_formula_admission_open": false,
   "production_live_telegram_formula_promotion_open": false,
   "formula_stage": "CLOSED",
+  "lossless_artifact_transport_preferred_for_large_payloads": true,
+  "transport_optimization_may_not_reduce_evidence": true,
+  "artifact_integrity_manifest_required": true,
+  "artifact_transport_integrity_readback_required": true,
+  "full_verified_payload_read_required_before_semantic_pass": true,
+  "connector_control_plane_thin_after_file_intake": true,
+  "raw_row_flooding_avoid_when_governed_file_path_available": true,
   "documents": {
     "master_handbook": {
       "document_id": "1FVWKgoeWU9MsnOd3i8HOpprg36XrxgKInf6BQU6QTKQ",
-      "revision_id": "ANLCKQmQTtPMncoyUYb_mHm3YoBuG8MePIxnDhDc0qsuaF69wqxqdwmOQvVHVoJ7qvD6gZq1IxBeuYnMMtIlxQWNAT3jZcS49ayVYtREfRM"
+      "revision_id": "ANLCKQm3K4v9DBjzQq_mVjC20XqsivmssCEF4tMbF5_OSUSAmmYUMSPewwKAQSKkvFHGzYiFn16DYpNWlmziUuPmtNNmy_IRZuug_NVLGhE"
     },
     "sub_master_index": {
       "document_id": "1jpL6rPU5us0z18Gw8MxNQfbxKNdmZxVJe4vA71f7TyA",
@@ -43,7 +50,7 @@
     },
     "source_capture": {
       "document_id": "12uknstiWZxoXeDk5r0Zd5iCRBQM4k3N9obSSLKWGG6M",
-      "revision_id": "ANLCKQmcRc5sn18trbeHwSrSLRGzfVmRTRDChdUUegys5nmHeBZNr-_0ZlyWAERfzv_dIlDcXuGE1pr7YhnW63cABduAiAzfsRq53m9xLlM"
+      "revision_id": "ANLCKQnI_Ip7YHuXwwo-LbdvTooJoMhDH7i8cqRZas6CfGJCOsezuOK79pvUswQVW1PPENAfhc2x3w7yHory82qIWipYSr2UIMR7TlnoYP4"
     },
     "formula_research": {
       "document_id": "1sQu0l2qwvsjItmBycRh3siMajKEQknHOMBLlBQd3I-Q",
@@ -51,11 +58,11 @@
     },
     "behavior_reading": {
       "document_id": "1vDoz8E7nGVlYPl2SBneA2tCAiNNAL77nLgPPZzFlbaI",
-      "revision_id": "ANLCKQlC8yRb9gYAhM7rJJ66fLi8cRMu88OoXFz10x0opEJzYyrFlsMafJ0XYN7d7Zlvq9dOFgFFnH3A2Rz8BcYGnGOfHmPG62TwMF89vCs"
+      "revision_id": "ANLCKQls4dcsUDD9TIUkBwmM_q5MIVEFVASL-j8g1vxN8McVzZe_sD9Hynos_3eUkmfAr1mmq9O52DcznYVq4w4n7n0kJs5wwC1lJhfC9Xw"
     },
     "github_automation": {
       "document_id": "12PK2RTlRlggPQAScAmzNPewatB5mZqOgJ3sZfRBsbO8",
-      "revision_id": "ANLCKQlPn2vOUKs-grottjjmfJGhx-MWBazdO7_cYH7A-UBSwCkhyqv0mRg31NR4K7vxUoiaPKDrjVlw1Usd2-ebW-gT-ISHyvtnplA4u3I"
+      "revision_id": "ANLCKQmCWcLE45djMF5c0bO-W0CyF6PWLVqsEODxoss7mslHZPrKp8HmFB0GCdHbvc1TH1HYTvsX1wC8OFLzPA7913cKLPukmCPT6x9_6OU"
     },
     "stable_transition_bridge": {
       "document_id": "1WI79YymkVcOJTRDhLwSiAESkLWFakwL9pe0oj6q1kug",
@@ -63,11 +70,11 @@
     },
     "machine1_dispatch_registry": {
       "document_id": "1hI1HAksSGktmjL0sqB1SUhGDaS7NQILHdBoSnE2vR7Q",
-      "revision_id": "ANLCKQln-KSpNh5xx7o911RRR9W7iWpjSJY4clCyjJ1Cxz5pc0CuL7bxpN5EAZtOQJrrrM8QNOroPRcZGkY2d3fMq7-aPsKh7teA-9ik8AI"
+      "revision_id": "ANLCKQnMrUgLynkTv-WX5a_kPLMw4cgN0JgD1gZ-DGlrKs0-LiqiOD2V5AxUQsAPDAOvZedLK9aI0g6wXJ34-wWzaQ5nm6LhRjCfheKBa2E"
     },
     "current_execution": {
       "document_id": "1AdtN9N7oIYwsHr_7-R6UzBREx9DJd4s291iZJou6GZU",
-      "revision_id": "ANLCKQnN2FfPVRs_c49ygx9Up2-YyTrz1w2K0FnKNoHU5QD641l4qXZNnrQZ7b8mwfBfNKWdJ4h8ffQHr1lM3JLd4qd-Ug-35ahJ-eoRkng"
+      "revision_id": "ANLCKQli5llQdw5SgVCeiPH5kB2lYACC8Gkh5psnPDILWfbzUJxpPWIwraxqPGM-36CnRDAUFzFLzNevL0l1S3TR7a0X04QL2KpAwxAmOqo"
     }
   },
   "mandatory_owner_locks": [
@@ -83,7 +90,8 @@
     "DUAL_INDEPENDENT_FULL_DEPTH_RESEARCH_ENGINES_NO_DIVISION_OF_LABOR",
     "SAME_MAXIMUM_SOURCE_SUPPORTED_COMPLETENESS_TARGET_PER_MACHINE",
     "NO_PREDETERMINED_FORMULA_MENU_EMERGENT_FORMULA_DISCOVERY",
-    "FORMULA_CREATION_CLOSED_READINESS_ONLY_UNTIL_EXPLICIT_ADMISSION"
+    "FORMULA_CREATION_CLOSED_READINESS_ONLY_UNTIL_EXPLICIT_ADMISSION",
+    "GLOBAL_LOSSLESS_ARTIFACT_DATA_PLANE_OPTIMIZE_TRANSPORT_NEVER_REDUCE_EVIDENCE"
   ],
   "global_prohibitions": {
     "formula_stage_open": false,
@@ -103,7 +111,11 @@
     "machine_scope_partition_as_scientific_design": false,
     "cross_machine_missing_dimension_excused_by_other_machine": false,
     "silent_cross_machine_semantic_copy": false,
-    "combined_union_used_to_hide_per_machine_coverage_gap": false
+    "combined_union_used_to_hide_per_machine_coverage_gap": false,
+    "lossy_transport_or_summary_substitution_for_full_evidence": false,
+    "speed_or_connector_quota_used_to_drop_rows_or_fields": false,
+    "semantic_pass_before_transport_integrity_readback": false,
+    "raw_row_flooding_as_default_when_lossless_file_path_available": false
   },
   "authority_sync_renewal_triggers": [
     "NEW_OWNER_INSTRUCTION_OR_CORRECTION",
@@ -120,9 +132,10 @@
   "disagreement_rule": "PRESERVE_INDEPENDENT_OUTPUTS_AND_PROVENANCE; INVESTIGATE_DISAGREEMENT_AS_AMBIGUITY_COVERAGE_SEMANTIC_IMPLEMENTATION_OR_SCIENTIFIC_SIGNAL; NEVER_FORCE_AGREEMENT_BY_COPYING",
   "formula_discovery_rule": "CURRENT FORMULA CREATION IS CLOSED; DO NOT PRESELECT REQUIRED FORMULAS OR HORIZONS; BUILD RICH GOVERNED EVIDENCE AND ALLOW RECURRENT COMBINATIONS CONDITIONAL_RECURRENCE NEAR_TWINS NEGATIVE_EVIDENCE AND CAUSAL_DISCRIMINATORS TO SUPPORT A LATER EXPLICIT GOVERNED FORMULA_DISCOVERY_ADMISSION",
   "correction_first_rule": "OWNER_INSTRUCTION_OR_CORRECTION -> FRESH_CURRENT_AUTHORITY_READ -> LIVE_REGISTRY_REQUEST_CHECKPOINT_SOURCE_SCHEMA_MANIFEST_RECONCILIATION -> CONFLICT_GAP_CHECK -> CORRECTED_EXECUTION_DECISION -> EXECUTE -> EXACT_READBACK_PROOF",
-  "prestart_rule": "NO_HEAVY_SOURCE_READ_OR_COMPUTE_UNTIL_REQUEST_AND_IMPLEMENTATION_PASS_CURRENT_AUTHORITY_LOCK_AND_STAGE_CONTRACT",
+  "prestart_rule": "NO_HEAVY_SOURCE_READ_OR_COMPUTE_UNTIL REQUEST_AND_IMPLEMENTATION_PASS_CURRENT_AUTHORITY_LOCK_AND_STAGE_CONTRACT",
   "source_universe_rule": "CANONICAL_OR_GOVERNED_READY_SOURCE_MEMBERSHIP_IS_DISCOVERED_DURING_PREFLIGHT; OBSERVED_COUNTS_ARE EVIDENCE ONLY; EXTRA_OR_MISSING_SOURCE_MUST_NOT_BE_SILENTLY_OMITTED",
   "durable_work_rule": "ALREADY_DURABLE_READBACK_VERIFIED_WORK_IS_PRESERVED_AND_NOT_RESTARTED_SOLELY_BECAUSE_GOVERNANCE_IS_NEWER; REOPEN_ONLY_ON_GOVERNED_MATERIAL_INTEGRITY_FINDING",
   "replacement_rule": "STALE_OR_INCOMPLETE_RUNNING_CONTRACT_MUST_BE_CANCELLED_OR_GOVERNEDLY_REPLACED_BEFORE_DATA_MUTATION",
-  "pass_claim_rule": "EACH_JOB_OR_WORKER_MUST_HAVE_CURRENT_READBACK_EVIDENCE_AND_STATE_WHAT_PASS_PROVES_WHAT_PER_MACHINE_COVERAGE_REMAINS_AND_WHAT_REMAINS_OUTSIDE_ITS_STAGE"
+  "pass_claim_rule": "EACH_JOB_OR_WORKER_MUST_HAVE_CURRENT_READBACK_EVIDENCE_AND_STATE_WHAT_PASS_PROVES_WHAT_PER_MACHINE_COVERAGE_REMAINS_AND_WHAT_REMAINS_OUTSIDE_ITS_STAGE",
+  "transport_rule": "OPTIMIZE_TRANSPORT_NEVER_REDUCE_EVIDENCE; LARGE_PAYLOADS_USE_GOVERNED_LOSSLESS_FILE_OR_ARTIFACT_WHEN_AVAILABLE; VERIFY_MANIFEST_DIGEST_COUNTS_RANGES_ORDER_AND_EXTRACTION_BEFORE_SEMANTIC_PASS; CONNECTOR_CHAT_BECOMES_THIN_CONTROL_PLANE_AFTER_VERIFIED_FILE_INTAKE"
 }
