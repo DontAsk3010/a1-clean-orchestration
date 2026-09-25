@@ -1,0 +1,24 @@
+{
+    "status":  "PASS",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "recovered_manifest_sha256":  "c07cf5c0c075e6ad6da2ca87623138ed84521423a6a6c143bb75db7a689d6625",
+    "durable_prefix_count":  541,
+    "durable_prefix_last":  "MLPL",
+    "durable_prefix_sha256":  "c009b267f90eaf9c3db3f5c36264efdc531a2977b434ffdde880a931ca022b4a",
+    "batch_first":  "MLPT",
+    "batch_last":  "MPOW",
+    "batch_count":  10,
+    "indices":  [
+                    542,
+                    543,
+                    544,
+                    545,
+                    546,
+                    547,
+                    548,
+                    549,
+                    550,
+                    551
+                ]
+}

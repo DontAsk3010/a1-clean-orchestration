@@ -1,0 +1,16 @@
+{
+    "ticker":  "MPOW",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "recovered_manifest_sha256":  "c07cf5c0c075e6ad6da2ca87623138ed84521423a6a6c143bb75db7a689d6625",
+    "durable_prefix_count":  541,
+    "durable_prefix_sha256":  "c009b267f90eaf9c3db3f5c36264efdc531a2977b434ffdde880a931ca022b4a",
+    "recovered_date_local_index":  551,
+    "source_row_first":  1102454,
+    "source_row_last":  1102514,
+    "data_rows":  61,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:02:00",
+    "rows_jsonl_sha256":  "d92734edee8733ffa9cd2b81f5c45ed81d3ed9fdce9c6b6112fa9281cb7732cb",
+    "recovery_order_proof":  "PERSISTED_RECOVERED_MANIFEST_SHA_PLUS_DURABLE_PREFIX_541_SHA"
+}
