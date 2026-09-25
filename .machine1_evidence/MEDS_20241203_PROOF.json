@@ -1,0 +1,14 @@
+{
+    "ticker":  "MEDS",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  55,
+    "source_row_first":  1051860,
+    "source_row_last":  1051863,
+    "data_rows":  4,
+    "first_datetime":  "2024-12-03 09:12:00",
+    "last_datetime":  "2024-12-03 15:18:00",
+    "rows_jsonl_sha256":  "4d671549dd6a21b1b77f51428efdb7620fa77edb060355bfccc14d1cea80e485",
+    "compact_sha256":  "ca3fdd117bbe979f759e6fcecdd7af3cb460e7701915f025369963386b274be3"
+}

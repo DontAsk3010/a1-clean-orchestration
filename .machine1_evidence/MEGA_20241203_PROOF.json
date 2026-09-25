@@ -1,0 +1,14 @@
+{
+    "ticker":  "MEGA",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  56,
+    "source_row_first":  1051974,
+    "source_row_last":  1051986,
+    "data_rows":  13,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:00:00",
+    "rows_jsonl_sha256":  "110f02de310985b6119586dc2677e15f8c3be90c66a4b268056c1f4a6da13234",
+    "compact_sha256":  "de78a3327c56c1b83a39669dc0dd47712490f22cb5cabce0764db784a7eeb110"
+}

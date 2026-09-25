@@ -1,0 +1,14 @@
+{
+    "ticker":  "MEDC",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "semantic_bundle":  "Raw Des 02-31-2024__SEMANTIC_0008.jsonl",
+    "semantic_bundle_line_number":  54,
+    "source_row_first":  1052654,
+    "source_row_last":  1052957,
+    "data_rows":  304,
+    "first_datetime":  "2024-12-03 08:59:00",
+    "last_datetime":  "2024-12-03 16:11:00",
+    "rows_jsonl_sha256":  "b762ed6e452d0d3983b1fc09c81e8dceab55c968b2aaed2b7801398c4b4175c9",
+    "compact_sha256":  "28ecf9dc23bf4d90ac5aec8520f65f52013e1164c7eba0bb281bfe7763051716"
+}
