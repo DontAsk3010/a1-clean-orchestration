@@ -57,17 +57,17 @@ $readerHeaders = @{ Authorization = 'Bearer ' + $readerToken }
 $writerHeaders = @{ Authorization = 'Bearer ' + $writerToken }
 
 function Get-Children([string]$ParentId, [hashtable]$Headers) {
-    $all = New-Object System.Collections.Generic.List[object]
+    $all = @()
     $page = $null
     do {
         $q = "'$ParentId' in parents and trashed=false"
         $uri = 'https://www.googleapis.com/drive/v3/files?q=' + (UrlEncode $q) + '&pageSize=1000&supportsAllDrives=true&includeItemsFromAllDrives=true&fields=' + (UrlEncode 'nextPageToken,files(id,name,mimeType,parents,size,md5Checksum)')
         if ($page) { $uri += '&pageToken=' + (UrlEncode $page) }
         $res = Invoke-RestMethod -Method Get -Uri $uri -Headers $Headers
-        foreach ($item in @($res.files)) { [void]$all.Add($item) }
+        foreach ($item in @($res.files)) { $all += $item }
         $page = if ($res.PSObject.Properties.Name -contains 'nextPageToken') { [string]$res.nextPageToken } else { $null }
     } while (-not [string]::IsNullOrWhiteSpace($page))
-    return @($all)
+    return $all
 }
 
 function Get-FileJson([string]$FileId, [hashtable]$Headers) {
@@ -104,17 +104,17 @@ if (-not $currentMissing404) { Fail 'A1_RECOVERY_READBACK_CURRENT_UNEXPECTEDLY_E
 $staging = Get-Meta -FileId $StagingId -Headers $writerHeaders
 if ([string]$staging.mimeType -ne $FolderMime) { Fail 'A1_RECOVERY_READBACK_STAGING_NOT_FOLDER' }
 
-$rootChildren = Get-Children -ParentId $StagingId -Headers $writerHeaders
+$rootChildren = @(Get-Children -ParentId $StagingId -Headers $writerHeaders)
 $runFolders = @($rootChildren | Where-Object { [string]$_.mimeType -eq $FolderMime -and [string]$_.name -like 'CANONICAL_CURRENT_RECOVERY_PREPARE_*' })
-$matches = New-Object System.Collections.Generic.List[object]
+$matches = @()
 foreach ($run in $runFolders) {
-    $children = Get-Children -ParentId ([string]$run.id) -Headers $writerHeaders
+    $children = @(Get-Children -ParentId ([string]$run.id) -Headers $writerHeaders)
     $finalItems = @($children | Where-Object { [string]$_.mimeType -ne $FolderMime -and [string]$_.name -eq 'RECOVERY_PREPARE_FINAL.json' })
     if ($finalItems.Count -gt 1) { Fail "A1_RECOVERY_READBACK_DUPLICATE_FINAL_REPORT:$($run.id)" }
     if ($finalItems.Count -eq 1) {
         $final = Get-FileJson -FileId ([string]$finalItems[0].id) -Headers $writerHeaders
         if ([string]$final.github_sha -eq $ExpectedRecoverySha) {
-            [void]$matches.Add([pscustomobject]@{ Run = $run; Children = $children; FinalItem = $finalItems[0]; Final = $final })
+            $matches += [pscustomobject]@{ Run = $run; Children = $children; FinalItem = $finalItems[0]; Final = $final }
         }
     }
 }
@@ -140,7 +140,7 @@ if ([string]::IsNullOrWhiteSpace($candidateId)) { Fail 'A1_RECOVERY_READBACK_CAN
 $candidateMeta = Get-Meta -FileId $candidateId -Headers $writerHeaders
 if ([string]$candidateMeta.mimeType -ne $FolderMime -or $runId -notin @($candidateMeta.parents)) { Fail 'A1_RECOVERY_READBACK_CANDIDATE_PARENT_MISMATCH' }
 
-$candidateChildren = Get-Children -ParentId $candidateId -Headers $writerHeaders
+$candidateChildren = @(Get-Children -ParentId $candidateId -Headers $writerHeaders)
 $logicalFolders = @($candidateChildren | Where-Object { [string]$_.mimeType -eq $FolderMime })
 $logicalNames = @($logicalFolders | ForEach-Object { [string]$_.name } | Sort-Object)
 if ($logicalFolders.Count -ne $ExpectedLogical.Count) { Fail "A1_RECOVERY_READBACK_LOGICAL_FOLDER_COUNT_MISMATCH:$($logicalFolders.Count)" }
