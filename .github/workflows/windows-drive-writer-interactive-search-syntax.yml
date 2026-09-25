@@ -36,7 +36,7 @@ jobs:
             [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path), [ref]$tokens, [ref]$errors)
             if (@($errors).Count -ne 0) {
               foreach ($e in @($errors)) { Write-Host ("PARSE_ERROR|path={0}|text={1}|message={2}" -f $path,$e.Extent.Text,$e.Message) }
-              throw "A1_WRITER_SAFETY_SCRIPT_PARSE_FAIL:$path:$(@($errors).Count)"
+              throw "A1_WRITER_SAFETY_SCRIPT_PARSE_FAIL:${path}:$(@($errors).Count)"
             }
             Write-Host "A1_WRITER_SAFETY_SCRIPT_PARSE_PASS|path=$path|execution=false|mutation=false"
           }
