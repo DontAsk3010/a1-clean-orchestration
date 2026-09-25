@@ -1,0 +1,16 @@
+{
+    "ticker":  "MINA",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "recovered_manifest_sha256":  "c07cf5c0c075e6ad6da2ca87623138ed84521423a6a6c143bb75db7a689d6625",
+    "durable_prefix_count":  531,
+    "durable_prefix_sha256":  "0c731c288aabc260e38d5c4d6ddc282c08fa93f85a006ed03bc02bbe5f20f231",
+    "recovered_date_local_index":  533,
+    "source_row_first":  1073112,
+    "source_row_last":  1073115,
+    "data_rows":  4,
+    "first_datetime":  "2024-12-03 09:55:00",
+    "last_datetime":  "2024-12-03 14:55:00",
+    "rows_jsonl_sha256":  "47c332b867d5caf198459738d1cfe65d0fc78da94bcb00a6b35265514fcd4622",
+    "recovery_order_proof":  "PERSISTED_RECOVERED_MANIFEST_SHA_PLUS_DURABLE_PREFIX_531_SHA"
+}

@@ -1,0 +1,112 @@
+[
+    {
+        "date_local_index":  532,
+        "ticker":  "MIKA",
+        "source_row_first":  1069055,
+        "source_row_last":  1069287,
+        "data_rows":  233,
+        "first_clock_time":  "09:00:00",
+        "last_clock_time":  "16:08:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  533,
+        "ticker":  "MINA",
+        "source_row_first":  1073112,
+        "source_row_last":  1073115,
+        "data_rows":  4,
+        "first_clock_time":  "09:55:00",
+        "last_clock_time":  "14:55:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  534,
+        "ticker":  "MIRA",
+        "source_row_first":  1073282,
+        "source_row_last":  1073287,
+        "data_rows":  6,
+        "first_clock_time":  "09:55:00",
+        "last_clock_time":  "16:09:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  535,
+        "ticker":  "MITI",
+        "source_row_first":  1073436,
+        "source_row_last":  1073458,
+        "data_rows":  23,
+        "first_clock_time":  "09:00:00",
+        "last_clock_time":  "16:00:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  536,
+        "ticker":  "MKAP",
+        "source_row_first":  1074973,
+        "source_row_last":  1075101,
+        "data_rows":  129,
+        "first_clock_time":  "09:00:00",
+        "last_clock_time":  "16:11:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  537,
+        "ticker":  "MKPI",
+        "source_row_first":  1076619,
+        "source_row_last":  1076637,
+        "data_rows":  19,
+        "first_clock_time":  "09:00:00",
+        "last_clock_time":  "09:58:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  538,
+        "ticker":  "MKTR",
+        "source_row_first":  1076919,
+        "source_row_last":  1076947,
+        "data_rows":  29,
+        "first_clock_time":  "09:00:00",
+        "last_clock_time":  "16:00:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  539,
+        "ticker":  "MLBI",
+        "source_row_first":  1077255,
+        "source_row_last":  1077304,
+        "data_rows":  50,
+        "first_clock_time":  "09:09:00",
+        "last_clock_time":  "16:00:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  540,
+        "ticker":  "MLIA",
+        "source_row_first":  1077896,
+        "source_row_last":  1077996,
+        "data_rows":  101,
+        "first_clock_time":  "09:00:00",
+        "last_clock_time":  "16:09:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  541,
+        "ticker":  "MLPL",
+        "source_row_first":  1081077,
+        "source_row_last":  1081389,
+        "data_rows":  313,
+        "first_clock_time":  "09:00:00",
+        "last_clock_time":  "16:14:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    }
+]
