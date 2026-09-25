@@ -16,6 +16,52 @@ function Fail([string]$Code) {
   throw $Code
 }
 
+function Get-SafeOAuthRefreshError($ErrorRecord) {
+  $statusCode = $null
+  $oauthError = 'UNKNOWN_OAUTH_ERROR'
+  $oauthDescription = $null
+  try {
+    $resp = $ErrorRecord.Exception.Response
+    if ($null -ne $resp) {
+      try { $statusCode = [int]$resp.StatusCode } catch {}
+      try {
+        $stream = $resp.GetResponseStream()
+        if ($null -ne $stream) {
+          $reader = New-Object System.IO.StreamReader($stream)
+          try {
+            $body = $reader.ReadToEnd()
+          } finally {
+            $reader.Dispose()
+          }
+          if (-not [string]::IsNullOrWhiteSpace($body)) {
+            try {
+              $parsed = $body | ConvertFrom-Json
+              if ($parsed.PSObject.Properties.Name -contains 'error') {
+                $candidateError = [string]$parsed.error
+                if ($candidateError -match '^[A-Za-z0-9_.-]{1,80}$') { $oauthError = $candidateError }
+              }
+              if ($parsed.PSObject.Properties.Name -contains 'error_description') {
+                $candidateDescription = [string]$parsed.error_description
+                if (-not [string]::IsNullOrWhiteSpace($candidateDescription)) {
+                  # Allow only a compact human-readable description. Never echo request/body credentials.
+                  $candidateDescription = ($candidateDescription -replace '[\r\n\t]+',' ')
+                  if ($candidateDescription.Length -gt 240) { $candidateDescription = $candidateDescription.Substring(0,240) }
+                  $oauthDescription = $candidateDescription
+                }
+              }
+            } catch {}
+          }
+        }
+      } catch {}
+    }
+  } catch {}
+  return [pscustomobject]@{
+    http_status = $statusCode
+    oauth_error = $oauthError
+    oauth_error_description = $oauthDescription
+  }
+}
+
 if ($env:COMPUTERNAME -ne $ExpectedMachine) { Fail "A1_WRITER_VERIFY_WRONG_MACHINE:$env:COMPUTERNAME" }
 if ($env:RUNNER_NAME -and $env:RUNNER_NAME -ne $ExpectedRunner) { Fail "A1_WRITER_VERIFY_WRONG_RUNNER:$env:RUNNER_NAME" }
 if (-not (Test-Path -LiteralPath $ReportPath -PathType Leaf)) { Fail 'A1_WRITER_INTERACTIVE_REPORT_NOT_FOUND' }
@@ -66,12 +112,55 @@ if ($tokenUri -notmatch '^https://oauth2\.googleapis\.com/token$|^https://accoun
 }
 
 # Refresh only. This does not create a new grant or reauthorize OAuth.
-$tokenResponse = Invoke-RestMethod -Method Post -Uri $tokenUri -ContentType 'application/x-www-form-urlencoded' -Body @{
-  client_id = [string]$credential.client_id
-  client_secret = [string]$credential.client_secret
-  refresh_token = [string]$credential.refresh_token
-  grant_type = 'refresh_token'
+try {
+  $tokenResponse = Invoke-RestMethod -Method Post -Uri $tokenUri -ContentType 'application/x-www-form-urlencoded' -Body @{
+    client_id = [string]$credential.client_id
+    client_secret = [string]$credential.client_secret
+    refresh_token = [string]$credential.refresh_token
+    grant_type = 'refresh_token'
+  }
+} catch {
+  $safe = Get-SafeOAuthRefreshError $_
+  $failure = [ordered]@{
+    schema = 'A1_DRIVE_WRITER_CANDIDATE_VERIFICATION_V1'
+    status = 'FAIL_EXISTING_OAUTH_REFRESH_REJECTED'
+    observed_at_utc = [DateTime]::UtcNow.ToString('o')
+    machine = $ExpectedMachine
+    runner = if ($env:RUNNER_NAME) { $env:RUNNER_NAME } else { 'INTERACTIVE_FERI_ADMIN' }
+    interactive_report_path = $ReportPath
+    candidate_path = $candidatePath
+    candidate_sha256 = $candidateHash
+    candidate_credential_kind = [string]$c.credential_kind
+    reader_sha256 = $readerHash
+    candidate_distinct_from_reader = $true
+    oauth_refresh_pass = $false
+    oauth_http_status = $safe.http_status
+    oauth_error = $safe.oauth_error
+    oauth_error_description = $safe.oauth_error_description
+    binding_changed = $false
+    drive_write_performed = $false
+    oauth_reauthorization = $false
+    canonical_current_mutation = $false
+    secrets_disclosed = $false
+  }
+  $parent = Split-Path -Parent $OutputPath
+  New-Item -ItemType Directory -Force -Path $parent | Out-Null
+  $failure | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $OutputPath -Encoding UTF8
+  Write-Host 'A1_WRITER_CANDIDATE_VERIFY_STATUS=FAIL_EXISTING_OAUTH_REFRESH_REJECTED'
+  Write-Host "OAUTH_HTTP_STATUS=$($safe.http_status)"
+  Write-Host "OAUTH_ERROR=$($safe.oauth_error)"
+  if (-not [string]::IsNullOrWhiteSpace([string]$safe.oauth_error_description)) {
+    Write-Host "OAUTH_ERROR_DESCRIPTION=$($safe.oauth_error_description)"
+  }
+  Write-Host "VERIFICATION_REPORT=$OutputPath"
+  Write-Host 'BINDING_CHANGED=false'
+  Write-Host 'DRIVE_WRITE_PERFORMED=false'
+  Write-Host 'OAUTH_REAUTHORIZATION=false'
+  Write-Host 'CANONICAL_CURRENT_MUTATION=false'
+  Write-Host 'SECRETS_DISCLOSED=false'
+  exit 23
 }
+
 $accessToken = [string]$tokenResponse.access_token
 if ([string]::IsNullOrWhiteSpace($accessToken)) { Fail 'A1_WRITER_CANDIDATE_REFRESH_NO_ACCESS_TOKEN' }
 
