@@ -84,12 +84,19 @@ print("A1_RECOVERY_RESULT_JSON=" + json.dumps(summary, sort_keys=True, separator
 raise SystemExit(0 if result.get("pass") is True else 2)
 '@ | Set-Content -LiteralPath $executePy -Encoding UTF8
 
-$recoveryLines = @(& $Python $executePy 2>&1)
-$recoveryExit = $LASTEXITCODE
-foreach ($line in $recoveryLines) { Write-Host ([string]$line) }
+# Capture stdout/stderr through files so PowerShell 5.1 cannot turn Python stderr into a premature NativeCommandError.
+$stdoutPath = Join-Path $env:TEMP 'a1_recovery_stdout.log'
+$stderrPath = Join-Path $env:TEMP 'a1_recovery_stderr.log'
+Remove-Item -LiteralPath $stdoutPath,$stderrPath -Force -ErrorAction SilentlyContinue
+$proc = Start-Process -FilePath $Python -ArgumentList @($executePy) -NoNewWindow -Wait -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+$recoveryStdout = if (Test-Path -LiteralPath $stdoutPath -PathType Leaf) { @(Get-Content -LiteralPath $stdoutPath -Encoding UTF8) } else { @() }
+$recoveryStderr = if (Test-Path -LiteralPath $stderrPath -PathType Leaf) { @(Get-Content -LiteralPath $stderrPath -Encoding UTF8) } else { @() }
+foreach ($line in $recoveryStdout) { Write-Host ([string]$line) }
+foreach ($line in $recoveryStderr) { Write-Host ('PYTHON_STDERR|' + [string]$line) }
+$recoveryExit = [int]$proc.ExitCode
 if ($recoveryExit -ne 0) { Fail "A1_RECOVERY_PREPARE_EXECUTION_FAIL:$recoveryExit" }
 
-$sentinels = @($recoveryLines | ForEach-Object { [string]$_ } | Where-Object { $_ -like 'A1_RECOVERY_RESULT_JSON=*' })
+$sentinels = @($recoveryStdout | ForEach-Object { [string]$_ } | Where-Object { $_ -like 'A1_RECOVERY_RESULT_JSON=*' })
 if ($sentinels.Count -ne 1) { Fail "A1_RECOVERY_PREPARE_RESULT_SENTINEL_CARDINALITY:$($sentinels.Count)" }
 $resultJson = $sentinels[0].Substring('A1_RECOVERY_RESULT_JSON='.Length) | ConvertFrom-Json
 if ($resultJson.pass -ne $true) { Fail 'A1_RECOVERY_PREPARE_RESULT_PASS_FALSE' }
