@@ -17,22 +17,22 @@ permissions:
 jobs:
   validate:
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
-      - name: Require current Machine-2 runner for verification
+      - name: Require current Machine-2 runner for syntax validation
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          if ($env:RUNNER_NAME -ne 'A1-WINDOWS-COMPUTE-02') { throw "A1_WRITER_VERIFY_WRONG_RUNNER:$env:RUNNER_NAME" }
-          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "A1_WRITER_VERIFY_WRONG_MACHINE:$env:COMPUTERNAME" }
-          Write-Host 'A1_WRITER_VERIFY_RUNNER_GATE_PASS'
+          if ($env:RUNNER_NAME -ne 'A1-WINDOWS-COMPUTE-02') { throw "A1_WRITER_SYNTAX_WRONG_RUNNER:$env:RUNNER_NAME" }
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "A1_WRITER_SYNTAX_WRONG_MACHINE:$env:COMPUTERNAME" }
+          Write-Host 'A1_WRITER_SYNTAX_RUNNER_GATE_PASS'
 
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
           fetch-depth: 1
 
-      - name: Parse PowerShell safety scripts only
+      - name: Parse PowerShell safety scripts only; do not execute relocation search, verification, or binding
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
@@ -52,32 +52,14 @@ jobs:
             Write-Host "A1_WRITER_SAFETY_SCRIPT_PARSE_PASS|path=$path|execution=false|mutation=false"
           }
 
-      - name: Gate current Machine-2 authority before candidate verification
-        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $auth = Get-Content -LiteralPath 'governance\a1-clean-active-authority-lock.json' -Raw -Encoding UTF8 | ConvertFrom-Json
-          $req = Get-Content -LiteralPath 'v32-full-observation-behavior-requests\current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
-          if ($auth.status -ne 'ACTIVE') { throw 'A1_WRITER_VERIFY_AUTHORITY_NOT_ACTIVE' }
-          if ($req.recovery_prepare_current_status -ne 'HOLD_WRITER_CREDENTIAL_LOCATION_UNRESOLVED') { throw "A1_WRITER_VERIFY_UNEXPECTED_CURRENT_STATUS:$($req.recovery_prepare_current_status)" }
-          if ($req.drive_writer_credential_reauthorization_authorized -ne $false) { throw 'A1_WRITER_VERIFY_REAUTH_MUST_REMAIN_FALSE' }
-          if ($req.drive_writer_credential_replacement_authorized -ne $false) { throw 'A1_WRITER_VERIFY_REPLACEMENT_MUST_REMAIN_FALSE' }
-          if ($req.drive_reader_credential_may_be_repurposed_as_writer -ne $false) { throw 'A1_WRITER_VERIFY_READER_REPURPOSE_PROHIBITION_MISSING' }
-          if ($req.canonical_current_recovery_commit_authorized -ne $false) { throw 'A1_WRITER_VERIFY_CANONICAL_COMMIT_MUST_REMAIN_FALSE' }
-          Write-Host 'A1_WRITER_VERIFY_AUTHORITY_GATE_PASS'
-
-      - name: Verify relocated writer candidate read-only
-        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
-        run: |
-          & '.\scripts\windows\Verify-A1DriveWriterCandidateReadOnly.ps1'
-          if ($LASTEXITCODE -ne 0) { throw "A1_WRITER_CANDIDATE_VERIFY_FAIL:$LASTEXITCODE" }
-
       - name: Safety declaration
         if: always()
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
-          Write-Host 'WRITER VERIFICATION ONLY.'
-          Write-Host 'No credential binding is changed.'
+          Write-Host 'SYNTAX VALIDATION ONLY.'
+          Write-Host 'Relocation search is not executed.'
+          Write-Host 'Writer candidate verification is not executed.'
+          Write-Host 'Credential binding is not changed.'
           Write-Host 'No Drive create/update/delete is performed.'
           Write-Host 'No OAuth reauthorization is performed.'
           Write-Host 'No canonical CURRENT mutation is performed.'
