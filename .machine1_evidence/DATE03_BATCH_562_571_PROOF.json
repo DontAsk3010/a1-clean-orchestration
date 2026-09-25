@@ -1,0 +1,11 @@
+{
+    "status":  "PASS",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "recovered_manifest_sha256":  "c07cf5c0c075e6ad6da2ca87623138ed84521423a6a6c143bb75db7a689d6625",
+    "durable_prefix_count":  561,
+    "durable_prefix_last":  "MSTI",
+    "durable_prefix_sha256":  "b6f2097208bcfbb5d2d55c414f0ffbeb45a8fb0ffbca37099ead5614b3dd2895",
+    "batch_first":  "MTDL",
+    "batch_last":  "MYOH",
+    "batch_count":  10
+}

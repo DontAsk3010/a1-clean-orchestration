@@ -1,0 +1,15 @@
+{
+    "ticker":  "MTLA",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "recovered_manifest_sha256":  "c07cf5c0c075e6ad6da2ca87623138ed84521423a6a6c143bb75db7a689d6625",
+    "durable_prefix_count":  561,
+    "durable_prefix_sha256":  "b6f2097208bcfbb5d2d55c414f0ffbeb45a8fb0ffbca37099ead5614b3dd2895",
+    "recovered_date_local_index":  565,
+    "source_row_first":  1126996,
+    "source_row_last":  1127000,
+    "data_rows":  5,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:00:00",
+    "rows_jsonl_sha256":  "cd2f8d991176eb10756958dd322833b867e33e318c64e04d209a59b0fe45a52a"
+}

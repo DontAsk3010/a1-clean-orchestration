@@ -1,0 +1,15 @@
+{
+    "ticker":  "MTDL",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "recovered_manifest_sha256":  "c07cf5c0c075e6ad6da2ca87623138ed84521423a6a6c143bb75db7a689d6625",
+    "durable_prefix_count":  561,
+    "durable_prefix_sha256":  "b6f2097208bcfbb5d2d55c414f0ffbeb45a8fb0ffbca37099ead5614b3dd2895",
+    "recovered_date_local_index":  562,
+    "source_row_first":  1124788,
+    "source_row_last":  1124932,
+    "data_rows":  145,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:10:00",
+    "rows_jsonl_sha256":  "70bb914ebe2f6e11a9a6ed4ee9d252ebae6c1a7a323cf3e87fb6c44dd7423a43"
+}
