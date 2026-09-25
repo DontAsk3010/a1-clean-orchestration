@@ -1,0 +1,202 @@
+name: Machine1 Date03 Recover Manifest And Next Batch
+on:
+  push:
+    branches: [machine1/evidence-kbatch-20241203]
+    paths: [.github/workflows/machine1-date03-recover-next-batch.yml]
+permissions:
+  contents: write
+jobs:
+  recover:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 60
+    env:
+      RAW_FILE: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI\Raw Des 02-31-2024.csv'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct date manifest and extract next governed batch
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          Add-Type -AssemblyName Microsoft.VisualBasic
+          $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
+          $expectedRaw='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          $expectedPrefixSha='a3a83f9062be23d514445e78974bac04501ea24976038125f45e172770c9575e'
+          $expectedTotal=891
+          if(-not(Test-Path -LiteralPath $raw -PathType Leaf)){throw 'RAW_MISSING'}
+          $got=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($got -ne $expectedRaw){throw "RAW_HASH_MISMATCH $got"}
+          function Clock([string]$dt){
+            if($dt.Contains('T')){return $dt.Split('T',2)[1].Substring(0,8)}
+            $a=$dt.Split(' '); return $a[-1].Substring(0,8)
+          }
+          function ShaText([string]$s){
+            $sha=[System.Security.Cryptography.SHA256]::Create()
+            try { return ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($s))).Replace('-','').ToLowerInvariant()) }
+            finally { $sha.Dispose() }
+          }
+          $parser=New-Object Microsoft.VisualBasic.FileIO.TextFieldParser($raw,[Text.Encoding]::UTF8)
+          $parser.TextFieldType=[Microsoft.VisualBasic.FileIO.FieldType]::Delimited
+          $parser.SetDelimiters(',')
+          $parser.HasFieldsEnclosedInQuotes=$true
+          $header=$parser.ReadFields()
+          $idxTicker=[Array]::IndexOf($header,'RAW_TICKER')
+          $idxDt=[Array]::IndexOf($header,'RAW_DATETIME_ISO')
+          if($idxTicker -lt 0 -or $idxDt -lt 0){throw 'REQUIRED_COLUMNS_MISSING'}
+          $map=@{}
+          $sourceRow=1
+          while(-not $parser.EndOfData){
+            $f=$parser.ReadFields()
+            if($f.Count -ne $header.Count){throw "FIELD_COUNT_MISMATCH source_row=$sourceRow"}
+            $dt=[string]$f[$idxDt]
+            if($dt.StartsWith('2024-12-03')){
+              $t=[string]$f[$idxTicker]
+              if([string]::IsNullOrWhiteSpace($t)){throw "EMPTY_TICKER source_row=$sourceRow"}
+              $clk=Clock $dt
+              if(-not $map.ContainsKey($t)){
+                $map[$t]=[ordered]@{Ticker=$t;First=$sourceRow;Last=$sourceRow;Count=1;FirstTime=$clk;LastTime=$clk;Contiguous=$true}
+              } else {
+                $s=$map[$t]
+                if($sourceRow -ne ([int64]$s.Last + 1)){ $s.Contiguous=$false }
+                $s.Last=$sourceRow; $s.Count=[int64]$s.Count+1; $s.LastTime=$clk
+              }
+            }
+            $sourceRow++
+          }
+          $parser.Close()
+          $tickers=[string[]]@($map.Keys)
+          [Array]::Sort($tickers,[System.StringComparer]::Ordinal)
+          if($tickers.Count -ne $expectedTotal){throw "TOTAL_PATHS_MISMATCH got=$($tickers.Count) expected=$expectedTotal"}
+          foreach($t in $tickers){if(-not $map[$t].Contiguous){throw "NONCONTIGUOUS_DATE_BLOCK $t"}}
+          $prefixPayload=($tickers[0..520] -join "`n")+"`n"
+          $prefixSha=ShaText $prefixPayload
+          if($prefixSha -ne $expectedPrefixSha){throw "DURABLE_PREFIX_MISMATCH got=$prefixSha expected=$expectedPrefixSha"}
+          if($tickers[520] -ne 'MEGA'){throw "PREFIX_LAST_NOT_MEGA got=$($tickers[520])"}
+          function AssertSpec([string]$t,[int64]$f,[int64]$l,[int64]$c,[string]$ft,[string]$lt){
+            if(-not $map.ContainsKey($t)){throw "ANCHOR_MISSING $t"}
+            $s=$map[$t]
+            if([int64]$s.First-ne$f -or [int64]$s.Last-ne$l -or [int64]$s.Count-ne$c -or [string]$s.FirstTime-ne$ft -or [string]$s.LastTime-ne$lt){
+              throw "ANCHOR_MISMATCH $t got=$($s.First)-$($s.Last) count=$($s.Count) time=$($s.FirstTime)-$($s.LastTime)"
+            }
+          }
+          AssertSpec 'AALI' 5101 5250 150 '09:00:00' '16:03:00'
+          AssertSpec 'MEDC' 1052654 1052957 304 '08:59:00' '16:11:00'
+          AssertSpec 'MEDS' 1051860 1051863 4 '09:12:00' '15:18:00'
+          AssertSpec 'MEGA' 1051974 1051986 13 '09:00:00' '16:00:00'
+          $out=Join-Path $PWD 'machine1_date03_recovered_next_batch'
+          New-Item -ItemType Directory -Force $out|Out-Null
+          $enc=New-Object System.Text.UTF8Encoding($false)
+          $manifestPath=Join-Path $out 'DATE03_RECONSTRUCTED_MANIFEST_FROM_RAW.jsonl'
+          $manifestLines=New-Object 'System.Collections.Generic.List[string]'
+          for($n=0;$n -lt $tickers.Count;$n++){
+            $s=$map[$tickers[$n]]
+            $o=[ordered]@{
+              date_local_index=$n+1
+              ticker=[string]$s.Ticker
+              source_row_first=[int64]$s.First
+              source_row_last=[int64]$s.Last
+              data_rows=[int64]$s.Count
+              first_clock_time=[string]$s.FirstTime
+              last_clock_time=[string]$s.LastTime
+              order='ORDINAL_CASE_SENSITIVE'
+              recovered_from='RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF'
+            }
+            [void]$manifestLines.Add(($o|ConvertTo-Json -Compress -Depth 8))
+          }
+          [System.IO.File]::WriteAllLines($manifestPath,[string[]]$manifestLines,$enc)
+          $manifestSha=(Get-FileHash $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $specs=@()
+          for($n=521;$n -le 530;$n++){
+            $t=$tickers[$n]; $s=$map[$t]
+            $specs += [pscustomobject]@{
+              Index=$n+1;Ticker=$t;First=[int64]$s.First;Last=[int64]$s.Last;Count=[int64]$s.Count;FirstTime=[string]$s.FirstTime;LastTime=[string]$s.LastTime
+            }
+          }
+          $pointerPath=Join-Path $out 'DATE03_NEXT10_POINTERS.json'
+          [System.IO.File]::WriteAllText($pointerPath,($specs|ConvertTo-Json -Depth 8),$enc)
+          $captures=@{}
+          foreach($s in $specs){$captures[$s.Ticker]=New-Object 'System.Collections.Generic.List[string]'}
+          $maxLast=($specs|Measure-Object Last -Maximum).Maximum
+          $i=0; $headerLine=$null
+          foreach($line in [System.IO.File]::ReadLines($raw,[Text.Encoding]::UTF8)){
+            if($i -eq 0){$headerLine=$line}
+            foreach($s in $specs){
+              if($i -ge $s.First -and $i -le $s.Last){[void]$captures[$s.Ticker].Add($line)}
+            }
+            if($i -ge $maxLast){break}
+            $i++
+          }
+          foreach($s in $specs){
+            $lines=$captures[$s.Ticker]
+            if($lines.Count -ne $s.Count){throw "$($s.Ticker)_CAPTURE_COUNT got=$($lines.Count) expected=$($s.Count)"}
+            $parsed=@((@($headerLine)+@($lines))|ConvertFrom-Csv)
+            if($parsed.Count -ne $s.Count){throw "$($s.Ticker)_PARSE_COUNT"}
+            $records=New-Object 'System.Collections.Generic.List[object]'
+            for($n=0;$n -lt $parsed.Count;$n++){
+              $o=[ordered]@{source_row=[int64]$s.First+$n}
+              foreach($p in $parsed[$n].PSObject.Properties.Name){$o[$p]=[string]$parsed[$n].$p}
+              [void]$records.Add([pscustomobject]$o)
+            }
+            $uniq=@($records|ForEach-Object{$_.RAW_TICKER}|Sort-Object -Unique)
+            if($uniq.Count-ne1 -or $uniq[0]-ne$s.Ticker){throw "$($s.Ticker)_TICKER_MISMATCH"}
+            $dts=@($records|ForEach-Object{[string]$_.RAW_DATETIME_ISO})
+            if(@($dts|Where-Object{-not $_.StartsWith('2024-12-03')}).Count-gt0){throw "$($s.Ticker)_DATE_MISMATCH"}
+            if((Clock $dts[0])-ne$s.FirstTime -or (Clock $dts[-1])-ne$s.LastTime){throw "$($s.Ticker)_CLOCK_MISMATCH"}
+            $rp=Join-Path $out "$($s.Ticker)_20241203_ROWS.jsonl"
+            [System.IO.File]::WriteAllLines($rp,[string[]]@($records|ForEach-Object{$_|ConvertTo-Json -Compress -Depth 8}),$enc)
+            $proof=[ordered]@{
+              ticker=$s.Ticker
+              trading_date='2024-12-03'
+              source_sha256=$got
+              recovered_date_local_index=$s.Index
+              source_row_first=$s.First
+              source_row_last=$s.Last
+              data_rows=$records.Count
+              first_datetime=$dts[0]
+              last_datetime=$dts[-1]
+              rows_jsonl_sha256=(Get-FileHash $rp -Algorithm SHA256).Hash.ToLowerInvariant()
+              recovered_manifest_sha256=$manifestSha
+              original_semantic_manifest_state='UNAVAILABLE_404'
+              recovery_order_proof='FULL_DATE_RAW_RECONSTRUCTION_PLUS_EXACT_521_PREFIX_SHA256_MATCH'
+            }
+            [System.IO.File]::WriteAllText((Join-Path $out "$($s.Ticker)_20241203_RECOVERY_PROOF.json"),($proof|ConvertTo-Json -Depth 10),$enc)
+          }
+          $recovery=[ordered]@{
+            status='PASS'
+            trading_date='2024-12-03'
+            source_sha256=$got
+            total_ticker_context_paths=$tickers.Count
+            ordinal_case_sensitive_order=$true
+            durable_prefix_count=521
+            durable_prefix_expected_sha256=$expectedPrefixSha
+            durable_prefix_observed_sha256=$prefixSha
+            durable_prefix_match=($prefixSha -eq $expectedPrefixSha)
+            durable_prefix_last='MEGA'
+            anchors=@('AALI','MEDC','MEDS','MEGA')
+            reconstructed_manifest_sha256=$manifestSha
+            original_semantic_manifest_state='UNAVAILABLE_404'
+            next_exact_recovery_source='DATE03_RECONSTRUCTED_MANIFEST_FROM_RAW.jsonl'
+            next_batch=$specs
+          }
+          $recoveryPath=Join-Path $out 'DATE03_MANIFEST_RECOVERY_PROOF.json'
+          [System.IO.File]::WriteAllText($recoveryPath,($recovery|ConvertTo-Json -Depth 10),$enc)
+          Write-Host "DATE03_RECOVERY_PASS total=$($tickers.Count) prefix=$prefixSha next=$($specs[0].Ticker)"
+      - name: Upload lossless recovered batch
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date03-recovered-next-batch
+          path: machine1_date03_recovered_next_batch/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Persist recovery proof and reconstructed manifest
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item -ItemType Directory -Force '.machine1_evidence'|Out-Null
+          Copy-Item 'machine1_date03_recovered_next_batch/DATE03_MANIFEST_RECOVERY_PROOF.json' '.machine1_evidence/' -Force
+          Copy-Item 'machine1_date03_recovered_next_batch/DATE03_RECONSTRUCTED_MANIFEST_FROM_RAW.jsonl' '.machine1_evidence/' -Force
+          Copy-Item 'machine1_date03_recovered_next_batch/DATE03_NEXT10_POINTERS.json' '.machine1_evidence/' -Force
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add -f '.machine1_evidence/DATE03_MANIFEST_RECOVERY_PROOF.json' '.machine1_evidence/DATE03_RECONSTRUCTED_MANIFEST_FROM_RAW.jsonl' '.machine1_evidence/DATE03_NEXT10_POINTERS.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist date03 manifest recovery proof [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-kbatch-20241203
