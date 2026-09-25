@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from a1clean.authority_bootstrap import validate_bootstrap_contract
+from a1clean.authority_bootstrap_drive_revision import validate_drive_revision_bindings
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,6 +18,7 @@ def test_bootstrap_contract_is_active_and_fail_closed():
     manifest = _load("governance/a1-clean-authority-bootstrap-current.json")
     lock = _load("governance/a1-clean-active-authority-lock.json")
     validate_bootstrap_contract(manifest, lock)
+    validate_drive_revision_bindings(manifest)
     assert manifest["full_authority_read_required"] is True
     assert manifest["summary_or_chat_memory_may_not_substitute"] is True
     assert manifest["fail_closed_on_missing_unreadable_or_revision_drift"] is True
@@ -26,7 +28,8 @@ def test_bootstrap_contract_is_active_and_fail_closed():
 
 def test_bootstrap_requires_complete_authority_chain_in_order():
     manifest = _load("governance/a1-clean-authority-bootstrap-current.json")
-    keys = [row["key"] for row in manifest["authority_documents_in_required_read_order"]]
+    docs = manifest["authority_documents_in_required_read_order"]
+    keys = [row["key"] for row in docs]
     assert keys == [
         "master_handbook",
         "current_execution",
@@ -39,7 +42,9 @@ def test_bootstrap_requires_complete_authority_chain_in_order():
         "stable_transition_bridge",
         "chat_transition_protocol",
     ]
-    assert all(row["required"] is True for row in manifest["authority_documents_in_required_read_order"])
+    assert all(row["required"] is True for row in docs)
+    assert all(str(row.get("drive_revision_id", "")).isdigit() for row in docs)
+    assert [row["drive_revision_id"] for row in docs] == ["67", "111", "56", "29", "56", "68", "45", "514", "85", "7"]
 
 
 def test_data_contract_has_no_fixed_field_or_source_ceiling_and_preserves_unknowns():
