@@ -13,12 +13,14 @@ from a1clean.canonical_recovery import (
     _load_request,
     _tree_fingerprint,
 )
+from a1clean.canonical_recovery_exact_evidence import load_full_shadow_evidence_exact
 from a1clean.config import (
     FROZEN_CURRENT_FOLDER_DRIVE_ID,
     FROZEN_GENERATION_ID,
     FROZEN_IMPL_VERSION,
     FROZEN_PARITY_STAGING_FOLDER_DRIVE_ID,
 )
+from a1clean.source_parity import FOLDER_MIME
 
 
 def _request() -> dict:
@@ -89,3 +91,82 @@ def test_committed_data_plane_control_set_is_exactly_six() -> None:
         "LATEST_DELTA_REFRESH.json",
         "AI_SEMANTIC_DELTA_QUEUE.json",
     )
+
+
+def test_final_shadow_exact_pointer_ignores_orphan_same_named_hold(monkeypatch) -> None:
+    import a1clean.canonical_recovery_exact_evidence as exact
+
+    source_name = "Raw Des 02-31-2024.csv"
+    stable = {"source_name": source_name, "source_drive_id": "source-drive"}
+    root_items = [
+        {"id": "final", "name": "FULL_SHADOW_PARITY_FINAL.json", "mimeType": "application/json"},
+        {"id": "old-hold-folder", "name": "SRC_0005_Raw_Des_02-31-2024", "mimeType": FOLDER_MIME},
+        {"id": "final-pass-folder", "name": "SRC_0005_Raw_Des_02-31-2024", "mimeType": FOLDER_MIME},
+    ]
+    good_items = [
+        {"id": "good-report", "name": "SOURCE_PARITY_REPORT.json", "mimeType": "application/json"},
+        {"id": "semantic-manifest", "name": "CANDIDATE__Raw Des 02-31-2024__SEMANTIC_BUNDLES_MANIFEST.json", "mimeType": "application/json"},
+        {"id": "market-index", "name": "CANDIDATE__Raw Des 02-31-2024__MARKET_DAY_INDEX.json", "mimeType": "application/json"},
+    ]
+    listed: list[str] = []
+
+    def fake_list(_api, folder_id: str):
+        listed.append(folder_id)
+        if folder_id == "root":
+            return root_items
+        if folder_id == "final-pass-folder":
+            return good_items
+        if folder_id == "old-hold-folder":
+            raise AssertionError("orphan HOLD folder must not be read")
+        raise AssertionError(folder_id)
+
+    family = {
+        "pass": True,
+        "files": [{
+            "name": "part.bin",
+            "pass": True,
+            "candidate_md5": "abc",
+            "baseline_md5": "abc",
+            "candidate_size": 7,
+            "baseline_size": 7,
+        }],
+    }
+    final = {
+        "pass": True,
+        "completed_source_count": 1,
+        "source_summaries": [{
+            "pass": True,
+            "name": source_name,
+            "drive_id": "source-drive",
+            "candidate_stable_source": stable,
+            "physical_shards": 1,
+            "semantic_bundles": 1,
+            "evidence_folder_id": "final-pass-folder",
+            "source_report_file_id": "good-report",
+        }],
+    }
+    report = {
+        "pass": True,
+        "source_index": 5,
+        "source": {"name": source_name, "drive_id": "source-drive", "size": 10, "drive_md5": "deadbeef"},
+        "checks": {
+            "source_manifest_stable_fields": {"candidate": stable},
+            "physical_shards_exact_md5": family,
+            "semantic_bundles_exact_md5": family,
+        },
+    }
+
+    def fake_download(_api, file_id: str):
+        if file_id == "final":
+            return final
+        if file_id == "good-report":
+            return report
+        raise AssertionError(file_id)
+
+    monkeypatch.setattr(exact, "_list_children", fake_list)
+    monkeypatch.setattr(exact, "_download_json", fake_download)
+    evidence = load_full_shadow_evidence_exact(object(), "root")
+    assert evidence["source_count"] == 1
+    assert evidence["sources"][0]["historical_evidence_folder_id"] == "final-pass-folder"
+    assert evidence["sources"][0]["historical_source_report_id"] == "good-report"
+    assert "old-hold-folder" not in listed
