@@ -1,18 +1,19 @@
 {
   "schema": "A1_CANONICAL_CURRENT_RECOVERY_PREPARE_BLOCKER_V1",
-  "status": "BLOCKED_WRITER_CREDENTIAL_LOCATION_UNRESOLVED_INTERACTIVE_USER_CONTEXT_SEARCH_REQUIRED",
+  "status": "READY_FOR_GOVERNED_RECOVERY_PREPARE",
   "branch": "fix/v32-dynamic-source-universe-v1",
   "authority_effective_date": "2026-09-25",
   "authority_lock_status": "ACTIVE",
   "owner_correction_applied": true,
-  "supersedes_status": "BLOCKED_EXTERNAL_WRITER_CREDENTIAL_FILE_MISSING",
-  "supersession_reason": "Historical path absence proves only that the old path is empty. Runner/files were moved and service-side directory enumeration was proven non-authoritative for protected user storage, so credential loss is not yet proven.",
   "recovery_request_trigger_revision": "20260925_03",
   "recovery_request_mode": "PREPARE_ONLY_NO_CANONICAL_WRITE",
   "machine2_request_enabled": false,
   "canonical_current_recovery_commit_authorized": false,
   "formula_stage": "CLOSED",
+  "machine": "PORSCHE-DESIGN",
+  "machine2_runner": "A1-WINDOWS-COMPUTE-02",
   "expected_missing_current_folder_id": "1SRN-WWkHJefLGLSN6_SktpVU0Ugjwqc-",
+  "expected_missing_current_folder_name": "UNIVERSAL_BEHAVIOR_DATA_PLANE_CURRENT",
   "parity_staging_folder_id": "1WTb_lGBD6Tuwfcb-1WhsICjyJqzzBtwU",
   "parity_staging_expected_owner_principal": "fjulie8satu@gmail.com",
   "committed_control_bundle_folder_id": "1IKflAPURwdcPPNxYDdCNLQt7TTcLsnl9",
@@ -20,62 +21,53 @@
   "committed_control_bundle_origin_promotion_git_sha": "2f0f52523e0ffcaa807e72676cfb9a66b1329d53",
   "last_governed_baseline_state_fingerprint": "a3856491f94ffe036144c78e4056853346ee296e4ff5841ce9b3de90ff756b14",
   "last_governed_canonical_control_snapshot_fingerprint": "aa91545d20dc16533569a3b09c5777818795af652e35508a81f0706c224fe44a",
-  "promotion_reconciliation": {
-    "promotion_transaction_folder_id": "1OptxpyjR8szQD07vNYFJnzIBSm8AxoxS",
-    "promotion_status": "CANONICAL_PROMOTION_COMMITTED",
-    "canonical_write_performed": true,
+  "writer_restoration": {
+    "status": "PASS_EXISTING_WRITER_REAUTHORIZED_VERIFIED_BOUND_MACHINE2",
+    "existing_oauth_client_reused": true,
+    "new_oauth_client_created": false,
+    "reader_repurposed_as_writer": false,
+    "principal_email": "fjulie8satu@gmail.com",
+    "full_drive_scope_granted": true,
+    "new_refresh_token_proof_pass": true,
+    "parity_staging_owner_proof": true,
+    "machine2_service_binding_pass": true,
+    "machine2_service_restart_pass": true,
+    "drive_write_performed_during_restoration": false,
+    "canonical_current_mutation": false
+  },
+  "drive_guardrail_recovery_prerequisite": {
+    "status": "PASS_RECOVERY_PREREQUISITE_EXPECTED_CURRENT_404",
+    "workflow": ".github/workflows/windows-drive-guardrail-preflight.yml",
+    "run_id": 36132290677,
+    "head_sha": "f254ec9ab3ab175907ebfc2f8e305087100b175e",
+    "workflow_conclusion": "success",
+    "target_runner_proven": "A1-WINDOWS-COMPUTE-02",
+    "raw_reader_identity_pass": true,
+    "current_expected_missing_404_pass": true,
+    "staging_writer_identity_pass": true,
+    "reader_write_denial_in_staging_pass": true,
+    "writer_create_delete_in_staging_pass": true,
     "raw_write_performed": false,
-    "control_bundle_origin_reconciled": true
+    "current_write_performed": false,
+    "canonical_current_mutation": false
   },
-  "historical_path_evidence": {
-    "historically_governed_writer_path": "C:\\Users\\feri-admin\\a1-drive-auth\\client_writer.json",
-    "historical_path_currently_exists": false,
-    "historical_path_absence_proves_credential_loss": false
+  "recovery_admission": {
+    "prepare_only": true,
+    "candidate_must_remain_under_parity_staging": true,
+    "canonical_promotion_allowed": false,
+    "raw_write_allowed": false,
+    "heavy_behavior_research_allowed": false,
+    "current_404_is_expected_prerequisite": true
   },
-  "service_context_relocation_evidence": {
-    "machine": "PORSCHE-DESIGN",
-    "machine2_runner": "A1-WINDOWS-COMPUTE-02",
-    "process_user_machine_writer_binding": "ABSENT_ON_MACHINE2_RUNNER_CONTEXT",
-    "runner_service_writer_binding": "NOT_FOUND",
-    "runner_roots_checked": [
-      "C:\\Users\\feri-admin\\actions-runner-a1",
-      "C:\\Users\\feri-admin\\actions-runner-a1-02"
-    ],
-    "fixed_volumes_observed": ["C:", "D:", "G:"],
-    "exact_filename_volume_search": "NO_MATCH_FOR_client_writer.json_OR_writer_oauth_client.json",
-    "generic_filename_and_config_reference_search": "NO_EXISTING_WRITER_CANDIDATE",
-    "recycle_bin_structural_search": "NO_CREDENTIAL_CANDIDATE_ON_C_OR_D",
-    "direct_path_probe_v2_run_id": 36073241495,
-    "direct_path_probe_v2_job_id": 107878708168,
-    "direct_path_probe_positive_control_reader_read": true,
-    "direct_path_probe_existing_writer_candidate_files": 0,
-    "service_directory_enumeration_limitation": "Exact-path Reader file is readable but protected user credential storage is not authoritatively enumerable from runner service context. Zero service-scan candidates therefore cannot close relocation search."
-  },
-  "interactive_relocation_gate": {
-    "required": true,
-    "interactive_user": "feri-admin",
-    "search_script": "scripts/windows/Find-A1DriveWriterCredentialInteractive.ps1",
-    "search_script_added_commit": "280b08d9f697c58df5b9f4ca29b6f5b8fe3d1a78",
-    "search_script_syntax_validation_run_id": 36076428810,
-    "search_script_syntax_validation_job_id": 107888546276,
-    "search_script_syntax_validation_status": "PASS",
-    "safe_report_path": "C:\\Users\\feri-admin\\.a1clean\\writer-relocation-interactive-current.json",
-    "candidate_verifier_workflow": ".github/workflows/windows-drive-writer-interactive-report-verify.yml",
-    "candidate_verifier_added_commit": "ed1cebfa64588bd102f2546b081bef8fe7eb3c69",
-    "verification_contract": "Candidate must be exact-hash stable, runtime credential type, not byte-identical to Reader, authenticate read-only as expected PARITY_STAGING owner principal, and show full Drive OAuth scope before any writer binding. No Drive write is permitted during candidate verification."
-  },
-  "governed_decision": "DO_NOT_DECLARE_WRITER_MISSING_AND_DO_NOT_REAUTHORIZE_OR_REPLACE_YET. COMPLETE THE INTERACTIVE feri-admin USER-CONTEXT RELOCATION SEARCH. IF A CANDIDATE IS FOUND, VERIFY EXACT HASH/TYPE/NOT-READER/PRINCIPAL/SCOPE BEFORE BINDING. ONLY AFTER VERIFIED BINDING MAY DRIVE GUARDRAIL RUN.",
+  "governed_decision": "WRITER RESTORATION AND RECOVERY-AWARE DRIVE GUARDRAIL ARE PASS. CANONICAL CURRENT RECOVERY PREPARE IS ADMITTED ON A1-WINDOWS-COMPUTE-02, WRITING ONLY RECOVERY CANDIDATE/EVIDENCE UNDER PARITY_STAGING. CANONICAL CURRENT PROMOTION, RAW WRITE, AND HEAVY MACHINE2 RESEARCH REMAIN FORBIDDEN.",
   "forbidden_shortcuts": [
     "DO_NOT_CREATE_NEW_OAUTH_WRITER",
-    "DO_NOT_REAUTHORIZE_WRITER",
     "DO_NOT_USE_READER_AS_WRITER",
-    "DO_NOT_CREATE_FAKE_CREDENTIAL",
     "DO_NOT_WRITE_RAW",
     "DO_NOT_MUTATE_CANONICAL_CURRENT",
-    "DO_NOT_BYPASS_DRIVE_GUARDRAIL",
     "DO_NOT_BYPASS_RECOVERY_PREPARE",
     "DO_NOT_START_HEAVY_MACHINE2_RESEARCH"
   ],
-  "next_exact_gate": "INTERACTIVE_FERI_ADMIN_RELOCATION_SEARCH -> GOVERNED_CANDIDATE_VERIFICATION_IF_FOUND -> VERIFIED_WRITER_BINDING -> WINDOWS_DRIVE_GUARDRAIL_PREFLIGHT_PASS -> CANONICAL_CURRENT_RECOVERY_PREPARE -> EXACT_READBACK -> LIGHTWEIGHT_PRESTART",
-  "checkpoint_role": "DURABLE_BLOCKER_PROOF_TO_PREVENT_REPEAT_DIAGNOSIS_AFTER_CHAT_OR_WORKER_INTERRUPTION"
+  "next_exact_gate": "CANONICAL_CURRENT_RECOVERY_PREPARE -> EXACT_RECOVERY_CANDIDATE_READBACK -> LIGHTWEIGHT_PRESTART",
+  "checkpoint_role": "DURABLE_RECOVERY_ADMISSION_PROOF_TO_PREVENT_REPEAT_WRITER_OR_GUARDRAIL_DIAGNOSIS"
 }
