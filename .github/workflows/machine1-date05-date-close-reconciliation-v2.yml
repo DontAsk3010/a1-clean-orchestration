@@ -1,0 +1,66 @@
+name: Machine1 Date05 Date-Close Reconciliation V2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [machine1/date05-prefetch-after-bmsr]
+    paths: [.github/workflows/machine1-date05-date-close-reconciliation-v2.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI\Raw Des 02-31-2024.csv'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Governed Date05 source boundary reconciliation
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
+          $expectedSize=[int64]453806812
+          $expectedMd5='b8d42b35c90d2dff8b18ae4e1734523b'
+          $expectedSha='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          $fi=Get-Item -LiteralPath $raw
+          if($fi.Length -ne $expectedSize){throw 'RAW_SIZE_MISMATCH'}
+          $md5=(Get-FileHash $raw -Algorithm MD5).Hash.ToLowerInvariant()
+          $sha=(Get-FileHash $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($md5 -ne $expectedMd5 -or $sha -ne $expectedSha){throw 'RAW_HASH_MISMATCH'}
+
+          $target='2024-12-05'; $expectedRows=85534; $expectedTickers=891
+          $manifestFirst=75; $manifestLast=965
+          $out=Join-Path $PWD '.machine1_transport/date05_close_reconciliation_v2'
+          if(Test-Path $out){Remove-Item -Recurse -Force $out}; New-Item -ItemType Directory -Force $out|Out-Null
+          $utf8=New-Object System.Text.UTF8Encoding($false)
+          $idx=@{}; [int64]$lineIndex=0; [int64]$dateRows=0; $order=New-Object 'System.Collections.Generic.List[string]'; $stats=[ordered]@{}; $minutes=@{}; $closed=New-Object 'System.Collections.Generic.HashSet[string]'; $current=$null
+
+          foreach($line in [System.IO.File]::ReadLines($raw,[System.Text.Encoding]::UTF8)){
+            if($lineIndex -eq 0){$hf=$line.Split(',');for($i=0;$i -lt $hf.Length;$i++){$idx[$hf[$i].Trim('"')]=$i};foreach($n in @('RAW_TICKER','RAW_DATETIME_ISO','RAW_OPEN','RAW_HIGH','RAW_LOW','RAW_CLOSE','RAW_VOLUME','OBS_GAP_GT_BASE_INTERVAL_FLAG','OBS_DUP_OR_OUT_OF_ORDER_TIME_FLAG','IDX_REGULAR_CLOCK_SESSION_CODE')){if(-not $idx.ContainsKey($n)){throw "HEADER_MISSING_$n"}};$lineIndex++;continue}
+            $p=$line.Split(','); $dt=$p[$idx['RAW_DATETIME_ISO']].Trim('"'); if(-not $dt.StartsWith($target)){$lineIndex++;continue}; $tk=$p[$idx['RAW_TICKER']].Trim('"')
+            if($null -ne $current -and $tk -ne $current){[void]$closed.Add($current)}; if($closed.Contains($tk) -and $tk -ne $current){throw "NONCONTIGUOUS_TICKER_CONTEXT_$tk"}
+            if(-not $stats.Contains($tk)){$order.Add($tk);$stats[$tk]=[ordered]@{ticker=$tk;manifest_line=($manifestFirst+$order.Count-1);count=0;source_row_first=[int64]$lineIndex;source_row_last=[int64]$lineIndex;first_datetime=$dt;last_datetime=$dt;first_open=$p[$idx['RAW_OPEN']].Trim('"');first_high=$p[$idx['RAW_HIGH']].Trim('"');first_low=$p[$idx['RAW_LOW']].Trim('"');first_close=$p[$idx['RAW_CLOSE']].Trim('"');first_volume=$p[$idx['RAW_VOLUME']].Trim('"');last_open='';last_high='';last_low='';last_close='';last_volume='';last_session='';gaps=0;dup=0}}
+            $s=$stats[$tk];$s.count=[int64]$s.count+1;$s.source_row_last=[int64]$lineIndex;$s.last_datetime=$dt;$s.last_open=$p[$idx['RAW_OPEN']].Trim('"');$s.last_high=$p[$idx['RAW_HIGH']].Trim('"');$s.last_low=$p[$idx['RAW_LOW']].Trim('"');$s.last_close=$p[$idx['RAW_CLOSE']].Trim('"');$s.last_volume=$p[$idx['RAW_VOLUME']].Trim('"');$s.last_session=$p[$idx['IDX_REGULAR_CLOCK_SESSION_CODE']].Trim('"');if($p[$idx['OBS_GAP_GT_BASE_INTERVAL_FLAG']].Trim('"') -eq '1'){$s.gaps++};if($p[$idx['OBS_DUP_OR_OUT_OF_ORDER_TIME_FLAG']].Trim('"') -eq '1'){$s.dup++};if($minutes.ContainsKey($dt)){$minutes[$dt]++}else{$minutes[$dt]=1};$dateRows++;$current=$tk;$lineIndex++
+          }
+
+          if($dateRows -ne $expectedRows){throw "DATE_ROW_COUNT_MISMATCH got=$dateRows expected=$expectedRows"};if($order.Count -ne $expectedTickers){throw "TICKER_COUNT_MISMATCH got=$($order.Count) expected=$expectedTickers"};if($order[0] -ne 'AADI'){throw "FIRST_TICKER_MISMATCH got=$($order[0])"};if($order[$order.Count-1] -ne 'ZYRX'){throw "LAST_TICKER_MISMATCH got=$($order[$order.Count-1])"};if(($manifestFirst+$order.Count-1) -ne $manifestLast){throw 'MANIFEST_RANGE_MISMATCH'}
+          foreach($anchor in @(@('ECII',333),@('EDGE',334),@('ZYRX',965))){if(-not $stats.Contains($anchor[0])){throw "ANCHOR_MISSING_$($anchor[0])"};if([int]$stats[$anchor[0]].manifest_line -ne [int]$anchor[1]){throw "ANCHOR_LINE_MISMATCH_$($anchor[0]) got=$($stats[$anchor[0]].manifest_line) expected=$($anchor[1])"}}
+          [int64]$sum=0;foreach($tk in $order){$sum += [int64]$stats[$tk].count};if($sum -ne $dateRows){throw 'TICKER_ROW_SUM_MISMATCH'}
+
+          $boundary=New-Object 'System.Collections.Generic.List[string]';$coverage=New-Object 'System.Collections.Generic.List[string]'
+          foreach($tk in $order){$s=$stats[$tk];[void]$boundary.Add(([ordered]@{ticker=$tk;trading_date=$target;manifest_line=$s.manifest_line;actual_rows=[int64]$s.count;source_row_first=[int64]$s.source_row_first;source_row_last=[int64]$s.source_row_last;first_supported=[ordered]@{datetime=$s.first_datetime;open=$s.first_open;high=$s.first_high;low=$s.first_low;close=$s.first_close;volume=$s.first_volume};right_boundary_supported=[ordered]@{datetime=$s.last_datetime;open=$s.last_open;high=$s.last_high;low=$s.last_low;close=$s.last_close;volume=$s.last_volume;session_code=$s.last_session};post_last_supported_path='UNKNOWN';boundary_origin='SOURCE_SUPPORTED_ONLY';no_hindsight_backfill=$true}|ConvertTo-Json -Compress -Depth 7));[void]$coverage.Add(([ordered]@{ticker=$tk;manifest_line=$s.manifest_line;actual_rows=[int64]$s.count;gap_transitions=[int64]$s.gaps;duplicate_or_out_of_order_flags=[int64]$s.dup;first_datetime=$s.first_datetime;last_datetime=$s.last_datetime}|ConvertTo-Json -Compress))}
+          [IO.File]::WriteAllLines((Join-Path $out 'DATE05_BOUNDARY_STATES.jsonl'),[string[]]$boundary,$utf8);[IO.File]::WriteAllLines((Join-Path $out 'DATE05_COVERAGE_BY_TICKER.jsonl'),[string[]]$coverage,$utf8)
+          $minuteOut=New-Object 'System.Collections.Generic.List[string]';foreach($k in ($minutes.Keys|Sort-Object)){[void]$minuteOut.Add(([ordered]@{datetime=$k;supported_ticker_rows=[int]$minutes[$k]}|ConvertTo-Json -Compress))};[IO.File]::WriteAllLines((Join-Path $out 'DATE05_CROSS_TICKER_MINUTE_COVERAGE.jsonl'),[string[]]$minuteOut,$utf8)
+          $summary=[ordered]@{reconciliation='DATE05_SOURCE_AND_BOUNDARY_RECONCILIATION_V2';trading_date=$target;status='PASS';source_size=$fi.Length;source_md5=$md5;source_sha256=$sha;expected_rows=$expectedRows;actual_rows=$dateRows;expected_ticker_contexts=$expectedTickers;actual_ticker_contexts=$order.Count;manifest_line_first=$manifestFirst;manifest_line_last=$manifestLast;first_ticker=$order[0];last_ticker=$order[$order.Count-1];anchor_ECII_line=$stats['ECII'].manifest_line;anchor_EDGE_line=$stats['EDGE'].manifest_line;ticker_row_sum=$sum;context_contiguity='PASS';boundary_states_count=$boundary.Count;minute_coverage_points=$minutes.Count;missing_minutes_synthesized=$false;intragap_paths_reconstructed=$false;volume_semantics='EFFORT_PARTICIPATION_ONLY';formula_creation='CLOSED';auto_advance='PROHIBITED';date_local_pass='PENDING_DRIVE_READBACK_AND_REGISTRY_CLOSE'}
+          [IO.File]::WriteAllText((Join-Path $out 'DATE05_RECONCILIATION_SUMMARY.json'),($summary|ConvertTo-Json -Depth 8),$utf8);$hashLines=Get-ChildItem $out -File|Sort-Object Name|ForEach-Object{((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())+'  '+$_.Name};[IO.File]::WriteAllLines((Join-Path $out '_DATE05_RECONCILIATION_SHA256.txt'),[string[]]$hashLines,$utf8);Write-Host ($summary|ConvertTo-Json -Compress)
+      - name: Upload reconciliation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date05-date-close-reconciliation-v2
+          path: .machine1_transport/date05_close_reconciliation_v2/*
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 30
