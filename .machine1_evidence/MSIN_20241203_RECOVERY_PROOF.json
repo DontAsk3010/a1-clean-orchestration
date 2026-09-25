@@ -1,0 +1,15 @@
+{
+    "ticker":  "MSIN",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "recovered_manifest_sha256":  "c07cf5c0c075e6ad6da2ca87623138ed84521423a6a6c143bb75db7a689d6625",
+    "durable_prefix_count":  551,
+    "durable_prefix_sha256":  "d4960b2295dbf9f3a78b80a626ba25d458911f403761998aa6cb546f2d207da5",
+    "recovered_date_local_index":  558,
+    "source_row_first":  1118355,
+    "source_row_last":  1118465,
+    "data_rows":  111,
+    "first_datetime":  "2024-12-03 09:01:00",
+    "last_datetime":  "2024-12-03 16:07:00",
+    "rows_jsonl_sha256":  "4f53a2196cf046b2fef36ba674656656168ee4d073b5d93ac3b2a64b9ede8659"
+}

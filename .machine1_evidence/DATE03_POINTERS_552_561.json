@@ -1,0 +1,112 @@
+[
+    {
+        "date_local_index":  552,
+        "ticker":  "MPPA",
+        "source_row_first":  1108540,
+        "source_row_last":  1108783,
+        "data_rows":  244,
+        "first_clock_time":  "09:00:00",
+        "last_clock_time":  "16:12:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  553,
+        "ticker":  "MPRO",
+        "source_row_first":  1108146,
+        "source_row_last":  1108148,
+        "data_rows":  3,
+        "first_clock_time":  "09:11:00",
+        "last_clock_time":  "13:50:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  554,
+        "ticker":  "MPXL",
+        "source_row_first":  1112467,
+        "source_row_last":  1112530,
+        "data_rows":  64,
+        "first_clock_time":  "09:00:00",
+        "last_clock_time":  "16:00:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  555,
+        "ticker":  "MRAT",
+        "source_row_first":  1115098,
+        "source_row_last":  1115139,
+        "data_rows":  42,
+        "first_clock_time":  "09:00:00",
+        "last_clock_time":  "15:46:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  556,
+        "ticker":  "MREI",
+        "source_row_first":  1115832,
+        "source_row_last":  1115836,
+        "data_rows":  5,
+        "first_clock_time":  "09:19:00",
+        "last_clock_time":  "13:32:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  557,
+        "ticker":  "MSIE",
+        "source_row_first":  1116158,
+        "source_row_last":  1116258,
+        "data_rows":  101,
+        "first_clock_time":  "09:00:00",
+        "last_clock_time":  "16:06:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  558,
+        "ticker":  "MSIN",
+        "source_row_first":  1118355,
+        "source_row_last":  1118465,
+        "data_rows":  111,
+        "first_clock_time":  "09:01:00",
+        "last_clock_time":  "16:07:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  559,
+        "ticker":  "MSJA",
+        "source_row_first":  1117542,
+        "source_row_last":  1117634,
+        "data_rows":  93,
+        "first_clock_time":  "09:01:00",
+        "last_clock_time":  "16:00:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  560,
+        "ticker":  "MSKY",
+        "source_row_first":  1121833,
+        "source_row_last":  1121984,
+        "data_rows":  152,
+        "first_clock_time":  "09:00:00",
+        "last_clock_time":  "16:06:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  561,
+        "ticker":  "MSTI",
+        "source_row_first":  1120493,
+        "source_row_last":  1120558,
+        "data_rows":  66,
+        "first_clock_time":  "09:00:00",
+        "last_clock_time":  "15:47:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    }
+]
