@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .google_drive import build_docs_api
+from .google_drive import build_drive_api
 
 SCHEMA = "A1_CLEAN_AUTHORITY_BOOTSTRAP_V1"
 PROOF_SCHEMA = "A1_CLEAN_AUTHORITY_SYNC_PROOF_V1"
@@ -88,19 +88,12 @@ def _sha256_json(obj: Any) -> str:
     return _sha256_bytes(_canon(obj).encode("utf-8"))
 
 
-def _load_json(path: Path) -> dict[str, Any]:
-    obj = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(obj, dict):
-        raise RuntimeError(f"AUTHORITY_BOOTSTRAP_JSON_OBJECT_REQUIRED:{path.as_posix()}")
-    return obj
-
-
 def validate_bootstrap_contract(manifest: dict[str, Any], lock: dict[str, Any]) -> None:
     if manifest.get("schema") != SCHEMA or manifest.get("status") != "ACTIVE":
         raise RuntimeError("AUTHORITY_BOOTSTRAP_MANIFEST_NOT_ACTIVE")
     for key in (
         "full_authority_read_required",
-        "google_docs_full_structured_payload_required",
+        "google_drive_full_native_text_export_required",
         "exact_document_revision_match_required",
         "summary_or_chat_memory_may_not_substitute",
         "fail_closed_on_missing_unreadable_or_revision_drift",
@@ -180,26 +173,56 @@ def _resolve_document_binding(row: dict[str, Any], lock: dict[str, Any]) -> tupl
     return document_id, revision_id
 
 
-def _collect_text_runs(node: Any, out: list[str]) -> None:
-    if isinstance(node, dict):
-        text_run = node.get("textRun")
-        if isinstance(text_run, dict):
-            content = text_run.get("content")
-            if isinstance(content, str):
-                out.append(content)
-        for key, value in node.items():
-            if key != "textRun":
-                _collect_text_runs(value, out)
-    elif isinstance(node, list):
-        for value in node:
-            _collect_text_runs(value, out)
+def _latest_revision_id(drive_api: Any, document_id: str) -> str:
+    revisions: list[dict[str, Any]] = []
+    token: str | None = None
+    while True:
+        kwargs: dict[str, Any] = {
+            "fileId": document_id,
+            "pageSize": 1000,
+            "fields": "nextPageToken,revisions(id,modifiedTime)",
+        }
+        if token:
+            kwargs["pageToken"] = token
+        page = drive_api.revisions().list(**kwargs).execute()
+        revisions.extend(list(page.get("revisions") or []))
+        token = str(page.get("nextPageToken") or "") or None
+        if not token:
+            break
+    if not revisions:
+        raise RuntimeError(f"AUTHORITY_DOCUMENT_REVISION_LIST_EMPTY:{document_id}")
+    revision_id = str(revisions[-1].get("id") or "")
+    if not revision_id:
+        raise RuntimeError(f"AUTHORITY_DOCUMENT_REVISION_ID_EMPTY:{document_id}")
+    return revision_id
 
 
-def _read_full_document(docs_api: Any, document_id: str) -> dict[str, Any]:
-    try:
-        return docs_api.documents().get(documentId=document_id, includeTabsContent=True).execute()
-    except TypeError:
-        return docs_api.documents().get(documentId=document_id).execute()
+def _read_full_document_via_drive(drive_api: Any, document_id: str) -> dict[str, Any]:
+    meta = drive_api.files().get(
+        fileId=document_id,
+        fields="id,name,mimeType,modifiedTime,version,trashed",
+        supportsAllDrives=True,
+    ).execute()
+    if meta.get("trashed") is True:
+        raise RuntimeError(f"AUTHORITY_DOCUMENT_TRASHED:{document_id}")
+    if str(meta.get("mimeType") or "") != "application/vnd.google-apps.document":
+        raise RuntimeError(f"AUTHORITY_DOCUMENT_NOT_GOOGLE_DOC:{document_id}:{meta.get('mimeType')}")
+    exported = drive_api.files().export(fileId=document_id, mimeType="text/plain").execute()
+    if isinstance(exported, str):
+        raw = exported.encode("utf-8")
+    elif isinstance(exported, (bytes, bytearray)):
+        raw = bytes(exported)
+    else:
+        raise RuntimeError(f"AUTHORITY_DOCUMENT_EXPORT_TYPE_FAIL:{document_id}:{type(exported).__name__}")
+    text = raw.decode("utf-8-sig")
+    if not text.strip():
+        raise RuntimeError(f"AUTHORITY_DOCUMENT_EMPTY_TEXT:{document_id}")
+    return {
+        "metadata": meta,
+        "latest_revision_id": _latest_revision_id(drive_api, document_id),
+        "raw": raw,
+        "text": text,
+    }
 
 
 def _validate_request_against_lock(request: dict[str, Any], lock: dict[str, Any], holds: list[dict[str, Any]]) -> None:
@@ -218,7 +241,6 @@ def _validate_request_against_lock(request: dict[str, Any], lock: dict[str, Any]
     for key in ("manual_labels_used_as_hidden_targets", "arbitrary_thresholds_added", "missing_as_zero"):
         if request.get(key) is not False:
             holds.append({"reason": "REQUEST_PROHIBITION_FLAG_FAIL", "key": key})
-
     documents = dict(lock.get("documents") or {})
     for lock_key, id_field, revision_field in _REQUEST_BINDINGS:
         if id_field not in request and revision_field not in request:
@@ -253,51 +275,48 @@ def build_authority_sync_proof(
     manifest: dict[str, Any],
     lock: dict[str, Any],
     repo_root: Path,
-    docs_api: Any,
+    drive_api: Any,
     manifest_sha256: str,
     lock_sha256: str,
 ) -> dict[str, Any]:
     holds: list[dict[str, Any]] = []
     document_evidence: list[dict[str, Any]] = []
-
     for index, row in enumerate(manifest["authority_documents_in_required_read_order"], start=1):
         key = str(row["key"])
         try:
             document_id, expected_revision = _resolve_document_binding(row, lock)
-            doc = _read_full_document(docs_api, document_id)
-            text_parts: list[str] = []
-            _collect_text_runs(doc, text_parts)
-            text = "".join(text_parts)
-            observed_revision = str(doc.get("revisionId") or "")
-            observed_document_id = str(doc.get("documentId") or document_id)
+            loaded = _read_full_document_via_drive(drive_api, document_id)
+            meta = loaded["metadata"]
+            observed_document_id = str(meta.get("id") or "")
+            observed_revision = str(loaded["latest_revision_id"] or "")
             if observed_document_id != document_id:
                 holds.append({"reason": "AUTHORITY_DOCUMENT_ID_MISMATCH", "key": key})
             if observed_revision != expected_revision:
-                holds.append(
-                    {
-                        "reason": "AUTHORITY_DOCUMENT_REVISION_DRIFT",
-                        "key": key,
-                        "expected_revision": expected_revision,
-                        "observed_revision": observed_revision,
-                    }
-                )
-            if not text.strip():
-                holds.append({"reason": "AUTHORITY_DOCUMENT_EMPTY_TEXT", "key": key})
-            document_evidence.append(
-                {
-                    "read_order": index,
+                holds.append({
+                    "reason": "AUTHORITY_DOCUMENT_REVISION_DRIFT",
                     "key": key,
-                    "document_id": document_id,
-                    "title": doc.get("title"),
                     "expected_revision": expected_revision,
                     "observed_revision": observed_revision,
-                    "full_structured_payload_sha256": _sha256_json(doc),
-                    "extracted_text_sha256": _sha256_bytes(text.encode("utf-8")),
-                    "extracted_text_utf8_bytes": len(text.encode("utf-8")),
-                    "full_read": True,
-                }
-            )
-        except Exception as exc:  # fail closed, but continue the inventory to expose every gap in one run
+                })
+            raw = loaded["raw"]
+            text = loaded["text"]
+            document_evidence.append({
+                "read_order": index,
+                "key": key,
+                "document_id": document_id,
+                "title": meta.get("name"),
+                "expected_revision": expected_revision,
+                "observed_revision": observed_revision,
+                "observed_modified_time": meta.get("modifiedTime"),
+                "observed_drive_version": meta.get("version"),
+                "export_mime_type": "text/plain",
+                "full_native_export_sha256": _sha256_bytes(raw),
+                "extracted_text_sha256": _sha256_bytes(text.encode("utf-8")),
+                "native_export_bytes": len(raw),
+                "extracted_text_utf8_bytes": len(text.encode("utf-8")),
+                "full_read": True,
+            })
+        except Exception as exc:
             holds.append({"reason": "AUTHORITY_DOCUMENT_READ_FAIL", "key": key, "error": f"{type(exc).__name__}:{exc}"})
             document_evidence.append({"read_order": index, "key": key, "full_read": False})
 
@@ -314,31 +333,26 @@ def build_authority_sync_proof(
             if not isinstance(obj, dict):
                 raise RuntimeError("JSON_OBJECT_REQUIRED")
             _validate_repo_state(Path(str(rel)), obj, lock, holds)
-            state_evidence.append(
-                {
-                    "path": str(rel),
-                    "sha256": _sha256_bytes(raw),
-                    "utf8_bytes": len(raw),
-                    "schema": obj.get("schema"),
-                    "status": obj.get("status"),
-                    "full_read": True,
-                }
-            )
+            state_evidence.append({
+                "path": str(rel),
+                "sha256": _sha256_bytes(raw),
+                "utf8_bytes": len(raw),
+                "schema": obj.get("schema"),
+                "status": obj.get("status"),
+                "full_read": True,
+            })
         except Exception as exc:
             holds.append({"reason": "REQUIRED_REPO_STATE_READ_FAIL", "path": str(rel), "error": f"{type(exc).__name__}:{exc}"})
             state_evidence.append({"path": str(rel), "full_read": False})
 
     corpus_material = {
-        "documents": [
-            {
-                "key": row.get("key"),
-                "document_id": row.get("document_id"),
-                "observed_revision": row.get("observed_revision"),
-                "full_structured_payload_sha256": row.get("full_structured_payload_sha256"),
-                "extracted_text_sha256": row.get("extracted_text_sha256"),
-            }
-            for row in document_evidence
-        ],
+        "documents": [{
+            "key": row.get("key"),
+            "document_id": row.get("document_id"),
+            "observed_revision": row.get("observed_revision"),
+            "full_native_export_sha256": row.get("full_native_export_sha256"),
+            "extracted_text_sha256": row.get("extracted_text_sha256"),
+        } for row in document_evidence],
         "repo_state": [{"path": row.get("path"), "sha256": row.get("sha256")} for row in state_evidence],
         "manifest_sha256": manifest_sha256,
         "lock_sha256": lock_sha256,
@@ -355,6 +369,7 @@ def build_authority_sync_proof(
         "full_authority_read_complete": full_read_complete,
         "summary_or_chat_memory_used_as_authority": False,
         "drive_access_mode": "READER_ONLY",
+        "authority_document_transport": "GOOGLE_DRIVE_NATIVE_TEXT_EXPORT",
         "authority_document_count": len(document_evidence),
         "repo_state_file_count": len(state_evidence),
         "authority_documents": document_evidence,
@@ -376,19 +391,19 @@ def run_authority_bootstrap(
     authority_lock_path: Path = DEFAULT_LOCK,
     output_path: Path | None = None,
     repo_root: Path = Path("."),
-    docs_api: Any | None = None,
+    drive_api: Any | None = None,
 ) -> dict[str, Any]:
     manifest_raw = manifest_path.read_bytes()
     lock_raw = authority_lock_path.read_bytes()
     manifest = json.loads(manifest_raw.decode("utf-8"))
     lock = json.loads(lock_raw.decode("utf-8"))
     validate_bootstrap_contract(manifest, lock)
-    api = docs_api if docs_api is not None else build_docs_api()
+    api = drive_api if drive_api is not None else build_drive_api(read_write=False)
     proof = build_authority_sync_proof(
         manifest=manifest,
         lock=lock,
         repo_root=repo_root,
-        docs_api=api,
+        drive_api=api,
         manifest_sha256=_sha256_bytes(manifest_raw),
         lock_sha256=_sha256_bytes(lock_raw),
     )
@@ -409,20 +424,15 @@ def main() -> int:
         authority_lock_path=args.authority_lock,
         output_path=args.output,
     )
-    print(
-        json.dumps(
-            {
-                "schema": proof["schema"],
-                "status": proof["status"],
-                "full_authority_read_complete": proof["full_authority_read_complete"],
-                "authority_document_count": proof["authority_document_count"],
-                "repo_state_file_count": proof["repo_state_file_count"],
-                "authority_corpus_sha256": proof["authority_corpus_sha256"],
-                "hold_count": len(proof["holds"]),
-            },
-            sort_keys=True,
-        )
-    )
+    print(json.dumps({
+        "schema": proof["schema"],
+        "status": proof["status"],
+        "full_authority_read_complete": proof["full_authority_read_complete"],
+        "authority_document_count": proof["authority_document_count"],
+        "repo_state_file_count": proof["repo_state_file_count"],
+        "authority_corpus_sha256": proof["authority_corpus_sha256"],
+        "hold_count": len(proof["holds"]),
+    }, sort_keys=True))
     return 0 if proof["status"] == "PASS" else 2
 
 
