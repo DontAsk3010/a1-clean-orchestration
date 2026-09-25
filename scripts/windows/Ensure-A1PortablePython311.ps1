@@ -17,6 +17,7 @@ $PipPyz = Join-Path $RuntimeRoot 'pip.pyz'
 $PythonExe = Join-Path $RuntimeRoot 'python.exe'
 $SitePackages = Join-Path $RuntimeRoot 'Lib\site-packages'
 $PthPath = Join-Path $RuntimeRoot 'python311._pth'
+$VerifyScript = Join-Path $RuntimeRoot 'a1_verify_imports.py'
 
 function Fail([string]$Code) { throw $Code }
 function Hash([string]$Path,[string]$Algorithm) { (Get-FileHash -LiteralPath $Path -Algorithm $Algorithm).Hash.ToLowerInvariant() }
@@ -79,9 +80,10 @@ import googleapiclient.discovery
 import pytest
 print(json.dumps({"python":"PASS","google_auth":"PASS","google_api_python_client":"PASS","pytest":"PASS"}, sort_keys=True))
 '@
+Set-Content -LiteralPath $VerifyScript -Value $verifyCode -Encoding ASCII
 $previousPreference = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'
-$verifyLines = @(& $PythonExe -c $verifyCode 2>&1)
+$verifyLines = @(& $PythonExe $VerifyScript 2>&1)
 $verifyExit = $LASTEXITCODE
 $ErrorActionPreference = $previousPreference
 $verifyOut = ($verifyLines | Out-String).Trim()
@@ -103,6 +105,7 @@ $proof = [ordered]@{
     python_archive_source = $PythonZipUrl
     python_archive_expected_md5 = $PythonZipExpectedMd5
     python_archive_md5_verified = $true
+    import_verification_script = $VerifyScript
     import_verification = $verifyOut
     machine_execution_policy_changed = $false
     registry_changed = $false
@@ -118,6 +121,7 @@ Write-Host "PYTHON_EXE=$PythonExe"
 Write-Host "SITE_PACKAGES=$SitePackages"
 Write-Host "PIP_PYZ=$PipPyz"
 Write-Host "PIP_PYZ_SHA256=$pipSha256"
+Write-Host "IMPORT_VERIFY_SCRIPT=$VerifyScript"
 Write-Host 'MACHINE_EXECUTION_POLICY_CHANGED=false'
 Write-Host 'REGISTRY_CHANGED=false'
 Write-Host 'DRIVE_WRITE_PERFORMED=false'
