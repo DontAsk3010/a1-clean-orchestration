@@ -66,6 +66,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           & '.\scripts\windows\Invoke-A1DriveGuardrailRest.ps1'
+          if (-not $?) { throw 'A1_DRIVE_GUARDRAIL_REST_EXEC_FAIL' }
           Write-Host 'A1_DRIVE_GUARDRAIL_REST_EXECUTION_RETURNED_SUCCESSFULLY'
 
       - name: Mark exact target guardrail PASS
@@ -119,6 +120,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           & '.\scripts\windows\Invoke-A1DriveGuardrailRest.ps1'
+          if (-not $?) { throw 'A1_DRIVE_GUARDRAIL_REST_EXEC_FAIL' }
           Write-Host 'A1_DRIVE_GUARDRAIL_REST_EXECUTION_RETURNED_SUCCESSFULLY'
 
       - name: Mark exact target guardrail PASS
