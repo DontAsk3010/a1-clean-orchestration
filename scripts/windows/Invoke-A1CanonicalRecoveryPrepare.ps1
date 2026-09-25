@@ -43,15 +43,16 @@ Write-Host 'A1_RECOVERY_PREPARE_CREDENTIAL_BINDINGS=PASS_DISTINCT'
 if (-not (Test-Path -LiteralPath $Python -PathType Leaf)) { Fail 'A1_RECOVERY_PREPARE_PORTABLE_PYTHON_MISSING' }
 if (-not (Test-Path -LiteralPath $Pip -PathType Leaf)) { Fail 'A1_RECOVERY_PREPARE_PORTABLE_PIP_MISSING' }
 
-# Execute every Python command explicitly. Do not route argv through a PowerShell array-binding helper.
 & $Python $Pip install --disable-pip-version-check --upgrade --no-deps --target $Site .
 Require-ExitZero 'A1_RECOVERY_PREPARE_PROJECT_INSTALL_FAIL'
 
 & $Python -c "import a1clean; print('A1_RECOVERY_PREPARE_PROJECT_IMPORT_PASS')"
 Require-ExitZero 'A1_RECOVERY_PREPARE_PROJECT_IMPORT_FAIL'
 
-& $Python -m py_compile 'src\a1clean\canonical_recovery.py'
-Require-ExitZero 'A1_RECOVERY_PREPARE_COMPILE_FAIL'
+foreach ($pyFile in @('src\a1clean\canonical_recovery.py','src\a1clean\canonical_recovery_exact_evidence.py')) {
+    & $Python -m py_compile $pyFile
+    Require-ExitZero "A1_RECOVERY_PREPARE_COMPILE_FAIL:$pyFile"
+}
 Write-Host 'A1_RECOVERY_PREPARE_COMPILE=PASS'
 
 & $Python -m pytest 'tests\test_canonical_recovery.py' -q
@@ -62,13 +63,12 @@ Write-Host 'A1_RECOVERY_PREPARE_UNIT_GATES=PASS'
 Require-ExitZero 'A1_RECOVERY_SOURCE_PREFLIGHT_FAIL'
 Write-Host 'A1_RECOVERY_PREPARE_SOURCE_PREFLIGHT=PASS'
 
-# Invoke the governed recovery function directly and require an explicit PASS result/candidate id.
 $executePy = Join-Path $env:TEMP 'a1_execute_canonical_recovery.py'
 @'
 import json
-from a1clean.canonical_recovery import run_canonical_current_recovery_prepare
+from a1clean.canonical_recovery_exact_evidence import run_canonical_current_recovery_prepare_exact_evidence
 
-result = run_canonical_current_recovery_prepare()
+result = run_canonical_current_recovery_prepare_exact_evidence()
 summary = {
     "pass": result.get("pass"),
     "status": result.get("status"),
@@ -84,7 +84,6 @@ print("A1_RECOVERY_RESULT_JSON=" + json.dumps(summary, sort_keys=True, separator
 raise SystemExit(0 if result.get("pass") is True else 2)
 '@ | Set-Content -LiteralPath $executePy -Encoding UTF8
 
-# Capture stdout/stderr through files so PowerShell 5.1 cannot turn Python stderr into a premature NativeCommandError.
 $stdoutPath = Join-Path $env:TEMP 'a1_recovery_stdout.log'
 $stderrPath = Join-Path $env:TEMP 'a1_recovery_stderr.log'
 Remove-Item -LiteralPath $stdoutPath,$stderrPath -Force -ErrorAction SilentlyContinue
