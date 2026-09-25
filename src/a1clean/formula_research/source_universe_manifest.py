@@ -78,6 +78,7 @@ def build_source_universe_manifest(
     authority_revision: str,
     discovery_time_utc: str,
     required_source_names: Sequence[str] = (),
+    authority_sync: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build the governed dynamic source universe from accepted data-plane state.
 
@@ -254,6 +255,23 @@ def build_source_universe_manifest(
             }
         )
 
+    authority_sync_summary = None
+    if authority_sync is not None:
+        authority_sync_summary = {
+            "schema": authority_sync.get("schema"),
+            "status": authority_sync.get("status"),
+            "full_authority_read_complete": authority_sync.get("full_authority_read_complete"),
+            "authority_document_count": authority_sync.get("authority_document_count"),
+            "repo_state_file_count": authority_sync.get("repo_state_file_count"),
+            "authority_corpus_sha256": authority_sync.get("authority_corpus_sha256"),
+            "bootstrap_manifest_sha256": authority_sync.get("bootstrap_manifest_sha256"),
+            "active_authority_lock_sha256": authority_sync.get("active_authority_lock_sha256"),
+            "data_preservation_contract_sha256": authority_sync.get("data_preservation_contract_sha256"),
+            "required_data_family_registry_sha256": authority_sync.get("required_data_family_registry_sha256"),
+        }
+        if authority_sync_summary["status"] != "PASS" or authority_sync_summary["full_authority_read_complete"] is not True:
+            holds.append(_hold("AUTHORITY_SYNC_NOT_PASS"))
+
     manifest: dict[str, Any] = {
         "schema": SCHEMA,
         "status": STATUS_HOLD if holds else STATUS_PASS,
@@ -262,6 +280,7 @@ def build_source_universe_manifest(
         "historical_baseline_source_count_observed": len(HISTORICAL_BASELINE_SOURCE_NAMES),
         "historical_baseline_count_is_not_universe_invariant": True,
         "authority_revision": authority_revision,
+        "authority_sync": authority_sync_summary,
         "discovery_time_utc": discovery_time_utc,
         "source_count": len(records),
         "source_names_in_order": [str(row.get("source_name") or "") for row in records],
