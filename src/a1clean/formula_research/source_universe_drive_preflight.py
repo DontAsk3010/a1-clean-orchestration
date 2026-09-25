@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ..authority_bootstrap import DEFAULT_MANIFEST as DEFAULT_AUTHORITY_BOOTSTRAP_MANIFEST
-from ..authority_bootstrap import run_authority_bootstrap
+from ..authority_bootstrap_drive_revision import run_authority_bootstrap_drive_revision
 from ..google_drive import build_drive_api
 from ..source_parity import _baseline_runtime_children, _download_json, _exact_named, _list_children
 from .source_universe_cli import _atomic_write, _sha256
@@ -78,8 +78,10 @@ def main() -> int:
 
     # Hard ordering lock: full current authority is read and reconciled before
     # any governed source-universe discovery/data-plane control read.
+    # Drive currentRevisionId is the runtime-comparable revision namespace;
+    # Google Docs ANLCK revision tokens are retained as governance labels only.
     proof_path = args.authority_sync_proof or args.output.with_name("AUTHORITY_SYNC_PROOF.json")
-    authority_sync = run_authority_bootstrap(
+    authority_sync = run_authority_bootstrap_drive_revision(
         manifest_path=args.authority_bootstrap,
         authority_lock_path=args.authority_lock,
         output_path=proof_path,
@@ -91,6 +93,7 @@ def main() -> int:
                     "schema": authority_sync.get("schema"),
                     "status": authority_sync.get("status"),
                     "authority_sync_proof": str(proof_path),
+                    "revision_namespace": authority_sync.get("revision_namespace"),
                     "hold_count": len(authority_sync.get("holds") or []),
                     "holds": authority_sync.get("holds"),
                 },
