@@ -1,0 +1,206 @@
+name: Windows Drive Writer Interactive Report Verify
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-drive-writer-interactive-report-verify
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify interactive relocation report without binding or Drive mutation
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact dispatch revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 32
+
+      - name: Gate current authority and owner correction
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $auth = Get-Content -LiteralPath 'governance\a1-clean-active-authority-lock.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          $req = Get-Content -LiteralPath 'v32-full-observation-behavior-requests\current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($auth.status -ne 'ACTIVE') { throw 'A1_WRITER_VERIFY_AUTHORITY_NOT_ACTIVE' }
+          if ($req.recovery_prepare_current_status -ne 'HOLD_WRITER_CREDENTIAL_LOCATION_UNRESOLVED') { throw "A1_WRITER_VERIFY_UNEXPECTED_CURRENT_STATUS:$($req.recovery_prepare_current_status)" }
+          if ($req.drive_writer_credential_reauthorization_authorized -ne $false -or $req.drive_writer_credential_replacement_authorized -ne $false) { throw 'A1_WRITER_VERIFY_REAUTH_OR_REPLACEMENT_MUST_REMAIN_FALSE' }
+          if ($req.drive_reader_credential_may_be_repurposed_as_writer -ne $false) { throw 'A1_WRITER_VERIFY_READER_REPURPOSE_PROHIBITION_MISSING' }
+          if ($req.canonical_current_recovery_commit_authorized -ne $false) { throw 'A1_WRITER_VERIFY_CANONICAL_COMMIT_MUST_REMAIN_FALSE' }
+          Write-Host 'A1_WRITER_VERIFY_AUTHORITY_GATE_PASS'
+
+      - name: Validate interactive user-context report and candidate files
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $reportPath = 'C:\Users\feri-admin\.a1clean\writer-relocation-interactive-current.json'
+          if (-not (Test-Path -LiteralPath $reportPath -PathType Leaf)) { throw 'A1_WRITER_INTERACTIVE_REPORT_NOT_FOUND' }
+          $r = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($r.schema -ne 'A1_DRIVE_WRITER_INTERACTIVE_RELOCATION_SEARCH_V1') { throw 'A1_WRITER_INTERACTIVE_REPORT_SCHEMA_FAIL' }
+          if ($r.machine -ne 'PORSCHE-DESIGN' -or $r.interactive_user -ne 'feri-admin') { throw 'A1_WRITER_INTERACTIVE_REPORT_CONTEXT_FAIL' }
+          if ($r.reader_positive_control.detected_by_structural_classifier -ne $true) { throw 'A1_WRITER_INTERACTIVE_READER_POSITIVE_CONTROL_FAIL' }
+          if ($r.mutation -ne $false -or $r.binding_changed -ne $false -or $r.drive_write -ne $false -or $r.oauth_reauthorization -ne $false -or $r.canonical_current_mutation -ne $false -or $r.secrets_disclosed -ne $false) { throw 'A1_WRITER_INTERACTIVE_REPORT_SAFETY_FLAG_FAIL' }
+
+          $readerPath = [string]$r.reader_positive_control.path
+          if (-not (Test-Path -LiteralPath $readerPath -PathType Leaf)) { throw 'A1_WRITER_VERIFY_READER_PATH_MISSING' }
+          $readerHash = (Get-FileHash -LiteralPath $readerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($readerHash -ne [string]$r.reader_positive_control.sha256) { throw 'A1_WRITER_VERIFY_READER_HASH_DRIFT' }
+
+          $runtime = @($r.candidates | Where-Object {
+            $_.same_as_reader -ne $true -and $_.credential_kind -in @('AUTHORIZED_USER_RUNTIME_CREDENTIAL','AUTHORIZED_USER_RUNTIME_CREDENTIAL_SHAPE','SERVICE_ACCOUNT_RUNTIME_CREDENTIAL')
+          })
+          foreach ($c in $runtime) {
+            $path = [string]$c.path
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "A1_WRITER_VERIFY_CANDIDATE_MISSING:$path" }
+            $hash = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($hash -ne [string]$c.sha256) { throw "A1_WRITER_VERIFY_CANDIDATE_HASH_DRIFT:$path" }
+            if ($hash -eq $readerHash) { throw "A1_WRITER_VERIFY_CANDIDATE_IS_READER:$path" }
+          }
+          "A1_WRITER_INTERACTIVE_REPORT=$reportPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "A1_WRITER_INTERACTIVE_REPORT_PASS|runtime_distinct_candidates=$($runtime.Count)"
+
+      - name: Provision Python verifier only when candidates exist
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $r = Get-Content -LiteralPath $env:A1_WRITER_INTERACTIVE_REPORT -Raw -Encoding UTF8 | ConvertFrom-Json
+          $runtime = @($r.candidates | Where-Object {
+            $_.same_as_reader -ne $true -and $_.credential_kind -in @('AUTHORIZED_USER_RUNTIME_CREDENTIAL','AUTHORIZED_USER_RUNTIME_CREDENTIAL_SHAPE','SERVICE_ACCOUNT_RUNTIME_CREDENTIAL')
+          })
+          if ($runtime.Count -eq 0) {
+            Write-Host 'A1_WRITER_VERIFY_NO_RUNTIME_CANDIDATE_SKIP_PYTHON'
+            "A1_WRITER_VERIFY_SKIP_PYTHON=true" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            exit 0
+          }
+          $pyRoot = Join-Path $env:RUNNER_TEMP 'a1-writer-verify-python-3.11.9'
+          $zip = Join-Path $env:RUNNER_TEMP 'python-3.11.9-embed-amd64.zip'
+          $getPip = Join-Path $env:RUNNER_TEMP 'get-pip.py'
+          if (-not (Test-Path -LiteralPath (Join-Path $pyRoot 'python.exe') -PathType Leaf)) {
+            Remove-Item -LiteralPath $pyRoot -Recurse -Force -ErrorAction SilentlyContinue
+            New-Item -ItemType Directory -Force -Path $pyRoot | Out-Null
+            Invoke-WebRequest -UseBasicParsing -Uri 'https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-amd64.zip' -OutFile $zip
+            Expand-Archive -LiteralPath $zip -DestinationPath $pyRoot -Force
+            $pth = Join-Path $pyRoot 'python311._pth'
+            (Get-Content -LiteralPath $pth -Raw).Replace('#import site','import site') | Set-Content -LiteralPath $pth -Encoding ascii
+            Invoke-WebRequest -UseBasicParsing -Uri 'https://bootstrap.pypa.io/get-pip.py' -OutFile $getPip
+            & (Join-Path $pyRoot 'python.exe') $getPip --no-warn-script-location
+            if ($LASTEXITCODE -ne 0) { throw 'A1_WRITER_VERIFY_PIP_BOOTSTRAP_FAIL' }
+          }
+          $py = Join-Path $pyRoot 'python.exe'
+          & $py -m pip install --disable-pip-version-check google-auth google-auth-httplib2 google-api-python-client requests
+          if ($LASTEXITCODE -ne 0) { throw 'A1_WRITER_VERIFY_DEPENDENCY_INSTALL_FAIL' }
+          "A1_WRITER_VERIFY_PY=$py" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "A1_WRITER_VERIFY_SKIP_PYTHON=false" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Read-only authenticate candidates and prove principal plus OAuth scope
+        if: env.A1_WRITER_VERIFY_SKIP_PYTHON != 'true'
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $script = Join-Path $env:RUNNER_TEMP 'verify_writer_candidates.py'
+          @'
+          import hashlib, json, sys
+          from pathlib import Path
+          import requests
+          from google.auth.transport.requests import Request
+          from google.oauth2.credentials import Credentials as UserCredentials
+          from google.oauth2.service_account import Credentials as ServiceAccountCredentials
+          from googleapiclient.discovery import build
+
+          DRIVE_SCOPE = "https://www.googleapis.com/auth/drive"
+          EXPECTED_EMAIL = "fjulie8satu@gmail.com"
+          report_path = Path(sys.argv[1])
+          output_path = Path(sys.argv[2])
+          report = json.loads(report_path.read_text(encoding="utf-8-sig"))
+          rows = []
+          for c in report.get("candidates", []):
+              if c.get("same_as_reader") is True:
+                  continue
+              kind = str(c.get("credential_kind") or "")
+              if kind not in {"AUTHORIZED_USER_RUNTIME_CREDENTIAL", "AUTHORIZED_USER_RUNTIME_CREDENTIAL_SHAPE", "SERVICE_ACCOUNT_RUNTIME_CREDENTIAL"}:
+                  continue
+              path = Path(str(c.get("path") or ""))
+              raw = path.read_bytes()
+              sha = hashlib.sha256(raw).hexdigest()
+              if sha != str(c.get("sha256") or ""):
+                  raise RuntimeError(f"CANDIDATE_HASH_DRIFT:{path}")
+              payload = json.loads(raw.decode("utf-8-sig"))
+              if kind.startswith("AUTHORIZED_USER"):
+                  creds = UserCredentials.from_authorized_user_file(str(path), scopes=[DRIVE_SCOPE])
+              else:
+                  creds = ServiceAccountCredentials.from_service_account_file(str(path), scopes=[DRIVE_SCOPE])
+              creds.refresh(Request())
+              token = creds.token
+              if not token:
+                  raise RuntimeError(f"CANDIDATE_REFRESH_NO_TOKEN:{path}")
+              # Tokeninfo is used only to inspect the already-issued token's granted scopes.
+              ti = requests.get("https://oauth2.googleapis.com/tokeninfo", params={"access_token": token}, timeout=30)
+              ti.raise_for_status()
+              token_info = ti.json()
+              scopes = set(str(token_info.get("scope") or "").split())
+              drive_scope_granted = DRIVE_SCOPE in scopes
+              svc = build("drive", "v3", credentials=creds, cache_discovery=False)
+              about = svc.about().get(fields="user(displayName,emailAddress,permissionId)").execute()
+              user = about.get("user") or {}
+              email = str(user.get("emailAddress") or "").casefold()
+              expected_principal = email == EXPECTED_EMAIL
+              rows.append({
+                  "path": str(path),
+                  "sha256": sha,
+                  "credential_kind": kind,
+                  "identity_fp16": c.get("identity_fp16"),
+                  "drive_scope_granted_by_tokeninfo": drive_scope_granted,
+                  "granted_scope_count": len(scopes),
+                  "principal_email": email,
+                  "principal_display_name": str(user.get("displayName") or ""),
+                  "expected_parity_staging_owner_principal": expected_principal,
+                  "read_only_drive_identity_probe_pass": bool(email),
+                  "drive_write_performed": False,
+              })
+          verified = [r for r in rows if r["drive_scope_granted_by_tokeninfo"] and r["expected_parity_staging_owner_principal"] and r["read_only_drive_identity_probe_pass"]]
+          result = {
+              "schema": "A1_DRIVE_WRITER_CANDIDATE_VERIFICATION_V1",
+              "status": "PASS_EXACTLY_ONE_LEGITIMATE_EXISTING_WRITER_CANDIDATE" if len(verified) == 1 else ("NO_LEGITIMATE_EXISTING_WRITER_CANDIDATE_VERIFIED" if len(verified) == 0 else "HOLD_MULTIPLE_LEGITIMATE_EXISTING_WRITER_CANDIDATES"),
+              "expected_parity_staging_owner_principal": EXPECTED_EMAIL,
+              "candidate_count": len(rows),
+              "verified_legitimate_writer_candidate_count": len(verified),
+              "verified_candidate_path": verified[0]["path"] if len(verified) == 1 else None,
+              "verified_candidate_sha256": verified[0]["sha256"] if len(verified) == 1 else None,
+              "candidates": rows,
+              "binding_changed": False,
+              "drive_write_performed": False,
+              "oauth_reauthorization": False,
+              "canonical_current_mutation": False,
+              "secrets_disclosed": False,
+          }
+          output_path.parent.mkdir(parents=True, exist_ok=True)
+          output_path.write_text(json.dumps(result, indent=2, sort_keys=True), encoding="utf-8")
+          print("A1_WRITER_CANDIDATE_VERIFY_STATUS=" + result["status"])
+          print("VERIFIED_LEGITIMATE_WRITER_CANDIDATES=" + str(len(verified)))
+          print("DRIVE_WRITE_PERFORMED=false")
+          print("BINDING_CHANGED=false")
+          print("SECRETS_DISCLOSED=false")
+          '@ | Set-Content -LiteralPath $script -Encoding UTF8
+          $out = 'C:\Users\feri-admin\.a1clean\writer-relocation-verification-current.json'
+          & $env:A1_WRITER_VERIFY_PY $script $env:A1_WRITER_INTERACTIVE_REPORT $out
+          if ($LASTEXITCODE -ne 0) { throw "A1_WRITER_CANDIDATE_VERIFY_RUNTIME_FAIL:$LASTEXITCODE" }
+          "A1_WRITER_VERIFICATION_REPORT=$out" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Emit safe final gate status
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:A1_WRITER_VERIFY_SKIP_PYTHON -eq 'true') {
+            $r = Get-Content -LiteralPath $env:A1_WRITER_INTERACTIVE_REPORT -Raw -Encoding UTF8 | ConvertFrom-Json
+            Write-Host "A1_WRITER_RELOCATION_FINAL|status=NO_DISTINCT_RUNTIME_CANDIDATE_FOUND_INTERACTIVE|runtime_distinct_candidates=$($r.counts.runtime_candidates_distinct_from_reader)|binding_changed=false|drive_write=false|reauthorization=false"
+            exit 0
+          }
+          $v = Get-Content -LiteralPath $env:A1_WRITER_VERIFICATION_REPORT -Raw -Encoding UTF8 | ConvertFrom-Json
+          Write-Host "A1_WRITER_RELOCATION_FINAL|status=$($v.status)|verified_candidates=$($v.verified_legitimate_writer_candidate_count)|binding_changed=false|drive_write=false|reauthorization=false"
+          if ($v.status -eq 'HOLD_MULTIPLE_LEGITIMATE_EXISTING_WRITER_CANDIDATES') { throw 'A1_WRITER_VERIFY_MULTIPLE_CANDIDATES_HOLD' }
