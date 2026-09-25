@@ -1,0 +1,36 @@
+name: Windows Drive Writer Interactive Search Syntax
+
+on:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - 'scripts/windows/Find-A1DriveWriterCredentialInteractive.ps1'
+      - '.github/workflows/windows-drive-writer-interactive-search-syntax.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Parse PowerShell only; do not execute relocation search
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $path = 'scripts\windows\Find-A1DriveWriterCredentialInteractive.ps1'
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path), [ref]$tokens, [ref]$errors)
+          if (@($errors).Count -ne 0) {
+            foreach ($e in @($errors)) { Write-Host ("PARSE_ERROR|{0}|{1}" -f $e.Extent.Text,$e.Message) }
+            throw "A1_INTERACTIVE_WRITER_SEARCH_PARSE_FAIL:$(@($errors).Count)"
+          }
+          Write-Host 'A1_INTERACTIVE_WRITER_SEARCH_PARSE_PASS|execution=false|mutation=false'
