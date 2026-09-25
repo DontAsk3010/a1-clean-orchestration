@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 from datetime import datetime, timezone
 from pathlib import Path
 
+from ..authority_bootstrap import DEFAULT_MANIFEST as DEFAULT_AUTHORITY_BOOTSTRAP_MANIFEST
+from ..authority_bootstrap import run_authority_bootstrap
 from ..google_drive import build_drive_api
 from ..source_parity import _baseline_runtime_children, _download_json, _exact_named, _list_children
 from .source_universe_cli import _atomic_write, _sha256
@@ -20,6 +21,7 @@ def build_from_current_drive_controls(
     *,
     authority_lock_path: Path,
     discovery_time_utc: str | None = None,
+    authority_sync: dict | None = None,
 ) -> dict:
     lock = json.loads(authority_lock_path.read_text(encoding="utf-8"))
     if lock.get("status") != "ACTIVE":
@@ -30,6 +32,9 @@ def build_from_current_drive_controls(
         raise RuntimeError("SOURCE_UNIVERSE_DYNAMIC_LOCK_REQUIRED")
     if lock.get("fixed_source_count_as_invariant_forbidden") is not True:
         raise RuntimeError("SOURCE_UNIVERSE_FIXED_COUNT_PROHIBITION_REQUIRED")
+    if authority_sync is not None:
+        if authority_sync.get("status") != "PASS" or authority_sync.get("full_authority_read_complete") is not True:
+            raise RuntimeError("SOURCE_UNIVERSE_AUTHORITY_SYNC_NOT_PASS")
 
     api = build_drive_api(read_write=False)
     folders = _baseline_runtime_children(api)
@@ -47,6 +52,7 @@ def build_from_current_drive_controls(
         authority_revision="sha256:" + _sha256(authority_lock_path),
         discovery_time_utc=stamp,
         required_source_names=HISTORICAL_BASELINE_SOURCE_NAMES,
+        authority_sync=authority_sync,
     )
     if not manifest_digest_is_valid(manifest):
         raise RuntimeError("SOURCE_UNIVERSE_MANIFEST_SELF_DIGEST_FAIL")
@@ -60,12 +66,43 @@ def main() -> int:
         type=Path,
         default=Path("governance/a1-clean-active-authority-lock.json"),
     )
+    parser.add_argument(
+        "--authority-bootstrap",
+        type=Path,
+        default=DEFAULT_AUTHORITY_BOOTSTRAP_MANIFEST,
+    )
+    parser.add_argument("--authority-sync-proof", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--discovery-time-utc")
     args = parser.parse_args()
+
+    # Hard ordering lock: full current authority is read and reconciled before
+    # any governed source-universe discovery/data-plane control read.
+    proof_path = args.authority_sync_proof or args.output.with_name("AUTHORITY_SYNC_PROOF.json")
+    authority_sync = run_authority_bootstrap(
+        manifest_path=args.authority_bootstrap,
+        authority_lock_path=args.authority_lock,
+        output_path=proof_path,
+    )
+    if authority_sync.get("status") != "PASS" or authority_sync.get("full_authority_read_complete") is not True:
+        print(
+            json.dumps(
+                {
+                    "schema": authority_sync.get("schema"),
+                    "status": authority_sync.get("status"),
+                    "authority_sync_proof": str(proof_path),
+                    "hold_count": len(authority_sync.get("holds") or []),
+                    "holds": authority_sync.get("holds"),
+                },
+                sort_keys=True,
+            )
+        )
+        return 3
+
     manifest = build_from_current_drive_controls(
         authority_lock_path=args.authority_lock,
         discovery_time_utc=args.discovery_time_utc,
+        authority_sync=authority_sync,
     )
     _atomic_write(args.output, manifest)
     print(
@@ -75,6 +112,9 @@ def main() -> int:
                 "status": manifest["status"],
                 "source_count": manifest["source_count"],
                 "manifest_digest": manifest["manifest_digest"],
+                "authority_sync_status": manifest["authority_sync"]["status"],
+                "authority_corpus_sha256": manifest["authority_sync"]["authority_corpus_sha256"],
+                "authority_sync_proof": str(proof_path),
                 "hold_count": len(manifest["holds"]),
             },
             sort_keys=True,
