@@ -26,6 +26,20 @@ jobs:
     steps:
       - name: Checkout migration code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Require exact Machine2 runner before any Drive probe
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') {
+            throw "A1_DRIVE_GUARDRAIL_WRONG_MACHINE:$env:COMPUTERNAME"
+          }
+          if ($env:RUNNER_NAME -ne 'A1-WINDOWS-COMPUTE-02') {
+            throw "A1_DRIVE_GUARDRAIL_WRONG_RUNNER:$env:RUNNER_NAME"
+          }
+          Write-Host 'A1_DRIVE_GUARDRAIL_MACHINE2_RUNNER_PASS'
 
       - name: Verify separate external Drive credential bindings exist
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
@@ -43,8 +57,12 @@ jobs:
               throw "$($binding.Name) points to a credential file that does not exist. Credential content/path is intentionally not printed."
             }
           }
+          $readerHash = (Get-FileHash -LiteralPath $env:A1_DRIVE_READER_CREDENTIALS -Algorithm SHA256).Hash.ToLowerInvariant()
+          $writerHash = (Get-FileHash -LiteralPath $env:A1_DRIVE_WRITER_CREDENTIALS -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($readerHash -eq $writerHash) { throw 'A1_DRIVE_GUARDRAIL_READER_WRITER_IDENTICAL_FILE_FORBIDDEN' }
           Write-Host 'Drive reader credential binding: PRESENT'
           Write-Host 'Drive writer credential binding: PRESENT'
+          Write-Host 'Drive reader/writer exact file identity: DISTINCT'
 
       - name: Install migration package
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
@@ -69,6 +87,7 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           Write-Host 'PREFLIGHT ONLY.'
+          Write-Host 'Runner proof target: A1-WINDOWS-COMPUTE-02 on PORSCHE-DESIGN.'
           Write-Host 'RAW and governed CURRENT are opened only via the reader identity and are never written by this workflow.'
           Write-Host 'PARITY_STAGING is opened via the separate writer identity.'
           Write-Host 'Drive write probe is one tiny create/delete object in PARITY_STAGING only.'
