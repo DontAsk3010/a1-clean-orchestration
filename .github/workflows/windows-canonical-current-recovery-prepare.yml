@@ -23,16 +23,25 @@ jobs:
     env:
       A1_RAW_DIR: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
     steps:
-      - name: Require exact recovery branch
+      - name: Require exact recovery branch and Machine2 runner
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           if ('${{ github.ref_name }}' -ne 'fix/v32-dynamic-source-universe-v1') {
             throw 'Recovery prepare is locked to fix/v32-dynamic-source-universe-v1.'
           }
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') {
+            throw "A1_RECOVERY_PREPARE_WRONG_MACHINE:$env:COMPUTERNAME"
+          }
+          if ($env:RUNNER_NAME -ne 'A1-WINDOWS-COMPUTE-02') {
+            throw "A1_RECOVERY_PREPARE_WRONG_RUNNER:$env:RUNNER_NAME"
+          }
+          Write-Host 'A1_RECOVERY_PREPARE_MACHINE2_RUNNER_PASS'
 
       - name: Checkout governed recovery revision
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
 
       - name: Verify separate Drive credential bindings exist
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
@@ -50,7 +59,10 @@ jobs:
               throw "$($binding.Name) points to a credential file that does not exist."
             }
           }
-          Write-Host 'Drive credential bindings: PRESENT'
+          $readerHash = (Get-FileHash -LiteralPath $env:A1_DRIVE_READER_CREDENTIALS -Algorithm SHA256).Hash.ToLowerInvariant()
+          $writerHash = (Get-FileHash -LiteralPath $env:A1_DRIVE_WRITER_CREDENTIALS -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($readerHash -eq $writerHash) { throw 'A1_RECOVERY_PREPARE_READER_WRITER_IDENTICAL_FILE_FORBIDDEN' }
+          Write-Host 'Drive credential bindings: PRESENT_AND_DISTINCT'
 
       - name: Install recovery revision
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
@@ -87,7 +99,8 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           Write-Host 'CANONICAL CURRENT RECOVERY PREPARE GATE.'
+          Write-Host 'Proof runner: A1-WINDOWS-COMPUTE-02 on PORSCHE-DESIGN only.'
           Write-Host 'This workflow may write only recovery evidence/candidate bodies below PARITY_STAGING.'
           Write-Host 'It does not write RAW, does not create or replace canonical CURRENT, and does not authorize heavy behavior research.'
           Write-Host 'Recovered source bodies must match prior PASS evidence exactly for filename/size/MD5 plus exact semantic manifest and market index JSON.'
-          Write-Host 'A PASS here requires a separate governed promotion transaction and post-promotion readback before PRESTART can be rerun.'
+          Write-Host 'A PASS here still follows the current governed recovery request: canonical promotion remains a separate gate and is not authorized by this workflow.'
