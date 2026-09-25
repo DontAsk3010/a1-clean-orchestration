@@ -2,6 +2,11 @@ name: Windows Drive Writer Interactive Report Verify
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - '.github/workflows/windows-drive-writer-interactive-report-verify.yml'
 
 permissions:
   contents: read
@@ -16,6 +21,14 @@ jobs:
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 30
     steps:
+      - name: Require current Machine-2 runner
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RUNNER_NAME -ne 'A1-WINDOWS-COMPUTE-02') { throw "A1_WRITER_VERIFY_WRONG_RUNNER:$env:RUNNER_NAME" }
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "A1_WRITER_VERIFY_WRONG_MACHINE:$env:COMPUTERNAME" }
+          Write-Host 'A1_WRITER_VERIFY_RUNNER_GATE_PASS'
+
       - name: Checkout exact dispatch revision
         uses: actions/checkout@v4
         with:
@@ -130,7 +143,6 @@ jobs:
               sha = hashlib.sha256(raw).hexdigest()
               if sha != str(c.get("sha256") or ""):
                   raise RuntimeError(f"CANDIDATE_HASH_DRIFT:{path}")
-              payload = json.loads(raw.decode("utf-8-sig"))
               if kind.startswith("AUTHORIZED_USER"):
                   creds = UserCredentials.from_authorized_user_file(str(path), scopes=[DRIVE_SCOPE])
               else:
@@ -139,7 +151,6 @@ jobs:
               token = creds.token
               if not token:
                   raise RuntimeError(f"CANDIDATE_REFRESH_NO_TOKEN:{path}")
-              # Tokeninfo is used only to inspect the already-issued token's granted scopes.
               ti = requests.get("https://oauth2.googleapis.com/tokeninfo", params={"access_token": token}, timeout=30)
               ti.raise_for_status()
               token_info = ti.json()
