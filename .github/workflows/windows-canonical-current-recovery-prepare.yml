@@ -16,34 +16,39 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  recovery-prepare:
-    name: Reconstruct missing CURRENT into parity staging only
+  lane_a:
+    name: Recovery prepare lane A
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 720
     env:
       A1_RAW_DIR: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
+    outputs:
+      target_pass: ${{ steps.mark.outputs.target_pass }}
+      runner_seen: ${{ steps.route.outputs.runner_seen }}
     steps:
-      - name: Require exact recovery branch and Machine2 runner
-        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
-        run: |
-          $ErrorActionPreference = 'Stop'
-          if ('${{ github.ref_name }}' -ne 'fix/v32-dynamic-source-universe-v1') {
-            throw 'Recovery prepare is locked to fix/v32-dynamic-source-universe-v1.'
-          }
-          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') {
-            throw "A1_RECOVERY_PREPARE_WRONG_MACHINE:$env:COMPUTERNAME"
-          }
-          if ($env:RUNNER_NAME -ne 'A1-WINDOWS-COMPUTE-02') {
-            throw "A1_RECOVERY_PREPARE_WRONG_RUNNER:$env:RUNNER_NAME"
-          }
-          Write-Host 'A1_RECOVERY_PREPARE_MACHINE2_RUNNER_PASS'
-
-      - name: Checkout governed recovery revision
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
 
+      - name: Route lane without recovery access on non-target runner
+        id: route
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ('${{ github.ref_name }}' -ne 'fix/v32-dynamic-source-universe-v1') { throw 'Recovery prepare is locked to fix/v32-dynamic-source-universe-v1.' }
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "A1_RECOVERY_PREPARE_WRONG_MACHINE:$env:COMPUTERNAME" }
+          "runner_seen=$env:RUNNER_NAME" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          if ($env:RUNNER_NAME -eq 'A1-WINDOWS-COMPUTE-02') {
+            'is_target=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host 'A1_RECOVERY_PREPARE_MACHINE2_RUNNER_PASS'
+          } else {
+            'is_target=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "A1_RECOVERY_PREPARE_NON_TARGET_LANE_HOLD:$env:RUNNER_NAME"
+            Start-Sleep -Seconds 45
+          }
+
       - name: Verify separate Drive credential bindings exist
+        if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
@@ -52,12 +57,8 @@ jobs:
             @{ Name = 'A1_DRIVE_WRITER_CREDENTIALS'; Path = $env:A1_DRIVE_WRITER_CREDENTIALS }
           )
           foreach ($binding in $bindings) {
-            if ([string]::IsNullOrWhiteSpace($binding.Path)) {
-              throw "$($binding.Name) is not configured for the runner process."
-            }
-            if (-not (Test-Path -LiteralPath $binding.Path -PathType Leaf)) {
-              throw "$($binding.Name) points to a credential file that does not exist."
-            }
+            if ([string]::IsNullOrWhiteSpace($binding.Path)) { throw "$($binding.Name) is not configured for the runner process." }
+            if (-not (Test-Path -LiteralPath $binding.Path -PathType Leaf)) { throw "$($binding.Name) points to a credential file that does not exist." }
           }
           $readerHash = (Get-FileHash -LiteralPath $env:A1_DRIVE_READER_CREDENTIALS -Algorithm SHA256).Hash.ToLowerInvariant()
           $writerHash = (Get-FileHash -LiteralPath $env:A1_DRIVE_WRITER_CREDENTIALS -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -65,34 +66,47 @@ jobs:
           Write-Host 'Drive credential bindings: PRESENT_AND_DISTINCT'
 
       - name: Install recovery revision
+        if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           py -3.11 -m pip install -e .
 
       - name: Compile recovery module
+        if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           py -3.11 -m py_compile src\a1clean\canonical_recovery.py
 
       - name: Run recovery unit gates
+        if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           py -3.11 -m pytest tests\test_canonical_recovery.py -q
 
       - name: Verify canonical RAW source identity
+        if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           py -3.11 -m a1clean.cli source-preflight
 
       - name: Prepare restart-safe recovered CURRENT candidate under parity staging
+        if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           py -3.11 -m a1clean.canonical_recovery
+
+      - name: Mark exact target recovery prepare PASS
+        id: mark
+        if: ${{ success() && steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          'target_pass=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host 'A1_RECOVERY_PREPARE_TARGET_LANE_PASS=true'
 
       - name: Safety declaration
         if: always()
@@ -104,3 +118,124 @@ jobs:
           Write-Host 'It does not write RAW, does not create or replace canonical CURRENT, and does not authorize heavy behavior research.'
           Write-Host 'Recovered source bodies must match prior PASS evidence exactly for filename/size/MD5 plus exact semantic manifest and market index JSON.'
           Write-Host 'A PASS here still follows the current governed recovery request: canonical promotion remains a separate gate and is not authorized by this workflow.'
+
+  lane_b:
+    name: Recovery prepare lane B
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    env:
+      A1_RAW_DIR: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
+    outputs:
+      target_pass: ${{ steps.mark.outputs.target_pass }}
+      runner_seen: ${{ steps.route.outputs.runner_seen }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Route lane without recovery access on non-target runner
+        id: route
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ('${{ github.ref_name }}' -ne 'fix/v32-dynamic-source-universe-v1') { throw 'Recovery prepare is locked to fix/v32-dynamic-source-universe-v1.' }
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "A1_RECOVERY_PREPARE_WRONG_MACHINE:$env:COMPUTERNAME" }
+          "runner_seen=$env:RUNNER_NAME" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          if ($env:RUNNER_NAME -eq 'A1-WINDOWS-COMPUTE-02') {
+            'is_target=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host 'A1_RECOVERY_PREPARE_MACHINE2_RUNNER_PASS'
+          } else {
+            'is_target=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "A1_RECOVERY_PREPARE_NON_TARGET_LANE_HOLD:$env:RUNNER_NAME"
+            Start-Sleep -Seconds 45
+          }
+
+      - name: Verify separate Drive credential bindings exist
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bindings = @(
+            @{ Name = 'A1_DRIVE_READER_CREDENTIALS'; Path = $env:A1_DRIVE_READER_CREDENTIALS },
+            @{ Name = 'A1_DRIVE_WRITER_CREDENTIALS'; Path = $env:A1_DRIVE_WRITER_CREDENTIALS }
+          )
+          foreach ($binding in $bindings) {
+            if ([string]::IsNullOrWhiteSpace($binding.Path)) { throw "$($binding.Name) is not configured for the runner process." }
+            if (-not (Test-Path -LiteralPath $binding.Path -PathType Leaf)) { throw "$($binding.Name) points to a credential file that does not exist." }
+          }
+          $readerHash = (Get-FileHash -LiteralPath $env:A1_DRIVE_READER_CREDENTIALS -Algorithm SHA256).Hash.ToLowerInvariant()
+          $writerHash = (Get-FileHash -LiteralPath $env:A1_DRIVE_WRITER_CREDENTIALS -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($readerHash -eq $writerHash) { throw 'A1_RECOVERY_PREPARE_READER_WRITER_IDENTICAL_FILE_FORBIDDEN' }
+          Write-Host 'Drive credential bindings: PRESENT_AND_DISTINCT'
+
+      - name: Install recovery revision
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pip install -e .
+
+      - name: Compile recovery module
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m py_compile src\a1clean\canonical_recovery.py
+
+      - name: Run recovery unit gates
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m pytest tests\test_canonical_recovery.py -q
+
+      - name: Verify canonical RAW source identity
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m a1clean.cli source-preflight
+
+      - name: Prepare restart-safe recovered CURRENT candidate under parity staging
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          py -3.11 -m a1clean.canonical_recovery
+
+      - name: Mark exact target recovery prepare PASS
+        id: mark
+        if: ${{ success() && steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          'target_pass=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host 'A1_RECOVERY_PREPARE_TARGET_LANE_PASS=true'
+
+      - name: Safety declaration
+        if: always()
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          Write-Host 'CANONICAL CURRENT RECOVERY PREPARE GATE.'
+          Write-Host 'Proof runner: A1-WINDOWS-COMPUTE-02 on PORSCHE-DESIGN only.'
+          Write-Host 'This workflow may write only recovery evidence/candidate bodies below PARITY_STAGING.'
+          Write-Host 'It does not write RAW, does not create or replace canonical CURRENT, and does not authorize heavy behavior research.'
+          Write-Host 'Recovered source bodies must match prior PASS evidence exactly for filename/size/MD5 plus exact semantic manifest and market index JSON.'
+          Write-Host 'A PASS here still follows the current governed recovery request: canonical promotion remains a separate gate and is not authorized by this workflow.'
+
+  assert_target_pass:
+    name: Require one exact Machine2 recovery prepare PASS
+    if: ${{ always() }}
+    needs: [lane_a, lane_b]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assert at least one exact target lane passed
+        shell: bash
+        run: |
+          echo "lane_a_runner=${{ needs.lane_a.outputs.runner_seen }}"
+          echo "lane_b_runner=${{ needs.lane_b.outputs.runner_seen }}"
+          if [[ "${{ needs.lane_a.outputs.target_pass }}" == "true" || "${{ needs.lane_b.outputs.target_pass }}" == "true" ]]; then
+            echo 'A1_RECOVERY_PREPARE_EXACT_TARGET_PASS=true'
+            exit 0
+          fi
+          echo 'A1_RECOVERY_PREPARE_EXACT_TARGET_PASS=false'
+          exit 1
