@@ -91,7 +91,6 @@ function Get-NamesFingerprint([object[]]$Items) {
     } finally { $sha.Dispose() }
 }
 
-# The governed CURRENT must still be absent after PREPARE-only recovery.
 $currentMissing404 = $false
 try {
     [void](Get-Meta -FileId $CurrentId -Headers $readerHeaders)
@@ -150,7 +149,7 @@ if ((@($logicalNames) -join '|') -ne (@($ExpectedLogical | Sort-Object) -join '|
 $liveLogical = [ordered]@{}
 foreach ($name in $ExpectedLogical) {
     $rows = @($logicalFolders | Where-Object { [string]$_.name -eq $name })
-    if ($rows.Count -ne 1) { Fail "A1_RECOVERY_READBACK_LOGICAL_CARDINALITY:$name:$($rows.Count)" }
+    if ($rows.Count -ne 1) { Fail "A1_RECOVERY_READBACK_LOGICAL_CARDINALITY:${name}:$($rows.Count)" }
     $folderId = [string]$rows[0].id
     $expectedId = [string]$assembly.logical_folder_ids.$name
     if ($folderId -ne $expectedId) { Fail "A1_RECOVERY_READBACK_LOGICAL_ID_MISMATCH:$name" }
@@ -159,7 +158,7 @@ foreach ($name in $ExpectedLogical) {
     $liveFp = Get-NamesFingerprint -Items $files
     $expectedCount = [int]$assembly.readback.$name.file_count
     $expectedFp = [string]$assembly.readback.$name.names_fingerprint
-    if ($liveCount -ne $expectedCount) { Fail "A1_RECOVERY_READBACK_FILE_COUNT_DRIFT:$name:$liveCount:$expectedCount" }
+    if ($liveCount -ne $expectedCount) { Fail "A1_RECOVERY_READBACK_FILE_COUNT_DRIFT:${name}:${liveCount}:$expectedCount" }
     if ($liveFp -ne $expectedFp) { Fail "A1_RECOVERY_READBACK_NAMES_FINGERPRINT_DRIFT:$name" }
     $liveLogical[$name] = [ordered]@{ folder_id = $folderId; file_count = $liveCount; names_fingerprint = $liveFp }
 }
