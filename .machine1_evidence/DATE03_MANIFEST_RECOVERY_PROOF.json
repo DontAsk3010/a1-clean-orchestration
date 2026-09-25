@@ -1,0 +1,113 @@
+{
+    "status":  "PASS",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "total_ticker_context_paths":  891,
+    "ordinal_case_sensitive_order":  true,
+    "durable_prefix_count":  521,
+    "durable_prefix_expected_sha256":  "a3a83f9062be23d514445e78974bac04501ea24976038125f45e172770c9575e",
+    "durable_prefix_observed_sha256":  "a3a83f9062be23d514445e78974bac04501ea24976038125f45e172770c9575e",
+    "durable_prefix_match":  true,
+    "durable_prefix_last":  "MEGA",
+    "anchors":  [
+                    "AALI",
+                    "MEDC",
+                    "MEDS",
+                    "MEGA"
+                ],
+    "reconstructed_manifest_sha256":  "c07cf5c0c075e6ad6da2ca87623138ed84521423a6a6c143bb75db7a689d6625",
+    "original_semantic_manifest_state":  "UNAVAILABLE_404",
+    "next_exact_recovery_source":  "DATE03_RECONSTRUCTED_MANIFEST_FROM_RAW.jsonl",
+    "next_batch":  [
+                       {
+                           "Index":  522,
+                           "Ticker":  "MEJA",
+                           "First":  1058111,
+                           "Last":  1058310,
+                           "Count":  200,
+                           "FirstTime":  "09:00:00",
+                           "LastTime":  "16:10:00"
+                       },
+                       {
+                           "Index":  523,
+                           "Ticker":  "MENN",
+                           "First":  1060576,
+                           "Last":  1060641,
+                           "Count":  66,
+                           "FirstTime":  "09:00:00",
+                           "LastTime":  "16:07:00"
+                       },
+                       {
+                           "Index":  524,
+                           "Ticker":  "MERK",
+                           "First":  1062304,
+                           "Last":  1062316,
+                           "Count":  13,
+                           "FirstTime":  "09:46:00",
+                           "LastTime":  "16:09:00"
+                       },
+                       {
+                           "Index":  525,
+                           "Ticker":  "MFMI",
+                           "First":  1062524,
+                           "Last":  1062524,
+                           "Count":  1,
+                           "FirstTime":  "16:00:00",
+                           "LastTime":  "16:00:00"
+                       },
+                       {
+                           "Index":  526,
+                           "Ticker":  "MGLV",
+                           "First":  1062599,
+                           "Last":  1062615,
+                           "Count":  17,
+                           "FirstTime":  "09:32:00",
+                           "LastTime":  "15:29:00"
+                       },
+                       {
+                           "Index":  527,
+                           "Ticker":  "MGNA",
+                           "First":  1062541,
+                           "Last":  1062544,
+                           "Count":  4,
+                           "FirstTime":  "09:55:00",
+                           "LastTime":  "16:00:00"
+                       },
+                       {
+                           "Index":  528,
+                           "Ticker":  "MGRO",
+                           "First":  1063361,
+                           "Last":  1063420,
+                           "Count":  60,
+                           "FirstTime":  "09:15:00",
+                           "LastTime":  "16:09:00"
+                       },
+                       {
+                           "Index":  529,
+                           "Ticker":  "MHKI",
+                           "First":  1064455,
+                           "Last":  1064502,
+                           "Count":  48,
+                           "FirstTime":  "09:00:00",
+                           "LastTime":  "16:00:00"
+                       },
+                       {
+                           "Index":  530,
+                           "Ticker":  "MICE",
+                           "First":  1064188,
+                           "Last":  1064204,
+                           "Count":  17,
+                           "FirstTime":  "09:00:00",
+                           "LastTime":  "15:47:00"
+                       },
+                       {
+                           "Index":  531,
+                           "Ticker":  "MIDI",
+                           "First":  1066034,
+                           "Last":  1066276,
+                           "Count":  243,
+                           "FirstTime":  "09:00:00",
+                           "LastTime":  "16:00:00"
+                       }
+                   ]
+}

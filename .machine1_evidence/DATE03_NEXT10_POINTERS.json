@@ -1,0 +1,92 @@
+[
+    {
+        "Index":  522,
+        "Ticker":  "MEJA",
+        "First":  1058111,
+        "Last":  1058310,
+        "Count":  200,
+        "FirstTime":  "09:00:00",
+        "LastTime":  "16:10:00"
+    },
+    {
+        "Index":  523,
+        "Ticker":  "MENN",
+        "First":  1060576,
+        "Last":  1060641,
+        "Count":  66,
+        "FirstTime":  "09:00:00",
+        "LastTime":  "16:07:00"
+    },
+    {
+        "Index":  524,
+        "Ticker":  "MERK",
+        "First":  1062304,
+        "Last":  1062316,
+        "Count":  13,
+        "FirstTime":  "09:46:00",
+        "LastTime":  "16:09:00"
+    },
+    {
+        "Index":  525,
+        "Ticker":  "MFMI",
+        "First":  1062524,
+        "Last":  1062524,
+        "Count":  1,
+        "FirstTime":  "16:00:00",
+        "LastTime":  "16:00:00"
+    },
+    {
+        "Index":  526,
+        "Ticker":  "MGLV",
+        "First":  1062599,
+        "Last":  1062615,
+        "Count":  17,
+        "FirstTime":  "09:32:00",
+        "LastTime":  "15:29:00"
+    },
+    {
+        "Index":  527,
+        "Ticker":  "MGNA",
+        "First":  1062541,
+        "Last":  1062544,
+        "Count":  4,
+        "FirstTime":  "09:55:00",
+        "LastTime":  "16:00:00"
+    },
+    {
+        "Index":  528,
+        "Ticker":  "MGRO",
+        "First":  1063361,
+        "Last":  1063420,
+        "Count":  60,
+        "FirstTime":  "09:15:00",
+        "LastTime":  "16:09:00"
+    },
+    {
+        "Index":  529,
+        "Ticker":  "MHKI",
+        "First":  1064455,
+        "Last":  1064502,
+        "Count":  48,
+        "FirstTime":  "09:00:00",
+        "LastTime":  "16:00:00"
+    },
+    {
+        "Index":  530,
+        "Ticker":  "MICE",
+        "First":  1064188,
+        "Last":  1064204,
+        "Count":  17,
+        "FirstTime":  "09:00:00",
+        "LastTime":  "15:47:00"
+    },
+    {
+        "Index":  531,
+        "Ticker":  "MIDI",
+        "First":  1066034,
+        "Last":  1066276,
+        "Count":  243,
+        "FirstTime":  "09:00:00",
+        "LastTime":  "16:00:00"
+    }
+]
