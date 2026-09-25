@@ -9,6 +9,7 @@ from .source_universe_manifest import manifest_digest_is_valid, source_names_fro
 
 _REQUEST_AUTHORITY_BINDINGS = (
     ("master_handbook_document_id", "master_handbook_revision_id", "master_handbook"),
+    ("source_capture_handbook_document_id", "source_capture_handbook_revision_id", "source_capture"),
     ("formula_research_handbook_document_id", "formula_research_handbook_revision_id", "formula_research"),
     ("behavior_handbook_document_id", "behavior_handbook_revision_id", "behavior_reading"),
     ("github_automation_handbook_document_id", "github_automation_handbook_revision_id", "github_automation"),
@@ -64,6 +65,23 @@ def validate_dynamic_prestart(
 
     if not manifest_digest_is_valid(source_universe):
         raise RuntimeError("PRESTART_SOURCE_UNIVERSE_DIGEST_FAIL")
+    authority_sync = source_universe.get("authority_sync")
+    if not isinstance(authority_sync, dict):
+        raise RuntimeError("PRESTART_AUTHORITY_SYNC_PROOF_MISSING")
+    if authority_sync.get("schema") != "A1_CLEAN_AUTHORITY_SYNC_PROOF_V1":
+        raise RuntimeError("PRESTART_AUTHORITY_SYNC_SCHEMA_FAIL")
+    if authority_sync.get("status") != "PASS" or authority_sync.get("full_authority_read_complete") is not True:
+        raise RuntimeError("PRESTART_AUTHORITY_SYNC_NOT_PASS")
+    for key in (
+        "authority_corpus_sha256",
+        "bootstrap_manifest_sha256",
+        "active_authority_lock_sha256",
+        "data_preservation_contract_sha256",
+        "required_data_family_registry_sha256",
+    ):
+        if not str(authority_sync.get(key) or ""):
+            raise RuntimeError(f"PRESTART_AUTHORITY_SYNC_FINGERPRINT_MISSING:{key}")
+
     names = source_names_from_manifest(source_universe, require_pass=True)
     if int(source_universe.get("source_count", -1)) != len(names):
         raise RuntimeError("PRESTART_SOURCE_UNIVERSE_COUNT_DRIFT")
@@ -74,6 +92,8 @@ def validate_dynamic_prestart(
         "request_enabled": request.get("enabled"),
         "source_universe_count": len(names),
         "source_universe_manifest_digest": source_universe.get("manifest_digest"),
+        "authority_sync_status": authority_sync.get("status"),
+        "authority_corpus_sha256": authority_sync.get("authority_corpus_sha256"),
         "next_source_authority": "SOURCE_UNIVERSE_MANIFEST",
         "fixed_source_count_invariant_used": False,
         "formula_stage": "CLOSED",
