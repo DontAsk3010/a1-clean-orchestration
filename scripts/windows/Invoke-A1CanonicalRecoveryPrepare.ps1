@@ -9,9 +9,8 @@ $Pip = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\pip.pyz'
 $Site = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\Lib\site-packages'
 
 function Fail([string]$Code) { throw $Code }
-function Run-Python([string[]]$Args,[string]$FailCode) {
-    & $Python @Args
-    if ($LASTEXITCODE -ne 0) { Fail "${FailCode}:$LASTEXITCODE" }
+function Require-ExitZero([string]$Code) {
+    if ($LASTEXITCODE -ne 0) { Fail "${Code}:$LASTEXITCODE" }
 }
 
 if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { Fail "A1_RECOVERY_PREPARE_WRONG_MACHINE:$env:COMPUTERNAME" }
@@ -44,21 +43,66 @@ Write-Host 'A1_RECOVERY_PREPARE_CREDENTIAL_BINDINGS=PASS_DISTINCT'
 if (-not (Test-Path -LiteralPath $Python -PathType Leaf)) { Fail 'A1_RECOVERY_PREPARE_PORTABLE_PYTHON_MISSING' }
 if (-not (Test-Path -LiteralPath $Pip -PathType Leaf)) { Fail 'A1_RECOVERY_PREPARE_PORTABLE_PIP_MISSING' }
 
-# Install exactly the current repository revision into the persistent runtime. Dependencies were provisioned separately.
-Run-Python @($Pip,'install','--disable-pip-version-check','--upgrade','--no-deps','--target',$Site,'.') 'A1_RECOVERY_PREPARE_PROJECT_INSTALL_FAIL'
-Run-Python @('-c',"import a1clean; print('A1_RECOVERY_PREPARE_PROJECT_IMPORT_PASS')") 'A1_RECOVERY_PREPARE_PROJECT_IMPORT_FAIL'
+# Execute every Python command explicitly. Do not route argv through a PowerShell array-binding helper.
+& $Python $Pip install --disable-pip-version-check --upgrade --no-deps --target $Site .
+Require-ExitZero 'A1_RECOVERY_PREPARE_PROJECT_INSTALL_FAIL'
 
-Run-Python @('-m','py_compile','src\a1clean\canonical_recovery.py') 'A1_RECOVERY_PREPARE_COMPILE_FAIL'
+& $Python -c "import a1clean; print('A1_RECOVERY_PREPARE_PROJECT_IMPORT_PASS')"
+Require-ExitZero 'A1_RECOVERY_PREPARE_PROJECT_IMPORT_FAIL'
+
+& $Python -m py_compile 'src\a1clean\canonical_recovery.py'
+Require-ExitZero 'A1_RECOVERY_PREPARE_COMPILE_FAIL'
 Write-Host 'A1_RECOVERY_PREPARE_COMPILE=PASS'
 
-Run-Python @('-m','pytest','tests\test_canonical_recovery.py','-q') 'A1_RECOVERY_PREPARE_TEST_FAIL'
+& $Python -m pytest 'tests\test_canonical_recovery.py' -q
+Require-ExitZero 'A1_RECOVERY_PREPARE_TEST_FAIL'
 Write-Host 'A1_RECOVERY_PREPARE_UNIT_GATES=PASS'
 
-Run-Python @('-m','a1clean.cli','source-preflight') 'A1_RECOVERY_SOURCE_PREFLIGHT_FAIL'
+& $Python -m a1clean.cli source-preflight
+Require-ExitZero 'A1_RECOVERY_SOURCE_PREFLIGHT_FAIL'
 Write-Host 'A1_RECOVERY_PREPARE_SOURCE_PREFLIGHT=PASS'
 
-Run-Python @('-m','a1clean.canonical_recovery') 'A1_RECOVERY_PREPARE_EXECUTION_FAIL'
+# Invoke the governed recovery function directly and require an explicit PASS result/candidate id.
+$executePy = Join-Path $env:TEMP 'a1_execute_canonical_recovery.py'
+@'
+import json
+from a1clean.canonical_recovery import run_canonical_current_recovery_prepare
+
+result = run_canonical_current_recovery_prepare()
+summary = {
+    "pass": result.get("pass"),
+    "status": result.get("status"),
+    "run_folder_id": result.get("run_folder_id"),
+    "github_sha": result.get("github_sha"),
+    "candidate_folder_id": (result.get("assembly") or {}).get("candidate_folder_id"),
+    "candidate_folder_role": (result.get("assembly") or {}).get("candidate_folder_role"),
+    "canonical_write_performed": result.get("canonical_write_performed"),
+    "raw_write_performed": result.get("raw_write_performed"),
+    "promotion_authorized": result.get("promotion_authorized"),
+}
+print("A1_RECOVERY_RESULT_JSON=" + json.dumps(summary, sort_keys=True, separators=(",", ":")))
+raise SystemExit(0 if result.get("pass") is True else 2)
+'@ | Set-Content -LiteralPath $executePy -Encoding UTF8
+
+$recoveryLines = @(& $Python $executePy 2>&1)
+$recoveryExit = $LASTEXITCODE
+foreach ($line in $recoveryLines) { Write-Host ([string]$line) }
+if ($recoveryExit -ne 0) { Fail "A1_RECOVERY_PREPARE_EXECUTION_FAIL:$recoveryExit" }
+
+$sentinels = @($recoveryLines | ForEach-Object { [string]$_ } | Where-Object { $_ -like 'A1_RECOVERY_RESULT_JSON=*' })
+if ($sentinels.Count -ne 1) { Fail "A1_RECOVERY_PREPARE_RESULT_SENTINEL_CARDINALITY:$($sentinels.Count)" }
+$resultJson = $sentinels[0].Substring('A1_RECOVERY_RESULT_JSON='.Length) | ConvertFrom-Json
+if ($resultJson.pass -ne $true) { Fail 'A1_RECOVERY_PREPARE_RESULT_PASS_FALSE' }
+if ([string]$resultJson.status -ne 'PASS_PREPARED_STAGING_ONLY') { Fail "A1_RECOVERY_PREPARE_RESULT_STATUS:$($resultJson.status)" }
+if ([string]::IsNullOrWhiteSpace([string]$resultJson.run_folder_id)) { Fail 'A1_RECOVERY_PREPARE_RESULT_RUN_FOLDER_ID_MISSING' }
+if ([string]::IsNullOrWhiteSpace([string]$resultJson.candidate_folder_id)) { Fail 'A1_RECOVERY_PREPARE_RESULT_CANDIDATE_ID_MISSING' }
+if ([string]$resultJson.candidate_folder_role -ne 'STAGING_ONLY_NOT_CANONICAL_CURRENT') { Fail 'A1_RECOVERY_PREPARE_RESULT_CANDIDATE_ROLE_MISMATCH' }
+if ($resultJson.canonical_write_performed -ne $false -or $resultJson.raw_write_performed -ne $false -or $resultJson.promotion_authorized -ne $false) { Fail 'A1_RECOVERY_PREPARE_RESULT_FORBIDDEN_MUTATION_FLAG' }
+
 Write-Host 'A1_CANONICAL_CURRENT_RECOVERY_PREPARE_STATUS=PASS'
+Write-Host "RECOVERY_RUN_FOLDER_ID=$($resultJson.run_folder_id)"
+Write-Host "RECOVERY_CANDIDATE_FOLDER_ID=$($resultJson.candidate_folder_id)"
+Write-Host "RECOVERY_GITHUB_SHA=$($resultJson.github_sha)"
 Write-Host 'TARGET_RUNNER=A1-WINDOWS-COMPUTE-02'
 Write-Host 'CANDIDATE_LOCATION=PARITY_STAGING_ONLY'
 Write-Host 'RAW_WRITE=false'
