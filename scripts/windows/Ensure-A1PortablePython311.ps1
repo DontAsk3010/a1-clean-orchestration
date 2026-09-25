@@ -53,7 +53,6 @@ if (-not (Test-Path -LiteralPath $PythonExe -PathType Leaf)) { Fail 'A1_PORTABLE
 $versionText = (& $PythonExe --version 2>&1 | Out-String).Trim()
 if ($versionText -ne "Python $PythonVersion") { Fail "A1_PORTABLE_PY_VERSION_FAIL:$versionText" }
 
-# Embedded Python starts isolated by design. Keep that isolation, but admit one persistent site-packages lane.
 $pth = @(
     'python311.zip',
     '.',
@@ -69,7 +68,6 @@ if (-not (Test-Path -LiteralPath $PipPyz -PathType Leaf)) {
 }
 $pipSha256 = Hash $PipPyz 'SHA256'
 
-# pip.pyz avoids Windows installer/MSI and does not alter registry or machine ExecutionPolicy.
 & $PythonExe $PipPyz install --disable-pip-version-check --upgrade --target $SitePackages `
     'setuptools>=69' wheel pytest google-auth google-api-python-client
 if ($LASTEXITCODE -ne 0) { Fail "A1_PORTABLE_PY_DEPENDENCY_INSTALL_FAIL:$LASTEXITCODE" }
@@ -81,8 +79,14 @@ import googleapiclient.discovery
 import pytest
 print(json.dumps({"python":"PASS","google_auth":"PASS","google_api_python_client":"PASS","pytest":"PASS"}, sort_keys=True))
 '@
-$verifyOut = (& $PythonExe -c $verifyCode 2>&1 | Out-String).Trim()
-if ($LASTEXITCODE -ne 0) { Fail "A1_PORTABLE_PY_IMPORT_VERIFY_FAIL:$verifyOut" }
+$previousPreference = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+$verifyLines = @(& $PythonExe -c $verifyCode 2>&1)
+$verifyExit = $LASTEXITCODE
+$ErrorActionPreference = $previousPreference
+$verifyOut = ($verifyLines | Out-String).Trim()
+if ($verifyExit -ne 0) { Fail "A1_PORTABLE_PY_IMPORT_VERIFY_FAIL:exit=$verifyExit|output=$verifyOut" }
+if ($verifyOut -notmatch '"python"\s*:\s*"PASS"') { Fail "A1_PORTABLE_PY_IMPORT_VERIFY_OUTPUT_FAIL:$verifyOut" }
 
 $proof = [ordered]@{
     schema = 'A1_PORTABLE_PYTHON_RUNTIME_V1'
