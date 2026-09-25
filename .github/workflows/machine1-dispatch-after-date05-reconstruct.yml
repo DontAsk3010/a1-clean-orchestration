@@ -1,0 +1,169 @@
+name: Machine1 Governed Dispatch Reconstruction After Date05
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [machine1/date05-prefetch-after-bmsr]
+    paths: [.github/workflows/machine1-dispatch-after-date05-reconstruct.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  reconstruct:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 60
+    env:
+      RAW_FILE: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI\Raw Des 02-31-2024.csv'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct governed next-date locator with Date05 parity gate
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
+          [int64]$expectedSize=453806812
+          $expectedSha='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          $closedDate='2024-12-05'
+          if(-not (Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING: $raw"}
+          $fi=Get-Item -LiteralPath $raw
+          if($fi.Length -ne $expectedSize){throw "RAW_SIZE_MISMATCH got=$($fi.Length) expected=$expectedSize"}
+          $gotSha=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($gotSha -ne $expectedSha){throw "RAW_SHA256_MISMATCH got=$gotSha expected=$expectedSha"}
+
+          $out=Join-Path $PWD '.machine1_transport/dispatch_after_date05'
+          if(Test-Path -LiteralPath $out){Remove-Item -Recurse -Force -LiteralPath $out}
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $utf8=New-Object System.Text.UTF8Encoding($false)
+
+          $header=$null; $tickerIdx=-1; $dtIdx=-1; [int64]$sourceRow=0
+          [int64]$d05Rows=0
+          $d05Seen=New-Object 'System.Collections.Generic.HashSet[string]'
+          $d05Order=New-Object 'System.Collections.Generic.List[string]'
+          $dateStats=@{}
+          $anchorECII=[ordered]@{source_first=$null;source_last=$null;rows=0}
+          $anchorEDGE=[ordered]@{source_first=$null;source_last=$null;rows=0}
+
+          foreach($line in [System.IO.File]::ReadLines($raw,[System.Text.Encoding]::UTF8)){
+            if($null -eq $header){
+              $header=$line; $hf=$line.Split(',')
+              for($i=0;$i -lt $hf.Length;$i++){
+                $h=$hf[$i].Trim('"')
+                if($h -eq 'RAW_TICKER'){$tickerIdx=$i}
+                if($h -eq 'RAW_DATETIME_ISO'){$dtIdx=$i}
+              }
+              if($tickerIdx -lt 0 -or $dtIdx -lt 0){throw 'HEADER_INDEX_MISSING'}
+              continue
+            }
+            $sourceRow++
+            $p=$line.Split(',')
+            if($p.Length -le [Math]::Max($tickerIdx,$dtIdx)){continue}
+            $tk=$p[$tickerIdx].Trim('"'); $dt=$p[$dtIdx].Trim('"')
+            if($dt.Length -lt 10){continue}
+            $d=$dt.Substring(0,10)
+            if($d -eq $closedDate){
+              $d05Rows++
+              if($d05Seen.Add($tk)){[void]$d05Order.Add($tk)}
+              if($tk -eq 'ECII'){
+                if($null -eq $anchorECII.source_first){$anchorECII.source_first=$sourceRow}
+                $anchorECII.source_last=$sourceRow; $anchorECII.rows++
+              }
+              if($tk -eq 'EDGE'){
+                if($null -eq $anchorEDGE.source_first){$anchorEDGE.source_first=$sourceRow}
+                $anchorEDGE.source_last=$sourceRow; $anchorEDGE.rows++
+              }
+            }
+            elseif([string]::CompareOrdinal($d,$closedDate) -gt 0){
+              if(-not $dateStats.ContainsKey($d)){
+                $dateStats[$d]=[ordered]@{
+                  rows=[int64]0
+                  order=(New-Object 'System.Collections.Generic.List[string]')
+                  seen=(New-Object 'System.Collections.Generic.HashSet[string]')
+                  contexts=@{}
+                }
+              }
+              $st=$dateStats[$d]; $st.rows++
+              if($st.seen.Add($tk)){
+                [void]$st.order.Add($tk)
+                $st.contexts[$tk]=[ordered]@{ticker=$tk;source_row_first=$sourceRow;source_row_last=$sourceRow;actual_rows=1;first_datetime=$dt;last_datetime=$dt}
+              } else {
+                $c=$st.contexts[$tk]; $c.source_row_last=$sourceRow; $c.actual_rows=[int]$c.actual_rows+1; $c.last_datetime=$dt
+              }
+            }
+          }
+
+          # Date05 parity gate against governed closed checkpoint and known anchors.
+          if($d05Rows -ne 85534){throw "DATE05_PARITY_ROWS_FAIL got=$d05Rows expected=85534"}
+          if($d05Order.Count -ne 891){throw "DATE05_PARITY_CONTEXTS_FAIL got=$($d05Order.Count) expected=891"}
+          if($d05Order[0] -ne 'AADI' -or $d05Order[$d05Order.Count-1] -ne 'ZYRX'){throw "DATE05_PARITY_EDGE_TICKERS_FAIL first=$($d05Order[0]) last=$($d05Order[$d05Order.Count-1])"}
+          if([int64]$anchorECII.source_first -ne 500941 -or [int64]$anchorECII.source_last -ne 501239 -or [int]$anchorECII.rows -ne 299){throw "DATE05_PARITY_ECII_FAIL $($anchorECII|ConvertTo-Json -Compress)"}
+          if([int64]$anchorEDGE.source_first -ne 504438 -or [int64]$anchorEDGE.source_last -ne 504453 -or [int]$anchorEDGE.rows -ne 16){throw "DATE05_PARITY_EDGE_FAIL $($anchorEDGE|ConvertTo-Json -Compress)"}
+
+          $dates=@($dateStats.Keys | Sort-Object)
+          if($dates.Count -lt 1){throw 'NO_POST_DATE05_TRADING_DATE_FOUND'}
+          $candidate=$dates[0]
+          $cs=$dateStats[$candidate]
+          if($cs.order.Count -lt 1){throw 'CANDIDATE_HAS_ZERO_CONTEXTS'}
+
+          $contexts=New-Object 'System.Collections.Generic.List[object]'
+          [int64]$sum=0
+          for($i=0;$i -lt $cs.order.Count;$i++){
+            $tk=$cs.order[$i]; $c=$cs.contexts[$tk]
+            # The context must be physically contiguous; otherwise reconstruction is not authoritative enough to claim.
+            $span=([int64]$c.source_row_last-[int64]$c.source_row_first+1)
+            if($span -ne [int64]$c.actual_rows){throw "CANDIDATE_CONTEXT_NONCONTIGUOUS ticker=$tk span=$span rows=$($c.actual_rows)"}
+            $sum += [int64]$c.actual_rows
+            [void]$contexts.Add([pscustomobject][ordered]@{
+              reconstructed_manifest_ordinal=($i+1)
+              ticker=$tk
+              trading_date=$candidate
+              source_row_first=[int64]$c.source_row_first
+              source_row_last=[int64]$c.source_row_last
+              physical_line_first=([int64]$c.source_row_first+1)
+              physical_line_last=([int64]$c.source_row_last+1)
+              actual_rows=[int]$c.actual_rows
+              first_datetime=[string]$c.first_datetime
+              last_datetime=[string]$c.last_datetime
+            })
+          }
+          if($sum -ne [int64]$cs.rows){throw "CANDIDATE_ROW_SUM_FAIL sum=$sum rows=$($cs.rows)"}
+
+          $chronology=New-Object 'System.Collections.Generic.List[object]'
+          foreach($d in $dates){
+            $st=$dateStats[$d]
+            [void]$chronology.Add([pscustomobject][ordered]@{trading_date=$d;actual_rows=[int64]$st.rows;ticker_contexts=[int]$st.order.Count;first_ticker=[string]$st.order[0];last_ticker=[string]$st.order[$st.order.Count-1]})
+          }
+
+          $summary=[ordered]@{
+            reconstruction_role='DISPATCH_ROUTING_LOCATOR_ONLY_NOT_SEMANTIC_READING'
+            authority_mode='GOVERNED_DETERMINISTIC_RECONSTRUCTION_DUE_CANONICAL_MANIFEST_ACCESS_GAP'
+            raw_file=(Split-Path -Leaf $raw)
+            raw_size_bytes=$fi.Length
+            raw_sha256=$gotSha
+            date05_parity=[ordered]@{status='PASS';actual_rows=$d05Rows;ticker_contexts=$d05Order.Count;first_ticker=$d05Order[0];last_ticker=$d05Order[$d05Order.Count-1];ecii=$anchorECII;edge=$anchorEDGE}
+            candidate_next_trading_date=$candidate
+            candidate_actual_rows=[int64]$cs.rows
+            candidate_ticker_contexts=[int]$cs.order.Count
+            candidate_first_ticker=[string]$cs.order[0]
+            candidate_last_ticker=[string]$cs.order[$cs.order.Count-1]
+            candidate_first_context=$contexts[0]
+            post_date05_chronology=$chronology
+            semantic_read_performed=$false
+            claim_performed=$false
+          }
+          [System.IO.File]::WriteAllText((Join-Path $out 'DISPATCH_RECONSTRUCTION_SUMMARY.json'),($summary|ConvertTo-Json -Depth 10),$utf8)
+          $ctxLines=@($contexts|ForEach-Object{$_|ConvertTo-Json -Compress -Depth 6})
+          [System.IO.File]::WriteAllLines((Join-Path $out 'CANDIDATE_CONTEXTS.jsonl'),[string[]]$ctxLines,$utf8)
+          $chronoLines=@($chronology|ForEach-Object{$_|ConvertTo-Json -Compress -Depth 5})
+          [System.IO.File]::WriteAllLines((Join-Path $out 'POST_DATE05_CHRONOLOGY.jsonl'),[string[]]$chronoLines,$utf8)
+          $hashLines=Get-ChildItem -LiteralPath $out -File | Sort-Object Name | ForEach-Object {((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())+'  '+$_.Name}
+          [System.IO.File]::WriteAllLines((Join-Path $out '_SHA256.txt'),[string[]]$hashLines,$utf8)
+          Write-Host "DISPATCH_RECONSTRUCTION_PASS candidate=$candidate contexts=$($cs.order.Count) rows=$($cs.rows) first=$($cs.order[0]) last=$($cs.order[$cs.order.Count-1])"
+      - name: Upload dispatch reconstruction artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-dispatch-after-date05-reconstruction
+          path: .machine1_transport/dispatch_after_date05/
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 30
