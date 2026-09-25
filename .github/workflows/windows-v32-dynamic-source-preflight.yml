@@ -15,6 +15,7 @@ on:
       - 'canonical-current-recovery-requests/writer-relocation-search-current.json'
       - 'src/a1clean/google_drive.py'
       - 'src/a1clean/authority_bootstrap.py'
+      - 'src/a1clean/authority_bootstrap_drive_revision.py'
       - 'src/a1clean/formula_research/source_universe_manifest.py'
       - 'src/a1clean/formula_research/source_universe_drive_preflight.py'
       - 'src/a1clean/formula_research/v32_dynamic_prestart.py'
@@ -43,6 +44,14 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 32
+
+      - name: Require exact Machine2 runner
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RUNNER_NAME -ne 'A1-WINDOWS-COMPUTE-02') { throw "DYNAMIC_PRESTART_WRONG_RUNNER:$env:RUNNER_NAME" }
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "DYNAMIC_PRESTART_WRONG_MACHINE:$env:COMPUTERNAME" }
+          Write-Host 'DYNAMIC_PRESTART_MACHINE2_RUNNER_PASS'
 
       - name: Provision portable Python 3.11
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
@@ -100,6 +109,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "DYNAMIC_PRESTART_AUTHORITY_OR_SOURCE_UNIVERSE_HOLD:$LASTEXITCODE" }
           $a = Get-Content -LiteralPath $proof -Raw -Encoding UTF8 | ConvertFrom-Json
           if ($a.status -ne 'PASS' -or $a.full_authority_read_complete -ne $true) { throw 'DYNAMIC_PRESTART_AUTHORITY_SYNC_NOT_PASS' }
+          if ($a.revision_namespace -ne 'GOOGLE_DRIVE_CURRENT_REVISION_ID' -or $a.legacy_docs_revision_tokens_used_for_drive_comparison -ne $false) { throw 'DYNAMIC_PRESTART_AUTHORITY_REVISION_NAMESPACE_FAIL' }
           $u = Get-Content -LiteralPath $manifest -Raw -Encoding UTF8 | ConvertFrom-Json
           if ($u.status -ne 'PASS') { throw 'DYNAMIC_PRESTART_SOURCE_UNIVERSE_NOT_PASS' }
           if ($u.dynamic_source_universe_required -ne $true -or $u.fixed_source_count_as_invariant_forbidden -ne $true) { throw 'DYNAMIC_PRESTART_SOURCE_UNIVERSE_GOVERNANCE_FAIL' }
@@ -141,6 +151,7 @@ jobs:
           Copy-Item -LiteralPath 'v32-full-observation-behavior-requests\current.json' -Destination 'dynamic-source-prestart-evidence\full-observation-request.json' -Force
           Copy-Item -LiteralPath 'v32-behavior-grouping-requests\current.json' -Destination 'dynamic-source-prestart-evidence\grouping-request.json' -Force
           Add-Content $env:GITHUB_STEP_SUMMARY '### Dynamic source universe PRESTART'
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Exact runner: $env:RUNNER_NAME / $env:COMPUTERNAME"
           Add-Content $env:GITHUB_STEP_SUMMARY "- Full authority docs read: PASS ($((Get-Content $env:A1_AUTHORITY_SYNC_PROOF -Raw | ConvertFrom-Json).authority_document_count))"
           Add-Content $env:GITHUB_STEP_SUMMARY "- Authority corpus digest: $env:A1_AUTHORITY_CORPUS_DIGEST"
           Add-Content $env:GITHUB_STEP_SUMMARY "- Governed source count: $env:A1_SOURCE_UNIVERSE_COUNT"
