@@ -1,0 +1,96 @@
+name: Machine1 Date06 Date Close Reconciliation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [machine1/date05-prefetch-after-bmsr]
+    paths: [.github/workflows/machine1-date06-date-close-reconciliation.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 60
+    env:
+      RAW_FILE: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI\Raw Des 02-31-2024.csv'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconcile Date06 source and boundary states
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
+          $target='2024-12-06'
+          [int64]$expectedSize=453806812
+          $expectedSha='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          $expectedMd5='b8d42b35c90d2dff8b18ae4e1734523b'
+          [int64]$expectedRows=75890
+          [int]$expectedContexts=888
+          if(-not (Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING: $raw"}
+          $fi=Get-Item -LiteralPath $raw
+          if($fi.Length -ne $expectedSize){throw "RAW_SIZE_FAIL got=$($fi.Length) expected=$expectedSize"}
+          $sha=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          $md5=(Get-FileHash -LiteralPath $raw -Algorithm MD5).Hash.ToLowerInvariant()
+          if($sha -ne $expectedSha){throw "RAW_SHA_FAIL $sha"}
+          if($md5 -ne $expectedMd5){throw "RAW_MD5_FAIL $md5"}
+          $out=Join-Path $PWD '.machine1_transport/date06_close_reconciliation'
+          if(Test-Path $out){Remove-Item -Recurse -Force $out}; New-Item -ItemType Directory -Force -Path $out|Out-Null
+          $utf8=New-Object System.Text.UTF8Encoding($false)
+          $header=$null; $tickerIdx=-1; $dtIdx=-1; $openIdx=-1; $highIdx=-1; $lowIdx=-1; $closeIdx=-1; $volIdx=-1; $sessIdx=-1; $gapIdx=-1; $dupIdx=-1
+          [int64]$sourceRow=0; [int64]$rows=0
+          $order=New-Object 'System.Collections.Generic.List[string]'; $seen=New-Object 'System.Collections.Generic.HashSet[string]'; $ctx=@{}
+          $minuteSet=New-Object 'System.Collections.Generic.HashSet[string]'
+          [int64]$gapFlags=0; [int64]$dupFlags=0
+          foreach($line in [System.IO.File]::ReadLines($raw,[System.Text.Encoding]::UTF8)){
+            if($null -eq $header){
+              $header=$line; $hf=$line.Split(',')
+              for($i=0;$i -lt $hf.Length;$i++){
+                $h=$hf[$i].Trim('"')
+                switch($h){
+                  'RAW_TICKER'{$tickerIdx=$i}; 'RAW_DATETIME_ISO'{$dtIdx=$i}; 'RAW_OPEN'{$openIdx=$i}; 'RAW_HIGH'{$highIdx=$i}; 'RAW_LOW'{$lowIdx=$i}; 'RAW_CLOSE'{$closeIdx=$i}; 'RAW_VOLUME'{$volIdx=$i}; 'IDX_REGULAR_CLOCK_SESSION_CODE'{$sessIdx=$i}; 'OBS_GAP_GT_BASE_INTERVAL_FLAG'{$gapIdx=$i}; 'OBS_DUP_OR_OUT_OF_ORDER_TIME_FLAG'{$dupIdx=$i}
+                }
+              }
+              if(@($tickerIdx,$dtIdx,$openIdx,$highIdx,$lowIdx,$closeIdx,$volIdx,$sessIdx,$gapIdx,$dupIdx) -contains -1){throw 'HEADER_INDEX_MISSING'}
+              continue
+            }
+            $sourceRow++; $p=$line.Split(','); if($p.Length -le $dupIdx){continue}
+            $dt=$p[$dtIdx].Trim('"'); if(-not $dt.StartsWith($target)){continue}
+            $tk=$p[$tickerIdx].Trim('"'); $rows++; [void]$minuteSet.Add($dt.Substring(11,5))
+            if($p[$gapIdx].Trim('"') -eq '1'){$gapFlags++}; if($p[$dupIdx].Trim('"') -eq '1'){$dupFlags++}
+            $state=[ordered]@{datetime=$dt;open=$p[$openIdx].Trim('"');high=$p[$highIdx].Trim('"');low=$p[$lowIdx].Trim('"');close=$p[$closeIdx].Trim('"');volume=$p[$volIdx].Trim('"');session_code=$p[$sessIdx].Trim('"')}
+            if($seen.Add($tk)){
+              [void]$order.Add($tk); $ctx[$tk]=[ordered]@{ticker=$tk;actual_rows=1;source_row_first=$sourceRow;source_row_last=$sourceRow;first_supported=$state;right_boundary_supported=$state}
+            } else {
+              $c=$ctx[$tk]; $c.actual_rows=[int]$c.actual_rows+1; $c.source_row_last=$sourceRow; $c.right_boundary_supported=$state
+            }
+          }
+          if($rows -ne $expectedRows){throw "ROW_COUNT_FAIL got=$rows expected=$expectedRows"}
+          if($order.Count -ne $expectedContexts){throw "CONTEXT_COUNT_FAIL got=$($order.Count) expected=$expectedContexts"}
+          if($order[0] -ne 'AADI' -or $order[$order.Count-1] -ne 'ZYRX'){throw "EDGE_TICKER_FAIL first=$($order[0]) last=$($order[$order.Count-1])"}
+          [int64]$sum=0; $boundaryLines=New-Object 'System.Collections.Generic.List[string]'
+          for($i=0;$i -lt $order.Count;$i++){
+            $tk=$order[$i]; $c=$ctx[$tk]; $sum += [int64]$c.actual_rows
+            $span=[int64]$c.source_row_last-[int64]$c.source_row_first+1
+            if($span -ne [int64]$c.actual_rows){throw "CONTEXT_NONCONTIGUOUS ticker=$tk span=$span rows=$($c.actual_rows)"}
+            $b=[ordered]@{ticker=$tk;trading_date=$target;reconstructed_manifest_ordinal=($i+1);actual_rows=[int]$c.actual_rows;source_row_first=[int64]$c.source_row_first;source_row_last=[int64]$c.source_row_last;first_supported=$c.first_supported;right_boundary_supported=$c.right_boundary_supported;post_last_supported_path='UNKNOWN';boundary_origin='SOURCE_SUPPORTED_ONLY';left_origin='EXECUTION_CONTEXT_UNRESOLVED_NO_PRIOR_DATE_READ_BY_THIS_WORKER';no_hindsight_backfill=$true}
+            [void]$boundaryLines.Add(($b|ConvertTo-Json -Compress -Depth 7))
+          }
+          if($sum -ne $expectedRows){throw "TICKER_ROW_SUM_FAIL $sum"}
+          $bpath=Join-Path $out 'DATE06_BOUNDARY_STATES.jsonl'; [System.IO.File]::WriteAllLines($bpath,[string[]]$boundaryLines,$utf8)
+          $bsha=(Get-FileHash -LiteralPath $bpath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $summary=[ordered]@{
+            reconciliation='DATE06_SOURCE_AND_BOUNDARY_RECONCILIATION_V1';trading_date=$target;status='PASS';source_size=$fi.Length;source_md5=$md5;source_sha256=$sha;expected_rows=$expectedRows;actual_rows=$rows;expected_ticker_contexts=$expectedContexts;actual_ticker_contexts=$order.Count;locator_authority='GOVERNED_DETERMINISTIC_RECONSTRUCTION_DUE_CANONICAL_MANIFEST_ACCESS_GAP';canonical_semantic_bundle_locator='UNAVAILABLE_CURRENT_CONNECTOR_DO_NOT_INVENT';first_ticker=$order[0];last_ticker=$order[$order.Count-1];ticker_row_sum=$sum;context_contiguity='PASS';boundary_states_count=$order.Count;boundary_states_sha256=$bsha;minute_coverage_points=$minuteSet.Count;source_gap_flags=$gapFlags;duplicate_or_out_of_order_flags=$dupFlags;missing_minutes_synthesized=$false;intragap_paths_reconstructed=$false;all_source_columns_semantic_read=74;volume_semantics='EFFORT_PARTICIPATION_ONLY';formula_creation='CLOSED';auto_advance='PROHIBITED';date_local_pass='PENDING_DRIVE_READBACK_AND_REGISTRY_CLOSE'
+          }
+          $spath=Join-Path $out 'DATE06_RECONCILIATION_SUMMARY.json'; [System.IO.File]::WriteAllText($spath,($summary|ConvertTo-Json -Depth 8),$utf8)
+          $hashLines=Get-ChildItem $out -File|Sort-Object Name|ForEach-Object{((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())+'  '+$_.Name}; [System.IO.File]::WriteAllLines((Join-Path $out '_SHA256.txt'),[string[]]$hashLines,$utf8)
+          Write-Host "DATE06_RECONCILIATION_PASS rows=$rows contexts=$($order.Count) minuteCoverage=$($minuteSet.Count) boundarySha=$bsha"
+      - name: Upload Date06 reconciliation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date06-date-close-reconciliation
+          path: .machine1_transport/date06_close_reconciliation/
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 30
