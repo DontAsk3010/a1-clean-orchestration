@@ -12,10 +12,19 @@
   "canonical_current_mutation_authorized": false,
   "formula_stage": "CLOSED",
   "historical_writer_path": "C:\\Users\\feri-admin\\a1-drive-auth\\client_writer.json",
+  "historical_path_absence_proves_writer_loss": false,
   "current_reader": {
     "path": "C:\\Users\\feri-admin\\a1-drive-auth\\reader_credentials.json",
     "sha256": "3806f7bdf8cdbcc0a377e0866b9125a1ac0abb18113751c2d2b00dfbf679e0c7",
     "credential_kind": "AUTHORIZED_USER_RUNTIME_CREDENTIAL"
+  },
+  "expected_writer_principal_evidence": {
+    "parity_staging_folder_id": "1WTb_lGBD6Tuwfcb-1WhsICjyJqzzBtwU",
+    "parity_staging_folder_name": "UNIVERSAL_BEHAVIOR_DATA_PLANE_PARITY_STAGING",
+    "owner_email": "fjulie8satu@gmail.com",
+    "owner_display_name": "Feri Iswahyu",
+    "role": "owner",
+    "verification_role": "Candidate writer must authenticate read-only as this principal and prove full Drive OAuth scope before binding."
   },
   "governed_search_evidence": {
     "process_user_machine_writer_binding": "ABSENT_ON_MACHINE2_RUNNER_CONTEXT",
@@ -49,8 +58,39 @@
     },
     "service_directory_enumeration_limitation": "PROVEN: exact-path Reader file can be read but was not encountered by recursive directory enumeration under runner service identity; therefore service-side directory scan zero-results cannot prove exhaustive absence of an arbitrarily renamed credential in protected user storage"
   },
-  "governed_decision": "DO_NOT_DECLARE_WRITER_MISSING_AND_DO_NOT_REAUTHORIZE_OR_REPLACE_YET. COMPLETE ONE INTERACTIVE feri-admin USER-CONTEXT STRUCTURAL SEARCH OF CURRENT LOCAL STORAGE BECAUSE RUNNER SERVICE DIRECTORY ENUMERATION IS NOT AUTHORITATIVE IN THE PROTECTED AUTH LOCATION.",
-  "next_exact_gate": "INTERACTIVE_FERI_ADMIN_RELOCATION_SEARCH -> IF_CANDIDATE_FOUND_VERIFY_TYPE_IDENTITY_NOT_READER_SCOPE -> BIND_A1_DRIVE_WRITER_CREDENTIALS -> DRIVE_GUARDRAIL -> RECOVERY_PREPARE -> EXACT_READBACK -> LIGHTWEIGHT_PRESTART",
+  "interactive_gate": {
+    "required_user": "feri-admin",
+    "script_path": "scripts/windows/Find-A1DriveWriterCredentialInteractive.ps1",
+    "script_added_commit": "280b08d9f697c58df5b9f4ca29b6f5b8fe3d1a78",
+    "syntax_validation_commit": "974127e04e595ef7916e97c30bcb104ef1e33f51",
+    "syntax_validation_run_id": 36076428810,
+    "syntax_validation_job_id": 107888546276,
+    "syntax_validation_status": "PASS",
+    "safe_report_path": "C:\\Users\\feri-admin\\.a1clean\\writer-relocation-interactive-current.json",
+    "search_mutates_credentials": false,
+    "search_changes_binding": false,
+    "search_writes_drive": false,
+    "search_discloses_secrets": false,
+    "pinned_raw_script_commit_for_manual_invocation": "59bce559d36fd0f1061688c95cf33a211411fce0"
+  },
+  "candidate_verification_gate": {
+    "workflow": ".github/workflows/windows-drive-writer-interactive-report-verify.yml",
+    "workflow_added_commit": "ed1cebfa64588bd102f2546b081bef8fe7eb3c69",
+    "verification_is_read_only": true,
+    "required_checks": [
+      "EXACT_FILE_HASH_STABLE",
+      "SUPPORTED_RUNTIME_CREDENTIAL_TYPE",
+      "NOT_BYTE_IDENTICAL_TO_READER",
+      "OAUTH_TOKEN_REFRESH_PASS",
+      "FULL_DRIVE_SCOPE_GRANTED_BY_TOKENINFO",
+      "READ_ONLY_DRIVE_IDENTITY_PROBE_PASS",
+      "PRINCIPAL_EQUALS_PARITY_STAGING_OWNER"
+    ],
+    "binding_before_verification": false,
+    "drive_write_before_verification": false
+  },
+  "governed_decision": "DO_NOT_DECLARE_WRITER_MISSING_AND DO_NOT_REAUTHORIZE_OR_REPLACE. COMPLETE ONE INTERACTIVE feri-admin USER-CONTEXT STRUCTURAL SEARCH. IF A DISTINCT RUNTIME CANDIDATE IS FOUND, RUN GOVERNED READ-ONLY CANDIDATE VERIFICATION BEFORE ANY BINDING.",
+  "next_exact_gate": "INTERACTIVE_FERI_ADMIN_RELOCATION_SEARCH -> IF_CANDIDATE_FOUND_GOVERNED_READ_ONLY_VERIFICATION -> VERIFIED_WRITER_BINDING -> DRIVE_GUARDRAIL -> RECOVERY_PREPARE -> EXACT_READBACK -> LIGHTWEIGHT_PRESTART",
   "forbidden": [
     "DO_NOT_CREATE_NEW_OAUTH_WRITER",
     "DO_NOT_REAUTHORIZE_WRITER",
