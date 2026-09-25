@@ -7,11 +7,20 @@ on:
     paths:
       - '.github/workflows/windows-v32-dynamic-source-preflight.yml'
       - 'governance/a1-clean-active-authority-lock.json'
+      - 'governance/a1-clean-authority-bootstrap-current.json'
       - 'v32-full-observation-behavior-requests/current.json'
       - 'v32-behavior-grouping-requests/current.json'
+      - 'canonical-current-recovery-requests/current.json'
+      - 'canonical-current-recovery-requests/recovery-prepare-blocker-current.json'
+      - 'canonical-current-recovery-requests/writer-relocation-search-current.json'
+      - 'src/a1clean/google_drive.py'
+      - 'src/a1clean/authority_bootstrap.py'
       - 'src/a1clean/formula_research/source_universe_manifest.py'
       - 'src/a1clean/formula_research/source_universe_drive_preflight.py'
       - 'src/a1clean/formula_research/v32_dynamic_prestart.py'
+      - 'tests/test_authority_bootstrap.py'
+      - 'tests/test_source_universe_manifest.py'
+      - 'tests/test_v32_dynamic_prestart.py'
   workflow_dispatch:
 
 permissions:
@@ -59,39 +68,49 @@ jobs:
           "A1_PYTHON_EXE=$py" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           $pyRoot | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Install and run source-universe unit gates
+      - name: Install and run authority plus source-universe unit gates
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           & $env:A1_PYTHON_EXE -m pip install -e '.[test]'
           if ($LASTEXITCODE -ne 0) { throw 'DYNAMIC_PRESTART_INSTALL_FAILED' }
           & $env:A1_PYTHON_EXE -m pytest -q `
+            tests/test_authority_bootstrap.py `
             tests/test_source_universe_manifest.py `
             tests/test_v32_dynamic_prestart.py `
             tests/test_v32_behavior_grouping_dynamic.py `
             tests/test_v32_full_observation_semantic_dynamic.py
           if ($LASTEXITCODE -ne 0) { throw 'DYNAMIC_PRESTART_UNIT_GATE_FAILED' }
 
-      - name: Discover governed source universe from current Drive control bundle only
+      - name: Full authority sync then discover governed source universe
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           if ([string]::IsNullOrWhiteSpace($env:A1_DRIVE_READER_CREDENTIALS)) { throw 'DYNAMIC_PRESTART_DRIVE_READER_CREDENTIALS_NOT_CONFIGURED' }
           if (-not (Test-Path -LiteralPath $env:A1_DRIVE_READER_CREDENTIALS -PathType Leaf)) { throw 'DYNAMIC_PRESTART_DRIVE_READER_CREDENTIALS_FILE_MISSING' }
           $manifest = Join-Path $env:RUNNER_TEMP 'source-universe-manifest.json'
+          $proof = Join-Path $env:RUNNER_TEMP 'AUTHORITY_SYNC_PROOF.json'
           $stamp = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
           & $env:A1_PYTHON_EXE -m a1clean.formula_research.source_universe_drive_preflight `
             --authority-lock governance/a1-clean-active-authority-lock.json `
+            --authority-bootstrap governance/a1-clean-authority-bootstrap-current.json `
+            --authority-sync-proof $proof `
             --output $manifest `
             --discovery-time-utc $stamp
-          if ($LASTEXITCODE -ne 0) { throw "DYNAMIC_PRESTART_SOURCE_UNIVERSE_HOLD:$LASTEXITCODE" }
+          if ($LASTEXITCODE -ne 0) { throw "DYNAMIC_PRESTART_AUTHORITY_OR_SOURCE_UNIVERSE_HOLD:$LASTEXITCODE" }
+          $a = Get-Content -LiteralPath $proof -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($a.status -ne 'PASS' -or $a.full_authority_read_complete -ne $true) { throw 'DYNAMIC_PRESTART_AUTHORITY_SYNC_NOT_PASS' }
           $u = Get-Content -LiteralPath $manifest -Raw -Encoding UTF8 | ConvertFrom-Json
           if ($u.status -ne 'PASS') { throw 'DYNAMIC_PRESTART_SOURCE_UNIVERSE_NOT_PASS' }
           if ($u.dynamic_source_universe_required -ne $true -or $u.fixed_source_count_as_invariant_forbidden -ne $true) { throw 'DYNAMIC_PRESTART_SOURCE_UNIVERSE_GOVERNANCE_FAIL' }
           if ([int]$u.source_count -lt 1 -or $u.sources.Count -ne [int]$u.source_count) { throw 'DYNAMIC_PRESTART_SOURCE_UNIVERSE_CARDINALITY_FAIL' }
+          if ($u.authority_sync.status -ne 'PASS' -or $u.authority_sync.full_authority_read_complete -ne $true) { throw 'DYNAMIC_PRESTART_SOURCE_MANIFEST_AUTHORITY_BINDING_FAIL' }
+          "A1_AUTHORITY_SYNC_PROOF=$proof" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "A1_AUTHORITY_CORPUS_DIGEST=$($a.authority_corpus_sha256)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "A1_SOURCE_UNIVERSE_MANIFEST=$manifest" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "A1_SOURCE_UNIVERSE_COUNT=$($u.source_count)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "A1_SOURCE_UNIVERSE_DIGEST=$($u.manifest_digest)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "AUTHORITY_SYNC_PASS|docs=$($a.authority_document_count)|states=$($a.repo_state_file_count)|digest=$($a.authority_corpus_sha256)"
           Write-Host "DYNAMIC_SOURCE_UNIVERSE_PASS|sources=$($u.source_count)|digest=$($u.manifest_digest)"
 
       - name: Validate both HOLD requests against current authority and dynamic universe
@@ -115,11 +134,15 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force -Path 'dynamic-source-prestart-evidence' | Out-Null
+          Copy-Item -LiteralPath $env:A1_AUTHORITY_SYNC_PROOF -Destination 'dynamic-source-prestart-evidence\AUTHORITY_SYNC_PROOF.json' -Force
           Copy-Item -LiteralPath $env:A1_SOURCE_UNIVERSE_MANIFEST -Destination 'dynamic-source-prestart-evidence\source-universe-manifest.json' -Force
+          Copy-Item -LiteralPath 'governance\a1-clean-authority-bootstrap-current.json' -Destination 'dynamic-source-prestart-evidence\authority-bootstrap-contract.json' -Force
           Copy-Item -LiteralPath 'governance\a1-clean-active-authority-lock.json' -Destination 'dynamic-source-prestart-evidence\authority-lock.json' -Force
           Copy-Item -LiteralPath 'v32-full-observation-behavior-requests\current.json' -Destination 'dynamic-source-prestart-evidence\full-observation-request.json' -Force
           Copy-Item -LiteralPath 'v32-behavior-grouping-requests\current.json' -Destination 'dynamic-source-prestart-evidence\grouping-request.json' -Force
           Add-Content $env:GITHUB_STEP_SUMMARY '### Dynamic source universe PRESTART'
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Full authority docs read: PASS ($((Get-Content $env:A1_AUTHORITY_SYNC_PROOF -Raw | ConvertFrom-Json).authority_document_count))"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Authority corpus digest: $env:A1_AUTHORITY_CORPUS_DIGEST"
           Add-Content $env:GITHUB_STEP_SUMMARY "- Governed source count: $env:A1_SOURCE_UNIVERSE_COUNT"
           Add-Content $env:GITHUB_STEP_SUMMARY "- Manifest digest: $env:A1_SOURCE_UNIVERSE_DIGEST"
           Add-Content $env:GITHUB_STEP_SUMMARY '- Heavy execution remains HOLD because both requests are disabled.'
