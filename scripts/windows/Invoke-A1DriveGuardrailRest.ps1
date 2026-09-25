@@ -15,12 +15,22 @@ $StagingName = 'UNIVERSAL_BEHAVIOR_DATA_PLANE_PARITY_STAGING'
 $FolderMime = 'application/vnd.google-apps.folder'
 $ReadOnlyScope = 'https://www.googleapis.com/auth/drive.readonly'
 $ReadWriteScope = 'https://www.googleapis.com/auth/drive'
+$RecoveryRequestPath = 'canonical-current-recovery-requests\current.json'
 
 function Fail([string]$Code) { throw $Code }
 function UrlEncode([string]$Value) { [Uri]::EscapeDataString($Value) }
 
 if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { Fail "A1_DRIVE_GUARDRAIL_WRONG_MACHINE:$env:COMPUTERNAME" }
 if ($env:RUNNER_NAME -ne 'A1-WINDOWS-COMPUTE-02') { Fail "A1_DRIVE_GUARDRAIL_WRONG_RUNNER:$env:RUNNER_NAME" }
+if (-not (Test-Path -LiteralPath $RecoveryRequestPath -PathType Leaf)) { Fail 'A1_DRIVE_GUARDRAIL_RECOVERY_REQUEST_MISSING' }
+$recoveryRequest = Get-Content -LiteralPath $RecoveryRequestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+if ([string]$recoveryRequest.schema -ne 'A1_CANONICAL_CURRENT_RECOVERY_REQUEST_V1') { Fail 'A1_DRIVE_GUARDRAIL_RECOVERY_REQUEST_SCHEMA_FAIL' }
+if ($recoveryRequest.enabled -ne $true) { Fail 'A1_DRIVE_GUARDRAIL_RECOVERY_REQUEST_NOT_ENABLED' }
+if ([string]$recoveryRequest.mode -ne 'PREPARE_ONLY_NO_CANONICAL_WRITE') { Fail 'A1_DRIVE_GUARDRAIL_RECOVERY_REQUEST_MODE_FAIL' }
+if ([string]$recoveryRequest.expected_missing_current_folder_id -ne $CurrentId) { Fail 'A1_DRIVE_GUARDRAIL_RECOVERY_CURRENT_ID_MISMATCH' }
+if ([string]$recoveryRequest.expected_missing_current_folder_name -ne $CurrentName) { Fail 'A1_DRIVE_GUARDRAIL_RECOVERY_CURRENT_NAME_MISMATCH' }
+if ([string]$recoveryRequest.parity_staging_folder_id -ne $StagingId) { Fail 'A1_DRIVE_GUARDRAIL_RECOVERY_STAGING_ID_MISMATCH' }
+if ($recoveryRequest.canonical_promotion_allowed -ne $false -or $recoveryRequest.raw_write_allowed -ne $false -or $recoveryRequest.heavy_behavior_research_allowed -ne $false) { Fail 'A1_DRIVE_GUARDRAIL_RECOVERY_SAFETY_LOCK_FAIL' }
 
 $readerPath = [string]$env:A1_DRIVE_READER_CREDENTIALS
 $writerPath = [string]$env:A1_DRIVE_WRITER_CREDENTIALS
@@ -34,9 +44,7 @@ function Get-AuthorizedUserAccessToken([string]$Path, [string]$ExpectedScope, [s
     $c = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
     if ([string]$c.type -ne 'authorized_user') { Fail "A1_DRIVE_GUARDRAIL_${Role}_UNSUPPORTED_CREDENTIAL_TYPE" }
     foreach ($name in @('client_id','client_secret','refresh_token')) {
-        if (-not ($c.PSObject.Properties.Name -contains $name) -or [string]::IsNullOrWhiteSpace([string]$c.$name)) {
-            Fail "A1_DRIVE_GUARDRAIL_${Role}_MISSING_$name"
-        }
+        if (-not ($c.PSObject.Properties.Name -contains $name) -or [string]::IsNullOrWhiteSpace([string]$c.$name)) { Fail "A1_DRIVE_GUARDRAIL_${Role}_MISSING_$name" }
     }
     $tokenUri = if (($c.PSObject.Properties.Name -contains 'token_uri') -and -not [string]::IsNullOrWhiteSpace([string]$c.token_uri)) { [string]$c.token_uri } else { 'https://oauth2.googleapis.com/token' }
     if ($tokenUri -notmatch '^https://oauth2\.googleapis\.com/token$|^https://accounts\.google\.com/o/oauth2/token$') { Fail "A1_DRIVE_GUARDRAIL_${Role}_UNEXPECTED_TOKEN_URI" }
@@ -56,32 +64,44 @@ function Get-AuthorizedUserAccessToken([string]$Path, [string]$ExpectedScope, [s
 
 $reader = Get-AuthorizedUserAccessToken -Path $readerPath -ExpectedScope $ReadOnlyScope -Role 'READER'
 $writer = Get-AuthorizedUserAccessToken -Path $writerPath -ExpectedScope $ReadWriteScope -Role 'WRITER'
-
 $readerHeaders = @{ Authorization = 'Bearer ' + $reader.AccessToken }
 $writerHeaders = @{ Authorization = 'Bearer ' + $writer.AccessToken }
 $folderFields = 'id,name,mimeType,parents,capabilities(canAddChildren,canDelete,canEdit,canTrashChildren)'
 
 function Get-FolderSnapshot([string]$Id, [hashtable]$Headers, [string]$Role) {
     $uri = 'https://www.googleapis.com/drive/v3/files/' + $Id + '?fields=' + (UrlEncode $folderFields) + '&supportsAllDrives=true'
-    try {
-        return Invoke-RestMethod -Method Get -Uri $uri -Headers $Headers
-    } catch {
+    try { return Invoke-RestMethod -Method Get -Uri $uri -Headers $Headers }
+    catch {
         $status = $null
         try { $status = [int]$_.Exception.Response.StatusCode } catch {}
-        Fail "A1_DRIVE_GUARDRAIL_${Role}_FOLDER_READ_FAIL:id=$Id:http=$status"
+        Fail "A1_DRIVE_GUARDRAIL_${Role}_FOLDER_READ_FAIL:id=${Id}:http=$status"
     }
 }
 
 $raw = Get-FolderSnapshot -Id $RawId -Headers $readerHeaders -Role 'RAW_READER'
-$current = Get-FolderSnapshot -Id $CurrentId -Headers $readerHeaders -Role 'CURRENT_READER'
 $staging = Get-FolderSnapshot -Id $StagingId -Headers $writerHeaders -Role 'STAGING_WRITER'
+$currentState = $null
+$currentHttp = $null
+$currentUnexpected = $null
+$currentUri = 'https://www.googleapis.com/drive/v3/files/' + $CurrentId + '?fields=' + (UrlEncode 'id,name,mimeType,trashed,parents') + '&supportsAllDrives=true'
+try {
+    $currentUnexpected = Invoke-RestMethod -Method Get -Uri $currentUri -Headers $readerHeaders
+    $currentState = 'UNEXPECTEDLY_PRESENT'
+} catch {
+    try { $currentHttp = [int]$_.Exception.Response.StatusCode } catch {}
+    if ($currentHttp -eq 404) { $currentState = 'NOT_FOUND_404_EXPECTED_FOR_RECOVERY' }
+    else { Fail "A1_DRIVE_GUARDRAIL_CURRENT_READER_UNEXPECTED_ERROR:http=$currentHttp" }
+}
+if ($currentState -ne 'NOT_FOUND_404_EXPECTED_FOR_RECOVERY') {
+    $name = if ($null -ne $currentUnexpected) { [string]$currentUnexpected.name } else { '' }
+    Fail "A1_DRIVE_GUARDRAIL_RECOVERY_EXPECTED_CURRENT_MISSING_BUT_PRESENT:name=$name"
+}
 
-$folderIdsDistinct = (@($raw.id,$current.id,$staging.id) | Select-Object -Unique).Count -eq 3
-$rawIdentity = ([string]$raw.name -eq $RawName -and [string]$raw.mimeType -eq $FolderMime)
-$currentIdentity = ([string]$current.name -eq $CurrentName -and [string]$current.mimeType -eq $FolderMime)
-$stagingIdentity = ([string]$staging.name -eq $StagingName -and [string]$staging.mimeType -eq $FolderMime)
+$rawIdentity = ([string]$raw.id -eq $RawId -and [string]$raw.name -eq $RawName -and [string]$raw.mimeType -eq $FolderMime)
+$stagingIdentity = ([string]$staging.id -eq $StagingId -and [string]$staging.name -eq $StagingName -and [string]$staging.mimeType -eq $FolderMime)
+$rawStagingDistinct = ([string]$raw.id -ne [string]$staging.id)
 $stagingCanAdd = [bool]$staging.capabilities.canAddChildren
-if (-not ($folderIdsDistinct -and $rawIdentity -and $currentIdentity -and $stagingIdentity -and $stagingCanAdd)) { Fail 'A1_DRIVE_GUARDRAIL_FOLDER_SEPARATION_OR_IDENTITY_FAIL' }
+if (-not ($rawIdentity -and $stagingIdentity -and $rawStagingDistinct -and $stagingCanAdd)) { Fail 'A1_DRIVE_GUARDRAIL_RECOVERY_FOLDER_SEPARATION_OR_IDENTITY_FAIL' }
 
 function New-ProbeFile([hashtable]$Headers, [string]$FolderId, [string]$Name) {
     $boundary = 'a1_' + [Guid]::NewGuid().ToString('N')
@@ -106,18 +126,12 @@ try {
     if ($readerCreatedId) {
         try { Remove-ProbeFile -Headers $writerHeaders -Id $readerCreatedId; $readerProbe.cleanup = 'DELETED_BY_WRITER_AFTER_UNEXPECTED_READER_WRITE' } catch { $readerProbe.cleanup = 'CLEANUP_FAILED' }
     }
-    $readerProbe.pass = $false
-    $readerProbe.write_denied = $false
 } catch {
     $status = $null
     try { $status = [int]$_.Exception.Response.StatusCode } catch {}
     $readerProbe.http_status = $status
-    if ($status -in @(401,403)) {
-        $readerProbe.pass = $true
-        $readerProbe.write_denied = $true
-    } else {
-        Fail "A1_DRIVE_GUARDRAIL_READER_WRITE_DENIAL_PROBE_FAIL:http=$status"
-    }
+    if ($status -in @(401,403)) { $readerProbe.pass = $true; $readerProbe.write_denied = $true }
+    else { Fail "A1_DRIVE_GUARDRAIL_READER_WRITE_DENIAL_PROBE_FAIL:http=$status" }
 }
 if (-not $readerProbe.pass) { Fail 'A1_DRIVE_GUARDRAIL_READER_WRITE_UNEXPECTEDLY_SUCCEEDED' }
 
@@ -140,24 +154,26 @@ try {
 }
 
 $report = [ordered]@{
-    schema = 'A1_DRIVE_GUARDRAIL_REST_V1'
+    schema = 'A1_DRIVE_GUARDRAIL_RECOVERY_PREREQUISITE_V1'
+    status = 'PASS_RECOVERY_PREREQUISITE_EXPECTED_CURRENT_404'
     pass = $true
     observed_at_utc = [DateTime]::UtcNow.ToString('o')
     machine = $env:COMPUTERNAME
     runner = $env:RUNNER_NAME
+    recovery_request_mode = [string]$recoveryRequest.mode
     credential_channels = [ordered]@{ raw_and_current = 'READER_CREDENTIAL / DRIVE_READONLY_SCOPE'; parity_staging = 'WRITER_CREDENTIAL / DRIVE_WRITE_SCOPE' }
     checks = [ordered]@{
-        folder_ids_distinct = $true
         raw_identity = $true
-        current_identity = $true
+        current_expected_missing_404 = $true
         staging_identity = $true
+        raw_staging_ids_distinct = $true
         staging_writer_has_write_capability = $true
         reader_write_denial_probe_in_staging = $readerProbe
         staging_writer_create_delete_probe = $writerProbe
     }
     folders = [ordered]@{
         raw_via_reader = [ordered]@{ id = [string]$raw.id; name = [string]$raw.name; mimeType = [string]$raw.mimeType; capabilities = $raw.capabilities }
-        current_via_reader = [ordered]@{ id = [string]$current.id; name = [string]$current.name; mimeType = [string]$current.mimeType; capabilities = $current.capabilities }
+        current_via_reader = [ordered]@{ id = $CurrentId; expected_name = $CurrentName; state = $currentState; http_status = $currentHttp }
         staging_via_writer = [ordered]@{ id = [string]$staging.id; name = [string]$staging.name; mimeType = [string]$staging.mimeType; capabilities = $staging.capabilities }
     }
     reader_sha256 = $readerHash
@@ -168,14 +184,15 @@ $report = [ordered]@{
     staging_only_write_probe = $true
     canonical_current_mutation = $false
     secrets_disclosed = $false
+    next_exact_gate = 'CANONICAL_CURRENT_RECOVERY_PREPARE_IN_PARITY_STAGING_ONLY'
 }
 $dir = Split-Path -Parent $ReportPath
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
 $report | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $ReportPath -Encoding UTF8
 
-Write-Host 'A1_DRIVE_GUARDRAIL_REST_STATUS=PASS'
+Write-Host 'A1_DRIVE_GUARDRAIL_RECOVERY_STATUS=PASS_RECOVERY_PREREQUISITE_EXPECTED_CURRENT_404'
 Write-Host 'RAW_READER_IDENTITY=PASS'
-Write-Host 'CURRENT_READER_IDENTITY=PASS'
+Write-Host 'CURRENT_EXPECTED_MISSING_404=PASS'
 Write-Host 'STAGING_WRITER_IDENTITY=PASS'
 Write-Host 'READER_WRITE_DENIAL_IN_STAGING=PASS'
 Write-Host 'WRITER_CREATE_DELETE_IN_STAGING=PASS'
