@@ -73,32 +73,69 @@ jobs:
           Write-Host 'Drive writer credential binding: PRESENT'
           Write-Host 'Drive reader/writer exact file identity: DISTINCT'
 
-      - name: Provision deterministic Python 3.11 for guardrail
+      - name: Resolve existing Python 3.11+ without changing Windows policy
+        id: python
         if: ${{ steps.route.outputs.is_target == 'true' }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $candidates = New-Object System.Collections.Generic.List[string]
+          foreach ($name in @('python','python3')) {
+            $cmd = Get-Command $name -ErrorAction SilentlyContinue
+            if ($cmd -and $cmd.Source) { [void]$candidates.Add([string]$cmd.Source) }
+          }
+          foreach ($root in @(
+            'C:\Users\feri-admin\AppData\Local\Programs\Python',
+            'C:\Program Files\Python',
+            'C:\Python311','C:\Python312','C:\Python313','C:\Python314'
+          )) {
+            if (Test-Path -LiteralPath $root -PathType Container -ErrorAction SilentlyContinue) {
+              Get-ChildItem -LiteralPath $root -Filter python.exe -File -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+                [void]$candidates.Add($_.FullName)
+              }
+            } elseif (Test-Path -LiteralPath $root -PathType Leaf -ErrorAction SilentlyContinue) {
+              [void]$candidates.Add($root)
+            }
+          }
+          $usable = $null
+          foreach ($candidate in @($candidates | Select-Object -Unique)) {
+            try {
+              $versionText = (& $candidate --version 2>&1 | Out-String).Trim()
+              if ($versionText -match '^Python\s+(\d+)\.(\d+)') {
+                $major = [int]$Matches[1]; $minor = [int]$Matches[2]
+                if ($major -eq 3 -and $minor -ge 11) { $usable = $candidate; Write-Host "A1_DRIVE_GUARDRAIL_PYTHON=$versionText"; break }
+              }
+            } catch {}
+          }
+          if (-not $usable) { throw 'A1_DRIVE_GUARDRAIL_EXISTING_PYTHON_3_11_PLUS_NOT_FOUND' }
+          "python_exe=$usable" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Install migration package
         if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          python -m pip install -e .
+          $python = '${{ steps.python.outputs.python_exe }}'
+          & $python -m pip install -e .
+          if ($LASTEXITCODE -ne 0) { throw "A1_DRIVE_GUARDRAIL_PIP_INSTALL_FAIL:$LASTEXITCODE" }
 
       - name: Verify governed Drive permission separation
         if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          python -m a1clean.cli drive-preflight
+          $python = '${{ steps.python.outputs.python_exe }}'
+          & $python -m a1clean.cli drive-preflight
+          if ($LASTEXITCODE -ne 0) { throw "A1_DRIVE_GUARDRAIL_PREFLIGHT_FAIL:$LASTEXITCODE" }
 
       - name: Reconcile complete canonical source universe against local read-only RAW copy
         if: ${{ steps.route.outputs.is_target == 'true' && github.event_name == 'workflow_dispatch' && inputs.run_source_identity }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          python -m a1clean.cli source-preflight
+          $python = '${{ steps.python.outputs.python_exe }}'
+          & $python -m a1clean.cli source-preflight
+          if ($LASTEXITCODE -ne 0) { throw "A1_DRIVE_SOURCE_PREFLIGHT_FAIL:$LASTEXITCODE" }
 
       - name: Safety declaration
         if: ${{ steps.route.outputs.is_target == 'true' }}
@@ -170,32 +207,69 @@ jobs:
           Write-Host 'Drive writer credential binding: PRESENT'
           Write-Host 'Drive reader/writer exact file identity: DISTINCT'
 
-      - name: Provision deterministic Python 3.11 for guardrail
+      - name: Resolve existing Python 3.11+ without changing Windows policy
+        id: python
         if: ${{ steps.route.outputs.is_target == 'true' }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $candidates = New-Object System.Collections.Generic.List[string]
+          foreach ($name in @('python','python3')) {
+            $cmd = Get-Command $name -ErrorAction SilentlyContinue
+            if ($cmd -and $cmd.Source) { [void]$candidates.Add([string]$cmd.Source) }
+          }
+          foreach ($root in @(
+            'C:\Users\feri-admin\AppData\Local\Programs\Python',
+            'C:\Program Files\Python',
+            'C:\Python311','C:\Python312','C:\Python313','C:\Python314'
+          )) {
+            if (Test-Path -LiteralPath $root -PathType Container -ErrorAction SilentlyContinue) {
+              Get-ChildItem -LiteralPath $root -Filter python.exe -File -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+                [void]$candidates.Add($_.FullName)
+              }
+            } elseif (Test-Path -LiteralPath $root -PathType Leaf -ErrorAction SilentlyContinue) {
+              [void]$candidates.Add($root)
+            }
+          }
+          $usable = $null
+          foreach ($candidate in @($candidates | Select-Object -Unique)) {
+            try {
+              $versionText = (& $candidate --version 2>&1 | Out-String).Trim()
+              if ($versionText -match '^Python\s+(\d+)\.(\d+)') {
+                $major = [int]$Matches[1]; $minor = [int]$Matches[2]
+                if ($major -eq 3 -and $minor -ge 11) { $usable = $candidate; Write-Host "A1_DRIVE_GUARDRAIL_PYTHON=$versionText"; break }
+              }
+            } catch {}
+          }
+          if (-not $usable) { throw 'A1_DRIVE_GUARDRAIL_EXISTING_PYTHON_3_11_PLUS_NOT_FOUND' }
+          "python_exe=$usable" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Install migration package
         if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          python -m pip install -e .
+          $python = '${{ steps.python.outputs.python_exe }}'
+          & $python -m pip install -e .
+          if ($LASTEXITCODE -ne 0) { throw "A1_DRIVE_GUARDRAIL_PIP_INSTALL_FAIL:$LASTEXITCODE" }
 
       - name: Verify governed Drive permission separation
         if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          python -m a1clean.cli drive-preflight
+          $python = '${{ steps.python.outputs.python_exe }}'
+          & $python -m a1clean.cli drive-preflight
+          if ($LASTEXITCODE -ne 0) { throw "A1_DRIVE_GUARDRAIL_PREFLIGHT_FAIL:$LASTEXITCODE" }
 
       - name: Reconcile complete canonical source universe against local read-only RAW copy
         if: ${{ steps.route.outputs.is_target == 'true' && github.event_name == 'workflow_dispatch' && inputs.run_source_identity }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          python -m a1clean.cli source-preflight
+          $python = '${{ steps.python.outputs.python_exe }}'
+          & $python -m a1clean.cli source-preflight
+          if ($LASTEXITCODE -ne 0) { throw "A1_DRIVE_SOURCE_PREFLIGHT_FAIL:$LASTEXITCODE" }
 
       - name: Safety declaration
         if: ${{ steps.route.outputs.is_target == 'true' }}
