@@ -13,16 +13,16 @@
   "renew_before_durable_mutation": true,
   "reader_only_authority_access_required": true,
   "authority_documents_in_required_read_order": [
-    {"key": "master_handbook", "source": "authority_lock", "required": true},
-    {"key": "current_execution", "source": "authority_lock", "required": true},
-    {"key": "sub_master_index", "source": "authority_lock", "required": true},
-    {"key": "source_capture", "source": "authority_lock", "required": true},
-    {"key": "behavior_reading", "source": "authority_lock", "required": true},
-    {"key": "github_automation", "source": "authority_lock", "required": true},
-    {"key": "formula_research", "source": "authority_lock", "required": true, "note": "Read for current CLOSED-stage constraints; reading does not open formula construction."},
-    {"key": "machine1_dispatch_registry", "source": "authority_lock", "required": true, "note": "Read for cross-machine independence/date/checkpoint coordination only; never copy Machine 1 semantics into Machine 2."},
-    {"key": "stable_transition_bridge", "source": "authority_lock", "required": true},
-    {"key": "chat_transition_protocol", "source": "explicit", "required": true, "document_id": "1sKbjR_d0doEp5tGfZZ0XlfnuwWEJeRjNokyWdGAB1D8", "revision_id": "ANLCKQn6wKloP6i8f3b8D3SXK2lfYzeGfu8ZduLtjrNc_uFtdfJaVI41TlwFUMG7hr_qxQJHmy6B9OFnK0FdjT7eQ7YJYPpVRB5xiDP_gHc"}
+    {"key": "master_handbook", "source": "authority_lock", "required": true, "drive_revision_id": "67"},
+    {"key": "current_execution", "source": "authority_lock", "required": true, "drive_revision_id": "111"},
+    {"key": "sub_master_index", "source": "authority_lock", "required": true, "drive_revision_id": "56"},
+    {"key": "source_capture", "source": "authority_lock", "required": true, "drive_revision_id": "29"},
+    {"key": "behavior_reading", "source": "authority_lock", "required": true, "drive_revision_id": "56"},
+    {"key": "github_automation", "source": "authority_lock", "required": true, "drive_revision_id": "68"},
+    {"key": "formula_research", "source": "authority_lock", "required": true, "drive_revision_id": "45", "note": "Read for current CLOSED-stage constraints; reading does not open formula construction."},
+    {"key": "machine1_dispatch_registry", "source": "authority_lock", "required": true, "drive_revision_id": "514", "note": "Read for cross-machine independence/date/checkpoint coordination only; never copy Machine 1 semantics into Machine 2."},
+    {"key": "stable_transition_bridge", "source": "authority_lock", "required": true, "drive_revision_id": "85"},
+    {"key": "chat_transition_protocol", "source": "explicit", "required": true, "drive_revision_id": "7", "document_id": "1sKbjR_d0doEp5tGfZZ0XlfnuwWEJeRjNokyWdGAB1D8", "revision_id": "ANLCKQn6wKloP6i8f3b8D3SXK2lfYzeGfu8ZduLtjrNc_uFtdfJaVI41TlwFUMG7hr_qxQJHmy6B9OFnK0FdjT7eQ7YJYPpVRB5xiDP_gHc"}
   ],
   "required_repo_state_files": [
     "governance/a1-clean-active-authority-lock.json",
