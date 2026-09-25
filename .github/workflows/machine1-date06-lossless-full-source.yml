@@ -1,0 +1,160 @@
+name: Machine1 Date06 Full Source Lossless Artifact
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [machine1/date05-prefetch-after-bmsr]
+    paths: [.github/workflows/machine1-date06-lossless-full-source.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 60
+    env:
+      RAW_FILE: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI\Raw Des 02-31-2024.csv'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build exact full-source Date06 transport
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
+          $targetDate='2024-12-06'
+          [int64]$expectedSize=453806812
+          $expectedSha='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          [int]$expectedContexts=888
+          [int64]$expectedRows=75890
+          $expectedFirstTicker='AADI'
+          $expectedLastTicker='ZYRX'
+
+          if(-not (Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING: $raw"}
+          $fi=Get-Item -LiteralPath $raw
+          if($fi.Length -ne $expectedSize){throw "RAW_SIZE_MISMATCH got=$($fi.Length) expected=$expectedSize"}
+          $gotSha=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($gotSha -ne $expectedSha){throw "RAW_SHA256_MISMATCH got=$gotSha expected=$expectedSha"}
+
+          $out=Join-Path $PWD '.machine1_transport/date06_full_source'
+          if(Test-Path -LiteralPath $out){Remove-Item -Recurse -Force -LiteralPath $out}
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $utf8=New-Object System.Text.UTF8Encoding($false)
+
+          $header=$null; $tickerIdx=-1; $dtIdx=-1; [int64]$sourceRow=0
+          $contexts=[ordered]@{}
+          $order=New-Object 'System.Collections.Generic.List[string]'
+          [int64]$totalRows=0
+
+          foreach($line in [System.IO.File]::ReadLines($raw,[System.Text.Encoding]::UTF8)){
+            if($null -eq $header){
+              $header=$line
+              $hf=$line.Split(',')
+              for($i=0;$i -lt $hf.Length;$i++){
+                $h=$hf[$i].Trim('"')
+                if($h -eq 'RAW_TICKER'){$tickerIdx=$i}
+                if($h -eq 'RAW_DATETIME_ISO'){$dtIdx=$i}
+              }
+              if($tickerIdx -lt 0 -or $dtIdx -lt 0){throw 'HEADER_INDEX_MISSING'}
+              continue
+            }
+            $sourceRow++
+            $p=$line.Split(',')
+            if($p.Length -le [Math]::Max($tickerIdx,$dtIdx)){continue}
+            $tk=$p[$tickerIdx].Trim('"')
+            $dt=$p[$dtIdx].Trim('"')
+            if(-not $dt.StartsWith($targetDate)){continue}
+            if(-not $contexts.Contains($tk)){
+              [void]$order.Add($tk)
+              $contexts[$tk]=[ordered]@{
+                source_first=$sourceRow
+                source_last=$sourceRow
+                first_datetime=$dt
+                last_datetime=$dt
+                lines=(New-Object 'System.Collections.Generic.List[string]')
+              }
+            }
+            $ctx=$contexts[$tk]
+            $ctx.source_last=$sourceRow
+            $ctx.last_datetime=$dt
+            [void]$ctx.lines.Add($line)
+            $totalRows++
+          }
+
+          if($order.Count -ne $expectedContexts){throw "CONTEXT_COUNT_FAIL got=$($order.Count) expected=$expectedContexts"}
+          if($totalRows -ne $expectedRows){throw "ROW_COUNT_FAIL got=$totalRows expected=$expectedRows"}
+          if($order[0] -ne $expectedFirstTicker -or $order[$order.Count-1] -ne $expectedLastTicker){throw "EDGE_TICKER_FAIL first=$($order[0]) last=$($order[$order.Count-1])"}
+
+          $manifest=New-Object 'System.Collections.Generic.List[object]'
+          for($i=0;$i -lt $order.Count;$i++){
+            $tk=$order[$i]
+            $ctx=$contexts[$tk]
+            [int64]$span=([int64]$ctx.source_last-[int64]$ctx.source_first+1)
+            if($span -ne [int64]$ctx.lines.Count){throw "NONCONTIGUOUS_CONTEXT ticker=$tk span=$span rows=$($ctx.lines.Count)"}
+            $ordinal=$i+1
+            $fn=('{0:D4}_{1}_20241206_FULL_SOURCE.csv' -f $ordinal,$tk)
+            $path=Join-Path $out $fn
+            $payload=New-Object 'System.Collections.Generic.List[string]'
+            [void]$payload.Add($header)
+            foreach($x in $ctx.lines){[void]$payload.Add($x)}
+            [System.IO.File]::WriteAllLines($path,[string[]]$payload,$utf8)
+            $lineCount=(Get-Content -LiteralPath $path | Measure-Object -Line).Lines
+            if($lineCount -ne ($ctx.lines.Count+1)){throw "FILE_LINE_COUNT_FAIL ticker=$tk got=$lineCount expected=$($ctx.lines.Count+1)"}
+            $sha=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+            [void]$manifest.Add([pscustomobject][ordered]@{
+              reconstructed_manifest_ordinal=$ordinal
+              ticker=$tk
+              trading_date=$targetDate
+              source_row_first=[int64]$ctx.source_first
+              source_row_last=[int64]$ctx.source_last
+              physical_line_first=([int64]$ctx.source_first+1)
+              physical_line_last=([int64]$ctx.source_last+1)
+              actual_rows=[int]$ctx.lines.Count
+              first_datetime=[string]$ctx.first_datetime
+              last_datetime=[string]$ctx.last_datetime
+              full_source_file=$fn
+              full_source_file_sha256=$sha
+              raw_source_sha256=$gotSha
+              locator_authority='GOVERNED_DETERMINISTIC_RECONSTRUCTION_DUE_CANONICAL_MANIFEST_ACCESS_GAP'
+              canonical_semantic_bundle=$null
+              canonical_semantic_bundle_line_number=$null
+              transport_only=$true
+              semantic_read_performed=$false
+              durable_pass=$false
+              exact_source_csv_lines_preserved=$true
+            })
+          }
+
+          $first=$manifest[0]
+          if([int64]$first.source_row_first -ne 243 -or [int64]$first.source_row_last -ne 489 -or [int]$first.actual_rows -ne 247){throw "AADI_ANCHOR_FAIL first=$($first.source_row_first) last=$($first.source_row_last) rows=$($first.actual_rows)"}
+          [System.IO.File]::WriteAllText((Join-Path $out 'BATCH_MANIFEST.json'),($manifest|ConvertTo-Json -Depth 8),$utf8)
+          $meta=[ordered]@{
+            transport_version='DATE06_EXACT_FULL_SOURCE_CSV_V1'
+            trading_date=$targetDate
+            source_file=(Split-Path -Leaf $raw)
+            source_size_bytes=$fi.Length
+            source_sha256=$gotSha
+            context_count=$order.Count
+            actual_rows=$totalRows
+            first_ticker=$order[0]
+            last_ticker=$order[$order.Count-1]
+            authority='MACHINE1_MAXIMUM_SOURCE_SUPPORTED_FULL_DEPTH'
+            locator_authority='GOVERNED_DETERMINISTIC_RECONSTRUCTION_DUE_CANONICAL_MANIFEST_ACCESS_GAP'
+            canonical_semantic_manifest_access='UNAVAILABLE_CURRENT_CONNECTOR_DO_NOT_INVENT_BUNDLE_LOCATOR'
+            no_sampling=$true
+            no_row_cut=$true
+            no_synthetic_minutes=$true
+            semantic_read_performed=$false
+          }
+          [System.IO.File]::WriteAllText((Join-Path $out '_ARTIFACT_META.json'),($meta|ConvertTo-Json -Depth 6),$utf8)
+          $hashLines=Get-ChildItem -LiteralPath $out -File | Sort-Object Name | ForEach-Object {((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())+'  '+$_.Name}
+          [System.IO.File]::WriteAllLines((Join-Path $out '_ARTIFACT_SHA256.txt'),[string[]]$hashLines,$utf8)
+          Write-Host "DATE06_FULL_SOURCE_READY contexts=$($order.Count) rows=$totalRows first=$($order[0]) last=$($order[$order.Count-1])"
+      - name: Upload Date06 exact full-source artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date06-full-source-lossless
+          path: .machine1_transport/date06_full_source/
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 30
