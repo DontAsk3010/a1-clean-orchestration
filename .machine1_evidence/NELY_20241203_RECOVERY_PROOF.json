@@ -1,0 +1,15 @@
+{
+    "ticker":  "NELY",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "recovered_manifest_sha256":  "c07cf5c0c075e6ad6da2ca87623138ed84521423a6a6c143bb75db7a689d6625",
+    "durable_prefix_count":  571,
+    "durable_prefix_sha256":  "00e4f5ef63278312e4242153a7d387562553a9a53a3ac9699c44ce3182670e38",
+    "recovered_date_local_index":  580,
+    "source_row_first":  1149997,
+    "source_row_last":  1150075,
+    "data_rows":  79,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:13:00",
+    "rows_jsonl_sha256":  "f15e8b6d02af858f2fdd70aebdc9a742c473037eb9eae502718fbca424dee79e"
+}

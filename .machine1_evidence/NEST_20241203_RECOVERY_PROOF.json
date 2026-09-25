@@ -1,0 +1,15 @@
+{
+    "ticker":  "NEST",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "recovered_manifest_sha256":  "c07cf5c0c075e6ad6da2ca87623138ed84521423a6a6c143bb75db7a689d6625",
+    "durable_prefix_count":  571,
+    "durable_prefix_sha256":  "00e4f5ef63278312e4242153a7d387562553a9a53a3ac9699c44ce3182670e38",
+    "recovered_date_local_index":  581,
+    "source_row_first":  1155895,
+    "source_row_last":  1156105,
+    "data_rows":  211,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:10:00",
+    "rows_jsonl_sha256":  "7c1799dd03c69e31ddc482faf894e592f37c10985d038c763671757ad5c4bbdf"
+}

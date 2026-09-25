@@ -1,0 +1,112 @@
+[
+    {
+        "date_local_index":  572,
+        "ticker":  "MYOR",
+        "source_row_first":  1140840,
+        "source_row_last":  1141104,
+        "data_rows":  265,
+        "first_clock_time":  "09:00:00",
+        "last_clock_time":  "16:04:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  573,
+        "ticker":  "NAIK",
+        "source_row_first":  1135789,
+        "source_row_last":  1136108,
+        "data_rows":  320,
+        "first_clock_time":  "09:00:00",
+        "last_clock_time":  "16:14:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  574,
+        "ticker":  "NANO",
+        "source_row_first":  1144680,
+        "source_row_last":  1144770,
+        "data_rows":  91,
+        "first_clock_time":  "09:00:00",
+        "last_clock_time":  "16:00:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  575,
+        "ticker":  "NASA",
+        "source_row_first":  1144502,
+        "source_row_last":  1144506,
+        "data_rows":  5,
+        "first_clock_time":  "09:55:00",
+        "last_clock_time":  "16:00:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  576,
+        "ticker":  "NASI",
+        "source_row_first":  1146501,
+        "source_row_last":  1146642,
+        "data_rows":  142,
+        "first_clock_time":  "09:00:00",
+        "last_clock_time":  "16:07:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  577,
+        "ticker":  "NATO",
+        "source_row_first":  1146020,
+        "source_row_last":  1146041,
+        "data_rows":  22,
+        "first_clock_time":  "09:06:00",
+        "last_clock_time":  "16:04:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  578,
+        "ticker":  "NAYZ",
+        "source_row_first":  1148918,
+        "source_row_last":  1149019,
+        "data_rows":  102,
+        "first_clock_time":  "09:00:00",
+        "last_clock_time":  "16:04:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  579,
+        "ticker":  "NCKL",
+        "source_row_first":  1151642,
+        "source_row_last":  1151848,
+        "data_rows":  207,
+        "first_clock_time":  "09:00:00",
+        "last_clock_time":  "16:07:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  580,
+        "ticker":  "NELY",
+        "source_row_first":  1149997,
+        "source_row_last":  1150075,
+        "data_rows":  79,
+        "first_clock_time":  "09:00:00",
+        "last_clock_time":  "16:13:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    },
+    {
+        "date_local_index":  581,
+        "ticker":  "NEST",
+        "source_row_first":  1155895,
+        "source_row_last":  1156105,
+        "data_rows":  211,
+        "first_clock_time":  "09:00:00",
+        "last_clock_time":  "16:10:00",
+        "order":  "ORDINAL_CASE_SENSITIVE",
+        "recovered_from":  "RAW_SOURCE_SHA256_PLUS_DURABLE_PREFIX_PROOF"
+    }
+]
