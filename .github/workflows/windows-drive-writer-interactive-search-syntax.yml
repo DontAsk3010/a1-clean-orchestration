@@ -6,6 +6,7 @@ on:
       - fix/v32-dynamic-source-universe-v1
     paths:
       - 'scripts/windows/Find-A1DriveWriterCredentialInteractive.ps1'
+      - 'scripts/windows/Bind-A1DriveWriterCredentialVerified.ps1'
       - '.github/workflows/windows-drive-writer-interactive-search-syntax.yml'
   workflow_dispatch:
 
@@ -21,16 +22,21 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 1
-      - name: Parse PowerShell only; do not execute relocation search
+      - name: Parse PowerShell safety scripts only; do not execute relocation search or binding
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          $path = 'scripts\windows\Find-A1DriveWriterCredentialInteractive.ps1'
-          $tokens = $null
-          $errors = $null
-          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path), [ref]$tokens, [ref]$errors)
-          if (@($errors).Count -ne 0) {
-            foreach ($e in @($errors)) { Write-Host ("PARSE_ERROR|{0}|{1}" -f $e.Extent.Text,$e.Message) }
-            throw "A1_INTERACTIVE_WRITER_SEARCH_PARSE_FAIL:$(@($errors).Count)"
+          $paths = @(
+            'scripts\windows\Find-A1DriveWriterCredentialInteractive.ps1',
+            'scripts\windows\Bind-A1DriveWriterCredentialVerified.ps1'
+          )
+          foreach ($path in $paths) {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path), [ref]$tokens, [ref]$errors)
+            if (@($errors).Count -ne 0) {
+              foreach ($e in @($errors)) { Write-Host ("PARSE_ERROR|path={0}|text={1}|message={2}" -f $path,$e.Extent.Text,$e.Message) }
+              throw "A1_WRITER_SAFETY_SCRIPT_PARSE_FAIL:$path:$(@($errors).Count)"
+            }
+            Write-Host "A1_WRITER_SAFETY_SCRIPT_PARSE_PASS|path=$path|execution=false|mutation=false"
           }
-          Write-Host 'A1_INTERACTIVE_WRITER_SEARCH_PARSE_PASS|execution=false|mutation=false'
