@@ -1,0 +1,97 @@
+name: Machine1 Date03 Recover Batch 532-541
+on:
+  push:
+    branches: [machine1/evidence-kbatch-20241203]
+    paths: [.github/workflows/machine1-date03-recover-batch-532-541.yml]
+permissions:
+  contents: write
+jobs:
+  extract:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 60
+    env:
+      RAW_FILE: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI\Raw Des 02-31-2024.csv'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate recovered manifest and extract governed batch
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
+          $expectedRaw='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          $expectedManifest='c07cf5c0c075e6ad6da2ca87623138ed84521423a6a6c143bb75db7a689d6625'
+          $expectedPrefix='0c731c288aabc260e38d5c4d6ddc282c08fa93f85a006ed03bc02bbe5f20f231'
+          $manifest='.machine1_evidence/DATE03_RECONSTRUCTED_MANIFEST_FROM_RAW.jsonl'
+          if(-not(Test-Path -LiteralPath $raw -PathType Leaf)){throw 'RAW_MISSING'}
+          if(-not(Test-Path -LiteralPath $manifest -PathType Leaf)){throw 'RECOVERED_MANIFEST_MISSING'}
+          $rawSha=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($rawSha-ne$expectedRaw){throw "RAW_HASH_MISMATCH $rawSha"}
+          $manifestSha=(Get-FileHash -LiteralPath $manifest -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($manifestSha-ne$expectedManifest){throw "MANIFEST_HASH_MISMATCH $manifestSha"}
+          $m=@(Get-Content -LiteralPath $manifest -Encoding UTF8 | ForEach-Object { $_ | ConvertFrom-Json })
+          if($m.Count-ne891){throw "MANIFEST_COUNT_MISMATCH $($m.Count)"}
+          $prefixPayload=([string]::Join("`n",@($m[0..530]|ForEach-Object{$_.ticker})))+"`n"
+          $sha=[System.Security.Cryptography.SHA256]::Create()
+          try{$prefixSha=([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($prefixPayload))).Replace('-','').ToLowerInvariant())}finally{$sha.Dispose()}
+          if($prefixSha-ne$expectedPrefix){throw "DURABLE_PREFIX_MISMATCH $prefixSha"}
+          if([string]$m[530].ticker-ne'MIDI'){throw "PREFIX_LAST_NOT_MIDI $($m[530].ticker)"}
+          $specs=@($m[531..540])
+          if([string]$specs[0].ticker-ne'MIKA' -or [string]$specs[-1].ticker-ne'MLPL'){throw 'BATCH_BOUNDARY_MISMATCH'}
+          $out=Join-Path $PWD 'machine1_date03_batch_532_541'
+          New-Item -ItemType Directory -Force $out|Out-Null
+          $enc=New-Object System.Text.UTF8Encoding($false)
+          $pointer=Join-Path $out 'DATE03_POINTERS_532_541.json'
+          [System.IO.File]::WriteAllText($pointer,($specs|ConvertTo-Json -Depth 8),$enc)
+          $captures=@{}
+          foreach($s in $specs){$captures[[string]$s.ticker]=New-Object 'System.Collections.Generic.List[string]'}
+          $maxLast=($specs|Measure-Object source_row_last -Maximum).Maximum
+          $i=0;$headerLine=$null
+          foreach($line in [System.IO.File]::ReadLines($raw,[Text.Encoding]::UTF8)){
+            if($i-eq0){$headerLine=$line}
+            foreach($s in $specs){
+              $f=[int64]$s.source_row_first;$l=[int64]$s.source_row_last
+              if($i-ge$f -and $i-le$l){[void]$captures[[string]$s.ticker].Add($line)}
+            }
+            if($i-ge$maxLast){break};$i++
+          }
+          foreach($s in $specs){
+            $t=[string]$s.ticker;$lines=$captures[$t];$count=[int64]$s.data_rows
+            if($lines.Count-ne$count){throw "$t CAPTURE_COUNT got=$($lines.Count) expected=$count"}
+            $parsed=@((@($headerLine)+@($lines))|ConvertFrom-Csv)
+            if($parsed.Count-ne$count){throw "$t PARSE_COUNT"}
+            $records=New-Object 'System.Collections.Generic.List[object]'
+            for($n=0;$n-lt$parsed.Count;$n++){
+              $o=[ordered]@{source_row=[int64]$s.source_row_first+$n}
+              foreach($p in $parsed[$n].PSObject.Properties.Name){$o[$p]=[string]$parsed[$n].$p}
+              [void]$records.Add([pscustomobject]$o)
+            }
+            $uniq=@($records|ForEach-Object{$_.RAW_TICKER}|Sort-Object -Unique)
+            if($uniq.Count-ne1 -or $uniq[0]-ne$t){throw "$t TICKER_MISMATCH"}
+            $dts=@($records|ForEach-Object{[string]$_.RAW_DATETIME_ISO})
+            if(@($dts|Where-Object{-not $_.StartsWith('2024-12-03')}).Count-gt0){throw "$t DATE_MISMATCH"}
+            $rp=Join-Path $out "${t}_20241203_ROWS.jsonl"
+            [System.IO.File]::WriteAllLines($rp,[string[]]@($records|ForEach-Object{$_|ConvertTo-Json -Compress -Depth 8}),$enc)
+            $proof=[ordered]@{ticker=$t;trading_date='2024-12-03';source_sha256=$rawSha;recovered_manifest_sha256=$manifestSha;durable_prefix_count=531;durable_prefix_sha256=$prefixSha;recovered_date_local_index=[int]$s.date_local_index;source_row_first=[int64]$s.source_row_first;source_row_last=[int64]$s.source_row_last;data_rows=$records.Count;first_datetime=$dts[0];last_datetime=$dts[-1];rows_jsonl_sha256=(Get-FileHash $rp -Algorithm SHA256).Hash.ToLowerInvariant();recovery_order_proof='PERSISTED_RECOVERED_MANIFEST_SHA_PLUS_DURABLE_PREFIX_531_SHA'}
+            [System.IO.File]::WriteAllText((Join-Path $out "${t}_20241203_RECOVERY_PROOF.json"),($proof|ConvertTo-Json -Depth 10),$enc)
+          }
+          $batchProof=[ordered]@{status='PASS';trading_date='2024-12-03';source_sha256=$rawSha;recovered_manifest_sha256=$manifestSha;durable_prefix_count=531;durable_prefix_last='MIDI';durable_prefix_sha256=$prefixSha;batch_first='MIKA';batch_last='MLPL';batch_count=10;indices=@(532,533,534,535,536,537,538,539,540,541)}
+          [System.IO.File]::WriteAllText((Join-Path $out 'DATE03_BATCH_532_541_PROOF.json'),($batchProof|ConvertTo-Json -Depth 10),$enc)
+          Write-Host 'DATE03_BATCH_532_541_PASS'
+      - name: Upload lossless batch
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date03-batch-532-541
+          path: machine1_date03_batch_532_541/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Persist packet proofs and rows
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item -ItemType Directory -Force '.machine1_evidence'|Out-Null
+          Copy-Item 'machine1_date03_batch_532_541/*' '.machine1_evidence/' -Force
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add -f '.machine1_evidence/DATE03_POINTERS_532_541.json' '.machine1_evidence/DATE03_BATCH_532_541_PROOF.json' '.machine1_evidence/*_20241203_ROWS.jsonl' '.machine1_evidence/*_20241203_RECOVERY_PROOF.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist governed date03 packets 532-541 [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-kbatch-20241203
