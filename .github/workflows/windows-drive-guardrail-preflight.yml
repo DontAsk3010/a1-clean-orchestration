@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       run_source_identity:
-        description: 'After Drive guardrail PASS, hash and reconcile the full dynamically discovered canonical RAW universe against the local read-only RAW copy.'
+        description: 'Reserved for later source-identity preflight after Drive guardrail PASS.'
         required: false
         default: false
         type: boolean
@@ -13,6 +13,7 @@ on:
       - fix/v32-dynamic-source-universe-v1
     paths:
       - '.github/workflows/windows-drive-guardrail-preflight.yml'
+      - 'scripts/windows/Invoke-A1DriveGuardrailRest.ps1'
 
 permissions:
   contents: read
@@ -25,19 +26,16 @@ jobs:
   lane_a:
     name: Guardrail lane A
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
-    timeout-minutes: 120
+    timeout-minutes: 30
     outputs:
       target_pass: ${{ steps.mark.outputs.target_pass }}
       runner_seen: ${{ steps.route.outputs.runner_seen }}
-    env:
-      A1_RAW_DIR: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
     steps:
-      - name: Checkout migration code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
 
-      - name: Route lane without probing Drive on non-target runner
+      - name: Route lane without Drive access on non-target runner
         id: route
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
@@ -53,96 +51,21 @@ jobs:
             Start-Sleep -Seconds 45
           }
 
-      - name: Verify separate external Drive credential bindings exist
+      - name: Parse REST guardrail before execution
         if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
-          $ErrorActionPreference = 'Stop'
-          $bindings = @(
-            @{ Name = 'A1_DRIVE_READER_CREDENTIALS'; Path = $env:A1_DRIVE_READER_CREDENTIALS },
-            @{ Name = 'A1_DRIVE_WRITER_CREDENTIALS'; Path = $env:A1_DRIVE_WRITER_CREDENTIALS }
-          )
-          foreach ($binding in $bindings) {
-            if ([string]::IsNullOrWhiteSpace($binding.Path)) { throw "$($binding.Name) is not configured for the runner process." }
-            if (-not (Test-Path -LiteralPath $binding.Path -PathType Leaf)) { throw "$($binding.Name) points to a credential file that does not exist. Credential content/path is intentionally not printed." }
-          }
-          $readerHash = (Get-FileHash -LiteralPath $env:A1_DRIVE_READER_CREDENTIALS -Algorithm SHA256).Hash.ToLowerInvariant()
-          $writerHash = (Get-FileHash -LiteralPath $env:A1_DRIVE_WRITER_CREDENTIALS -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($readerHash -eq $writerHash) { throw 'A1_DRIVE_GUARDRAIL_READER_WRITER_IDENTICAL_FILE_FORBIDDEN' }
-          Write-Host 'Drive reader credential binding: PRESENT'
-          Write-Host 'Drive writer credential binding: PRESENT'
-          Write-Host 'Drive reader/writer exact file identity: DISTINCT'
+          $tokens=$null; $errors=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'scripts\windows\Invoke-A1DriveGuardrailRest.ps1'),[ref]$tokens,[ref]$errors)
+          if (@($errors).Count -ne 0) { foreach ($e in @($errors)) { Write-Host $e.Message }; throw 'A1_DRIVE_GUARDRAIL_REST_PARSE_FAIL' }
+          Write-Host 'A1_DRIVE_GUARDRAIL_REST_PARSE_PASS'
 
-      - name: Resolve Python from target runner toolcache
-        id: python
+      - name: Execute canonical-equivalent Drive guardrail via REST
         if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
-          $ErrorActionPreference = 'Stop'
-          $root = 'C:\Users\feri-admin\actions-runner-a1-02\_work\_tool\Python'
-          if (-not (Test-Path -LiteralPath $root -PathType Container)) { throw 'A1_DRIVE_GUARDRAIL_TOOLCACHE_PYTHON_ROOT_MISSING' }
-          $candidates = @(Get-ChildItem -LiteralPath $root -Filter python.exe -File -Recurse -ErrorAction SilentlyContinue | Sort-Object FullName)
-          if ($candidates.Count -eq 0) { throw 'A1_DRIVE_GUARDRAIL_TOOLCACHE_PYTHON_EXE_MISSING' }
-          $usable = $null
-          foreach ($file in $candidates) {
-            try {
-              $versionText = (& $file.FullName --version 2>&1 | Out-String).Trim()
-              Write-Host "A1_DRIVE_GUARDRAIL_TOOLCACHE_CANDIDATE=$($file.FullName)|$versionText"
-              if ($versionText -match '^Python\s+(\d+)\.(\d+)') {
-                $major = [int]$Matches[1]; $minor = [int]$Matches[2]
-                if ($major -eq 3 -and $minor -ge 11) { $usable = $file.FullName; break }
-              }
-            } catch {}
-          }
-          if (-not $usable) { throw 'A1_DRIVE_GUARDRAIL_TOOLCACHE_PYTHON_3_11_PLUS_NOT_RUNNABLE' }
-          & $usable -m pip --version *> $null
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host 'A1_DRIVE_GUARDRAIL_TOOLCACHE_PIP_MISSING_BOOTSTRAP_ENSUREPIP'
-            & $usable -m ensurepip --upgrade
-            if ($LASTEXITCODE -ne 0) { throw "A1_DRIVE_GUARDRAIL_ENSUREPIP_FAIL:$LASTEXITCODE" }
-          }
-          & $usable -m pip --version
-          if ($LASTEXITCODE -ne 0) { throw "A1_DRIVE_GUARDRAIL_PIP_UNAVAILABLE:$LASTEXITCODE" }
-          "python_exe=$usable" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          Write-Host 'A1_DRIVE_GUARDRAIL_TOOLCACHE_PYTHON_PASS'
-
-      - name: Install migration package
-        if: ${{ steps.route.outputs.is_target == 'true' }}
-        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $python = '${{ steps.python.outputs.python_exe }}'
-          & $python -m pip install -e .
-          if ($LASTEXITCODE -ne 0) { throw "A1_DRIVE_GUARDRAIL_PIP_INSTALL_FAIL:$LASTEXITCODE" }
-
-      - name: Verify governed Drive permission separation
-        if: ${{ steps.route.outputs.is_target == 'true' }}
-        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $python = '${{ steps.python.outputs.python_exe }}'
-          & $python -m a1clean.cli drive-preflight
-          if ($LASTEXITCODE -ne 0) { throw "A1_DRIVE_GUARDRAIL_PREFLIGHT_FAIL:$LASTEXITCODE" }
-
-      - name: Reconcile complete canonical source universe against local read-only RAW copy
-        if: ${{ steps.route.outputs.is_target == 'true' && github.event_name == 'workflow_dispatch' && inputs.run_source_identity }}
-        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $python = '${{ steps.python.outputs.python_exe }}'
-          & $python -m a1clean.cli source-preflight
-          if ($LASTEXITCODE -ne 0) { throw "A1_DRIVE_SOURCE_PREFLIGHT_FAIL:$LASTEXITCODE" }
-
-      - name: Safety declaration
-        if: ${{ steps.route.outputs.is_target == 'true' }}
-        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
-        run: |
-          Write-Host 'PREFLIGHT ONLY.'
-          Write-Host 'Runner proof target: A1-WINDOWS-COMPUTE-02 on PORSCHE-DESIGN.'
-          Write-Host 'RAW and governed CURRENT are opened only via the reader identity and are never written by this workflow.'
-          Write-Host 'PARITY_STAGING is opened via the separate writer identity.'
-          Write-Host 'Drive write probe is one tiny create/delete object in PARITY_STAGING only.'
-          Write-Host 'No frozen V2 corpus processing and no canonical delta execution occur here.'
+          & '.\scripts\windows\Invoke-A1DriveGuardrailRest.ps1'
+          if ($LASTEXITCODE -ne 0) { throw "A1_DRIVE_GUARDRAIL_REST_EXEC_FAIL:$LASTEXITCODE" }
 
       - name: Mark exact target guardrail PASS
         id: mark
@@ -155,19 +78,16 @@ jobs:
   lane_b:
     name: Guardrail lane B
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
-    timeout-minutes: 120
+    timeout-minutes: 30
     outputs:
       target_pass: ${{ steps.mark.outputs.target_pass }}
       runner_seen: ${{ steps.route.outputs.runner_seen }}
-    env:
-      A1_RAW_DIR: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
     steps:
-      - name: Checkout migration code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
 
-      - name: Route lane without probing Drive on non-target runner
+      - name: Route lane without Drive access on non-target runner
         id: route
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
@@ -183,96 +103,21 @@ jobs:
             Start-Sleep -Seconds 45
           }
 
-      - name: Verify separate external Drive credential bindings exist
+      - name: Parse REST guardrail before execution
         if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
-          $ErrorActionPreference = 'Stop'
-          $bindings = @(
-            @{ Name = 'A1_DRIVE_READER_CREDENTIALS'; Path = $env:A1_DRIVE_READER_CREDENTIALS },
-            @{ Name = 'A1_DRIVE_WRITER_CREDENTIALS'; Path = $env:A1_DRIVE_WRITER_CREDENTIALS }
-          )
-          foreach ($binding in $bindings) {
-            if ([string]::IsNullOrWhiteSpace($binding.Path)) { throw "$($binding.Name) is not configured for the runner process." }
-            if (-not (Test-Path -LiteralPath $binding.Path -PathType Leaf)) { throw "$($binding.Name) points to a credential file that does not exist. Credential content/path is intentionally not printed." }
-          }
-          $readerHash = (Get-FileHash -LiteralPath $env:A1_DRIVE_READER_CREDENTIALS -Algorithm SHA256).Hash.ToLowerInvariant()
-          $writerHash = (Get-FileHash -LiteralPath $env:A1_DRIVE_WRITER_CREDENTIALS -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($readerHash -eq $writerHash) { throw 'A1_DRIVE_GUARDRAIL_READER_WRITER_IDENTICAL_FILE_FORBIDDEN' }
-          Write-Host 'Drive reader credential binding: PRESENT'
-          Write-Host 'Drive writer credential binding: PRESENT'
-          Write-Host 'Drive reader/writer exact file identity: DISTINCT'
+          $tokens=$null; $errors=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'scripts\windows\Invoke-A1DriveGuardrailRest.ps1'),[ref]$tokens,[ref]$errors)
+          if (@($errors).Count -ne 0) { foreach ($e in @($errors)) { Write-Host $e.Message }; throw 'A1_DRIVE_GUARDRAIL_REST_PARSE_FAIL' }
+          Write-Host 'A1_DRIVE_GUARDRAIL_REST_PARSE_PASS'
 
-      - name: Resolve Python from target runner toolcache
-        id: python
+      - name: Execute canonical-equivalent Drive guardrail via REST
         if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
-          $ErrorActionPreference = 'Stop'
-          $root = 'C:\Users\feri-admin\actions-runner-a1-02\_work\_tool\Python'
-          if (-not (Test-Path -LiteralPath $root -PathType Container)) { throw 'A1_DRIVE_GUARDRAIL_TOOLCACHE_PYTHON_ROOT_MISSING' }
-          $candidates = @(Get-ChildItem -LiteralPath $root -Filter python.exe -File -Recurse -ErrorAction SilentlyContinue | Sort-Object FullName)
-          if ($candidates.Count -eq 0) { throw 'A1_DRIVE_GUARDRAIL_TOOLCACHE_PYTHON_EXE_MISSING' }
-          $usable = $null
-          foreach ($file in $candidates) {
-            try {
-              $versionText = (& $file.FullName --version 2>&1 | Out-String).Trim()
-              Write-Host "A1_DRIVE_GUARDRAIL_TOOLCACHE_CANDIDATE=$($file.FullName)|$versionText"
-              if ($versionText -match '^Python\s+(\d+)\.(\d+)') {
-                $major = [int]$Matches[1]; $minor = [int]$Matches[2]
-                if ($major -eq 3 -and $minor -ge 11) { $usable = $file.FullName; break }
-              }
-            } catch {}
-          }
-          if (-not $usable) { throw 'A1_DRIVE_GUARDRAIL_TOOLCACHE_PYTHON_3_11_PLUS_NOT_RUNNABLE' }
-          & $usable -m pip --version *> $null
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host 'A1_DRIVE_GUARDRAIL_TOOLCACHE_PIP_MISSING_BOOTSTRAP_ENSUREPIP'
-            & $usable -m ensurepip --upgrade
-            if ($LASTEXITCODE -ne 0) { throw "A1_DRIVE_GUARDRAIL_ENSUREPIP_FAIL:$LASTEXITCODE" }
-          }
-          & $usable -m pip --version
-          if ($LASTEXITCODE -ne 0) { throw "A1_DRIVE_GUARDRAIL_PIP_UNAVAILABLE:$LASTEXITCODE" }
-          "python_exe=$usable" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          Write-Host 'A1_DRIVE_GUARDRAIL_TOOLCACHE_PYTHON_PASS'
-
-      - name: Install migration package
-        if: ${{ steps.route.outputs.is_target == 'true' }}
-        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $python = '${{ steps.python.outputs.python_exe }}'
-          & $python -m pip install -e .
-          if ($LASTEXITCODE -ne 0) { throw "A1_DRIVE_GUARDRAIL_PIP_INSTALL_FAIL:$LASTEXITCODE" }
-
-      - name: Verify governed Drive permission separation
-        if: ${{ steps.route.outputs.is_target == 'true' }}
-        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $python = '${{ steps.python.outputs.python_exe }}'
-          & $python -m a1clean.cli drive-preflight
-          if ($LASTEXITCODE -ne 0) { throw "A1_DRIVE_GUARDRAIL_PREFLIGHT_FAIL:$LASTEXITCODE" }
-
-      - name: Reconcile complete canonical source universe against local read-only RAW copy
-        if: ${{ steps.route.outputs.is_target == 'true' && github.event_name == 'workflow_dispatch' && inputs.run_source_identity }}
-        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $python = '${{ steps.python.outputs.python_exe }}'
-          & $python -m a1clean.cli source-preflight
-          if ($LASTEXITCODE -ne 0) { throw "A1_DRIVE_SOURCE_PREFLIGHT_FAIL:$LASTEXITCODE" }
-
-      - name: Safety declaration
-        if: ${{ steps.route.outputs.is_target == 'true' }}
-        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
-        run: |
-          Write-Host 'PREFLIGHT ONLY.'
-          Write-Host 'Runner proof target: A1-WINDOWS-COMPUTE-02 on PORSCHE-DESIGN.'
-          Write-Host 'RAW and governed CURRENT are opened only via the reader identity and are never written by this workflow.'
-          Write-Host 'PARITY_STAGING is opened via the separate writer identity.'
-          Write-Host 'Drive write probe is one tiny create/delete object in PARITY_STAGING only.'
-          Write-Host 'No frozen V2 corpus processing and no canonical delta execution occur here.'
+          & '.\scripts\windows\Invoke-A1DriveGuardrailRest.ps1'
+          if ($LASTEXITCODE -ne 0) { throw "A1_DRIVE_GUARDRAIL_REST_EXEC_FAIL:$LASTEXITCODE" }
 
       - name: Mark exact target guardrail PASS
         id: mark
