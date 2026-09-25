@@ -8,6 +8,7 @@ on:
     paths:
       - '.github/workflows/windows-canonical-current-recovery-readback.yml'
       - 'scripts/windows/Readback-A1CanonicalRecoveryPrepare.ps1'
+      - 'scripts/windows/Inventory-A1CanonicalRecoveryPrepare.ps1'
 
 permissions:
   contents: read
@@ -45,14 +46,24 @@ jobs:
             Start-Sleep -Seconds 45
           }
 
-      - name: Parse exact recovery readback before execution
+      - name: Parse recovery inventory and readback before execution
         if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
-          $tokens=$null; $errors=$null
-          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'scripts\windows\Readback-A1CanonicalRecoveryPrepare.ps1'),[ref]$tokens,[ref]$errors)
-          if (@($errors).Count -ne 0) { foreach ($e in @($errors)) { Write-Host "PARSE_ERROR=$($e.Message)" }; throw 'A1_RECOVERY_READBACK_PARSE_FAIL' }
+          foreach ($path in @('scripts\windows\Inventory-A1CanonicalRecoveryPrepare.ps1','scripts\windows\Readback-A1CanonicalRecoveryPrepare.ps1')) {
+            $tokens=$null; $errors=$null
+            [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)
+            if (@($errors).Count -ne 0) { foreach ($e in @($errors)) { Write-Host "PARSE_ERROR=$path|$($e.Message)" }; throw 'A1_RECOVERY_READBACK_PARSE_FAIL' }
+          }
           Write-Host 'A1_RECOVERY_READBACK_PARSE_PASS'
+
+      - name: Inventory recovery runs read-only
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & '.\scripts\windows\Inventory-A1CanonicalRecoveryPrepare.ps1' -ExpectedRecoverySha 'f621ccdc78dee31069a76cecfff26af80ef1681f'
+          if (-not $?) { throw 'A1_RECOVERY_INVENTORY_EXEC_FAIL' }
 
       - name: Execute exact recovery candidate readback
         if: ${{ steps.route.outputs.is_target == 'true' }}
@@ -99,14 +110,24 @@ jobs:
             Start-Sleep -Seconds 45
           }
 
-      - name: Parse exact recovery readback before execution
+      - name: Parse recovery inventory and readback before execution
         if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
-          $tokens=$null; $errors=$null
-          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'scripts\windows\Readback-A1CanonicalRecoveryPrepare.ps1'),[ref]$tokens,[ref]$errors)
-          if (@($errors).Count -ne 0) { foreach ($e in @($errors)) { Write-Host "PARSE_ERROR=$($e.Message)" }; throw 'A1_RECOVERY_READBACK_PARSE_FAIL' }
+          foreach ($path in @('scripts\windows\Inventory-A1CanonicalRecoveryPrepare.ps1','scripts\windows\Readback-A1CanonicalRecoveryPrepare.ps1')) {
+            $tokens=$null; $errors=$null
+            [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)
+            if (@($errors).Count -ne 0) { foreach ($e in @($errors)) { Write-Host "PARSE_ERROR=$path|$($e.Message)" }; throw 'A1_RECOVERY_READBACK_PARSE_FAIL' }
+          }
           Write-Host 'A1_RECOVERY_READBACK_PARSE_PASS'
+
+      - name: Inventory recovery runs read-only
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & '.\scripts\windows\Inventory-A1CanonicalRecoveryPrepare.ps1' -ExpectedRecoverySha 'f621ccdc78dee31069a76cecfff26af80ef1681f'
+          if (-not $?) { throw 'A1_RECOVERY_INVENTORY_EXEC_FAIL' }
 
       - name: Execute exact recovery candidate readback
         if: ${{ steps.route.outputs.is_target == 'true' }}
