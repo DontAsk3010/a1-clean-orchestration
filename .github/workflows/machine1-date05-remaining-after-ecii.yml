@@ -1,0 +1,143 @@
+name: Machine1 Date05 Remaining Lossless Artifact After ECII
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [machine1/date05-prefetch-after-bmsr]
+    paths: [.github/workflows/machine1-date05-remaining-after-ecii.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 60
+    env:
+      RAW_FILE: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI\Raw Des 02-31-2024.csv'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build all remaining Date05 lossless transport after ECII
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
+          $targetDate='2024-12-05'
+          [int64]$afterSourceRow=501239
+          [int]$startBundleLine=334
+          [int64]$expectedSize=453806812
+          $expectedSha256='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          if(-not (Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING: $raw"}
+          $fi=Get-Item -LiteralPath $raw
+          if($fi.Length -ne $expectedSize){throw "RAW_SIZE_MISMATCH got=$($fi.Length) expected=$expectedSize"}
+          $gotSha=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($gotSha -ne $expectedSha256){throw "RAW_SHA256_MISMATCH got=$gotSha expected=$expectedSha256"}
+
+          $out=Join-Path $PWD '.machine1_transport/date05_remaining_after_ecii'
+          if(Test-Path -LiteralPath $out){Remove-Item -Recurse -Force -LiteralPath $out}
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $utf8NoBom=New-Object System.Text.UTF8Encoding($false)
+
+          $header=$null; $tickerIdx=-1; $dtIdx=-1; [int64]$lineIndex=0
+          $contexts=[ordered]@{}; $order=New-Object 'System.Collections.Generic.List[string]'
+          foreach($line in [System.IO.File]::ReadLines($raw,[System.Text.Encoding]::UTF8)){
+            if($lineIndex -eq 0){
+              $header=$line; $hf=$line.Split(',')
+              for($i=0;$i -lt $hf.Length;$i++){
+                $h=$hf[$i].Trim('"')
+                if($h -eq 'RAW_TICKER'){$tickerIdx=$i}
+                if($h -eq 'RAW_DATETIME_ISO'){$dtIdx=$i}
+              }
+              if($tickerIdx -lt 0 -or $dtIdx -lt 0){throw 'HEADER_INDEX_MISSING'}
+              $lineIndex++; continue
+            }
+            if($lineIndex -le $afterSourceRow){$lineIndex++; continue}
+            $p=$line.Split(',')
+            if($p.Length -gt [Math]::Max($tickerIdx,$dtIdx)){
+              $tk=$p[$tickerIdx].Trim('"'); $dt=$p[$dtIdx].Trim('"')
+              if($dt.StartsWith($targetDate)){
+                if(-not $contexts.Contains($tk)){
+                  $order.Add($tk)
+                  $contexts[$tk]=[ordered]@{source_first=$lineIndex;source_last=$lineIndex;lines=New-Object 'System.Collections.Generic.List[string]'}
+                }
+                $contexts[$tk].source_last=$lineIndex
+                [void]$contexts[$tk].lines.Add($line)
+              }
+            }
+            $lineIndex++
+          }
+          if($order.Count -lt 1){throw 'NO_REMAINING_DATE05_CONTEXTS_FOUND'}
+
+          $fields=@('source_row','RAW_TICKER','RAW_DATETIME_ISO','RAW_INTERVAL_SEC','OBS_DELTA_PREV_SEC_SAME_DATE','OBS_GAP_GT_BASE_INTERVAL_FLAG','OBS_DUP_OR_OUT_OF_ORDER_TIME_FLAG','RAW_OPEN','RAW_HIGH','RAW_LOW','RAW_CLOSE','RAW_VOLUME','IDX_REGULAR_CLOCK_SESSION_CODE','DATE_CHANGE_FROM_PREV_FLAG','DATE_FIRST_OBS_IN_RANGE_FLAG','ANALYSIS_RANGE_LAST_OBS_FLAG','CLK_PREOPEN_INPUT_FLAG','CLK_REGULAR_SESSION1_FLAG','CLK_OFFICIAL_MIDDAY_BREAK_FLAG','CLK_REGULAR_SESSION2_FLAG','CLK_PRECLOSE_INPUT_FLAG','CLK_POSTCLOSE_FLAG','BND_PRE_REG_OPEN_5M_FLAG','BND_FIRST_S1_5M_FLAG','BND_LAST_S1_5M_FLAG','BND_PRE_S2_5M_FLAG','BND_FIRST_S2_5M_FLAG','BND_LAST_REGULAR_5M_FLAG','BND_FIRST_PRECLOSE_5M_FLAG','RAW_AUX1_SEMANTIC_PROVEN_CODE','RAW_AUX2_FRESH_SEMANTIC_PROVEN_CODE','RAW_OPENINT_FRESH_SEMANTIC_PROVEN_CODE')
+          $core=@('source_row','RAW_DATETIME_ISO','OBS_DELTA_PREV_SEC_SAME_DATE','OBS_GAP_GT_BASE_INTERVAL_FLAG','RAW_OPEN','RAW_HIGH','RAW_LOW','RAW_CLOSE','RAW_VOLUME','IDX_REGULAR_CLOCK_SESSION_CODE')
+          $manifest=New-Object 'System.Collections.Generic.List[object]'
+
+          for($ci=0;$ci -lt $order.Count;$ci++){
+            $tk=$order[$ci]; $ctx=$contexts[$tk]
+            $parsed=@((@($header)+@($ctx.lines)) | ConvertFrom-Csv)
+            if($parsed.Count -ne $ctx.lines.Count){throw "PARSE_COUNT_MISMATCH ticker=$tk"}
+            $records=New-Object 'System.Collections.Generic.List[object]'
+            for($i=0;$i -lt $parsed.Count;$i++){
+              $o=[ordered]@{source_row=([int64]$ctx.source_first+$i)}
+              foreach($pn in $parsed[$i].PSObject.Properties.Name){$o[$pn]=[string]$parsed[$i].$pn}
+              [void]$records.Add([pscustomobject]$o)
+            }
+            $tickers=@($records|ForEach-Object{$_.RAW_TICKER}|Sort-Object -Unique)
+            if($tickers.Count -ne 1 -or $tickers[0] -ne $tk){throw "TICKER_MISMATCH $tk"}
+            $dts=@($records|ForEach-Object{[string]$_.RAW_DATETIME_ISO})
+            if(@($dts|Where-Object{-not $_.StartsWith($targetDate)}).Count -gt 0){throw "DATE_MISMATCH $tk"}
+
+            $rowsPath=Join-Path $out ($tk+'_20241205_ROWS.jsonl')
+            $jsonl=@($records|ForEach-Object{$_|ConvertTo-Json -Compress -Depth 8})
+            [System.IO.File]::WriteAllLines($rowsPath,[string[]]$jsonl,$utf8NoBom)
+            $rowsSha=(Get-FileHash -LiteralPath $rowsPath -Algorithm SHA256).Hash.ToLowerInvariant()
+
+            $compactPath=Join-Path $out ($tk+'_20241205_ROWS_COMPACT.tsv')
+            $compactLines=New-Object 'System.Collections.Generic.List[string]'; [void]$compactLines.Add(($fields -join "`t"))
+            foreach($r in $records){
+              $vals=New-Object 'System.Collections.Generic.List[string]'
+              foreach($f in $fields){$prop=$r.PSObject.Properties[$f]; if($null -eq $prop){throw "COMPACT_FIELD_MISSING ticker=$tk field=$f"}; $v=[string]$prop.Value; if($v.Contains("`t") -or $v.Contains("`r") -or $v.Contains("`n")){throw "COMPACT_UNSAFE ticker=$tk field=$f"}; [void]$vals.Add($v)}
+              [void]$compactLines.Add(($vals -join "`t"))
+            }
+            [System.IO.File]::WriteAllLines($compactPath,[string[]]$compactLines,$utf8NoBom)
+            $compactSha=(Get-FileHash -LiteralPath $compactPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            $rows=@(Import-Csv -LiteralPath $compactPath -Delimiter "`t")
+            if($rows.Count -ne $records.Count){throw "COMPACT_COUNT_MISMATCH ticker=$tk"}
+
+            $nonCore=@($fields|Where-Object{$core -notcontains $_}); $defaults=[ordered]@{}
+            foreach($f in $nonCore){$counts=@{}; foreach($r in $rows){$v=[string]$r.$f; if($counts.ContainsKey($v)){$counts[$v]++}else{$counts[$v]=1}}; $best=$counts.GetEnumerator()|Sort-Object @{Expression='Value';Descending=$true},@{Expression='Key';Descending=$false}|Select-Object -First 1; $defaults[$f]=[string]$best.Key}
+
+            $v2=New-Object 'System.Collections.Generic.List[string]'
+            [void]$v2.Add('#A1_LOSSLESS_AI_TRANSPORT_V2'); [void]$v2.Add('ticker='+$tk); [void]$v2.Add('trading_date='+$targetDate); [void]$v2.Add('actual_rows='+$rows.Count); [void]$v2.Add('source_row_first='+[string]$ctx.source_first); [void]$v2.Add('source_row_last='+[string]$ctx.source_last); [void]$v2.Add('compact_rows_sha256='+$compactSha); [void]$v2.Add('core_fields='+($core -join ',')); [void]$v2.Add('defaults_json='+(($defaults|ConvertTo-Json -Compress -Depth 4))); [void]$v2.Add('#ROW_FORMAT core values separated by | ; final field contains non-core exceptions as name=value pairs separated by ; ; blank means defaults')
+            foreach($r in $rows){
+              $parts=New-Object 'System.Collections.Generic.List[string]'; foreach($f in $core){$v=[string]$r.$f; if($v.Contains('|') -or $v.Contains("`r") -or $v.Contains("`n")){throw "CORE_UNSAFE ticker=$tk field=$f"}; [void]$parts.Add($v)}
+              $exc=New-Object 'System.Collections.Generic.List[string]'; foreach($f in $nonCore){$v=[string]$r.$f; if($v -ne [string]$defaults[$f]){if($f.Contains('=') -or $f.Contains(';') -or $v.Contains('=') -or $v.Contains(';') -or $v.Contains('|') -or $v.Contains("`r") -or $v.Contains("`n")){throw "EXCEPTION_UNSAFE ticker=$tk field=$f"}; [void]$exc.Add($f+'='+$v)}}
+              [void]$parts.Add(($exc -join ';')); [void]$v2.Add(($parts -join '|'))
+            }
+            $v2Path=Join-Path $out ($tk+'_20241205_ROWS_LOSSLESS_V2.txt'); [System.IO.File]::WriteAllLines($v2Path,[string[]]$v2,$utf8NoBom)
+
+            $recon=New-Object 'System.Collections.Generic.List[string]'; [void]$recon.Add(($fields -join "`t"))
+            foreach($src in $rows){$map=@{}; foreach($f in $nonCore){$map[$f]=[string]$defaults[$f]}; foreach($f in $core){$map[$f]=[string]$src.$f}; foreach($f in $nonCore){if([string]$src.$f -ne [string]$defaults[$f]){$map[$f]=[string]$src.$f}}; $vals=New-Object 'System.Collections.Generic.List[string]'; foreach($f in $fields){[void]$vals.Add([string]$map[$f])}; [void]$recon.Add(($vals -join "`t"))}
+            $tmp=Join-Path $out ($tk+'_ROUNDTRIP_TMP.tsv'); [System.IO.File]::WriteAllLines($tmp,[string[]]$recon,$utf8NoBom); $roundSha=(Get-FileHash -LiteralPath $tmp -Algorithm SHA256).Hash.ToLowerInvariant(); Remove-Item -Force $tmp
+            if($roundSha -ne $compactSha){throw "ROUNDTRIP_SHA_MISMATCH ticker=$tk"}
+            $v2Sha=(Get-FileHash -LiteralPath $v2Path -Algorithm SHA256).Hash.ToLowerInvariant()
+
+            $item=[ordered]@{ticker=$tk;trading_date=$targetDate;semantic_bundle='Raw Des 02-31-2024__SEMANTIC_0014.jsonl';semantic_bundle_line_number=($startBundleLine+$ci);source_row_first=[int64]$ctx.source_first;source_row_last=[int64]$ctx.source_last;physical_line_first=([int64]$ctx.source_first+1);physical_line_last=([int64]$ctx.source_last+1);actual_rows=$records.Count;first_datetime=$dts[0];last_datetime=$dts[$dts.Count-1];source_sha256=$gotSha;rows_jsonl_sha256=$rowsSha;compact_rows_sha256=$compactSha;lossless_v2_sha256=$v2Sha;exact_roundtrip_verified=$true;transport_only=$true;semantic_read_performed=$false;durable_pass=$false}
+            [void]$manifest.Add([pscustomobject]$item)
+            [System.IO.File]::WriteAllText((Join-Path $out ($tk+'_20241205_PROOF.json')),($item|ConvertTo-Json -Depth 8),$utf8NoBom)
+            [System.IO.File]::WriteAllText((Join-Path $out ($tk+'_20241205_LOSSLESS_V2_PROOF.json')),([ordered]@{ticker=$tk;trading_date=$targetDate;actual_rows=$records.Count;compact_rows_sha256=$compactSha;lossless_v2_sha256=$v2Sha;roundtrip_compact_sha256=$roundSha;exact_roundtrip_verified=$true}|ConvertTo-Json -Depth 5),$utf8NoBom)
+          }
+
+          [System.IO.File]::WriteAllText((Join-Path $out 'BATCH_MANIFEST.json'),($manifest|ConvertTo-Json -Depth 8),$utf8NoBom)
+          $hashLines=Get-ChildItem -LiteralPath $out -File | Sort-Object Name | ForEach-Object {((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())+'  '+$_.Name}
+          [System.IO.File]::WriteAllLines((Join-Path $out '_ARTIFACT_SHA256.txt'),[string[]]$hashLines,$utf8NoBom)
+          [System.IO.File]::WriteAllText((Join-Path $out '_ARTIFACT_META.txt'),("source_sha256=$gotSha`nstart_bundle_line=$startBundleLine`nafter_source_row=$afterSourceRow`ncontext_count=$($order.Count)`nfirst_ticker=$($order[0])`nlast_ticker=$($order[$order.Count-1])`n"),$utf8NoBom)
+          Write-Host "REMAINING_DATE05_ARTIFACT_READY contexts=$($order.Count) first=$($order[0]) last=$($order[$order.Count-1])"
+      - name: Upload all remaining Date05 lossless artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date05-remaining-after-ecii-lossless
+          path: .machine1_transport/date05_remaining_after_ecii/
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 30
