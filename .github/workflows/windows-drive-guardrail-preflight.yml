@@ -8,6 +8,11 @@ on:
         required: false
         default: false
         type: boolean
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - '.github/workflows/windows-drive-guardrail-preflight.yml'
 
 permissions:
   contents: read
@@ -77,7 +82,7 @@ jobs:
           py -3.11 -m a1clean.cli drive-preflight
 
       - name: Reconcile complete canonical source universe against local read-only RAW copy
-        if: ${{ inputs.run_source_identity }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_source_identity }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
