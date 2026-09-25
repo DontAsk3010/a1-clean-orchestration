@@ -8,6 +8,7 @@ on:
       - 'scripts/windows/Find-A1DriveWriterCredentialInteractive.ps1'
       - 'scripts/windows/Bind-A1DriveWriterCredentialVerified.ps1'
       - 'scripts/windows/Verify-A1DriveWriterCandidateReadOnly.ps1'
+      - 'scripts/windows/Restore-A1DriveWriterExisting.ps1'
       - '.github/workflows/windows-drive-writer-interactive-search-syntax.yml'
   workflow_dispatch:
 
@@ -32,14 +33,15 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 1
 
-      - name: Parse PowerShell safety scripts only; do not execute relocation search, verification, or binding
+      - name: Parse PowerShell safety scripts only; do not execute relocation search, verification, binding, or reauthorization
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           $paths = @(
             'scripts\windows\Find-A1DriveWriterCredentialInteractive.ps1',
             'scripts\windows\Bind-A1DriveWriterCredentialVerified.ps1',
-            'scripts\windows\Verify-A1DriveWriterCandidateReadOnly.ps1'
+            'scripts\windows\Verify-A1DriveWriterCandidateReadOnly.ps1',
+            'scripts\windows\Restore-A1DriveWriterExisting.ps1'
           )
           foreach ($path in $paths) {
             $tokens = $null
