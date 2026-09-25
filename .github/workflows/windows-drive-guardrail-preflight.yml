@@ -69,24 +69,29 @@ jobs:
           Write-Host 'Drive writer credential binding: PRESENT'
           Write-Host 'Drive reader/writer exact file identity: DISTINCT'
 
+      - name: Provision deterministic Python 3.11 for guardrail
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install migration package
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          py -3.11 -m pip install -e .
+          python -m pip install -e .
 
       - name: Verify governed Drive permission separation
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          py -3.11 -m a1clean.cli drive-preflight
+          python -m a1clean.cli drive-preflight
 
       - name: Reconcile complete canonical source universe against local read-only RAW copy
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_source_identity }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          py -3.11 -m a1clean.cli source-preflight
+          python -m a1clean.cli source-preflight
 
       - name: Safety declaration
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
