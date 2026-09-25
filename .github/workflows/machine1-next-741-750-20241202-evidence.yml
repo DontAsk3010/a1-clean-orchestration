@@ -1,0 +1,33 @@
+name: Machine1 Next 741-750 20241202 Evidence
+on:
+  push:
+    branches: [machine1/evidence-next-741-750-20241202]
+    paths:
+      - '.github/workflows/machine1-next-741-750-20241202-evidence.yml'
+      - 'scripts/extract-machine1-next-741-750-20241202.ps1'
+  workflow_dispatch:
+
+jobs:
+  extract:
+    runs-on: [self-hosted, Windows, X64, a1-clean-machine1]
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: machine1/evidence-next-741-750-20241202
+      - name: Reconstruct manifest boundary and extract exact source rows
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          try { & './scripts/extract-machine1-next-741-750-20241202.ps1' }
+          catch { ($_ | Format-List * -Force | Out-String) | Set-Content 'machine1_next_741_750_error.txt' -Encoding UTF8; throw }
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-next-741-750-20241202-evidence
+          path: |
+            machine1_next_741_750_20241202_evidence/
+            machine1_next_741_750_error.txt
+          if-no-files-found: error
+          retention-days: 7
