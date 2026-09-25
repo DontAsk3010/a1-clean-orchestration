@@ -38,8 +38,8 @@
   "drive_guardrail_recovery_prerequisite": {
     "status": "PASS_RECOVERY_PREREQUISITE_EXPECTED_CURRENT_404",
     "workflow": ".github/workflows/windows-drive-guardrail-preflight.yml",
-    "run_id": 36132290677,
-    "head_sha": "f254ec9ab3ab175907ebfc2f8e305087100b175e",
+    "run_id": 36133641629,
+    "head_sha": "dd2573913d09a817bacbcb47508a19c0925cdd4b",
     "workflow_conclusion": "success",
     "target_runner_proven": "A1-WINDOWS-COMPUTE-02",
     "raw_reader_identity_pass": true,
