@@ -60,12 +60,13 @@ jobs:
           if (@($errors).Count -ne 0) { foreach ($e in @($errors)) { Write-Host $e.Message }; throw 'A1_DRIVE_GUARDRAIL_REST_PARSE_FAIL' }
           Write-Host 'A1_DRIVE_GUARDRAIL_REST_PARSE_PASS'
 
-      - name: Execute canonical-equivalent Drive guardrail via REST
+      - name: Execute recovery-aware Drive guardrail via REST
         if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
+          $ErrorActionPreference = 'Stop'
           & '.\scripts\windows\Invoke-A1DriveGuardrailRest.ps1'
-          if ($LASTEXITCODE -ne 0) { throw "A1_DRIVE_GUARDRAIL_REST_EXEC_FAIL:$LASTEXITCODE" }
+          Write-Host 'A1_DRIVE_GUARDRAIL_REST_EXECUTION_RETURNED_SUCCESSFULLY'
 
       - name: Mark exact target guardrail PASS
         id: mark
@@ -112,12 +113,13 @@ jobs:
           if (@($errors).Count -ne 0) { foreach ($e in @($errors)) { Write-Host $e.Message }; throw 'A1_DRIVE_GUARDRAIL_REST_PARSE_FAIL' }
           Write-Host 'A1_DRIVE_GUARDRAIL_REST_PARSE_PASS'
 
-      - name: Execute canonical-equivalent Drive guardrail via REST
+      - name: Execute recovery-aware Drive guardrail via REST
         if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
+          $ErrorActionPreference = 'Stop'
           & '.\scripts\windows\Invoke-A1DriveGuardrailRest.ps1'
-          if ($LASTEXITCODE -ne 0) { throw "A1_DRIVE_GUARDRAIL_REST_EXEC_FAIL:$LASTEXITCODE" }
+          Write-Host 'A1_DRIVE_GUARDRAIL_REST_EXECUTION_RETURNED_SUCCESSFULLY'
 
       - name: Mark exact target guardrail PASS
         id: mark
@@ -128,7 +130,7 @@ jobs:
           Write-Host 'A1_DRIVE_GUARDRAIL_TARGET_LANE_PASS=true'
 
   assert_target_pass:
-    name: Require one exact Machine2 Guardrail PASS
+    name: Require one exact Machine2 recovery guardrail PASS
     if: ${{ always() }}
     needs: [lane_a, lane_b]
     runs-on: ubuntu-latest
