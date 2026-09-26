@@ -14,16 +14,19 @@ if not exist "%PY%" (
   if errorlevel 1 goto :runtimefail
 )
 
-"%PY%" -c "import google_auth_oauthlib, googleapiclient" >nul 2>&1
+"%PY%" -c "import google_auth_oauthlib, googleapiclient.discovery, google.api_core.client_options" >nul 2>&1
 if errorlevel 1 (
-  echo Installing Google OAuth helper library into the existing governed runtime once...
+  echo Installing complete Google OAuth and Drive API dependency set into the existing governed runtime once...
   if not exist "%PIP%" (
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Ensure-A1PortablePython311.ps1"
     if errorlevel 1 goto :runtimefail
   )
-  "%PY%" "%PIP%" install --disable-pip-version-check --quiet --upgrade --target "%SITE%" "google-auth-oauthlib>=1.2,<2"
+  "%PY%" "%PIP%" install --disable-pip-version-check --quiet --upgrade --target "%SITE%" "google-auth>=2.40,<3" "google-auth-oauthlib>=1.2,<2" "google-api-core>=2,<3" "google-api-python-client>=2,<3" "google-auth-httplib2>=0.2,<1" "httplib2>=0.22,<1" "uritemplate>=4,<5"
   if errorlevel 1 goto :pipfail
 )
+
+"%PY%" -c "import google_auth_oauthlib, googleapiclient.discovery, google.api_core.client_options" >nul 2>&1
+if errorlevel 1 goto :importfail
 
 "%PY%" "%~dp0restore_a1_drive_reader_official.py"
 set "RC=%ERRORLEVEL%"
@@ -48,3 +51,9 @@ exit /b 21
 echo A1_READER_REAUTH_LAUNCHER=FAIL_GOOGLE_OAUTH_LIBRARY_INSTALL
 pause
 exit /b 22
+
+:importfail
+echo A1_READER_REAUTH_LAUNCHER=FAIL_GOOGLE_DEPENDENCY_IMPORT
+echo Required Google OAuth or Drive API modules are still unavailable after repair.
+pause
+exit /b 23
