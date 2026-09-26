@@ -1,0 +1,18 @@
+{
+    "ticker":  "NINE",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "recovered_date_local_index":  588,
+    "source_row_first":  1165988,
+    "source_row_last":  1166083,
+    "data_rows":  96,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 15:38:00",
+    "rows_jsonl_sha256":  "fd80582e4982caa4a1ba956b78a3ab9d7b7ef589dbaf95e4dd4adc376476a489",
+    "compact_sha256":  "9d795cf68dbff7422e0ade3c1c368011c7a90e2a85d70b76c3c778d49e8f2de7",
+    "recovered_manifest_sha256":  "c07cf5c0c075e6ad6da2ca87623138ed84521423a6a6c143bb75db7a689d6625",
+    "original_semantic_manifest_state":  "UNAVAILABLE_404",
+    "authority_audit_drive_id":  "1KhPP177HaTkySo5BOYSHxMHH9EJIPD__IXLHjQ-xvN8",
+    "authority_audit_revision":  "ANLCKQkkDVDLTCkYd0MwuQoy2lI1_bt45_OULFoEqEZNff0l1chpQrqspQO9zoOiMzmsOVDgxADwhypWei004YT_mTx5-RXtk4DQD3R5nRU",
+    "prestart_decision":  "CURRENT_PASS587_RESUME_NINE_NO_DATE_ADVANCE"
+}
