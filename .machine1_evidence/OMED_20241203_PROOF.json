@@ -1,0 +1,18 @@
+{
+    "ticker":  "OMED",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "recovered_date_local_index":  601,
+    "source_row_first":  1182657,
+    "source_row_last":  1182697,
+    "data_rows":  41,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:00:00",
+    "rows_jsonl_sha256":  "37277c55aa4ad32bbf2bf39589abbcb1deed47ae0d87adf6c1ef2efdd6434a9d",
+    "compact_sha256":  "7f25e4453442e2fab13ef905b6cde0c895a8199471b9f85a5d77e5d2db9d0e59",
+    "recovered_manifest_sha256":  "c07cf5c0c075e6ad6da2ca87623138ed84521423a6a6c143bb75db7a689d6625",
+    "original_semantic_manifest_state":  "UNAVAILABLE_404",
+    "authority_audit_drive_id":  "1KhPP177HaTkySo5BOYSHxMHH9EJIPD__IXLHjQ-xvN8",
+    "authority_audit_revision":  "ANLCKQm9QhY5AW6WAkqBAGxj5VlHub4oCTdXS6anX7z9cxf0jGaPU9ckMRzxJoi2tbXaotuv-ymSvp4er_xU3B3klVpx2GIRKABks7aK8Wg",
+    "prestart_decision":  "CURRENT_PASS600_RESUME_OMED_NO_DATE_ADVANCE"
+}
