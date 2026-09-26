@@ -1,0 +1,18 @@
+{
+    "ticker":  "NOBU",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "recovered_date_local_index":  591,
+    "source_row_first":  1168108,
+    "source_row_last":  1168139,
+    "data_rows":  32,
+    "first_datetime":  "2024-12-03 09:11:00",
+    "last_datetime":  "2024-12-03 15:41:00",
+    "rows_jsonl_sha256":  "607870351a9d43afd73a7bcd1c9773f209e267b93320c01b228881811af55e3f",
+    "compact_sha256":  "9c7c09ace51d52aa3f17ce203a6027a63e8e2ff35d3fad5748fb7851c40ed716",
+    "recovered_manifest_sha256":  "c07cf5c0c075e6ad6da2ca87623138ed84521423a6a6c143bb75db7a689d6625",
+    "original_semantic_manifest_state":  "UNAVAILABLE_404",
+    "authority_audit_drive_id":  "1KhPP177HaTkySo5BOYSHxMHH9EJIPD__IXLHjQ-xvN8",
+    "authority_audit_revision":  "ANLCKQm9QhY5AW6WAkqBAGxj5VlHub4oCTdXS6anX7z9cxf0jGaPU9ckMRzxJoi2tbXaotuv-ymSvp4er_xU3B3klVpx2GIRKABks7aK8Wg",
+    "prestart_decision":  "CURRENT_PASS590_RESUME_NOBU_NO_DATE_ADVANCE"
+}

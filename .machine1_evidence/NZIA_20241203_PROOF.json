@@ -1,0 +1,18 @@
+{
+    "ticker":  "NZIA",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "recovered_date_local_index":  595,
+    "source_row_first":  1174029,
+    "source_row_last":  1174103,
+    "data_rows":  75,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:05:00",
+    "rows_jsonl_sha256":  "48f7cc5ceb6005d7516e760a653448a6058be56a524801d533f09c057ac0a9bb",
+    "compact_sha256":  "8618b31535824668c5e6c74fd0831c975fcd9d6dbdb42b0416b37c3ba12a7e1e",
+    "recovered_manifest_sha256":  "c07cf5c0c075e6ad6da2ca87623138ed84521423a6a6c143bb75db7a689d6625",
+    "original_semantic_manifest_state":  "UNAVAILABLE_404",
+    "authority_audit_drive_id":  "1KhPP177HaTkySo5BOYSHxMHH9EJIPD__IXLHjQ-xvN8",
+    "authority_audit_revision":  "ANLCKQm9QhY5AW6WAkqBAGxj5VlHub4oCTdXS6anX7z9cxf0jGaPU9ckMRzxJoi2tbXaotuv-ymSvp4er_xU3B3klVpx2GIRKABks7aK8Wg",
+    "prestart_decision":  "CURRENT_PASS590_RESUME_NOBU_NO_DATE_ADVANCE"
+}
