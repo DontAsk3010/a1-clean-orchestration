@@ -38,9 +38,9 @@ jobs:
             @{pass=16;ticker='AGII';rows=19}, @{pass=17;ticker='AGRO';rows=199}, @{pass=18;ticker='AGRS';rows=95},
             @{pass=19;ticker='AHAP';rows=118}, @{pass=20;ticker='AIMS';rows=73}, @{pass=21;ticker='AISA';rows=86}
           )
-          if (($plan | Measure-Object rows -Sum).Sum -ne 2544) { throw 'EXPECTED_PLAN_TOTAL_NOT_2544' }
+          $planTotal=0; foreach($p in $plan){ $planTotal += [int]$p['rows'] }
+          if ($planTotal -ne 2544) { throw "EXPECTED_PLAN_TOTAL_NOT_2544:$planTotal" }
 
-          # Frozen source identity.
           $gotSha=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
           $gotMd5=(Get-FileHash -LiteralPath $raw -Algorithm MD5).Hash.ToLowerInvariant()
           if ($gotSha -ne $expectedSha -or $gotMd5 -ne $expectedMd5) { throw "RAW_HASH_MISMATCH sha=$gotSha md5=$gotMd5" }
@@ -92,7 +92,6 @@ jobs:
             $total += $count
           }
           if($total -ne 2544){throw "TOTAL_FAIL:$total"}
-          # Cross-check the preserved 12-record snapshot source ranges.
           $known=@{AALI='5251-5505';ABBA='7518-7524';ABMM='8020-8193';ACES='14082-14396';ACRO='11044-11095';ACST='19009-19087';ADCP='20193-20212';ADES='20671-20713';ADHI='23373-23571';ADMF='21323-21356';ADMG='22598-22620';ADMR='27124-27433'}
           foreach($e in $entries){ if($known.ContainsKey($e.ticker)){ $got="$($e.source_row_first)-$($e.source_row_last)"; if($got -ne $known[$e.ticker]){throw "SNAPSHOT_RANGE_PARITY_FAIL:$($e.ticker):$got"} } }
           $manifest=[ordered]@{schema='A1_MACHINE1_DATE04_PASS001_PASS021_RECOVERY_V1';assigned_date=$date;worker_id='M1_20241204_20260914_CHAT02';audit_type='CURRENT_AUTHORITY_COMPLIANCE_AUDIT';source_name=[IO.Path]::GetFileName($raw);source_sha256=$gotSha;source_md5=$gotMd5;generation_id='BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01';transport_only=$true;semantic_read_performed_by_runner=$false;covered_pass_range='PASS001-PASS021';ticker_count=$entries.Count;row_count=$total;entries=@($entries);declaration='LOSSLESS_SOURCE_EVIDENCE_RECOVERY_ONLY__NOT_SEMANTIC_COMPLETE'}
