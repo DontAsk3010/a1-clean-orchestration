@@ -30,8 +30,10 @@ jobs:
           $ps1 = 'scripts\windows\Restore-A1DriveReaderExisting.ps1'
           $launcher = 'scripts\windows\Restore-A1DriveReaderExisting.cmd'
           $py = 'scripts\windows\restore_a1_drive_reader_official.py'
+          $portable = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\python.exe'
           if (-not (Test-Path -LiteralPath $launcher -PathType Leaf)) { throw 'A1_READER_REAUTH_LAUNCHER_MISSING' }
           if (-not (Test-Path -LiteralPath $py -PathType Leaf)) { throw 'A1_READER_REAUTH_PYTHON_HELPER_MISSING' }
+          if (-not (Test-Path -LiteralPath $portable -PathType Leaf)) { throw 'A1_READER_REAUTH_PORTABLE_PYTHON_MISSING' }
           $tokens = $null
           $errors = $null
           [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $ps1),[ref]$tokens,[ref]$errors)
@@ -39,12 +41,7 @@ jobs:
             foreach ($e in @($errors)) { Write-Host ("PARSE_ERROR|" + $e.Message) }
             throw 'A1_READER_REAUTH_PARSE_FAIL'
           }
-          $python = (Get-Command py.exe -ErrorAction SilentlyContinue)
-          if ($python) {
-            & py -3 -m py_compile $py
-          } else {
-            & python -m py_compile $py
-          }
+          & $portable -m py_compile $py
           if ($LASTEXITCODE -ne 0) { throw 'A1_READER_REAUTH_PYTHON_PARSE_FAIL' }
           Write-Host 'A1_READER_REAUTH_PARSE=PASS'
           Write-Host 'A1_READER_REAUTH_PYTHON_PARSE=PASS'
