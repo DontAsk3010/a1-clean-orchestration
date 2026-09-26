@@ -28,18 +28,99 @@ $oldAcl = Get-Acl -LiteralPath $ReaderPath
 $old = Get-Content -LiteralPath $ReaderPath -Raw -Encoding UTF8 | ConvertFrom-Json
 if ([string]$old.type -ne 'authorized_user') { Fail 'A1_READER_REAUTH_UNSUPPORTED_CREDENTIAL_TYPE' }
 foreach ($name in @('client_id','client_secret','refresh_token')) {
-    if (-not ($old.PSObject.Properties.Name -contains $name) -or [string]::IsNullOrWhiteSpace([string]$old.$name)) { Fail "A1_READER_REAUTH_MISSING_$name" }
+    if (-not ($old.PSObject.Properties.Name -contains $name) -or [string]::IsNullOrWhiteSpace([string]$old.$name)) {
+        Fail "A1_READER_REAUTH_MISSING_$name"
+    }
 }
 
-$clientId = [string]$old.client_id
-$clientSecret = [string]$old.client_secret
-$tokenUri = if (($old.PSObject.Properties.Name -contains 'token_uri') -and -not [string]::IsNullOrWhiteSpace([string]$old.token_uri)) { [string]$old.token_uri } else { 'https://oauth2.googleapis.com/token' }
-$authUri = 'https://accounts.google.com/o/oauth2/v2/auth'
+$runtimeClientId = [string]$old.client_id
+$runtimeClientSecret = [string]$old.client_secret
+
+# Reuse the original installed/desktop OAuth client config instead of treating
+# the runtime authorized_user credential itself as the client definition.
+$candidatePaths = New-Object System.Collections.Generic.List[string]
+$writerReport = Join-Path $HOME '.a1clean\writer-relocation-interactive-current.json'
+if (Test-Path -LiteralPath $writerReport -PathType Leaf) {
+    try {
+        $wr = Get-Content -LiteralPath $writerReport -Raw -Encoding UTF8 | ConvertFrom-Json
+        foreach ($c in @($wr.candidates)) {
+            if ([string]$c.credential_kind -eq 'OAUTH_CLIENT_CONFIG_NOT_RUNTIME_CREDENTIAL') {
+                $p = [string]$c.path
+                if (-not [string]::IsNullOrWhiteSpace($p) -and (Test-Path -LiteralPath $p -PathType Leaf)) {
+                    $candidatePaths.Add([IO.Path]::GetFullPath($p))
+                }
+            }
+        }
+    } catch {}
+}
+
+$roots = @(
+    (Join-Path $HOME 'a1-drive-auth'),
+    (Join-Path $HOME '.a1clean'),
+    (Join-Path $HOME 'Documents'),
+    (Join-Path $HOME 'Desktop'),
+    (Join-Path $HOME 'Downloads')
+) | Where-Object { Test-Path -LiteralPath $_ -PathType Container }
+
+foreach ($root in $roots) {
+    Get-ChildItem -LiteralPath $root -File -Recurse -ErrorAction SilentlyContinue |
+        Where-Object { $_.Extension -eq '.json' -and $_.Name -match 'client|oauth|secret|credential' } |
+        ForEach-Object { $candidatePaths.Add($_.FullName) }
+}
+
+$installedMatches = New-Object System.Collections.Generic.List[object]
+$webMatches = New-Object System.Collections.Generic.List[object]
+$seenPaths = @{}
+foreach ($path in @($candidatePaths | Sort-Object -Unique)) {
+    if ($seenPaths.ContainsKey($path)) { continue }
+    $seenPaths[$path] = $true
+    try {
+        $doc = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
+        if ($doc.PSObject.Properties.Name -contains 'installed') {
+            $root = $doc.installed
+            if ([string]$root.client_id -eq $runtimeClientId) {
+                $installedMatches.Add([pscustomobject]@{ Path=$path; Root=$root })
+            }
+        }
+        elseif ($doc.PSObject.Properties.Name -contains 'web') {
+            $root = $doc.web
+            if ([string]$root.client_id -eq $runtimeClientId) {
+                $webMatches.Add([pscustomobject]@{ Path=$path; Root=$root })
+            }
+        }
+    } catch {}
+}
+
+if ($installedMatches.Count -eq 0) {
+    if ($webMatches.Count -gt 0) { Fail 'A1_READER_REAUTH_MATCHING_CLIENT_IS_WEB_NOT_DESKTOP' }
+    Fail 'A1_READER_REAUTH_MATCHING_INSTALLED_CLIENT_CONFIG_NOT_FOUND'
+}
+
+# Multiple file copies are allowed only when they describe the same exact client.
+$configKeys = @($installedMatches | ForEach-Object {
+    $r = $_.Root
+    ([string]$r.client_id) + '|' + ([string]$r.client_secret) + '|' + ([string]$r.auth_uri) + '|' + ([string]$r.token_uri)
+} | Sort-Object -Unique)
+if ($configKeys.Count -ne 1) { Fail "A1_READER_REAUTH_AMBIGUOUS_INSTALLED_CLIENT_CONFIG:$($configKeys.Count)" }
+
+$selected = @($installedMatches | Sort-Object { $_.Path.Length }, Path)[0]
+$clientRoot = $selected.Root
+$clientId = [string]$clientRoot.client_id
+$clientSecret = [string]$clientRoot.client_secret
+$authUri = if ($clientRoot.auth_uri) { [string]$clientRoot.auth_uri } else { 'https://accounts.google.com/o/oauth2/v2/auth' }
+$tokenUri = if ($clientRoot.token_uri) { [string]$clientRoot.token_uri } else { 'https://oauth2.googleapis.com/token' }
+
+if ($clientId -ne $runtimeClientId) { Fail 'A1_READER_REAUTH_CLIENT_ID_DRIFT' }
+if ($clientSecret -ne $runtimeClientSecret) { Fail 'A1_READER_REAUTH_CLIENT_SECRET_DRIFT' }
+if ($authUri -notmatch '^https://accounts\.google\.com/') { Fail 'A1_READER_REAUTH_UNEXPECTED_AUTH_URI' }
 if ($tokenUri -notmatch '^https://oauth2\.googleapis\.com/token$|^https://accounts\.google\.com/o/oauth2/token$') { Fail 'A1_READER_REAUTH_UNEXPECTED_TOKEN_URI' }
 
-# Reuse the exact existing OAuth client. No new client is created.
-# For an installed-app authorization request, ask only for drive.readonly and do
-# not request incremental authorization / previously granted scopes.
+Write-Host 'A1_READER_REAUTH_OAUTH_CLIENT_TYPE=INSTALLED_DESKTOP_MATCH_PASS'
+Write-Host 'A1_READER_REAUTH_SCOPE=DRIVE_READONLY_ONLY'
+Write-Host 'A1_READER_REAUTH_NEW_OAUTH_CLIENT_CREATED=false'
+
+# Dynamic loopback redirect is the established installed-app flow already used
+# by the previously successful Writer reauthorization.
 $tcp = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback,0)
 $tcp.Start()
 $port = ([System.Net.IPEndPoint]$tcp.LocalEndpoint).Port
@@ -62,7 +143,6 @@ $listener.Prefixes.Add($redirectUri)
 $listener.Start()
 try {
     Write-Host 'A1_READER_REAUTH_BROWSER_OPENING=TRUE'
-    Write-Host 'A1_READER_REAUTH_SCOPE=DRIVE_READONLY_ONLY'
     Start-Process $authUrl
     $task = $listener.GetContextAsync()
     if (-not $task.Wait([TimeSpan]::FromMinutes(10))) { Fail 'A1_READER_REAUTH_BROWSER_CALLBACK_TIMEOUT' }
@@ -71,7 +151,7 @@ try {
     $returnedState = [string]$q['state']
     $authError = [string]$q['error']
     $code = [string]$q['code']
-    $html = '<html><body><h3>A1 CLEAN Machine 2</h3><p>Reader authorization received. You may close this browser tab.</p></body></html>'
+    $html = '<html><body><h3>A1 CLEAN Machine 2</h3><p>Reader authorization received. You may close this tab and return to the launcher.</p></body></html>'
     $bytes = [Text.Encoding]::UTF8.GetBytes($html)
     $ctx.Response.ContentType = 'text/html; charset=utf-8'
     $ctx.Response.ContentLength64 = $bytes.Length
@@ -80,7 +160,8 @@ try {
     if ($returnedState -ne $state) { Fail 'A1_READER_REAUTH_OAUTH_STATE_MISMATCH' }
     if (-not [string]::IsNullOrWhiteSpace($authError)) { Fail "A1_READER_REAUTH_GOOGLE_AUTHORIZATION_ERROR:$authError" }
     if ([string]::IsNullOrWhiteSpace($code)) { Fail 'A1_READER_REAUTH_AUTHORIZATION_CODE_MISSING' }
-} finally {
+}
+finally {
     if ($listener.IsListening) { $listener.Stop() }
     $listener.Close()
 }
@@ -97,11 +178,11 @@ $refreshToken = [string]$token.refresh_token
 if ([string]::IsNullOrWhiteSpace($accessToken)) { Fail 'A1_READER_REAUTH_ACCESS_TOKEN_MISSING' }
 if ([string]::IsNullOrWhiteSpace($refreshToken)) { Fail 'A1_READER_REAUTH_REFRESH_TOKEN_MISSING_AFTER_CONSENT' }
 
-# Prove scope, principal and RAW read capability before replacing the existing file.
 $tokenInfo = Invoke-RestMethod -Method Get -Uri ('https://oauth2.googleapis.com/tokeninfo?access_token=' + (UrlEncode $accessToken))
 $scopes = @(([string]$tokenInfo.scope) -split '\s+' | Where-Object { $_ })
 if ($scopes -notcontains $ReadOnlyScope) { Fail 'A1_READER_REAUTH_READONLY_SCOPE_NOT_GRANTED' }
 if ($scopes -contains $FullDriveScope) { Fail 'A1_READER_REAUTH_FULL_DRIVE_SCOPE_FORBIDDEN' }
+
 $headers = @{ Authorization = 'Bearer ' + $accessToken }
 $about = Invoke-RestMethod -Method Get -Uri 'https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)' -Headers $headers
 if (([string]$about.user.emailAddress).ToLowerInvariant() -ne $ExpectedPrincipal) { Fail 'A1_READER_REAUTH_PRINCIPAL_MISMATCH' }
@@ -109,7 +190,7 @@ $rawFields = UrlEncode 'id,name,mimeType'
 $raw = Invoke-RestMethod -Method Get -Uri "https://www.googleapis.com/drive/v3/files/$RawId?fields=$rawFields&supportsAllDrives=true" -Headers $headers
 if ([string]$raw.id -ne $RawId -or [string]$raw.name -ne $RawName -or [string]$raw.mimeType -ne 'application/vnd.google-apps.folder') { Fail 'A1_READER_REAUTH_RAW_IDENTITY_FAIL' }
 
-# Prove the new refresh token itself before promotion.
+# Prove the refresh token itself before replacing the current Reader file.
 $refreshProof = Invoke-RestMethod -Method Post -Uri $tokenUri -ContentType 'application/x-www-form-urlencoded' -Body @{
     client_id = $clientId
     client_secret = $clientSecret
@@ -137,7 +218,6 @@ $pending = $ReaderPath + '.pending'
 $json = $newCredential | ConvertTo-Json -Depth 5
 [IO.File]::WriteAllText($pending, $json, [Text.UTF8Encoding]::new($false))
 
-# Keep the old credential as immutable local recovery evidence; replace only after every proof passed.
 $backup = $ReaderPath + '.pre-reauth.' + [DateTime]::UtcNow.ToString('yyyyMMddHHmmss') + '.bak'
 Move-Item -LiteralPath $ReaderPath -Destination $backup
 Move-Item -LiteralPath $pending -Destination $ReaderPath
@@ -146,11 +226,12 @@ $newHash = Get-Sha256 $ReaderPath
 if ($newHash -eq $oldHash) { Fail 'A1_READER_REAUTH_HASH_UNCHANGED_UNEXPECTED' }
 
 $proof = [ordered]@{
-    schema = 'A1_DRIVE_READER_REAUTH_PROOF_V1'
+    schema = 'A1_DRIVE_READER_REAUTH_PROOF_V2'
     status = 'PASS_EXISTING_READER_REAUTHORIZED_READONLY'
     observed_at_utc = [DateTime]::UtcNow.ToString('o')
     machine = $ExpectedMachine
     interactive_user = $ExpectedUser
+    installed_desktop_oauth_client_match = $true
     existing_oauth_client_reused = $true
     new_oauth_client_created = $false
     reader_scope = $ReadOnlyScope
@@ -169,10 +250,10 @@ $proof = [ordered]@{
     next_exact_gate = 'RECOVERY_AWARE_DRIVE_GUARDRAIL_READBACK'
 }
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $ProofPath) | Out-Null
-$proofJson = $proof | ConvertTo-Json -Depth 6
-[IO.File]::WriteAllText($ProofPath, $proofJson, [Text.UTF8Encoding]::new($false))
+[IO.File]::WriteAllText($ProofPath, ($proof | ConvertTo-Json -Depth 6), [Text.UTF8Encoding]::new($false))
 
 Write-Host 'A1_DRIVE_READER_REAUTH_STATUS=PASS_EXISTING_READER_REAUTHORIZED_READONLY'
+Write-Host 'OAUTH_CLIENT_TYPE=INSTALLED_DESKTOP'
 Write-Host 'EXISTING_OAUTH_CLIENT_REUSED=true'
 Write-Host 'NEW_OAUTH_CLIENT_CREATED=false'
 Write-Host 'DRIVE_SCOPE=READONLY_ONLY'
