@@ -1,0 +1,133 @@
+name: Machine1 Date04 Corrective Reread PASS013-021 20260926
+
+on:
+  push:
+    branches:
+      - machine1/corrective-date04-pass013-021-20260926
+    paths:
+      - .github/workflows/machine1-date04-corrective-reread-pass013-021-20260926.yml
+
+permissions:
+  contents: read
+
+jobs:
+  extract-corrective-scope:
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI\Raw Des 02-31-2024.csv'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract exact governed corrective packets
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          @'
+          import csv, hashlib, json, os, pathlib
+
+          raw = pathlib.Path(os.environ['RAW_FILE'])
+          trading_date = '2024-12-04'
+          expected_md5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
+          expected_sha256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          targets = [
+              {'pass':'PASS013_DATE04','ticker':'ADRO','first':32928,'last':33263,'count':336,'bundle':'Raw Des 02-31-2024__SEMANTIC_0009.jsonl','bundle_line':201,'expected_first_time':'08:59:00','expected_last_time':'16:14:00'},
+              {'pass':'PASS017_DATE04','ticker':'AGRO','first':42876,'last':43074,'count':199,'bundle':'Raw Des 02-31-2024__SEMANTIC_0009.jsonl','bundle_line':205,'expected_first_time':'09:00:00','expected_last_time':'16:14:00'},
+              {'pass':'PASS018_DATE04','ticker':'AGRS','first':41022,'last':41116,'count':95,'bundle':'Raw Des 02-31-2024__SEMANTIC_0009.jsonl','bundle_line':206,'expected_first_time':'09:00:00','expected_last_time':'16:10:00'},
+              {'pass':'PASS019_DATE04','ticker':'AHAP','first':46223,'last':46340,'count':118,'bundle':'Raw Des 02-31-2024__SEMANTIC_0009.jsonl','bundle_line':207,'expected_first_time':'09:00:00','expected_last_time':'16:10:00'},
+              {'pass':'PASS020_DATE04','ticker':'AIMS','first':48083,'last':48155,'count':73,'bundle':'Raw Des 02-31-2024__SEMANTIC_0009.jsonl','bundle_line':208,'expected_first_time':None,'expected_last_time':None},
+              {'pass':'PASS021_DATE04','ticker':'AISA','first':49522,'last':49607,'count':86,'bundle':'Raw Des 02-31-2024__SEMANTIC_0009.jsonl','bundle_line':209,'expected_first_time':'09:00:00','expected_last_time':'16:05:00'},
+          ]
+
+          if not raw.is_file():
+              raise SystemExit(f'RAW_MISSING: {raw}')
+
+          md5 = hashlib.md5(); sha256 = hashlib.sha256()
+          with raw.open('rb') as f:
+              for chunk in iter(lambda: f.read(8*1024*1024), b''):
+                  md5.update(chunk); sha256.update(chunk)
+          got_md5, got_sha256 = md5.hexdigest(), sha256.hexdigest()
+          if got_md5 != expected_md5 or got_sha256 != expected_sha256:
+              raise SystemExit(f'RAW_HASH_MISMATCH md5={got_md5} sha256={got_sha256}')
+
+          by_row = {}
+          min_row = min(t['first'] for t in targets)
+          max_row = max(t['last'] for t in targets)
+          with raw.open('r', encoding='utf-8-sig', newline='') as f:
+              reader = csv.DictReader(f)
+              header_fields = list(reader.fieldnames or [])
+              for source_row, row in enumerate(reader, start=1):
+                  if source_row < min_row:
+                      continue
+                  if source_row > max_row:
+                      break
+                  if any(t['first'] <= source_row <= t['last'] for t in targets):
+                      by_row[source_row] = {'source_row': source_row, **row}
+
+          out = pathlib.Path('machine1_date04_corrective_reread_pass013_021_20260926')
+          out.mkdir(exist_ok=True)
+          proofs = []
+          for t in targets:
+              rows = [by_row[i] for i in range(t['first'], t['last'] + 1) if i in by_row]
+              if len(rows) != t['count']:
+                  raise SystemExit(f"{t['ticker']}_ROW_COUNT_MISMATCH got={len(rows)} expected={t['count']}")
+              if [r['source_row'] for r in rows] != list(range(t['first'], t['last'] + 1)):
+                  raise SystemExit(f"{t['ticker']}_SOURCE_ROW_SEQUENCE_MISMATCH")
+              tickers = {r.get('RAW_TICKER','') for r in rows}
+              if tickers != {t['ticker']}:
+                  raise SystemExit(f"{t['ticker']}_TICKER_MISMATCH got={sorted(tickers)}")
+              dts = [r.get('RAW_DATETIME_ISO','') for r in rows]
+              if any(not dt.startswith(trading_date) for dt in dts):
+                  raise SystemExit(f"{t['ticker']}_DATE_MISMATCH")
+              def clock(dt):
+                  return (dt.split('T',1)[-1] if 'T' in dt else dt.split(' ')[-1])[:8]
+              first_time, last_time = clock(dts[0]), clock(dts[-1])
+              if t['expected_first_time'] and first_time != t['expected_first_time']:
+                  raise SystemExit(f"{t['ticker']}_FIRST_TIME_MISMATCH got={first_time} expected={t['expected_first_time']}")
+              if t['expected_last_time'] and last_time != t['expected_last_time']:
+                  raise SystemExit(f"{t['ticker']}_LAST_TIME_MISMATCH got={last_time} expected={t['expected_last_time']}")
+              rows_path = out / f"{t['ticker']}_20241204_ROWS.jsonl"
+              with rows_path.open('w', encoding='utf-8', newline='\n') as w:
+                  for row in rows:
+                      w.write(json.dumps(row, ensure_ascii=False, separators=(',',':')) + '\n')
+              rows_sha = hashlib.sha256(rows_path.read_bytes()).hexdigest()
+              proof = {
+                  'pass': t['pass'], 'ticker': t['ticker'], 'trading_date': trading_date,
+                  'source_md5': got_md5, 'source_sha256': got_sha256,
+                  'semantic_bundle': t['bundle'], 'semantic_bundle_line_number': t['bundle_line'],
+                  'source_row_first': t['first'], 'source_row_last': t['last'],
+                  'physical_line_first': t['first']+1, 'physical_line_last': t['last']+1,
+                  'data_rows': len(rows), 'first_datetime': dts[0], 'last_datetime': dts[-1],
+                  'first_clock_time': first_time, 'last_clock_time': last_time,
+                  'header_field_count': len(header_fields), 'header_fields': header_fields,
+                  'rows_jsonl_sha256': rows_sha,
+                  'purpose': 'CURRENT_AUTHORITY_CORRECTIVE_NARROW_SEMANTIC_REREAD_ONLY',
+                  'no_new_ticker_opened': True,
+              }
+              (out / f"{t['ticker']}_20241204_PROOF.json").write_text(json.dumps(proof, ensure_ascii=False, indent=2), encoding='utf-8')
+              proofs.append(proof)
+              print(f"{t['ticker']}_EVIDENCE_OK rows={len(rows)} source_rows={t['first']}-{t['last']} first={first_time} last={last_time} sha={rows_sha}")
+
+          manifest = {
+              'schema':'A1_CLEAN_M1_DATE04_CORRECTIVE_REREAD_PACKET_V1',
+              'trading_date':trading_date,
+              'source_md5':got_md5,'source_sha256':got_sha256,
+              'targets':proofs,'target_count':len(proofs),
+              'total_rows':sum(p['data_rows'] for p in proofs),
+              'expected_total_rows':907,
+              'ordinary_next_ticker_opened':False,
+          }
+          if manifest['total_rows'] != manifest['expected_total_rows']:
+              raise SystemExit(f"TOTAL_ROW_MISMATCH got={manifest['total_rows']} expected={manifest['expected_total_rows']}")
+          (out / 'CORRECTIVE_SCOPE_MANIFEST.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
+          '@ | Set-Content -LiteralPath extract_date04_corrective_pass013_021.py -Encoding UTF8
+          py -3.11 extract_date04_corrective_pass013_021.py
+
+      - name: Upload governed corrective evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date04-corrective-reread-pass013-021-20260926
+          path: machine1_date04_corrective_reread_pass013_021_20260926/
+          if-no-files-found: error
+          retention-days: 7
