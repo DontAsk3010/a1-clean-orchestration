@@ -12,13 +12,34 @@ permissions:
 
 jobs:
   pack-date04-canonical-artifacts:
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        lane: [1, 2, 3, 4, 5]
     runs-on: [self-hosted, windows, x64, a1-clean-machine1]
     timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Route exact Drive-backed Machine1 runner
+        id: route
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          "runner_seen=$env:RUNNER_NAME" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          if($env:RUNNER_NAME -eq 'A1-WINDOWS-MACHINE1-02'){
+            'is_target=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host 'DATE04_AUDIT_PACK_TARGET_RUNNER=true'
+          } else {
+            'is_target=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "DATE04_AUDIT_PACK_NON_TARGET=$env:RUNNER_NAME"
+            Start-Sleep -Seconds 45
+          }
+
       - name: Collect canonical Date04 artifacts losslessly
+        if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference='Stop'
@@ -60,6 +81,7 @@ jobs:
           Write-Host "DATE04_CANONICAL_ARTIFACT_PACK_OK files=$($manifest.file_count) obs=$($manifest.observation_atomic_count) journeys=$($manifest.journey_atomic_count) checkpoints=$($manifest.checkpoint_atomic_count) manifest_sha256=$msha"
 
       - name: Upload canonical Date04 artifact audit pack
+        if: ${{ steps.route.outputs.is_target == 'true' }}
         id: upload
         uses: actions/upload-artifact@v4
         with:
@@ -70,11 +92,12 @@ jobs:
           retention-days: 7
 
       - name: Persist compact canonical audit-pack pointer
+        if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference='Stop'
           $proof=Get-Content -Raw 'machine1_date04_canonical_artifact_audit_pack/DATE04_CANONICAL_ARTIFACT_PACK_PROOF.json'|ConvertFrom-Json
-          $ptr=[ordered]@{transport='M1_DATE04_CANONICAL_ARTIFACT_AUDIT_PACK_V1_20260926';trading_date='2024-12-04';github_run_id=[int64]'${{ github.run_id }}';github_artifact_id=[int64]'${{ steps.upload.outputs.artifact-id }}';github_artifact_digest='${{ steps.upload.outputs.artifact-digest }}';manifest_sha256=$proof.manifest_sha256;file_count=$proof.file_count;observation_atomic_count=$proof.observation_atomic_count;journey_atomic_count=$proof.journey_atomic_count;checkpoint_atomic_count=$proof.checkpoint_atomic_count;semantic_read_performed_by_runner=$false}
+          $ptr=[ordered]@{transport='M1_DATE04_CANONICAL_ARTIFACT_AUDIT_PACK_V1_20260926';trading_date='2024-12-04';github_run_id=[int64]'${{ github.run_id }}';github_artifact_id=[int64]'${{ steps.upload.outputs.artifact-id }}';github_artifact_digest='${{ steps.upload.outputs.artifact-digest }}';manifest_sha256=$proof.manifest_sha256;file_count=$proof.file_count;observation_atomic_count=$proof.observation_atomic_count;journey_atomic_count=$proof.journey_atomic_count;checkpoint_atomic_count=$proof.checkpoint_atomic_count;semantic_read_performed_by_runner=$false;runner=$env:RUNNER_NAME}
           New-Item -ItemType Directory -Force '.machine1_evidence'|Out-Null
           $ptr|ConvertTo-Json -Depth 8|Set-Content -Encoding UTF8 '.machine1_evidence/DATE04_CANONICAL_ARTIFACT_AUDIT_PACK_POINTER.json'
           git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
