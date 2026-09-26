@@ -8,6 +8,7 @@ $Python = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\python
 $Pip = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\pip.pyz'
 $Site = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\Lib\site-packages'
 $StepPy = (Resolve-Path 'scripts\windows\recovery_step.py').Path
+$AdoptPy = (Resolve-Path 'scripts\windows\adopt_recovery_checkpoint.py').Path
 $PerSourceTimeoutSeconds = 1200
 $MaxStepInvocations = 25
 $MaxAttemptsPerStep = 2
@@ -42,14 +43,14 @@ function Invoke-OneRecoveryStep([int]$Iteration) {
             Start-Sleep -Seconds 5
             $proc.Refresh()
             if (Test-Path -LiteralPath $stdoutPath -PathType Leaf) {
-                $lines = @(Get-Content -LiteralPath $stdoutPath -Encoding UTF8)
+                [object[]]$lines = @(Get-Content -LiteralPath $stdoutPath -Encoding UTF8)
                 if ($lines.Count -gt $seenOut) {
                     for ($i=$seenOut; $i -lt $lines.Count; $i++) { Write-Host ([string]$lines[$i]) }
                     $seenOut = $lines.Count
                 }
             }
             if (Test-Path -LiteralPath $stderrPath -PathType Leaf) {
-                $lines = @(Get-Content -LiteralPath $stderrPath -Encoding UTF8)
+                [object[]]$lines = @(Get-Content -LiteralPath $stderrPath -Encoding UTF8)
                 if ($lines.Count -gt $seenErr) {
                     for ($i=$seenErr; $i -lt $lines.Count; $i++) { Write-Host ('PYTHON_STDERR|' + [string]$lines[$i]) }
                     $seenErr = $lines.Count
@@ -70,8 +71,10 @@ function Invoke-OneRecoveryStep([int]$Iteration) {
         }
 
         $proc.Refresh()
-        $allOut = if (Test-Path -LiteralPath $stdoutPath -PathType Leaf) { @(Get-Content -LiteralPath $stdoutPath -Encoding UTF8) } else { @() }
-        $allErr = if (Test-Path -LiteralPath $stderrPath -PathType Leaf) { @(Get-Content -LiteralPath $stderrPath -Encoding UTF8) } else { @() }
+        [object[]]$allOut = @()
+        [object[]]$allErr = @()
+        if (Test-Path -LiteralPath $stdoutPath -PathType Leaf) { $allOut = @(Get-Content -LiteralPath $stdoutPath -Encoding UTF8) }
+        if (Test-Path -LiteralPath $stderrPath -PathType Leaf) { $allErr = @(Get-Content -LiteralPath $stderrPath -Encoding UTF8) }
         if ($allOut.Count -gt $seenOut) {
             for ($i=$seenOut; $i -lt $allOut.Count; $i++) { Write-Host ([string]$allOut[$i]) }
         }
@@ -88,9 +91,9 @@ function Invoke-OneRecoveryStep([int]$Iteration) {
             Fail "A1_RECOVERY_CHUNK_EXECUTION_FAIL:iteration=$Iteration:exit=$($proc.ExitCode)"
         }
 
-        $sentinels = @($allOut | ForEach-Object { [string]$_ } | Where-Object { $_ -like 'A1_RECOVERY_STEP_JSON=*' })
+        [object[]]$sentinels = @($allOut | ForEach-Object { [string]$_ } | Where-Object { $_ -like 'A1_RECOVERY_STEP_JSON=*' })
         if ($sentinels.Count -ne 1) { Fail "A1_RECOVERY_STEP_SENTINEL_CARDINALITY:iteration=$Iteration:count=$($sentinels.Count)" }
-        $result = $sentinels[0].Substring('A1_RECOVERY_STEP_JSON='.Length) | ConvertFrom-Json
+        $result = ([string]$sentinels[0]).Substring('A1_RECOVERY_STEP_JSON='.Length) | ConvertFrom-Json
         if ($result.pass -ne $true) { Fail "A1_RECOVERY_STEP_PASS_FALSE:iteration=$Iteration" }
         return $result
     }
@@ -135,7 +138,7 @@ Require-ExitZero 'A1_RECOVERY_PREPARE_PROJECT_INSTALL_FAIL'
 & $Python -c "import a1clean; print('A1_RECOVERY_PREPARE_PROJECT_IMPORT_PASS')"
 Require-ExitZero 'A1_RECOVERY_PREPARE_PROJECT_IMPORT_FAIL'
 
-foreach ($pyFile in @('src\a1clean\canonical_recovery.py','src\a1clean\canonical_recovery_exact_evidence.py','scripts\windows\recovery_step.py')) {
+foreach ($pyFile in @('src\a1clean\canonical_recovery.py','src\a1clean\canonical_recovery_exact_evidence.py','scripts\windows\recovery_step.py','scripts\windows\adopt_recovery_checkpoint.py')) {
     & $Python -m py_compile $pyFile
     Require-ExitZero "A1_RECOVERY_PREPARE_COMPILE_FAIL:$pyFile"
 }
@@ -148,6 +151,17 @@ Write-Host 'A1_RECOVERY_PREPARE_UNIT_GATES=PASS'
 & $Python -m a1clean.cli source-preflight
 Require-ExitZero 'A1_RECOVERY_SOURCE_PREFLIGHT_FAIL'
 Write-Host 'A1_RECOVERY_PREPARE_SOURCE_PREFLIGHT=PASS'
+
+[object[]]$adoptOutput = @(& $Python -u $AdoptPy 2>&1)
+$adoptExit = $LASTEXITCODE
+foreach ($line in $adoptOutput) { Write-Host ([string]$line) }
+if ($adoptExit -ne 0) { Fail "A1_RECOVERY_CHECKPOINT_ADOPTION_FAIL:$adoptExit" }
+[object[]]$adoptSentinels = @($adoptOutput | ForEach-Object { [string]$_ } | Where-Object { $_ -like 'A1_RECOVERY_CHECKPOINT_ADOPTION_JSON=*' })
+if ($adoptSentinels.Count -ne 1) { Fail "A1_RECOVERY_CHECKPOINT_ADOPTION_SENTINEL_CARDINALITY:$($adoptSentinels.Count)" }
+$adoption = ([string]$adoptSentinels[0]).Substring('A1_RECOVERY_CHECKPOINT_ADOPTION_JSON='.Length) | ConvertFrom-Json
+if ($adoption.pass -ne $true) { Fail 'A1_RECOVERY_CHECKPOINT_ADOPTION_PASS_FALSE' }
+Write-Host "A1_RECOVERY_CHECKPOINT_ADOPTION_STATUS=$($adoption.status)"
+Write-Host "A1_RECOVERY_CHECKPOINT_CARRIED_SOURCE_COUNT=$($adoption.carried_completed_source_count)"
 
 $finalResult = $null
 for ($iteration = 1; $iteration -le $MaxStepInvocations; $iteration++) {
