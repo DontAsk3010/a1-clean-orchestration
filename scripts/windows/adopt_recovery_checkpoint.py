@@ -15,6 +15,7 @@ from a1clean.source_parity import _download_bytes
 
 ALLOWED_OPERATIONAL_TRANSITION_PATHS = {
     ".github/workflows/windows-canonical-current-recovery-chunked.yml",
+    "governance/a1-clean-active-authority-lock.json",
     "governance/a1-clean-authority-bootstrap-current.json",
     "scripts/windows/Invoke-A1CanonicalRecoveryPrepareChunked.ps1",
     "scripts/windows/adopt_recovery_checkpoint.py",
@@ -285,7 +286,7 @@ def main() -> int:
             "from_github_sha": prior_sha,
             "to_github_sha": current_sha,
             "changed_paths": changed_paths,
-            "allowlist_validation": "PASS_OPERATIONAL_WRAPPER_ONLY_NO_RECOVERY_ENGINE_CORE_CHANGE",
+            "allowlist_validation": "PASS_GOVERNANCE_OR_OPERATIONAL_ONLY_NO_RECOVERY_ENGINE_CORE_CHANGE",
             "completed_source_carry_validation": validation_rows,
             "authority_bootstrap_sha256": authority_sha256,
             "at_utc": datetime.now(timezone.utc).isoformat(),

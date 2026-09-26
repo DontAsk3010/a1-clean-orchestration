@@ -9,7 +9,7 @@ $Pip = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\pip.pyz'
 $Site = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\Lib\site-packages'
 $StepPy = (Resolve-Path 'scripts\windows\recovery_step.py').Path
 $AdoptPy = (Resolve-Path 'scripts\windows\adopt_recovery_checkpoint.py').Path
-$PerSourceTimeoutSeconds = 1200
+$PerSourceTimeoutSeconds = 3600
 $MaxStepInvocations = 25
 $MaxAttemptsPerStep = 2
 

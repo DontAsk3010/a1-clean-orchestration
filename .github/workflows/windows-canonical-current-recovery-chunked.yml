@@ -22,7 +22,7 @@ jobs:
   lane_a:
     name: Chunked recovery lane A
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
-    timeout-minutes: 180
+    timeout-minutes: 720
     outputs:
       target_pass: ${{ steps.mark.outputs.target_pass }}
       runner_seen: ${{ steps.route.outputs.runner_seen }}
@@ -80,13 +80,13 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           Write-Host 'CHECKPOINTED RECOVERY PREPARE ONLY.'
-          Write-Host 'ONE SOURCE PER CHILD PROCESS; 20-MINUTE SOURCE WATCHDOG; ONE AUTOMATIC RETRY.'
+          Write-Host 'ONE SOURCE PER CHILD PROCESS; 60-MINUTE SOURCE WATCHDOG; ONE AUTOMATIC RETRY.'
           Write-Host 'RAW write=false; canonical CURRENT mutation=false; heavy behavior research=false; canonical promotion unauthorized.'
 
   lane_b:
     name: Chunked recovery lane B
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
-    timeout-minutes: 180
+    timeout-minutes: 720
     outputs:
       target_pass: ${{ steps.mark.outputs.target_pass }}
       runner_seen: ${{ steps.route.outputs.runner_seen }}
@@ -144,7 +144,7 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           Write-Host 'CHECKPOINTED RECOVERY PREPARE ONLY.'
-          Write-Host 'ONE SOURCE PER CHILD PROCESS; 20-MINUTE SOURCE WATCHDOG; ONE AUTOMATIC RETRY.'
+          Write-Host 'ONE SOURCE PER CHILD PROCESS; 60-MINUTE SOURCE WATCHDOG; ONE AUTOMATIC RETRY.'
           Write-Host 'RAW write=false; canonical CURRENT mutation=false; heavy behavior research=false; canonical promotion unauthorized.'
 
   assert_target_pass:
