@@ -1,0 +1,38 @@
+name: Windows Machine2 Reader Reauth Script Parse
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - 'scripts/windows/Restore-A1DriveReaderExisting.ps1'
+      - '.github/workflows/windows-drive-reader-reauth-parse.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  parse:
+    name: Parse Reader reauth script on governed Windows runner pool
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Parse only - no credential or Drive mutation
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $path = 'scripts\windows\Restore-A1DriveReaderExisting.ps1'
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)
+          if (@($errors).Count -ne 0) {
+            foreach ($e in @($errors)) { Write-Host ("PARSE_ERROR|" + $e.Message) }
+            throw 'A1_READER_REAUTH_PARSE_FAIL'
+          }
+          Write-Host 'A1_READER_REAUTH_PARSE=PASS'
+          Write-Host 'CREDENTIAL_MUTATION=false'
+          Write-Host 'DRIVE_WRITE_PERFORMED=false'
