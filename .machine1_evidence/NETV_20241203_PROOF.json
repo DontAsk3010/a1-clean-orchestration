@@ -1,0 +1,18 @@
+{
+    "ticker":  "NETV",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "recovered_date_local_index":  582,
+    "source_row_first":  1159734,
+    "source_row_last":  1159741,
+    "data_rows":  8,
+    "first_datetime":  "2024-12-03 09:55:00",
+    "last_datetime":  "2024-12-03 16:07:00",
+    "rows_jsonl_sha256":  "2f27cc1a4172b765d9a2e9537745e50f173ac5a06a558b327eccfaab34afcbaf",
+    "compact_sha256":  "524b878496eec9001c0ab8e1e3af18b038f07682336e039d88e1e2ca4c627fd1",
+    "recovered_manifest_sha256":  "c07cf5c0c075e6ad6da2ca87623138ed84521423a6a6c143bb75db7a689d6625",
+    "original_semantic_manifest_state":  "UNAVAILABLE_404",
+    "authority_audit_drive_id":  "1KhPP177HaTkySo5BOYSHxMHH9EJIPD__IXLHjQ-xvN8",
+    "authority_audit_revision":  "ANLCKQkkDVDLTCkYd0MwuQoy2lI1_bt45_OULFoEqEZNff0l1chpQrqspQO9zoOiMzmsOVDgxADwhypWei004YT_mTx5-RXtk4DQD3R5nRU",
+    "prestart_decision":  "AUDIT_READBACK_PASS_PRESERVE_PASS581_RESUME_NETV_NO_DATE_ADVANCE"
+}

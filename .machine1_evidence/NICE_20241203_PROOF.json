@@ -1,0 +1,18 @@
+{
+    "ticker":  "NICE",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "recovered_date_local_index":  584,
+    "source_row_first":  1160094,
+    "source_row_last":  1160193,
+    "data_rows":  100,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:11:00",
+    "rows_jsonl_sha256":  "82f79ac1e6872475b26bbc567dd68c03ee60d9c9e22bdfcc4e5d43e7b98b6682",
+    "compact_sha256":  "df61b331df7aed97ab76fae883ce5a75505c1845638e0ff6e627f13db831522b",
+    "recovered_manifest_sha256":  "c07cf5c0c075e6ad6da2ca87623138ed84521423a6a6c143bb75db7a689d6625",
+    "original_semantic_manifest_state":  "UNAVAILABLE_404",
+    "authority_audit_drive_id":  "1KhPP177HaTkySo5BOYSHxMHH9EJIPD__IXLHjQ-xvN8",
+    "authority_audit_revision":  "ANLCKQkkDVDLTCkYd0MwuQoy2lI1_bt45_OULFoEqEZNff0l1chpQrqspQO9zoOiMzmsOVDgxADwhypWei004YT_mTx5-RXtk4DQD3R5nRU",
+    "prestart_decision":  "AUDIT_READBACK_PASS_PRESERVE_PASS581_RESUME_NETV_NO_DATE_ADVANCE"
+}
