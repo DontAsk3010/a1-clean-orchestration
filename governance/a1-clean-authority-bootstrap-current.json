@@ -13,16 +13,16 @@
   "renew_before_durable_mutation": true,
   "reader_only_authority_access_required": true,
   "authority_documents_in_required_read_order": [
-    {"key": "master_handbook", "source": "authority_lock", "required": true, "drive_revision_id": "67"},
-    {"key": "current_execution", "source": "authority_lock", "required": true, "drive_revision_id": "113"},
+    {"key": "master_handbook", "source": "authority_lock", "required": true, "drive_revision_id": "68"},
+    {"key": "current_execution", "source": "authority_lock", "required": true, "drive_revision_id": "114"},
     {"key": "sub_master_index", "source": "authority_lock", "required": true, "drive_revision_id": "56"},
     {"key": "source_capture", "source": "authority_lock", "required": true, "drive_revision_id": "29"},
-    {"key": "behavior_reading", "source": "authority_lock", "required": true, "drive_revision_id": "57"},
-    {"key": "github_automation", "source": "authority_lock", "required": true, "drive_revision_id": "68"},
+    {"key": "behavior_reading", "source": "authority_lock", "required": true, "drive_revision_id": "58"},
+    {"key": "github_automation", "source": "authority_lock", "required": true, "drive_revision_id": "69"},
     {"key": "formula_research", "source": "authority_lock", "required": true, "drive_revision_id": "45", "note": "Read for current CLOSED-stage constraints; reading does not open formula construction."},
     {"key": "machine1_dispatch_registry", "source": "authority_lock", "required": true, "drive_revision_id": "518", "note": "Read for cross-machine independence/date/checkpoint coordination only; never copy Machine 1 semantics into Machine 2."},
     {"key": "stable_transition_bridge", "source": "authority_lock", "required": true, "drive_revision_id": "85"},
-    {"key": "chat_transition_protocol", "source": "explicit", "required": true, "drive_revision_id": "7", "document_id": "1sKbjR_d0doEp5tGfZZ0XlfnuwWEJeRjNokyWdGAB1D8", "revision_id": "ANLCKQnFFfHH0IKJjkVRkASTdc0K_oD0a8EZ7PtcsvzOgrGXulWiWadhYRT10b-yslqM6xLBm8_Ok8nSgLpEqVRt1cD6ti_u7BAC4atRAnA"}
+    {"key": "chat_transition_protocol", "source": "explicit", "required": true, "drive_revision_id": "8", "document_id": "1sKbjR_d0doEp5tGfZZ0XlfnuwWEJeRjNokyWdGAB1D8", "revision_id": "ANLCKQnFFfHH0IKJjkVRkASTdc0K_oD0a8EZ7PtcsvzOgrGXulWiWadhYRT10b-yslqM6xLBm8_Ok8nSgLpEqVRt1cD6ti_u7BAC4atRAnA"}
   ],
   "required_repo_state_files": [
     "governance/a1-clean-active-authority-lock.json",
