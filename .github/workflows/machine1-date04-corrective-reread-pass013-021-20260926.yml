@@ -122,7 +122,7 @@ jobs:
               raise SystemExit(f"TOTAL_ROW_MISMATCH got={manifest['total_rows']} expected={manifest['expected_total_rows']}")
           (out / 'CORRECTIVE_SCOPE_MANIFEST.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
           '@ | Set-Content -LiteralPath extract_date04_corrective_pass013_021.py -Encoding UTF8
-          py -3.11 extract_date04_corrective_pass013_021.py
+          python extract_date04_corrective_pass013_021.py
 
       - name: Upload governed corrective evidence
         uses: actions/upload-artifact@v4
