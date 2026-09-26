@@ -1,0 +1,56 @@
+name: Windows Machine2 Reader Redirect Diagnostic
+
+on:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - '.github/workflows/windows-drive-reader-redirect-diagnostic.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Read redirect host from matching installed OAuth client config
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+          $reader = 'C:\Users\feri-admin\a1-drive-auth\reader_credentials.json'
+          if (-not (Test-Path -LiteralPath $reader -PathType Leaf)) { throw 'READER_MISSING' }
+          $runtime = Get-Content -LiteralPath $reader -Raw -Encoding UTF8 | ConvertFrom-Json
+          $clientId = [string]$runtime.client_id
+          if ([string]::IsNullOrWhiteSpace($clientId)) { throw 'READER_CLIENT_ID_MISSING' }
+          $roots = @('C:\Users\feri-admin\a1-drive-auth','C:\Users\feri-admin\.a1clean','C:\Users\feri-admin\Documents','C:\Users\feri-admin\Desktop','C:\Users\feri-admin\Downloads') | Where-Object { Test-Path -LiteralPath $_ -PathType Container }
+          $hosts = New-Object System.Collections.Generic.List[string]
+          $matches = 0
+          foreach ($root in $roots) {
+            Get-ChildItem -LiteralPath $root -File -Recurse -Filter '*.json' -ErrorAction SilentlyContinue | ForEach-Object {
+              try {
+                $d = Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
+                if (($d.PSObject.Properties.Name -contains 'installed') -and ([string]$d.installed.client_id -eq $clientId)) {
+                  $matches++
+                  foreach ($r in @($d.installed.redirect_uris)) {
+                    try {
+                      $u = [Uri]([string]$r)
+                      if ($u.Scheme -eq 'http' -and ($u.Host -eq 'localhost' -or $u.Host -eq '127.0.0.1')) { $hosts.Add($u.Host) }
+                    } catch {}
+                  }
+                }
+              } catch {}
+            }
+          }
+          $uniqueHosts = @($hosts | Sort-Object -Unique)
+          Write-Host "A1_READER_REDIRECT_DIAG_MATCHING_INSTALLED_CONFIGS=$matches"
+          Write-Host ("A1_READER_REDIRECT_DIAG_HOSTS=" + ($uniqueHosts -join ','))
+          Write-Host 'SECRETS_DISCLOSED=false'
+          Write-Host 'CREDENTIAL_MUTATION=false'
+          Write-Host 'DRIVE_WRITE_PERFORMED=false'
+          if ($matches -lt 1 -or $uniqueHosts.Count -lt 1) { throw 'A1_READER_REDIRECT_DIAG_NO_LOOPBACK_REDIRECT' }
