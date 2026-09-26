@@ -31,7 +31,7 @@ jobs:
           $expSha='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
           if(-not(Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING: $raw"}
           if(-not(Test-Path -LiteralPath $specPath -PathType Leaf)){throw "SPEC_MISSING: $specPath"}
-          $spec=@(Get-Content -LiteralPath $specPath -Raw | ConvertFrom-Json)
+          $spec=Get-Content -LiteralPath $specPath -Raw | ConvertFrom-Json
           if($spec.Count-ne185){throw "SPEC_COUNT_MISMATCH got=$($spec.Count) expected=185"}
           $specRows=[int](($spec|Measure-Object count -Sum).Sum)
           if($specRows-ne19319){throw "SPEC_ROW_TOTAL_MISMATCH got=$specRows expected=19319"}
