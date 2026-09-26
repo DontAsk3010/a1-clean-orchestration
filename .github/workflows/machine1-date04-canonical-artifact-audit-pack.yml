@@ -37,7 +37,7 @@ jobs:
           $manifest=[ordered]@{transport_version='M1_DATE04_CANONICAL_ARTIFACT_AUDIT_PACK_V1_20260926';trading_date='2024-12-04';transport_only=$true;semantic_read_performed_by_runner=$false;canonical_root=$base;files=@()}
           foreach($role in $roles.Keys){
             $src=Join-Path $base $roles[$role]
-            if(-not (Test-Path -LiteralPath $src -PathType Container)){ throw "ROLE_FOLDER_NOT_FOUND:$role:$src" }
+            if(-not (Test-Path -LiteralPath $src -PathType Container)){ throw "ROLE_FOLDER_NOT_FOUND:${role}:${src}" }
             $dst=Join-Path $out $role; New-Item -ItemType Directory -Force -Path $dst | Out-Null
             $matches=@(Get-ChildItem -LiteralPath $src -File -ErrorAction Stop | Where-Object { $_.Name -like 'DES2024_20241204*' })
             foreach($f in $matches){
