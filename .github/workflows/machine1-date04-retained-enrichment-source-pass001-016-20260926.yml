@@ -1,0 +1,78 @@
+name: Machine1 Date04 Retained Enrichment Source PASS001-016 20260926
+
+on:
+  push:
+    branches:
+      - machine1/corrective-date04-pass013-021-20260926
+    paths:
+      - .github/workflows/machine1-date04-retained-enrichment-source-pass001-016-20260926.yml
+
+permissions:
+  contents: read
+
+jobs:
+  extract-retained-source:
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI\Raw Des 02-31-2024.csv'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Extract exact source rows without semantic reinterpretation
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $raw=$env:RAW_FILE; $date='2024-12-04'
+          $expMd5='b8d42b35c90d2dff8b18ae4e1734523b'; $expSha='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          $targets=@(
+            [pscustomobject]@{pass='PASS001_DATE04';ticker='AALI';first=5251;last=5505;count=255;firstTime='09:00:00';lastTime='16:13:00'},
+            [pscustomobject]@{pass='PASS002_DATE04';ticker='ABBA';first=7518;last=7524;count=7;firstTime='09:55:00';lastTime='16:13:00'},
+            [pscustomobject]@{pass='PASS003_DATE04';ticker='ABMM';first=8020;last=8193;count=174;firstTime='09:00:00';lastTime='16:09:00'},
+            [pscustomobject]@{pass='PASS004_DATE04';ticker='ACES';first=14082;last=14396;count=315;firstTime='08:59:00';lastTime='16:14:00'},
+            [pscustomobject]@{pass='PASS005_DATE04';ticker='ACRO';first=11044;last=11095;count=52;firstTime='09:00:00';lastTime='16:00:00'},
+            [pscustomobject]@{pass='PASS006_DATE04';ticker='ACST';first=19009;last=19087;count=79;firstTime='09:00:00';lastTime='16:04:00'},
+            [pscustomobject]@{pass='PASS007_DATE04';ticker='ADCP';first=20193;last=20212;count=20;firstTime='09:00:00';lastTime='15:46:00'},
+            [pscustomobject]@{pass='PASS008_DATE04';ticker='ADES';first=20671;last=20713;count=43;firstTime='09:00:00';lastTime='16:00:00'},
+            [pscustomobject]@{pass='PASS009_DATE04';ticker='ADHI';first=23373;last=23571;count=199;firstTime='09:00:00';lastTime='16:11:00'},
+            [pscustomobject]@{pass='PASS010_DATE04';ticker='ADMF';first=21323;last=21356;count=34;firstTime='09:34:00';lastTime='16:10:00'},
+            [pscustomobject]@{pass='PASS011_DATE04';ticker='ADMG';first=22598;last=22620;count=23;firstTime='09:00:00';lastTime='15:47:00'},
+            [pscustomobject]@{pass='PASS012_DATE04';ticker='ADMR';first=27124;last=27433;count=310;firstTime='08:59:00';lastTime='16:10:00'},
+            [pscustomobject]@{pass='PASS014_DATE04';ticker='AEGS';first=38543;last=38619;count=77;firstTime='09:00:00';lastTime='16:01:00'},
+            [pscustomobject]@{pass='PASS015_DATE04';ticker='AGAR';first=39448;last=39477;count=30;firstTime='09:00:00';lastTime='16:00:00'},
+            [pscustomobject]@{pass='PASS016_DATE04';ticker='AGII';first=40176;last=40194;count=19;firstTime=$null;lastTime=$null}
+          )
+          if(-not(Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING: $raw"}
+          $md5=(Get-FileHash -LiteralPath $raw -Algorithm MD5).Hash.ToLowerInvariant(); $sha=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($md5-ne$expMd5 -or $sha-ne$expSha){throw "RAW_HASH_MISMATCH md5=$md5 sha256=$sha"}
+          $min=($targets|Measure-Object first -Minimum).Minimum; $max=($targets|Measure-Object last -Maximum).Maximum; $by=@{}
+          $sr=[IO.StreamReader]::new($raw,[Text.Encoding]::UTF8,$true,1048576)
+          try{
+            $header=$sr.ReadLine(); if($null-eq$header){throw 'RAW_EMPTY'}
+            $headerObj=@($header,$header)|ConvertFrom-Csv|Select-Object -First 1; $headerFields=@($headerObj.PSObject.Properties.Name)
+            $n=0
+            while(($line=$sr.ReadLine())-ne$null){$n++; if($n-lt$min){continue}; if($n-gt$max){break}; $need=$false; foreach($t in $targets){if($n-ge$t.first -and $n-le$t.last){$need=$true;break}}; if(-not$need){continue}; $obj=@($header,$line)|ConvertFrom-Csv|Select-Object -First 1; $o=[ordered]@{source_row=$n}; foreach($p in $obj.PSObject.Properties){$o[$p.Name]=$p.Value}; $by[$n]=[pscustomobject]$o }
+          }finally{$sr.Dispose()}
+          $out=Join-Path $PWD 'machine1_date04_retained_enrichment_source_pass001_016_20260926'; New-Item -ItemType Directory -Path $out -Force|Out-Null; $utf8=[Text.UTF8Encoding]::new($false); $proofs=@()
+          foreach($t in $targets){
+            $rows=@(); foreach($i in $t.first..$t.last){if($by.ContainsKey($i)){$rows+=$by[$i]}}
+            if($rows.Count-ne$t.count){throw "$($t.ticker)_ROW_COUNT_MISMATCH got=$($rows.Count) expected=$($t.count)"}
+            $seq=@($rows|ForEach-Object{[int]$_.source_row}); for($j=0;$j-lt$seq.Count;$j++){if($seq[$j]-ne($t.first+$j)){throw "$($t.ticker)_SOURCE_ROW_SEQUENCE_MISMATCH"}}
+            $ticks=@($rows|ForEach-Object{$_.RAW_TICKER}|Sort-Object -Unique); if($ticks.Count-ne1 -or $ticks[0]-ne$t.ticker){throw "$($t.ticker)_TICKER_MISMATCH got=$($ticks-join',')"}
+            $dts=@($rows|ForEach-Object{$_.RAW_DATETIME_ISO}); if(@($dts|Where-Object{-not$_.StartsWith($date)}).Count-gt0){throw "$($t.ticker)_DATE_MISMATCH"}
+            $ft=([regex]::Match($dts[0],'\d{2}:\d{2}:\d{2}')).Value; $lt=([regex]::Match($dts[-1],'\d{2}:\d{2}:\d{2}')).Value
+            if($t.firstTime -and $ft-ne$t.firstTime){throw "$($t.ticker)_FIRST_TIME_MISMATCH got=$ft expected=$($t.firstTime)"}; if($t.lastTime -and $lt-ne$t.lastTime){throw "$($t.ticker)_LAST_TIME_MISMATCH got=$lt expected=$($t.lastTime)"}
+            $rp=Join-Path $out "$($t.ticker)_20241204_ROWS.jsonl"; $sw=[IO.StreamWriter]::new($rp,$false,$utf8); try{foreach($r in $rows){$sw.WriteLine(($r|ConvertTo-Json -Compress -Depth 8))}}finally{$sw.Dispose()}; $rsha=(Get-FileHash -LiteralPath $rp -Algorithm SHA256).Hash.ToLowerInvariant()
+            $proof=[ordered]@{pass=$t.pass;ticker=$t.ticker;trading_date=$date;source_md5=$md5;source_sha256=$sha;source_row_first=$t.first;source_row_last=$t.last;physical_line_first=($t.first+1);physical_line_last=($t.last+1);data_rows=$rows.Count;first_datetime=$dts[0];last_datetime=$dts[-1];first_clock_time=$ft;last_clock_time=$lt;header_field_count=$headerFields.Count;header_fields=$headerFields;rows_jsonl_sha256=$rsha;purpose='CURRENT_SCHEMA_ENRICHMENT_SOURCE_ONLY_RETAIN_SEMANTICS_NO_SEMANTIC_REREAD';ordinary_next_ticker_opened=$false}
+            [IO.File]::WriteAllText((Join-Path $out "$($t.ticker)_20241204_PROOF.json"),($proof|ConvertTo-Json -Depth 12),$utf8); $proofs+=[pscustomobject]$proof; Write-Host "$($t.ticker)_SOURCE_OK rows=$($rows.Count) source_rows=$($t.first)-$($t.last) first=$ft last=$lt sha=$rsha"
+          }
+          $total=[int](($proofs|Measure-Object data_rows -Sum).Sum); if($total-ne1637){throw "TOTAL_ROW_MISMATCH got=$total expected=1637"}
+          $m=[ordered]@{schema='A1_CLEAN_M1_DATE04_RETAINED_SEMANTICS_ENRICHMENT_SOURCE_PACKET_V1';trading_date=$date;source_md5=$md5;source_sha256=$sha;target_count=$proofs.Count;total_rows=$total;expected_total_rows=1637;semantic_reread_performed=$false;ordinary_next_ticker_opened=$false;targets=$proofs}; [IO.File]::WriteAllText((Join-Path $out 'SOURCE_PACKET_MANIFEST.json'),($m|ConvertTo-Json -Depth 16),$utf8)
+      - name: Upload retained-semantics source packet
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date04-retained-enrichment-source-pass001-016-20260926
+          path: machine1_date04_retained_enrichment_source_pass001_016_20260926/
+          if-no-files-found: warn
+          retention-days: 7
