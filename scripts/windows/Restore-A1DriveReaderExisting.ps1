@@ -38,6 +38,8 @@ $authUri = 'https://accounts.google.com/o/oauth2/v2/auth'
 if ($tokenUri -notmatch '^https://oauth2\.googleapis\.com/token$|^https://accounts\.google\.com/o/oauth2/token$') { Fail 'A1_READER_REAUTH_UNEXPECTED_TOKEN_URI' }
 
 # Reuse the exact existing OAuth client. No new client is created.
+# For an installed-app authorization request, ask only for drive.readonly and do
+# not request incremental authorization / previously granted scopes.
 $tcp = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback,0)
 $tcp.Start()
 $port = ([System.Net.IPEndPoint]$tcp.LocalEndpoint).Port
@@ -51,7 +53,6 @@ $authUrl = $authUri + '?' + (@(
     'scope=' + (UrlEncode $ReadOnlyScope),
     'access_type=offline',
     'prompt=consent',
-    'include_granted_scopes=false',
     'login_hint=' + (UrlEncode $ExpectedPrincipal),
     'state=' + (UrlEncode $state)
 ) -join '&')
