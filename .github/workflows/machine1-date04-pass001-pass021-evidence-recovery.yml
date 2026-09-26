@@ -1,0 +1,122 @@
+name: Machine1 Date04 PASS001-PASS021 Evidence Recovery
+
+on:
+  push:
+    branches:
+      - machine1/evidence-ceka-20241204
+    paths:
+      - .github/workflows/machine1-date04-pass001-pass021-evidence-recovery.yml
+
+permissions:
+  contents: read
+
+jobs:
+  recover-pass001-pass021:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 60
+    env:
+      RAW_FILE: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI\Raw Des 02-31-2024.csv'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reconstruct exact Date04 PASS001-PASS021 evidence packets
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
+          if (-not (Test-Path -LiteralPath $raw -PathType Leaf)) { throw "RAW_MISSING:$raw" }
+          $expectedSha='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          $expectedMd5='b8d42b35c90d2dff8b18ae4e1734523b'
+          $date='2024-12-04'
+          $plan=@(
+            @{pass=1;ticker='AALI';rows=255}, @{pass=2;ticker='ABBA';rows=7}, @{pass=3;ticker='ABMM';rows=174},
+            @{pass=4;ticker='ACES';rows=315}, @{pass=5;ticker='ACRO';rows=52}, @{pass=6;ticker='ACST';rows=79},
+            @{pass=7;ticker='ADCP';rows=20}, @{pass=8;ticker='ADES';rows=43}, @{pass=9;ticker='ADHI';rows=199},
+            @{pass=10;ticker='ADMF';rows=34}, @{pass=11;ticker='ADMG';rows=23}, @{pass=12;ticker='ADMR';rows=310},
+            @{pass=13;ticker='ADRO';rows=336}, @{pass=14;ticker='AEGS';rows=77}, @{pass=15;ticker='AGAR';rows=30},
+            @{pass=16;ticker='AGII';rows=19}, @{pass=17;ticker='AGRO';rows=199}, @{pass=18;ticker='AGRS';rows=95},
+            @{pass=19;ticker='AHAP';rows=118}, @{pass=20;ticker='AIMS';rows=73}, @{pass=21;ticker='AISA';rows=86}
+          )
+          if (($plan | Measure-Object rows -Sum).Sum -ne 2544) { throw 'EXPECTED_PLAN_TOTAL_NOT_2544' }
+
+          # Frozen source identity.
+          $gotSha=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          $gotMd5=(Get-FileHash -LiteralPath $raw -Algorithm MD5).Hash.ToLowerInvariant()
+          if ($gotSha -ne $expectedSha -or $gotMd5 -ne $expectedMd5) { throw "RAW_HASH_MISMATCH sha=$gotSha md5=$gotMd5" }
+
+          Add-Type -AssemblyName Microsoft.VisualBasic
+          $parser=New-Object Microsoft.VisualBasic.FileIO.TextFieldParser($raw,[System.Text.Encoding]::UTF8,$true)
+          $parser.TextFieldType=[Microsoft.VisualBasic.FileIO.FieldType]::Delimited
+          $parser.SetDelimiters(',')
+          $parser.HasFieldsEnclosedInQuotes=$true
+          $header=$parser.ReadFields()
+          $tickerIdx=[Array]::IndexOf($header,'RAW_TICKER')
+          $dtIdx=[Array]::IndexOf($header,'RAW_DATETIME_ISO')
+          if ($tickerIdx -lt 0 -or $dtIdx -lt 0) { throw 'REQUIRED_HEADER_FIELDS_MISSING' }
+          $wanted=@{}; $records=@{}
+          foreach($p in $plan){ $wanted[$p.ticker]=$p; $records[$p.ticker]=New-Object 'System.Collections.Generic.List[object]' }
+          [int64]$sourceRow=0
+          try {
+            while(-not $parser.EndOfData){
+              $fields=$parser.ReadFields(); $sourceRow++
+              if ($fields.Count -ne $header.Count) { continue }
+              $ticker=[string]$fields[$tickerIdx]; if (-not $wanted.ContainsKey($ticker)) { continue }
+              $dt=[string]$fields[$dtIdx]; if (-not $dt.StartsWith($date)) { continue }
+              $ordered=[ordered]@{source_row=$sourceRow}
+              for($i=0;$i -lt $header.Count;$i++){ $ordered[$header[$i]]=[string]$fields[$i] }
+              [void]$records[$ticker].Add([pscustomobject]$ordered)
+            }
+          } finally { $parser.Close(); $parser.Dispose() }
+
+          $out=Join-Path $PWD 'machine1_date04_pass001_pass021_recovery'
+          if(Test-Path $out){Remove-Item $out -Recurse -Force}; New-Item -ItemType Directory -Path $out -Force | Out-Null
+          $rowsDir=Join-Path $out 'rows'; New-Item -ItemType Directory -Path $rowsDir -Force | Out-Null
+          $utf8=New-Object System.Text.UTF8Encoding($false)
+          $entries=New-Object 'System.Collections.Generic.List[object]'
+          $total=0
+          foreach($p in $plan){
+            $arr=@($records[$p.ticker]); $count=$arr.Count
+            if($count -ne [int]$p.rows){ throw "COUNT_MISMATCH:$($p.ticker):got=$count expected=$($p.rows)" }
+            for($i=1;$i -lt $arr.Count;$i++){ if([int64]$arr[$i].source_row -le [int64]$arr[$i-1].source_row){throw "SOURCE_ORDER_FAIL:$($p.ticker)"} }
+            $dts=@($arr | ForEach-Object {[string]$_.RAW_DATETIME_ISO})
+            if(@($dts | Where-Object {-not $_.StartsWith($date)}).Count -gt 0){throw "DATE_FAIL:$($p.ticker)"}
+            $tickers=@($arr | ForEach-Object {[string]$_.RAW_TICKER} | Sort-Object -Unique)
+            if($tickers.Count -ne 1 -or $tickers[0] -ne $p.ticker){throw "TICKER_FAIL:$($p.ticker)"}
+            $name=('{0:D2}_{1}_ROWS.jsonl' -f [int]$p.pass,$p.ticker)
+            $path=Join-Path $rowsDir $name
+            [System.IO.File]::WriteAllLines($path,[string[]]@($arr | ForEach-Object {$_ | ConvertTo-Json -Compress -Depth 8}),$utf8)
+            $rowSha=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+            $first=[int64]$arr[0].source_row; $last=[int64]$arr[-1].source_row
+            $entries.Add([pscustomobject][ordered]@{pass=('PASS{0:D3}' -f [int]$p.pass);ticker=$p.ticker;rows=$count;source_row_first=$first;source_row_last=$last;physical_line_first=$first+1;physical_line_last=$last+1;first_datetime=$dts[0];last_datetime=$dts[-1];row_file=('rows/'+$name);rows_sha256=$rowSha})
+            $total += $count
+          }
+          if($total -ne 2544){throw "TOTAL_FAIL:$total"}
+          # Cross-check the preserved 12-record snapshot source ranges.
+          $known=@{AALI='5251-5505';ABBA='7518-7524';ABMM='8020-8193';ACES='14082-14396';ACRO='11044-11095';ACST='19009-19087';ADCP='20193-20212';ADES='20671-20713';ADHI='23373-23571';ADMF='21323-21356';ADMG='22598-22620';ADMR='27124-27433'}
+          foreach($e in $entries){ if($known.ContainsKey($e.ticker)){ $got="$($e.source_row_first)-$($e.source_row_last)"; if($got -ne $known[$e.ticker]){throw "SNAPSHOT_RANGE_PARITY_FAIL:$($e.ticker):$got"} } }
+          $manifest=[ordered]@{schema='A1_MACHINE1_DATE04_PASS001_PASS021_RECOVERY_V1';assigned_date=$date;worker_id='M1_20241204_20260914_CHAT02';audit_type='CURRENT_AUTHORITY_COMPLIANCE_AUDIT';source_name=[IO.Path]::GetFileName($raw);source_sha256=$gotSha;source_md5=$gotMd5;generation_id='BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01';transport_only=$true;semantic_read_performed_by_runner=$false;covered_pass_range='PASS001-PASS021';ticker_count=$entries.Count;row_count=$total;entries=@($entries);declaration='LOSSLESS_SOURCE_EVIDENCE_RECOVERY_ONLY__NOT_SEMANTIC_COMPLETE'}
+          $mp=Join-Path $out 'PASS001_PASS021_RECOVERY_MANIFEST.json'; [IO.File]::WriteAllText($mp,($manifest|ConvertTo-Json -Depth 8),$utf8)
+          $msha=(Get-FileHash $mp -Algorithm SHA256).Hash.ToLowerInvariant()
+          $proof=[ordered]@{result='PASS';assigned_date=$date;ticker_count=$entries.Count;row_count=$total;source_sha256=$gotSha;manifest_sha256=$msha;transport_only=$true;semantic_read_performed=$false;first_ticker=$entries[0].ticker;last_ticker=$entries[-1].ticker}
+          [IO.File]::WriteAllText((Join-Path $out 'PASS001_PASS021_RECOVERY_PROOF.json'),($proof|ConvertTo-Json -Depth 5),$utf8)
+          Write-Host "PASS001_PASS021_RECOVERY_OK tickers=$($entries.Count) rows=$total manifest_sha256=$msha"
+
+      - name: Upload lossless recovery artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date04-pass001-pass021-recovery
+          path: machine1_date04_pass001_pass021_recovery/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Safety declaration
+        if: always()
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          Write-Host 'TRANSPORT_ONLY=true'
+          Write-Host 'SEMANTIC_READ_PERFORMED_BY_RUNNER=false'
+          Write-Host 'RAW_WRITE=false'
+          Write-Host 'REGISTRY_WRITE=false'
+          Write-Host 'DATE_ADVANCE=false'
+          Write-Host 'OPTIMIZE_DATA_DELIVERY_NEVER_REPLACE_SEMANTIC_READER'
