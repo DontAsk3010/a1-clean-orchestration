@@ -1,0 +1,137 @@
+name: Machine1 Date04 PASS001-PASS021 Lossless Evidence Recovery
+
+on:
+  push:
+    branches:
+      - machine1/evidence-ceka-20241204
+    paths:
+      - .github/workflows/machine1-date04-pass001-pass021-lossless-recovery.yml
+
+permissions:
+  contents: read
+
+jobs:
+  recover-date04-pass001-pass021:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 60
+    env:
+      RAW_FILE: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI\Raw Des 02-31-2024.csv'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reconstruct exact Date04 first 21 ticker packets from canonical RAW
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          Add-Type -AssemblyName Microsoft.VisualBasic
+          $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
+          if(-not(Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING:$raw"}
+          $expectedSha='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          $gotSha=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($gotSha -ne $expectedSha){throw "RAW_SHA_MISMATCH:$gotSha"}
+          $date='2024-12-04'
+
+          function New-Parser([string]$path){
+            $p=New-Object Microsoft.VisualBasic.FileIO.TextFieldParser($path,[System.Text.Encoding]::UTF8)
+            $p.TextFieldType=[Microsoft.VisualBasic.FileIO.FieldType]::Delimited
+            $p.SetDelimiters(',')
+            $p.HasFieldsEnclosedInQuotes=$true
+            $p.TrimWhiteSpace=$false
+            return $p
+          }
+          function Clock([string]$dt){if($dt.Contains('T')){return $dt.Split('T',2)[1].Substring(0,8)};$x=$dt.Split(' ');return $x[$x.Length-1].Substring(0,8)}
+
+          $p=New-Parser $raw
+          try{
+            if($p.EndOfData){throw 'RAW_EMPTY'}
+            $header=@($p.ReadFields())
+            $tickerIx=[array]::IndexOf($header,'RAW_TICKER')
+            $dtIx=[array]::IndexOf($header,'RAW_DATETIME_ISO')
+            if($tickerIx -lt 0 -or $dtIx -lt 0){throw 'REQUIRED_HEADER_NOT_FOUND'}
+            $meta=@{}
+            [int64]$sourceRow=0
+            [int64]$dateRows=0
+            while(-not $p.EndOfData){
+              $f=@($p.ReadFields()); $sourceRow++
+              if($f.Count -ne $header.Count){throw "FIELD_COUNT_MISMATCH_SOURCE_ROW:$sourceRow got=$($f.Count) expected=$($header.Count)"}
+              $dt=[string]$f[$dtIx]
+              if(-not $dt.StartsWith($date)){continue}
+              $dateRows++
+              $t=[string]$f[$tickerIx]
+              if(-not $meta.ContainsKey($t)){
+                $meta[$t]=[ordered]@{ticker=$t;source_row_first=$sourceRow;source_row_last=$sourceRow;actual_rows=1;first_datetime=$dt;last_datetime=$dt}
+              } else {
+                $m=$meta[$t];$m.source_row_last=$sourceRow;$m.actual_rows=[int]$m.actual_rows+1;$m.last_datetime=$dt
+              }
+            }
+          } finally {$p.Close()}
+
+          $tickers=@($meta.Keys | Sort-Object)
+          if($tickers.Count -ne 899){throw "DATE04_TICKER_COUNT_MISMATCH:$($tickers.Count)"}
+          if($dateRows -ne 91157){throw "DATE04_ROW_COUNT_MISMATCH:$dateRows"}
+          $checks=@(
+            @{ord=22;t='AKKU';f=49109;l=49113;c=5},
+            @{ord=192;t='CENT';f=365796;l=365798;c=3},
+            @{ord=193;t='CFIN';f=366143;l=366293;c=151},
+            @{ord=206;t='CNKO';f=392864;l=392868;c=5}
+          )
+          foreach($c in $checks){$t=$tickers[$c.ord-1];$m=$meta[$t];if($t-ne$c.t -or [int64]$m.source_row_first-ne$c.f -or [int64]$m.source_row_last-ne$c.l -or [int]$m.actual_rows-ne$c.c){throw "PARITY_FAIL_ORD$($c.ord):$t $($m.source_row_first)-$($m.source_row_last) rows=$($m.actual_rows)"}}
+
+          $first21=@($tickers[0..20])
+          $wanted=New-Object 'System.Collections.Generic.HashSet[string]'
+          foreach($t in $first21){[void]$wanted.Add($t)}
+          $out=Join-Path $PWD 'machine1_date04_pass001_pass021_recovery'
+          $rowsDir=Join-Path $out 'rows'
+          if(Test-Path $out){Remove-Item $out -Recurse -Force}
+          New-Item -ItemType Directory -Force -Path $rowsDir | Out-Null
+          $utf8=New-Object System.Text.UTF8Encoding($false)
+          $writers=@{}
+          $rowCounters=@{}
+          for($i=0;$i -lt $first21.Count;$i++){
+            $t=$first21[$i];$fn=('{0:D4}_{1}_ROWS.jsonl' -f ($i+1),$t);$path=Join-Path $rowsDir $fn
+            $writers[$t]=New-Object System.IO.StreamWriter($path,$false,$utf8);$rowCounters[$t]=0
+          }
+          $p=New-Parser $raw
+          try{
+            $header2=@($p.ReadFields());[int64]$sourceRow=0
+            while(-not $p.EndOfData){
+              $f=@($p.ReadFields());$sourceRow++
+              $dt=[string]$f[$dtIx];if(-not $dt.StartsWith($date)){continue}
+              $t=[string]$f[$tickerIx];if(-not $wanted.Contains($t)){continue}
+              $o=[ordered]@{source_row=$sourceRow}
+              for($j=0;$j -lt $header2.Count;$j++){$o[$header2[$j]]=[string]$f[$j]}
+              $writers[$t].WriteLine(($o|ConvertTo-Json -Compress -Depth 6));$rowCounters[$t]=[int]$rowCounters[$t]+1
+            }
+          } finally { $p.Close(); foreach($w in $writers.Values){$w.Dispose()} }
+
+          $entries=@();[int64]$sum=0
+          for($i=0;$i -lt $first21.Count;$i++){
+            $t=$first21[$i];$m=$meta[$t];$fn=('{0:D4}_{1}_ROWS.jsonl' -f ($i+1),$t);$path=Join-Path $rowsDir $fn
+            if([int]$rowCounters[$t] -ne [int]$m.actual_rows){throw "RECOVERY_COUNT_FAIL:$t"}
+            $sha=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant();$sum += [int]$m.actual_rows
+            $entries += [pscustomobject][ordered]@{pass=('PASS{0:D3}' -f ($i+1));ordinal=$i+1;ticker=$t;source_row_first=[int64]$m.source_row_first;source_row_last=[int64]$m.source_row_last;physical_line_first=[int64]$m.source_row_first+1;physical_line_last=[int64]$m.source_row_last+1;actual_rows=[int]$m.actual_rows;first_datetime=$m.first_datetime;last_datetime=$m.last_datetime;row_file=('rows/'+$fn);rows_sha256=$sha;field_count=$header.Count}
+          }
+          if($sum -ne 2544){throw "FIRST21_TOTAL_ROWS_MISMATCH:$sum"}
+          $manifest=[ordered]@{schema='A1_MACHINE1_DATE04_PASS001_PASS021_LOSSLESS_RECOVERY_V1';assigned_date=$date;worker_id='M1_20241204_20260914_CHAT02';source_name=[IO.Path]::GetFileName($raw);source_sha256=$gotSha;generation_id='BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01';data_plane_impl_version='UNIVERSAL_DELTA_DATA_PLANE_V2_20260911';ordering='GROUP_BY_TRADING_DATE_TICKER_ORDER_BY_TRADING_DATE_TICKER';date_total_tickers=899;date_total_rows=91157;covered_pass_range='PASS001-PASS021';covered_tickers=21;covered_rows=$sum;field_names=$header;entries=$entries;transport_only=$true;semantic_read_performed_by_runner=$false;semantic_complete=$false;declaration='OPTIMIZE_DATA_DELIVERY_NEVER_REPLACE_SEMANTIC_READER'}
+          $mp=Join-Path $out 'PASS001_PASS021_RECOVERY_MANIFEST.json';[IO.File]::WriteAllText($mp,($manifest|ConvertTo-Json -Depth 12),$utf8)
+          $msha=(Get-FileHash -LiteralPath $mp -Algorithm SHA256).Hash.ToLowerInvariant()
+          $proof=[ordered]@{source_sha256=$gotSha;date_tickers=899;date_rows=91157;first21_rows=$sum;ordinal22_parity='AKKU_49109_49113_5_PASS';ordinal192_parity='CENT_365796_365798_3_PASS';ordinal193_parity='CFIN_366143_366293_151_PASS';ordinal206_parity='CNKO_392864_392868_5_PASS';manifest_sha256=$msha;transport_only=$true;semantic_read_performed=$false;result='PASS'}
+          [IO.File]::WriteAllText((Join-Path $out 'PASS001_PASS021_RECOVERY_PROOF.json'),($proof|ConvertTo-Json -Depth 8),$utf8)
+          Write-Host "PASS001_PASS021_RECOVERY_OK tickers=21 rows=$sum manifest_sha256=$msha first=$($first21[0]) last=$($first21[20])"
+
+      - name: Upload lossless recovery artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date04-pass001-pass021-lossless-recovery
+          path: machine1_date04_pass001_pass021_recovery/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Safety declaration
+        if: always()
+        shell: powershell
+        run: |
+          Write-Host 'TRANSPORT_ONLY=true'
+          Write-Host 'SEMANTIC_READ_PERFORMED=false'
+          Write-Host 'SEMANTIC_COMPLETE=false'
+          Write-Host 'OPTIMIZE_DATA_DELIVERY_NEVER_REPLACE_SEMANTIC_READER'
