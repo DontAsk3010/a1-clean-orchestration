@@ -1,0 +1,84 @@
+name: Machine1 K-batch7 2024-12-03 Governed Evidence Extract
+on:
+  push:
+    branches: [machine1/evidence-kbatch-20241203]
+    paths: [.github/workflows/machine1-kbatch7-20241203-evidence.yml]
+permissions:
+  contents: write
+jobs:
+  extract:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract governed packets
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
+          $expected='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          $recoveredManifestSha='c07cf5c0c075e6ad6da2ca87623138ed84521423a6a6c143bb75db7a689d6625'
+          $authorityAuditDriveId='1KhPP177HaTkySo5BOYSHxMHH9EJIPD__IXLHjQ-xvN8'
+          $authorityAuditRevision='ANLCKQm9QhY5AW6WAkqBAGxj5VlHub4oCTdXS6anX7z9cxf0jGaPU9ckMRzxJoi2tbXaotuv-ymSvp4er_xU3B3klVpx2GIRKABks7aK8Wg'
+          $specs=@(
+            [pscustomobject]@{Index=611;Ticker='PART';First=1193535;Last=1193591;Count=57;FirstTime='09:00:00';LastTime='16:00:00'},
+            [pscustomobject]@{Index=612;Ticker='PBID';First=1196157;Last=1196197;Count=41;FirstTime='09:00:00';LastTime='16:00:00'},
+            [pscustomobject]@{Index=613;Ticker='PBSA';First=1197694;Last=1197772;Count=79;FirstTime='09:00:00';LastTime='15:49:00'},
+            [pscustomobject]@{Index=614;Ticker='PCAR';First=1197335;Last=1197339;Count=5;FirstTime='09:08:00';LastTime='10:44:00'},
+            [pscustomobject]@{Index=615;Ticker='PDES';First=1197395;Last=1197417;Count=23;FirstTime='10:16:00';LastTime='16:00:00'},
+            [pscustomobject]@{Index=616;Ticker='PDPP';First=1199969;Last=1200046;Count=78;FirstTime='09:00:00';LastTime='16:14:00'},
+            [pscustomobject]@{Index=617;Ticker='PEGE';First=1201765;Last=1201844;Count=80;FirstTime='09:00:00';LastTime='16:09:00'},
+            [pscustomobject]@{Index=618;Ticker='PEHA';First=1201381;Last=1201432;Count=52;FirstTime='09:13:00';LastTime='16:07:00'},
+            [pscustomobject]@{Index=619;Ticker='PEVE';First=1202982;Last=1203039;Count=58;FirstTime='09:00:00';LastTime='16:01:00'},
+            [pscustomobject]@{Index=620;Ticker='PGAS';First=1204767;Last=1205092;Count=326;FirstTime='08:59:00';LastTime='16:14:00'}
+          )
+          if(-not(Test-Path -LiteralPath $raw -PathType Leaf)){throw 'RAW_MISSING'}
+          $got=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($got -ne $expected){throw "RAW_HASH_MISMATCH $got"}
+          $header=$null;$captures=@{}
+          foreach($s in $specs){$captures[$s.Ticker]=New-Object 'System.Collections.Generic.List[string]'}
+          $maxLast=($specs|Measure-Object Last -Maximum).Maximum
+          $i=0
+          foreach($line in [System.IO.File]::ReadLines($raw,[System.Text.Encoding]::UTF8)){
+            if($i -eq 0){$header=$line}
+            foreach($s in $specs){if($i -ge $s.First -and $i -le $s.Last){[void]$captures[$s.Ticker].Add($line)}}
+            if($i -ge $maxLast){break};$i++
+          }
+          $out=Join-Path $PWD 'machine1_kbatch7_20241203_evidence';New-Item -ItemType Directory -Force $out|Out-Null
+          $enc=New-Object System.Text.UTF8Encoding($false)
+          function Clock([string]$dt){if($dt.Contains('T')){return $dt.Split('T',2)[1].Substring(0,8)};$a=$dt.Split(' ');return $a[-1].Substring(0,8)}
+          foreach($s in $specs){
+            $lines=$captures[$s.Ticker];if($lines.Count -ne $s.Count){throw "$($s.Ticker)_COUNT got=$($lines.Count) expected=$($s.Count)"}
+            $parsed=@((@($header)+@($lines))|ConvertFrom-Csv);if($parsed.Count -ne$s.Count){throw "$($s.Ticker)_PARSE"}
+            $records=@()
+            for($n=0;$n -lt $parsed.Count;$n++){$o=[ordered]@{source_row=$s.First+$n};foreach($p in $parsed[$n].PSObject.Properties.Name){$o[$p]=[string]$parsed[$n].$p};$records+=[pscustomobject]$o}
+            $ts=@($records|%{$_.RAW_TICKER}|Sort-Object -Unique);if($ts.Count-ne1-or$ts[0]-ne$s.Ticker){throw "$($s.Ticker)_TICKER"}
+            $dts=@($records|%{[string]$_.RAW_DATETIME_ISO});if(@($dts|?{-not $_.StartsWith('2024-12-03')}).Count-gt0){throw "$($s.Ticker)_DATE"}
+            if((Clock $dts[0])-ne$s.FirstTime -or (Clock $dts[-1])-ne$s.LastTime){throw "$($s.Ticker)_TIME"}
+            $rp=Join-Path $out "$($s.Ticker)_20241203_ROWS.jsonl";[System.IO.File]::WriteAllLines($rp,[string[]]@($records|%{$_|ConvertTo-Json -Compress -Depth 8}),$enc)
+            $cp=Join-Path $out "$($s.Ticker)_20241203_COMPACT.txt";$compact=@($records|%{"$($_.source_row)|$(Clock ([string]$_.RAW_DATETIME_ISO))|$($_.RAW_OPEN)|$($_.RAW_HIGH)|$($_.RAW_LOW)|$($_.RAW_CLOSE)|V$($_.RAW_VOLUME)"});[System.IO.File]::WriteAllLines($cp,[string[]]$compact,$enc)
+            $proof=[ordered]@{ticker=$s.Ticker;trading_date='2024-12-03';source_sha256=$got;recovered_date_local_index=$s.Index;source_row_first=$s.First;source_row_last=$s.Last;data_rows=$records.Count;first_datetime=$dts[0];last_datetime=$dts[-1];rows_jsonl_sha256=(Get-FileHash $rp -Algorithm SHA256).Hash.ToLowerInvariant();compact_sha256=(Get-FileHash $cp -Algorithm SHA256).Hash.ToLowerInvariant();recovered_manifest_sha256=$recoveredManifestSha;original_semantic_manifest_state='UNAVAILABLE_404';authority_audit_drive_id=$authorityAuditDriveId;authority_audit_revision=$authorityAuditRevision;prestart_decision='CURRENT_PASS610_RESUME_PART_NO_DATE_ADVANCE'}
+            [System.IO.File]::WriteAllText((Join-Path $out "$($s.Ticker)_20241203_PROOF.json"),($proof|ConvertTo-Json -Depth 10),$enc)
+            Write-Host "$($s.Ticker)_EVIDENCE_OK index=$($s.Index) rows=$($records.Count)"
+          }
+      - name: Upload governed evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-kbatch7-20241203-evidence
+          path: machine1_kbatch7_20241203_evidence/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Persist exact evidence rows
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item -ItemType Directory -Force '.machine1_evidence'|Out-Null
+          Copy-Item 'machine1_kbatch7_20241203_evidence/*' '.machine1_evidence/' -Force
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add -f '.machine1_evidence/*_20241203_ROWS.jsonl' '.machine1_evidence/*_20241203_COMPACT.txt'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_evidence/*_20241203_PROOF.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist governed PART-PGAS evidence [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-kbatch-20241203
