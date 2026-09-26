@@ -55,7 +55,7 @@ jobs:
           $dtIdx=[Array]::IndexOf($header,'RAW_DATETIME_ISO')
           if ($tickerIdx -lt 0 -or $dtIdx -lt 0) { throw 'REQUIRED_HEADER_FIELDS_MISSING' }
           $wanted=@{}; $records=@{}
-          foreach($p in $plan){ $wanted[$p.ticker]=$p; $records[$p.ticker]=New-Object 'System.Collections.Generic.List[object]' }
+          foreach($p in $plan){ $wanted[$p.ticker]=$p; $records[$p.ticker]=New-Object System.Collections.ArrayList }
           [int64]$sourceRow=0
           try {
             while(-not $parser.EndOfData){
@@ -73,10 +73,10 @@ jobs:
           if(Test-Path $out){Remove-Item $out -Recurse -Force}; New-Item -ItemType Directory -Path $out -Force | Out-Null
           $rowsDir=Join-Path $out 'rows'; New-Item -ItemType Directory -Path $rowsDir -Force | Out-Null
           $utf8=New-Object System.Text.UTF8Encoding($false)
-          $entries=New-Object 'System.Collections.Generic.List[object]'
+          $entries=New-Object System.Collections.ArrayList
           $total=0
           foreach($p in $plan){
-            $arr=@($records[$p.ticker]); $count=$arr.Count
+            $arr=@($records[$p.ticker] | ForEach-Object { $_ }); $count=$arr.Count
             if($count -ne [int]$p.rows){ throw "COUNT_MISMATCH:$($p.ticker):got=$count expected=$($p.rows)" }
             for($i=1;$i -lt $arr.Count;$i++){ if([int64]$arr[$i].source_row -le [int64]$arr[$i-1].source_row){throw "SOURCE_ORDER_FAIL:$($p.ticker)"} }
             $dts=@($arr | ForEach-Object {[string]$_.RAW_DATETIME_ISO})
@@ -88,7 +88,7 @@ jobs:
             [System.IO.File]::WriteAllLines($path,[string[]]@($arr | ForEach-Object {$_ | ConvertTo-Json -Compress -Depth 8}),$utf8)
             $rowSha=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
             $first=[int64]$arr[0].source_row; $last=[int64]$arr[-1].source_row
-            $entries.Add([pscustomobject][ordered]@{pass=('PASS{0:D3}' -f [int]$p.pass);ticker=$p.ticker;rows=$count;source_row_first=$first;source_row_last=$last;physical_line_first=$first+1;physical_line_last=$last+1;first_datetime=$dts[0];last_datetime=$dts[-1];row_file=('rows/'+$name);rows_sha256=$rowSha})
+            [void]$entries.Add([pscustomobject][ordered]@{pass=('PASS{0:D3}' -f [int]$p.pass);ticker=$p.ticker;rows=$count;source_row_first=$first;source_row_last=$last;physical_line_first=$first+1;physical_line_last=$last+1;first_datetime=$dts[0];last_datetime=$dts[-1];row_file=('rows/'+$name);rows_sha256=$rowSha})
             $total += $count
           }
           if($total -ne 2544){throw "TOTAL_FAIL:$total"}
