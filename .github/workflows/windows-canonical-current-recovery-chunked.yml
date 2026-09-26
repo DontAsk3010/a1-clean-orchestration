@@ -6,6 +6,7 @@ on:
       - fix/v32-dynamic-source-universe-v1
     paths:
       - 'scripts/windows/recovery_step.py'
+      - 'scripts/windows/adopt_recovery_checkpoint.py'
       - 'scripts/windows/Invoke-A1CanonicalRecoveryPrepareChunked.ps1'
       - '.github/workflows/windows-canonical-current-recovery-chunked.yml'
   workflow_dispatch:
