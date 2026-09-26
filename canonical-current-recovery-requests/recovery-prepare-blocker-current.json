@@ -5,7 +5,7 @@
   "authority_effective_date": "2026-09-26",
   "authority_lock_status": "ACTIVE",
   "owner_correction_applied": true,
-  "recovery_request_trigger_revision": "20260927_01",
+  "recovery_request_trigger_revision": "20260927_02",
   "recovery_request_mode": "PREPARE_ONLY_NO_CANONICAL_WRITE",
   "machine2_request_enabled": false,
   "canonical_current_recovery_commit_authorized": false,
