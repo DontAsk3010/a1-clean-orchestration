@@ -1,0 +1,18 @@
+{
+    "ticker":  "PEGE",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "recovered_date_local_index":  617,
+    "source_row_first":  1201765,
+    "source_row_last":  1201844,
+    "data_rows":  80,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:09:00",
+    "rows_jsonl_sha256":  "3bd727eb8c7fd8521069efa2f3f8686ce986f936fbd54b36a7a7cc120592e7ca",
+    "compact_sha256":  "67cb940425bba8502de6afc7c9c7d8430f72ac5496671950e489c301c9649900",
+    "recovered_manifest_sha256":  "c07cf5c0c075e6ad6da2ca87623138ed84521423a6a6c143bb75db7a689d6625",
+    "original_semantic_manifest_state":  "UNAVAILABLE_404",
+    "authority_audit_drive_id":  "1KhPP177HaTkySo5BOYSHxMHH9EJIPD__IXLHjQ-xvN8",
+    "authority_audit_revision":  "ANLCKQm9QhY5AW6WAkqBAGxj5VlHub4oCTdXS6anX7z9cxf0jGaPU9ckMRzxJoi2tbXaotuv-ymSvp4er_xU3B3klVpx2GIRKABks7aK8Wg",
+    "prestart_decision":  "CURRENT_PASS610_RESUME_PART_NO_DATE_ADVANCE"
+}

@@ -1,0 +1,18 @@
+{
+    "ticker":  "PGAS",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "recovered_date_local_index":  620,
+    "source_row_first":  1204767,
+    "source_row_last":  1205092,
+    "data_rows":  326,
+    "first_datetime":  "2024-12-03 08:59:00",
+    "last_datetime":  "2024-12-03 16:14:00",
+    "rows_jsonl_sha256":  "30da20564bdda4839499c5bcf04196d78eaef5fb5c59f8c3d6f402b414cbcf49",
+    "compact_sha256":  "660e702e53d0ee83dcbb69c15bf061dfc8a2196be6f04d81215493673a76c03b",
+    "recovered_manifest_sha256":  "c07cf5c0c075e6ad6da2ca87623138ed84521423a6a6c143bb75db7a689d6625",
+    "original_semantic_manifest_state":  "UNAVAILABLE_404",
+    "authority_audit_drive_id":  "1KhPP177HaTkySo5BOYSHxMHH9EJIPD__IXLHjQ-xvN8",
+    "authority_audit_revision":  "ANLCKQm9QhY5AW6WAkqBAGxj5VlHub4oCTdXS6anX7z9cxf0jGaPU9ckMRzxJoi2tbXaotuv-ymSvp4er_xU3B3klVpx2GIRKABks7aK8Wg",
+    "prestart_decision":  "CURRENT_PASS610_RESUME_PART_NO_DATE_ADVANCE"
+}

@@ -1,0 +1,18 @@
+{
+    "ticker":  "PDPP",
+    "trading_date":  "2024-12-03",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "recovered_date_local_index":  616,
+    "source_row_first":  1199969,
+    "source_row_last":  1200046,
+    "data_rows":  78,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:14:00",
+    "rows_jsonl_sha256":  "35b65dbef4ba808291ef17c2b5c2e8f552abd0fdc1d77a5f11fbcf06744e8e26",
+    "compact_sha256":  "e8116ad71458f2092b168d07feca38e67739cb2719f60b73d6c320d7c01f9938",
+    "recovered_manifest_sha256":  "c07cf5c0c075e6ad6da2ca87623138ed84521423a6a6c143bb75db7a689d6625",
+    "original_semantic_manifest_state":  "UNAVAILABLE_404",
+    "authority_audit_drive_id":  "1KhPP177HaTkySo5BOYSHxMHH9EJIPD__IXLHjQ-xvN8",
+    "authority_audit_revision":  "ANLCKQm9QhY5AW6WAkqBAGxj5VlHub4oCTdXS6anX7z9cxf0jGaPU9ckMRzxJoi2tbXaotuv-ymSvp4er_xU3B3klVpx2GIRKABks7aK8Wg",
+    "prestart_decision":  "CURRENT_PASS610_RESUME_PART_NO_DATE_ADVANCE"
+}
