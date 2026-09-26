@@ -19,10 +19,13 @@ jobs:
           $ErrorActionPreference='Stop'
           $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
           $expected='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          $recoveredManifestSha='c07cf5c0c075e6ad6da2ca87623138ed84521423a6a6c143bb75db7a689d6625'
+          $authorityAuditDriveId='1KhPP177HaTkySo5BOYSHxMHH9EJIPD__IXLHjQ-xvN8'
+          $authorityAuditRevision='ANLCKQkkDVDLTCkYd0MwuQoy2lI1_bt45_OULFoEqEZNff0l1chpQrqspQO9zoOiMzmsOVDgxADwhypWei004YT_mTx5-RXtk4DQD3R5nRU'
           $specs=@(
-            [pscustomobject]@{Ticker='MEDC';First=1052654;Last=1052957;Count=304;FirstTime='08:59:00';LastTime='16:11:00';Bundle='Raw Des 02-31-2024__SEMANTIC_0008.jsonl';BundleLine=54},
-            [pscustomobject]@{Ticker='MEDS';First=1051860;Last=1051863;Count=4;FirstTime='09:12:00';LastTime='15:18:00';Bundle='Raw Des 02-31-2024__SEMANTIC_0008.jsonl';BundleLine=55},
-            [pscustomobject]@{Ticker='MEGA';First=1051974;Last=1051986;Count=13;FirstTime='09:00:00';LastTime='16:00:00';Bundle='Raw Des 02-31-2024__SEMANTIC_0008.jsonl';BundleLine=56}
+            [pscustomobject]@{Index=582;Ticker='NETV';First=1159734;Last=1159741;Count=8;FirstTime='09:55:00';LastTime='16:07:00'},
+            [pscustomobject]@{Index=583;Ticker='NFCX';First=1159147;Last=1159262;Count=116;FirstTime='09:00:00';LastTime='16:03:00'},
+            [pscustomobject]@{Index=584;Ticker='NICE';First=1160094;Last=1160193;Count=100;FirstTime='09:00:00';LastTime='16:11:00'}
           )
           if(-not(Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING"}
           $got=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -40,7 +43,7 @@ jobs:
           $enc=New-Object System.Text.UTF8Encoding($false)
           function Clock([string]$dt){if($dt.Contains('T')){return $dt.Split('T',2)[1].Substring(0,8)};$a=$dt.Split(' ');return $a[-1].Substring(0,8)}
           foreach($s in $specs){
-            $lines=$captures[$s.Ticker];if($lines.Count -ne $s.Count){throw "$($s.Ticker)_COUNT got=$($lines.Count)"}
+            $lines=$captures[$s.Ticker];if($lines.Count -ne $s.Count){throw "$($s.Ticker)_COUNT got=$($lines.Count) expected=$($s.Count)"}
             $parsed=@((@($header)+@($lines))|ConvertFrom-Csv);if($parsed.Count -ne $s.Count){throw "$($s.Ticker)_PARSE"}
             $records=@()
             for($n=0;$n -lt $parsed.Count;$n++){$o=[ordered]@{source_row=$s.First+$n};foreach($p in $parsed[$n].PSObject.Properties.Name){$o[$p]=[string]$parsed[$n].$p};$records+=[pscustomobject]$o}
@@ -49,8 +52,9 @@ jobs:
             if((Clock $dts[0])-ne$s.FirstTime -or (Clock $dts[-1])-ne$s.LastTime){throw "$($s.Ticker)_TIME"}
             $rp=Join-Path $out "$($s.Ticker)_20241203_ROWS.jsonl";[System.IO.File]::WriteAllLines($rp,[string[]]@($records|%{$_|ConvertTo-Json -Compress -Depth 8}),$enc)
             $cp=Join-Path $out "$($s.Ticker)_20241203_COMPACT.txt";$compact=@($records|%{"$($_.source_row)|$(Clock ([string]$_.RAW_DATETIME_ISO))|$($_.RAW_OPEN)|$($_.RAW_HIGH)|$($_.RAW_LOW)|$($_.RAW_CLOSE)|V$($_.RAW_VOLUME)"});[System.IO.File]::WriteAllLines($cp,[string[]]$compact,$enc)
-            $proof=[ordered]@{ticker=$s.Ticker;trading_date='2024-12-03';source_sha256=$got;semantic_bundle=$s.Bundle;semantic_bundle_line_number=$s.BundleLine;source_row_first=$s.First;source_row_last=$s.Last;data_rows=$records.Count;first_datetime=$dts[0];last_datetime=$dts[-1];rows_jsonl_sha256=(Get-FileHash $rp -Algorithm SHA256).Hash.ToLowerInvariant();compact_sha256=(Get-FileHash $cp -Algorithm SHA256).Hash.ToLowerInvariant()};[System.IO.File]::WriteAllText((Join-Path $out "$($s.Ticker)_20241203_PROOF.json"),($proof|ConvertTo-Json -Depth 10),$enc)
-            Write-Host "$($s.Ticker)_EVIDENCE_OK rows=$($records.Count)"
+            $proof=[ordered]@{ticker=$s.Ticker;trading_date='2024-12-03';source_sha256=$got;recovered_date_local_index=$s.Index;source_row_first=$s.First;source_row_last=$s.Last;data_rows=$records.Count;first_datetime=$dts[0];last_datetime=$dts[-1];rows_jsonl_sha256=(Get-FileHash $rp -Algorithm SHA256).Hash.ToLowerInvariant();compact_sha256=(Get-FileHash $cp -Algorithm SHA256).Hash.ToLowerInvariant();recovered_manifest_sha256=$recoveredManifestSha;original_semantic_manifest_state='UNAVAILABLE_404';authority_audit_drive_id=$authorityAuditDriveId;authority_audit_revision=$authorityAuditRevision;prestart_decision='AUDIT_READBACK_PASS_PRESERVE_PASS581_RESUME_NETV_NO_DATE_ADVANCE'}
+            [System.IO.File]::WriteAllText((Join-Path $out "$($s.Ticker)_20241203_PROOF.json"),($proof|ConvertTo-Json -Depth 10),$enc)
+            Write-Host "$($s.Ticker)_EVIDENCE_OK index=$($s.Index) rows=$($records.Count)"
           }
       - name: Upload governed evidence
         uses: actions/upload-artifact@v4
@@ -69,5 +73,5 @@ jobs:
           git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
           git -c safe.directory="$env:GITHUB_WORKSPACE" add -f '.machine1_evidence/*_20241203_ROWS.jsonl' '.machine1_evidence/*_20241203_COMPACT.txt'
           git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_evidence/*_20241203_PROOF.json'
-          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist governed K-batch4 evidence [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist governed NETV NFCX NICE evidence [skip ci]'
           git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-kbatch-20241203
