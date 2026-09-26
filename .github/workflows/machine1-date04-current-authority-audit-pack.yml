@@ -1,0 +1,116 @@
+name: Machine1 Date04 Current-Authority Audit Evidence Pack
+
+on:
+  push:
+    branches:
+      - machine1/evidence-ceka-20241204
+    paths:
+      - .github/workflows/machine1-date04-current-authority-audit-pack.yml
+
+permissions:
+  contents: read
+
+jobs:
+  pack-date04-audit-evidence:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Locate canonical Date04 behavior root and build lossless audit pack
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $anchor = 'DES2024_20241204__AI_OBSERVATION_ATOMIC_PASS206_CNKO__20260925.jsonl'
+          $roots = @('C:\Users\feri-admin\My Drive','D:\TRADING SYSTEM') | Where-Object { Test-Path -LiteralPath $_ -PathType Container }
+          if (-not $roots) { throw 'AUDIT_PACK_NO_SEARCH_ROOTS' }
+
+          $anchorFile = $null
+          foreach ($root in $roots) {
+            Write-Host "AUDIT_PACK_SEARCH_ROOT=$root"
+            $hit = Get-ChildItem -LiteralPath $root -File -Recurse -Force -ErrorAction SilentlyContinue |
+              Where-Object { $_.Name -eq $anchor } | Select-Object -First 1
+            if ($hit) { $anchorFile = $hit; break }
+          }
+          if (-not $anchorFile) { throw 'AUDIT_PACK_ANCHOR_NOT_FOUND' }
+
+          $obsDir = $anchorFile.Directory
+          if ($obsDir.Name -ne '01_DATE_TICKER_OBSERVATIONS') { throw "AUDIT_PACK_BAD_OBS_DIR:$($obsDir.FullName)" }
+          $behaviorRoot = $obsDir.Parent.FullName
+          Write-Host "AUDIT_PACK_BEHAVIOR_ROOT=$behaviorRoot"
+
+          $roles = @(
+            '00_CONTROL_AND_CHECKPOINTS',
+            '01_DATE_TICKER_OBSERVATIONS',
+            '02_EVENT_AND_JOURNEY_OBJECTS',
+            '03_OPEN_CARRY_AND_CENSOR_STATE',
+            '04_BEHAVIOR_AUDIT_AND_COVERAGE',
+            '05_CANONICAL_FINAL_OUTPUT',
+            '06_CROSS_MONTH_BEHAVIOR_ATLAS',
+            '90_TEMPORARY_CHUNKS'
+          )
+          $out = Join-Path $PWD 'machine1_date04_current_authority_audit_pack'
+          if (Test-Path $out) { Remove-Item $out -Recurse -Force }
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $files = New-Object 'System.Collections.Generic.List[object]'
+
+          foreach ($role in $roles) {
+            $srcDir = Join-Path $behaviorRoot $role
+            if (-not (Test-Path -LiteralPath $srcDir -PathType Container)) { continue }
+            $destDir = Join-Path $out $role
+            New-Item -ItemType Directory -Force -Path $destDir | Out-Null
+            $matches = @(Get-ChildItem -LiteralPath $srcDir -File -Force -ErrorAction Stop | Where-Object { $_.Name -like '*20241204*' -or $_.Name -like '*DATE04*' })
+            foreach ($f in $matches) {
+              $dest = Join-Path $destDir $f.Name
+              Copy-Item -LiteralPath $f.FullName -Destination $dest -Force
+              $sha = (Get-FileHash -LiteralPath $dest -Algorithm SHA256).Hash.ToLowerInvariant()
+              $files.Add([pscustomobject][ordered]@{
+                role=$role; name=$f.Name; size_bytes=[int64]$f.Length; sha256=$sha; source_full_path=$f.FullName
+              })
+            }
+          }
+
+          if ($files.Count -eq 0) { throw 'AUDIT_PACK_NO_DATE04_FILES' }
+          $counts = [ordered]@{}
+          foreach ($role in $roles) { $counts[$role] = @($files | Where-Object role -eq $role).Count }
+          $manifest = [ordered]@{
+            schema='A1_MACHINE1_DATE04_CURRENT_AUTHORITY_AUDIT_PACK_V1'
+            assigned_date='2024-12-04'
+            worker_id='M1_20241204_20260914_CHAT02'
+            audit_type='CURRENT_AUTHORITY_COMPLIANCE_AUDIT'
+            behavior_root=$behaviorRoot
+            file_count=$files.Count
+            role_counts=$counts
+            files=@($files)
+            semantic_read_performed_by_runner=$false
+            transport_only=$true
+            declaration='LOSSLESS_EVIDENCE_PACK_ONLY__NOT_SEMANTIC_COMPLETE'
+          }
+          $manifestPath = Join-Path $out 'DATE04_AUDIT_PACK_MANIFEST.json'
+          $utf8 = New-Object System.Text.UTF8Encoding($false)
+          [System.IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 8), $utf8)
+          $manifestSha = (Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $proof = [ordered]@{
+            assigned_date='2024-12-04'; worker_id='M1_20241204_20260914_CHAT02'; file_count=$files.Count;
+            role_counts=$counts; manifest_sha256=$manifestSha; anchor_name=$anchor; anchor_sha256=(Get-FileHash -LiteralPath (Join-Path $out ('01_DATE_TICKER_OBSERVATIONS\'+$anchor)) -Algorithm SHA256).Hash.ToLowerInvariant();
+            transport_only=$true; semantic_read_performed=$false; result='PACK_INTEGRITY_CREATED'
+          }
+          [System.IO.File]::WriteAllText((Join-Path $out 'DATE04_AUDIT_PACK_PROOF.json'), ($proof | ConvertTo-Json -Depth 8), $utf8)
+          Write-Host "DATE04_AUDIT_PACK_OK file_count=$($files.Count) manifest_sha256=$manifestSha"
+          foreach ($k in $counts.Keys) { Write-Host "ROLE_COUNT $k=$($counts[$k])" }
+
+      - name: Upload lossless Date04 audit pack
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date04-current-authority-audit-pack
+          path: machine1_date04_current_authority_audit_pack/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Safety declaration
+        if: always()
+        shell: powershell
+        run: |
+          Write-Host 'TRANSPORT_ONLY=true'
+          Write-Host 'SEMANTIC_READ_PERFORMED=false'
+          Write-Host 'THIS_ARTIFACT_MUST_NOT_BE_TREATED_AS_SEMANTIC_COMPLETE'
