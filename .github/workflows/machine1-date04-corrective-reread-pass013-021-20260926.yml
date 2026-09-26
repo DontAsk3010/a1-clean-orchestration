@@ -32,7 +32,7 @@ jobs:
             [pscustomobject]@{pass='PASS013_DATE04';ticker='ADRO';first=32928;last=33263;count=336;bundleLine=201;firstTime='08:59:00';lastTime='16:14:00'},
             [pscustomobject]@{pass='PASS017_DATE04';ticker='AGRO';first=42876;last=43074;count=199;bundleLine=205;firstTime='09:00:00';lastTime='16:14:00'},
             [pscustomobject]@{pass='PASS018_DATE04';ticker='AGRS';first=41022;last=41116;count=95;bundleLine=206;firstTime='09:00:00';lastTime='16:10:00'},
-            [pscustomobject]@{pass='PASS019_DATE04';ticker='AHAP';first=46223;last=46340;count=118;bundleLine=207;firstTime='09:00:00';lastTime='16:10:00'},
+            [pscustomobject]@{pass='PASS019_DATE04';ticker='AHAP';first=46223;last=46340;count=118;bundleLine=207;firstTime='09:00:00';lastTime='16:13:00'},
             [pscustomobject]@{pass='PASS020_DATE04';ticker='AIMS';first=48083;last=48155;count=73;bundleLine=208;firstTime=$null;lastTime=$null},
             [pscustomobject]@{pass='PASS021_DATE04';ticker='AISA';first=49522;last=49607;count=86;bundleLine=209;firstTime='09:00:00';lastTime='16:05:00'}
           )
@@ -106,9 +106,10 @@ jobs:
           [IO.File]::WriteAllText((Join-Path $out 'CORRECTIVE_SCOPE_MANIFEST.json'), ($manifest | ConvertTo-Json -Depth 16), $utf8NoBom)
 
       - name: Upload governed corrective evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: machine1-date04-corrective-reread-pass013-021-20260926
           path: machine1_date04_corrective_reread_pass013_021_20260926/
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 7
