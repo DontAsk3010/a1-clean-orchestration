@@ -1,0 +1,102 @@
+name: Machine1 Date04 Completed PASS206 Lossless Audit Source
+
+on:
+  push:
+    branches:
+      - machine1/date04-remaining-after-pass192
+    paths:
+      - .github/workflows/machine1-date04-completed-pass206-audit-source.yml
+
+permissions:
+  contents: write
+
+jobs:
+  build-date04-completed-pass206:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 60
+    env:
+      RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build lossless ordered PASS001-PASS206 source artifact
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $expected='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          $got=(Get-FileHash -LiteralPath $env:RAW_FILE -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($got -ne $expected){throw "RAW_HASH_MISMATCH:$got"}
+          $env:RAW_SHA256=$got
+          @'
+          const fs=require('fs'),readline=require('readline'),crypto=require('crypto'),path=require('path');
+          const RAW=process.env.RAW_FILE,SHA='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c';
+          const TD='2024-12-04',MAX=6291456,OUT='machine1_date04_completed_pass206_audit_source';
+          function csv(s){let a=[],c='',q=false;for(let i=0;i<s.length;i++){let x=s[i];if(q){if(x==='"'&&s[i+1]==='"'){c+='"';i++;}else if(x==='"')q=false;else c+=x;}else{if(x==='"')q=true;else if(x===','){a.push(c);c='';}else c+=x;}}a.push(c);return a;}
+          function seg(ns){if(!ns.length)return[];let o=[],a=ns[0],b=a;for(let i=1;i<ns.length;i++){let n=ns[i];if(n===b+1)b=n;else{o.push([a,b]);a=b=n;}}o.push([a,b]);return o;}
+          function cmp(a,b){if(a.d!==b.d)return a.d<b.d?-1:1;return a.t===b.t?0:(a.t<b.t?-1:1);}
+          function shaFile(p){let h=crypto.createHash('sha256');h.update(fs.readFileSync(p));return h.digest('hex');}
+          (async()=>{
+            if((process.env.RAW_SHA256||'').toLowerCase()!==SHA)throw Error('RAW_HASH_ENV_MISMATCH');
+            fs.rmSync(OUT,{recursive:true,force:true});fs.mkdirSync(path.join(OUT,'rows'),{recursive:true});
+            const rl=readline.createInterface({input:fs.createReadStream(RAW,{encoding:'utf8'}),crlfDelay:Infinity});
+            let head=null,hf=null,ti=-1,di=-1,n=0,m=new Map();
+            for await(let l of rl){
+              if(head===null){if(l.charCodeAt(0)===0xFEFF)l=l.slice(1);head=l;hf=csv(l);ti=hf.indexOf('RAW_TICKER');di=hf.indexOf('RAW_DATETIME_ISO');if(ti<0||di<0)throw Error('FIELDS_MISSING');continue;}
+              n++;let f=csv(l),t=(f[ti]||'').trim(),dt=(f[di]||'').trim();if(!t||dt.length<16)throw Error('ROUTING_UNRESOLVED_'+n);let d=dt.slice(0,10),tm=dt.slice(11,19);if(d>TD)continue;
+              let k=d+'\u0000'+t,g=m.get(k);if(!g){g={d,t,ns:[],rs:[],f:tm,l:tm};m.set(k,g);}g.ns.push(n);g.rs.push(l);if(tm<g.f)g.f=tm;if(tm>g.l)g.l=tm;
+            }
+            let ar=[...m.values()].sort(cmp),bn=1,bb=0,bl=0,dateOrd=0,dateCount=0,dateRows=0,completedRows=0,entries=[];
+            for(let g of ar){
+              let rec={generation_id:'BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01',source_drive_id:'1wvBmhpQIV-evJJOPN_g8nks3KZBzmVHC',source_name:'Raw Des 02-31-2024.csv',source_sha256:SHA,trading_date:g.d,ticker:g.t,first_clock_time:g.f,last_clock_time:g.l,data_row_count:g.ns.length,source_row_first:g.ns[0],source_row_last:g.ns[g.ns.length-1],source_row_segments:seg(g.ns),raw_header:head,raw_rows:g.rs,all_source_columns_retained:true};
+              let rb=Buffer.byteLength(JSON.stringify(rec)+'\n','utf8');if(bl>0&&bb+rb>MAX){bn++;bb=0;bl=0;}
+              let bundle=`Raw Des 02-31-2024__SEMANTIC_${String(bn).padStart(4,'0')}.jsonl`,line=bl+1;bb+=rb;bl++;
+              if(g.d!==TD)continue;
+              dateOrd++;dateCount++;dateRows+=g.ns.length;
+              if(dateOrd===193){if(g.t!=='CFIN'||bundle!=='Raw Des 02-31-2024__SEMANTIC_0010.jsonl'||line!==152||g.ns.length!==151||g.ns[0]!==366143||g.ns[g.ns.length-1]!==366293)throw Error('PASS193_PARITY_FAILED');}
+              if(dateOrd===206){if(g.t!=='CNKO'||bundle!=='Raw Des 02-31-2024__SEMANTIC_0010.jsonl'||line!==165||g.ns.length!==5||g.ns[0]!==388961||g.ns[g.ns.length-1]!==388965||g.f!=='09:55:00'||g.l!=='16:00:00')throw Error('PASS206_PARITY_FAILED');}
+              if(dateOrd===207){if(g.t!=='CNMA'||bundle!=='Raw Des 02-31-2024__SEMANTIC_0010.jsonl'||line!==166||g.ns.length!==125||g.ns[0]!==393061||g.ns[g.ns.length-1]!==393185)throw Error('PASS207_RESUME_PARITY_FAILED');}
+              if(dateOrd>206)continue;
+              let fn=`${String(dateOrd).padStart(4,'0')}_${g.t}_ROWS.jsonl`,fp=path.join(OUT,'rows',fn),lines=[];
+              for(let i=0;i<g.rs.length;i++){let vals=csv(g.rs[i]);if(vals.length!==hf.length)throw Error('FIELD_COUNT_'+g.ns[i]);let o={source_row:g.ns[i]};for(let j=0;j<hf.length;j++)o[hf[j]]=vals[j];lines.push(JSON.stringify(o));}
+              fs.writeFileSync(fp,lines.join('\n')+'\n','utf8');let rsha=shaFile(fp);completedRows+=g.ns.length;
+              entries.push({pass:`PASS${String(dateOrd).padStart(3,'0')}`,date_ordinal:dateOrd,ticker:g.t,semantic_bundle:bundle,bundle_line_number:line,source_row_first:g.ns[0],source_row_last:g.ns[g.ns.length-1],physical_line_first:g.ns[0]+1,physical_line_last:g.ns[g.ns.length-1]+1,actual_rows:g.ns.length,first_clock_time:g.f,last_clock_time:g.l,rows_file:`rows/${fn}`,rows_sha256:rsha,semantic_record_bytes:rb});
+            }
+            if(dateCount!==899||dateRows!==91157)throw Error(`DATE_SCOPE_MISMATCH ${dateCount}/${dateRows}`);
+            if(entries.length!==206||completedRows!==21863)throw Error(`COMPLETED_SCOPE_MISMATCH ${entries.length}/${completedRows}`);
+            const manifest={transport_version:'M1_DATE04_COMPLETED_PASS206_AUDIT_SOURCE_V1_20260926',transport_only:true,semantic_read_performed_by_runner:false,trading_date:TD,completed_through:'PASS206_DATE04',source:{source_name:'Raw Des 02-31-2024.csv',source_drive_id:'1wvBmhpQIV-evJJOPN_g8nks3KZBzmVHC',source_sha256:SHA,generation_id:'BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01'},data_plane_impl_version:'UNIVERSAL_DELTA_DATA_PLANE_V2_20260911',max_semantic_bundle_bytes:MAX,ordering:'GROUP_BY_TRADING_DATE_TICKER_ORDER_BY_TRADING_DATE_TICKER',date_scope:{ticker_context_paths:899,actual_source_rows:91157},completed_scope:{ticker_context_paths:entries.length,actual_source_rows:completedRows},next_exact_resume:{pass:'PASS207',ticker:'CNMA',semantic_bundle:'Raw Des 02-31-2024__SEMANTIC_0010.jsonl',bundle_line_number:166,source_row_first:393061,source_row_last:393185,actual_rows:125},entries};
+            const mp=path.join(OUT,'DATE04_COMPLETED_PASS206_MANIFEST.json');fs.writeFileSync(mp,JSON.stringify(manifest,null,2),'utf8');const msha=shaFile(mp);
+            const proof={status:'PASS',transport_only:true,semantic_read_performed_by_runner:false,row_transport_via_chat:false,source_sha256:SHA,completed_entries:entries.length,completed_rows:completedRows,date_entries:dateCount,date_rows:dateRows,manifest_sha256:msha,all_rows_files_sha256_recorded:true,parity_checks:['PASS193_CFIN','PASS206_CNKO','PASS207_CNMA_RESUME']};
+            fs.writeFileSync(path.join(OUT,'DATE04_COMPLETED_PASS206_PROOF.json'),JSON.stringify(proof,null,2),'utf8');
+            console.log('DATE04_COMPLETED_PASS206_ARTIFACT_OK '+JSON.stringify({entries:entries.length,rows:completedRows,manifest_sha256:msha,first:entries[0],last:entries[entries.length-1]}));
+          })().catch(e=>{console.error(e.stack||e);process.exit(1)});
+          '@ | Set-Content -Encoding UTF8 build_date04_completed_pass206.js
+          $runnerRoot=Split-Path (Split-Path $env:RUNNER_TEMP -Parent) -Parent
+          $node=Get-ChildItem -LiteralPath (Join-Path $runnerRoot 'externals') -Filter node.exe -File -Recurse -ErrorAction Stop|Sort-Object FullName -Descending|Select-Object -First 1
+          if($null -eq $node){throw 'RUNNER_BUNDLED_NODE_NOT_FOUND'}
+          & $node.FullName build_date04_completed_pass206.js
+          if($LASTEXITCODE -ne 0){throw "NODE_FAILED_$LASTEXITCODE"}
+
+      - name: Upload completed PASS206 lossless audit source
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date04-completed-pass206-audit-source
+          path: machine1_date04_completed_pass206_audit_source/
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 7
+
+      - name: Persist compact audit-source pointer
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $proof=Get-Content -Raw 'machine1_date04_completed_pass206_audit_source/DATE04_COMPLETED_PASS206_PROOF.json'|ConvertFrom-Json
+          $ptr=[ordered]@{transport='M1_DATE04_COMPLETED_PASS206_AUDIT_SOURCE_V1_20260926';trading_date='2024-12-04';completed_through='PASS206_DATE04';github_run_id=[int64]'${{ github.run_id }}';github_artifact_id=[int64]'${{ steps.upload.outputs.artifact-id }}';github_artifact_digest='${{ steps.upload.outputs.artifact-digest }}';manifest_sha256=$proof.manifest_sha256;completed_entries=$proof.completed_entries;completed_rows=$proof.completed_rows;source_sha256=$proof.source_sha256;row_transport_via_chat=$false;semantic_read_performed_by_runner=$false}
+          New-Item -ItemType Directory -Force '.machine1_evidence'|Out-Null
+          $ptr|ConvertTo-Json -Depth 8|Set-Content -Encoding UTF8 '.machine1_evidence/DATE04_COMPLETED_PASS206_AUDIT_SOURCE_POINTER.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_evidence/DATE04_COMPLETED_PASS206_AUDIT_SOURCE_POINTER.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist Date04 completed PASS206 audit-source pointer [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/date04-remaining-after-pass192
