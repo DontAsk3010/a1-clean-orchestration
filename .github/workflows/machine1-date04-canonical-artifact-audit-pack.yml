@@ -1,0 +1,84 @@
+name: Machine1 Date04 Canonical Artifact Audit Pack
+
+on:
+  push:
+    branches:
+      - machine1/date04-remaining-after-pass192
+    paths:
+      - .github/workflows/machine1-date04-canonical-artifact-audit-pack.yml
+
+permissions:
+  contents: write
+
+jobs:
+  pack-date04-canonical-artifacts:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Collect canonical Date04 artifacts losslessly
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $base='C:\Users\feri-admin\My Drive\A1_CLEAN_EVIDENCE_ARCHIVE_ALL_MONTHS\A1_CLEAN_COLAB_RESEARCH_AND_FORMULA_ENGINE\05_TRANSLATION_AND_RESEARCH_OBJECTS\02_BEHAVIOR_RESEARCH_CURRENT'
+          if(-not (Test-Path -LiteralPath $base -PathType Container)){ throw "CANONICAL_BEHAVIOR_ROOT_NOT_FOUND:$base" }
+          $roles=[ordered]@{
+            '00_CONTROL_AND_CHECKPOINTS'='00_CONTROL_AND_CHECKPOINTS'
+            '01_DATE_TICKER_OBSERVATIONS'='01_DATE_TICKER_OBSERVATIONS'
+            '02_EVENT_AND_JOURNEY_OBJECTS'='02_EVENT_AND_JOURNEY_OBJECTS'
+            '03_OPEN_CARRY_AND_CENSOR_STATE'='03_OPEN_CARRY_AND_CENSOR_STATE'
+            '04_BEHAVIOR_AUDIT_AND_COVERAGE'='04_BEHAVIOR_AUDIT_AND_COVERAGE'
+          }
+          $out=Join-Path $PWD 'machine1_date04_canonical_artifact_audit_pack'
+          Remove-Item -LiteralPath $out -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $manifest=[ordered]@{transport_version='M1_DATE04_CANONICAL_ARTIFACT_AUDIT_PACK_V1_20260926';trading_date='2024-12-04';transport_only=$true;semantic_read_performed_by_runner=$false;canonical_root=$base;files=@()}
+          foreach($role in $roles.Keys){
+            $src=Join-Path $base $roles[$role]
+            if(-not (Test-Path -LiteralPath $src -PathType Container)){ throw "ROLE_FOLDER_NOT_FOUND:$role:$src" }
+            $dst=Join-Path $out $role; New-Item -ItemType Directory -Force -Path $dst | Out-Null
+            $matches=@(Get-ChildItem -LiteralPath $src -File -ErrorAction Stop | Where-Object { $_.Name -like 'DES2024_20241204*' })
+            foreach($f in $matches){
+              $to=Join-Path $dst $f.Name
+              Copy-Item -LiteralPath $f.FullName -Destination $to -Force
+              $sha=(Get-FileHash -LiteralPath $to -Algorithm SHA256).Hash.ToLowerInvariant()
+              $manifest.files += [ordered]@{role=$role;name=$f.Name;size=[int64]$f.Length;sha256=$sha;source_path=$f.FullName;packed_path=($role+'/'+$f.Name)}
+            }
+          }
+          $manifest.file_count=$manifest.files.Count
+          $manifest.observation_atomic_count=@($manifest.files|Where-Object {$_.role -eq '01_DATE_TICKER_OBSERVATIONS' -and $_.name -like 'DES2024_20241204__AI_OBSERVATION_ATOMIC_PASS*'}).Count
+          $manifest.journey_atomic_count=@($manifest.files|Where-Object {$_.role -eq '02_EVENT_AND_JOURNEY_OBJECTS' -and $_.name -like 'DES2024_20241204__EVENT_JOURNEY_ATOMIC_PASS*'}).Count
+          $manifest.checkpoint_atomic_count=@($manifest.files|Where-Object {$_.role -eq '00_CONTROL_AND_CHECKPOINTS' -and $_.name -like 'DES2024_20241204__CHECKPOINT_ATOMIC_PASS*'}).Count
+          $utf8=New-Object System.Text.UTF8Encoding($false)
+          $mp=Join-Path $out 'DATE04_CANONICAL_ARTIFACT_PACK_MANIFEST.json'
+          [System.IO.File]::WriteAllText($mp,($manifest|ConvertTo-Json -Depth 10),$utf8)
+          $msha=(Get-FileHash -LiteralPath $mp -Algorithm SHA256).Hash.ToLowerInvariant()
+          $proof=[ordered]@{status='PASS';trading_date='2024-12-04';transport_only=$true;semantic_read_performed_by_runner=$false;file_count=$manifest.file_count;observation_atomic_count=$manifest.observation_atomic_count;journey_atomic_count=$manifest.journey_atomic_count;checkpoint_atomic_count=$manifest.checkpoint_atomic_count;manifest_sha256=$msha;all_file_sha256_recorded=$true}
+          [System.IO.File]::WriteAllText((Join-Path $out 'DATE04_CANONICAL_ARTIFACT_PACK_PROOF.json'),($proof|ConvertTo-Json -Depth 6),$utf8)
+          Write-Host "DATE04_CANONICAL_ARTIFACT_PACK_OK files=$($manifest.file_count) obs=$($manifest.observation_atomic_count) journeys=$($manifest.journey_atomic_count) checkpoints=$($manifest.checkpoint_atomic_count) manifest_sha256=$msha"
+
+      - name: Upload canonical Date04 artifact audit pack
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date04-canonical-artifact-audit-pack
+          path: machine1_date04_canonical_artifact_audit_pack/
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 7
+
+      - name: Persist compact canonical audit-pack pointer
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $proof=Get-Content -Raw 'machine1_date04_canonical_artifact_audit_pack/DATE04_CANONICAL_ARTIFACT_PACK_PROOF.json'|ConvertFrom-Json
+          $ptr=[ordered]@{transport='M1_DATE04_CANONICAL_ARTIFACT_AUDIT_PACK_V1_20260926';trading_date='2024-12-04';github_run_id=[int64]'${{ github.run_id }}';github_artifact_id=[int64]'${{ steps.upload.outputs.artifact-id }}';github_artifact_digest='${{ steps.upload.outputs.artifact-digest }}';manifest_sha256=$proof.manifest_sha256;file_count=$proof.file_count;observation_atomic_count=$proof.observation_atomic_count;journey_atomic_count=$proof.journey_atomic_count;checkpoint_atomic_count=$proof.checkpoint_atomic_count;semantic_read_performed_by_runner=$false}
+          New-Item -ItemType Directory -Force '.machine1_evidence'|Out-Null
+          $ptr|ConvertTo-Json -Depth 8|Set-Content -Encoding UTF8 '.machine1_evidence/DATE04_CANONICAL_ARTIFACT_AUDIT_PACK_POINTER.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_evidence/DATE04_CANONICAL_ARTIFACT_AUDIT_PACK_POINTER.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist Date04 canonical artifact audit-pack pointer [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/date04-remaining-after-pass192
