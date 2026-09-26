@@ -1,0 +1,155 @@
+name: Machine1 Date04 Enrichment Source PASS022-206 20260926
+
+on:
+  push:
+    branches:
+      - machine1/corrective-date04-pass013-021-20260926
+    paths:
+      - .github/workflows/machine1-date04-enrichment-source-pass022-206-20260926.yml
+
+permissions:
+  contents: read
+
+jobs:
+  extract-enrichment-source:
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 45
+    env:
+      RAW_FILE: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI\Raw Des 02-31-2024.csv'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract exact PASS022-206 source packets without semantic reinterpretation
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=$env:RAW_FILE
+          $specPath=Join-Path $PWD 'machine1/date04/pass022_206_source_spec_20260926.json'
+          $date='2024-12-04'
+          $expMd5='b8d42b35c90d2dff8b18ae4e1734523b'
+          $expSha='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          if(-not(Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING: $raw"}
+          if(-not(Test-Path -LiteralPath $specPath -PathType Leaf)){throw "SPEC_MISSING: $specPath"}
+          $spec=@(Get-Content -LiteralPath $specPath -Raw | ConvertFrom-Json)
+          if($spec.Count-ne185){throw "SPEC_COUNT_MISMATCH got=$($spec.Count) expected=185"}
+          $specRows=[int](($spec|Measure-Object count -Sum).Sum)
+          if($specRows-ne19319){throw "SPEC_ROW_TOTAL_MISMATCH got=$specRows expected=19319"}
+          if(@($spec|Where-Object{$_.pass_num-lt22 -or $_.pass_num-gt206}).Count-gt0){throw 'SPEC_PASS_OUT_OF_RANGE'}
+          if(@($spec|Where-Object{$_.ticker-eq'CNMA'}).Count-gt0){throw 'CNMA_MUST_NOT_BE_OPENED'}
+          if(@($spec|Group-Object pass_num|Where-Object{$_.Count-ne1}).Count-gt0){throw 'SPEC_DUPLICATE_PASS'}
+          if(@($spec|Group-Object ticker|Where-Object{$_.Count-ne1}).Count-gt0){throw 'SPEC_DUPLICATE_TICKER'}
+          $md5=(Get-FileHash -LiteralPath $raw -Algorithm MD5).Hash.ToLowerInvariant()
+          $sha=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($md5-ne$expMd5 -or $sha-ne$expSha){throw "RAW_HASH_MISMATCH md5=$md5 sha256=$sha"}
+
+          $min=[int](($spec|Measure-Object first -Minimum).Minimum)
+          $max=[int](($spec|Measure-Object last -Maximum).Maximum)
+          $needed=New-Object 'System.Collections.Generic.HashSet[int]'
+          foreach($t in $spec){ foreach($i in ([int]$t.first)..([int]$t.last)){ [void]$needed.Add($i) } }
+          if($needed.Count-ne19319){throw "SPEC_OVERLAP_OR_COUNT_MISMATCH unique_rows=$($needed.Count) expected=19319"}
+
+          $by=@{}
+          $sr=[IO.StreamReader]::new($raw,[Text.Encoding]::UTF8,$true,1048576)
+          try{
+            $header=$sr.ReadLine(); if($null-eq$header){throw 'RAW_EMPTY'}
+            $headerObj=@($header,$header)|ConvertFrom-Csv|Select-Object -First 1
+            $headerFields=@($headerObj.PSObject.Properties.Name)
+            $n=0
+            while(($line=$sr.ReadLine())-ne$null){
+              $n++
+              if($n-lt$min){continue}
+              if($n-gt$max){break}
+              if(-not$needed.Contains($n)){continue}
+              $obj=@($header,$line)|ConvertFrom-Csv|Select-Object -First 1
+              $o=[ordered]@{source_row=$n}
+              foreach($p in $obj.PSObject.Properties){$o[$p.Name]=$p.Value}
+              $by[$n]=[pscustomobject]$o
+            }
+          }finally{$sr.Dispose()}
+          if($by.Count-ne19319){throw "EXTRACTED_UNIQUE_ROW_MISMATCH got=$($by.Count) expected=19319"}
+
+          $root=Join-Path $PWD 'machine1_date04_enrichment_source_pass022_206_20260926'
+          New-Item -ItemType Directory -Path $root -Force|Out-Null
+          $utf8=[Text.UTF8Encoding]::new($false)
+          $groups=@(
+            [pscustomobject]@{name='PASS022_PASS076';lo=22;hi=76;expected=5390},
+            [pscustomobject]@{name='PASS077_PASS126';lo=77;hi=126;expected=5194},
+            [pscustomobject]@{name='PASS127_PASS176';lo=127;hi=176;expected=6610},
+            [pscustomobject]@{name='PASS177_PASS206';lo=177;hi=206;expected=2125}
+          )
+          foreach($g in $groups){New-Item -ItemType Directory -Path (Join-Path $root $g.name) -Force|Out-Null}
+          $proofs=@(); $grand=0
+          foreach($t in ($spec|Sort-Object pass_num)){
+            $rows=@(); foreach($i in ([int]$t.first)..([int]$t.last)){if($by.ContainsKey($i)){$rows+=$by[$i]}}
+            if($rows.Count-ne[int]$t.count){throw "$($t.ticker)_ROW_COUNT_MISMATCH got=$($rows.Count) expected=$($t.count)"}
+            for($j=0;$j-lt$rows.Count;$j++){if([int]$rows[$j].source_row-ne([int]$t.first+$j)){throw "$($t.ticker)_SOURCE_ROW_SEQUENCE_MISMATCH"}}
+            $ticks=@($rows|ForEach-Object{$_.RAW_TICKER}|Sort-Object -Unique)
+            if($ticks.Count-ne1 -or $ticks[0]-ne$t.ticker){throw "$($t.ticker)_TICKER_MISMATCH got=$($ticks-join',')"}
+            $dts=@($rows|ForEach-Object{$_.RAW_DATETIME_ISO})
+            if(@($dts|Where-Object{-not$_.StartsWith($date)}).Count-gt0){throw "$($t.ticker)_DATE_MISMATCH"}
+            $ft=([regex]::Match($dts[0],'\d{2}:\d{2}:\d{2}')).Value
+            $lt=([regex]::Match($dts[-1],'\d{2}:\d{2}:\d{2}')).Value
+            $g=$groups|Where-Object{[int]$t.pass_num-ge$_.lo -and [int]$t.pass_num-le$_.hi}|Select-Object -First 1
+            if($null-eq$g){throw "GROUP_NOT_FOUND_PASS_$($t.pass_num)"}
+            $dir=Join-Path $root $g.name
+            $base=('PASS{0:D3}_{1}_20241204' -f [int]$t.pass_num,$t.ticker)
+            $rp=Join-Path $dir ($base+'_ROWS.jsonl')
+            $sw=[IO.StreamWriter]::new($rp,$false,$utf8)
+            try{foreach($r in $rows){$sw.WriteLine(($r|ConvertTo-Json -Compress -Depth 8))}}finally{$sw.Dispose()}
+            $rsha=(Get-FileHash -LiteralPath $rp -Algorithm SHA256).Hash.ToLowerInvariant()
+            $proof=[ordered]@{pass=('PASS{0:D3}_DATE04' -f [int]$t.pass_num);pass_num=[int]$t.pass_num;ticker=$t.ticker;trading_date=$date;source_md5=$md5;source_sha256=$sha;source_row_first=[int]$t.first;source_row_last=[int]$t.last;physical_line_first=([int]$t.first+1);physical_line_last=([int]$t.last+1);data_rows=$rows.Count;first_datetime=$dts[0];last_datetime=$dts[-1];first_clock_time=$ft;last_clock_time=$lt;header_field_count=$headerFields.Count;source_field_count_with_source_row=($headerFields.Count+1);rows_jsonl_sha256=$rsha;purpose='CURRENT_SCHEMA_DETERMINISTIC_ENRICHMENT_SOURCE_ONLY_RETAIN_EXISTING_SEMANTICS';semantic_reread_performed=$false;ordinary_next_ticker_opened=$false}
+            [IO.File]::WriteAllText((Join-Path $dir ($base+'_PROOF.json')),($proof|ConvertTo-Json -Depth 10),$utf8)
+            $proofs+=[pscustomobject]$proof; $grand+=$rows.Count
+            Write-Host ("PASS{0:D3}_{1}_SOURCE_OK rows={2} range={3}-{4} first={5} last={6}" -f [int]$t.pass_num,$t.ticker,$rows.Count,$t.first,$t.last,$ft,$lt)
+          }
+          if($grand-ne19319){throw "GRAND_TOTAL_MISMATCH got=$grand expected=19319"}
+          foreach($g in $groups){
+            $gp=@($proofs|Where-Object{$_.pass_num-ge$g.lo -and $_.pass_num-le$g.hi}); $sum=[int](($gp|Measure-Object data_rows -Sum).Sum)
+            if($sum-ne$g.expected){throw "$($g.name)_TOTAL_MISMATCH got=$sum expected=$($g.expected)"}
+            $m=[ordered]@{schema='A1_CLEAN_M1_DATE04_DETERMINISTIC_ENRICHMENT_SOURCE_PACKET_V1';group=$g.name;trading_date=$date;source_md5=$md5;source_sha256=$sha;target_count=$gp.Count;total_rows=$sum;expected_total_rows=$g.expected;semantic_reread_performed=$false;ordinary_next_ticker_opened=$false;targets=$gp}
+            [IO.File]::WriteAllText((Join-Path (Join-Path $root $g.name) 'SOURCE_PACKET_MANIFEST.json'),($m|ConvertTo-Json -Depth 16),$utf8)
+          }
+          $master=[ordered]@{schema='A1_CLEAN_M1_DATE04_DETERMINISTIC_ENRICHMENT_SOURCE_MASTER_V1';trading_date=$date;source_md5=$md5;source_sha256=$sha;target_count=$proofs.Count;total_rows=$grand;expected_target_count=185;expected_total_rows=19319;groups=$groups;semantic_reread_performed=$false;ordinary_next_ticker_opened=$false;cnma_opened=$false}
+          [IO.File]::WriteAllText((Join-Path $root 'MASTER_MANIFEST.json'),($master|ConvertTo-Json -Depth 10),$utf8)
+
+      - name: Upload PASS022-PASS076
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date04-enrichment-source-pass022-pass076-20260926
+          path: machine1_date04_enrichment_source_pass022_206_20260926/PASS022_PASS076/
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Upload PASS077-PASS126
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date04-enrichment-source-pass077-pass126-20260926
+          path: machine1_date04_enrichment_source_pass022_206_20260926/PASS077_PASS126/
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Upload PASS127-PASS176
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date04-enrichment-source-pass127-pass176-20260926
+          path: machine1_date04_enrichment_source_pass022_206_20260926/PASS127_PASS176/
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Upload PASS177-PASS206
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date04-enrichment-source-pass177-pass206-20260926
+          path: machine1_date04_enrichment_source_pass022_206_20260926/PASS177_PASS206/
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Upload master manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date04-enrichment-source-master-20260926
+          path: machine1_date04_enrichment_source_pass022_206_20260926/MASTER_MANIFEST.json
+          if-no-files-found: warn
+          retention-days: 7
