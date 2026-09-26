@@ -20,7 +20,7 @@
     {"key": "behavior_reading", "source": "authority_lock", "required": true, "drive_revision_id": "57"},
     {"key": "github_automation", "source": "authority_lock", "required": true, "drive_revision_id": "68"},
     {"key": "formula_research", "source": "authority_lock", "required": true, "drive_revision_id": "45", "note": "Read for current CLOSED-stage constraints; reading does not open formula construction."},
-    {"key": "machine1_dispatch_registry", "source": "authority_lock", "required": true, "drive_revision_id": "514", "note": "Read for cross-machine independence/date/checkpoint coordination only; never copy Machine 1 semantics into Machine 2."},
+    {"key": "machine1_dispatch_registry", "source": "authority_lock", "required": true, "drive_revision_id": "518", "note": "Read for cross-machine independence/date/checkpoint coordination only; never copy Machine 1 semantics into Machine 2."},
     {"key": "stable_transition_bridge", "source": "authority_lock", "required": true, "drive_revision_id": "85"},
     {"key": "chat_transition_protocol", "source": "explicit", "required": true, "drive_revision_id": "7", "document_id": "1sKbjR_d0doEp5tGfZZ0XlfnuwWEJeRjNokyWdGAB1D8", "revision_id": "ANLCKQnFFfHH0IKJjkVRkASTdc0K_oD0a8EZ7PtcsvzOgrGXulWiWadhYRT10b-yslqM6xLBm8_Ok8nSgLpEqVRt1cD6ti_u7BAC4atRAnA"}
   ],
@@ -81,30 +81,8 @@
     "OPERATIONAL_CONTROL_CHECKPOINT_AND_RESULT_CHANNELS",
     "UNKNOWN_FUTURE_PROVIDER_SPECIFIC_PHYSICAL_FIELDS_AND_RECORD_FAMILIES"
   ],
-  "explicit_availability_states": [
-    "AVAILABLE",
-    "UNAVAILABLE",
-    "STALE",
-    "UNSUPPORTED",
-    "UNKNOWN",
-    "UNMAPPED",
-    "PHYSICAL_UNKNOWN_SEMANTIC",
-    "ROUTING_PENDING"
-  ],
-  "evidence_classes_that_must_not_be_dropped": [
-    "POSITIVE",
-    "NEGATIVE",
-    "FLAT",
-    "DOWN",
-    "NO_EVENT",
-    "FAILURE",
-    "CONTRADICTION",
-    "NEAR_TWIN",
-    "RARE",
-    "OPEN",
-    "CENSORED",
-    "UNKNOWN"
-  ],
+  "explicit_availability_states": ["AVAILABLE","UNAVAILABLE","STALE","UNSUPPORTED","UNKNOWN","UNMAPPED","PHYSICAL_UNKNOWN_SEMANTIC","ROUTING_PENDING"],
+  "evidence_classes_that_must_not_be_dropped": ["POSITIVE","NEGATIVE","FLAT","DOWN","NO_EVENT","FAILURE","CONTRADICTION","NEAR_TWIN","RARE","OPEN","CENSORED","UNKNOWN"],
   "machine2_scientific_scope": {
     "independent_full_depth_engine_required": true,
     "same_maximum_source_supported_completeness_target_as_machine1": true,
@@ -113,16 +91,7 @@
     "machine_specific_coverage_gap_explicit": true,
     "formula_stage": "CLOSED"
   },
-  "renewal_triggers": [
-    "NEW_OWNER_INSTRUCTION_OR_CORRECTION",
-    "AUTHORITY_REVISION_CHANGE",
-    "REQUEST_OR_SCHEMA_CHANGE",
-    "SOURCE_OR_MANIFEST_CHANGE",
-    "CHECKPOINT_CHANGE",
-    "WORKER_HANDOFF_OR_REPLACEMENT",
-    "RESUMED_EXECUTION_AFTER_INTERRUPTION",
-    "MATERIAL_CONTEXT_CHANGE_BEFORE_NEXT_DURABLE_MUTATION"
-  ],
+  "renewal_triggers": ["NEW_OWNER_INSTRUCTION_OR_CORRECTION","AUTHORITY_REVISION_CHANGE","REQUEST_OR_SCHEMA_CHANGE","SOURCE_OR_MANIFEST_CHANGE","CHECKPOINT_CHANGE","WORKER_HANDOFF_OR_REPLACEMENT","RESUMED_EXECUTION_AFTER_INTERRUPTION","MATERIAL_CONTEXT_CHANGE_BEFORE_NEXT_DURABLE_MUTATION"],
   "pass_rule": "PASS_REQUIRES_FULL_NATIVE_TEXT_EXPORT_READ_OF_EVERY_REQUIRED_AUTHORITY_DOCUMENT_AT_EXACT_BOUND_DRIVE_REVISION_PLUS_FULL_READ_AND_HASH_OF_EVERY_REQUIRED_REPO_STATE_FILE_PLUS_DATA_PRESERVATION_CONTRACT_VALIDATION; OTHERWISE_HOLD",
   "hold_rule": "NEVER_GUESS_OR_CONTINUE_FROM_CHAT_MEMORY_WHEN_AUTHORITY_SYNC_IS_MISSING_STALE_CONFLICTING_OR_INCOMPLETE"
 }

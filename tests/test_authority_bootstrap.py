@@ -44,7 +44,7 @@ def test_bootstrap_requires_complete_authority_chain_in_order():
     ]
     assert all(row["required"] is True for row in docs)
     assert all(str(row.get("drive_revision_id", "")).isdigit() for row in docs)
-    assert [row["drive_revision_id"] for row in docs] == ["67", "113", "56", "29", "57", "68", "45", "514", "85", "7"]
+    assert [row["drive_revision_id"] for row in docs] == ["67", "113", "56", "29", "57", "68", "45", "518", "85", "7"]
 
 
 def test_data_contract_has_no_fixed_field_or_source_ceiling_and_preserves_unknowns():
