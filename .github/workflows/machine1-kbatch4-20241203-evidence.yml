@@ -23,9 +23,9 @@ jobs:
           $authorityAuditDriveId='1KhPP177HaTkySo5BOYSHxMHH9EJIPD__IXLHjQ-xvN8'
           $authorityAuditRevision='ANLCKQkkDVDLTCkYd0MwuQoy2lI1_bt45_OULFoEqEZNff0l1chpQrqspQO9zoOiMzmsOVDgxADwhypWei004YT_mTx5-RXtk4DQD3R5nRU'
           $specs=@(
-            [pscustomobject]@{Index=582;Ticker='NETV';First=1159734;Last=1159741;Count=8;FirstTime='09:55:00';LastTime='16:07:00'},
-            [pscustomobject]@{Index=583;Ticker='NFCX';First=1159147;Last=1159262;Count=116;FirstTime='09:00:00';LastTime='16:03:00'},
-            [pscustomobject]@{Index=584;Ticker='NICE';First=1160094;Last=1160193;Count=100;FirstTime='09:00:00';LastTime='16:11:00'}
+            [pscustomobject]@{Index=585;Ticker='NICK';First=1159880;Last=1159884;Count=5;FirstTime='09:18:00';LastTime='13:30:00'},
+            [pscustomobject]@{Index=586;Ticker='NICL';First=1162424;Last=1162538;Count=115;FirstTime='09:00:00';LastTime='16:14:00'},
+            [pscustomobject]@{Index=587;Ticker='NIKL';First=1164677;Last=1164717;Count=41;FirstTime='09:00:00';LastTime='16:00:00'}
           )
           if(-not(Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING"}
           $got=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -52,7 +52,7 @@ jobs:
             if((Clock $dts[0])-ne$s.FirstTime -or (Clock $dts[-1])-ne$s.LastTime){throw "$($s.Ticker)_TIME"}
             $rp=Join-Path $out "$($s.Ticker)_20241203_ROWS.jsonl";[System.IO.File]::WriteAllLines($rp,[string[]]@($records|%{$_|ConvertTo-Json -Compress -Depth 8}),$enc)
             $cp=Join-Path $out "$($s.Ticker)_20241203_COMPACT.txt";$compact=@($records|%{"$($_.source_row)|$(Clock ([string]$_.RAW_DATETIME_ISO))|$($_.RAW_OPEN)|$($_.RAW_HIGH)|$($_.RAW_LOW)|$($_.RAW_CLOSE)|V$($_.RAW_VOLUME)"});[System.IO.File]::WriteAllLines($cp,[string[]]$compact,$enc)
-            $proof=[ordered]@{ticker=$s.Ticker;trading_date='2024-12-03';source_sha256=$got;recovered_date_local_index=$s.Index;source_row_first=$s.First;source_row_last=$s.Last;data_rows=$records.Count;first_datetime=$dts[0];last_datetime=$dts[-1];rows_jsonl_sha256=(Get-FileHash $rp -Algorithm SHA256).Hash.ToLowerInvariant();compact_sha256=(Get-FileHash $cp -Algorithm SHA256).Hash.ToLowerInvariant();recovered_manifest_sha256=$recoveredManifestSha;original_semantic_manifest_state='UNAVAILABLE_404';authority_audit_drive_id=$authorityAuditDriveId;authority_audit_revision=$authorityAuditRevision;prestart_decision='AUDIT_READBACK_PASS_PRESERVE_PASS581_RESUME_NETV_NO_DATE_ADVANCE'}
+            $proof=[ordered]@{ticker=$s.Ticker;trading_date='2024-12-03';source_sha256=$got;recovered_date_local_index=$s.Index;source_row_first=$s.First;source_row_last=$s.Last;data_rows=$records.Count;first_datetime=$dts[0];last_datetime=$dts[-1];rows_jsonl_sha256=(Get-FileHash $rp -Algorithm SHA256).Hash.ToLowerInvariant();compact_sha256=(Get-FileHash $cp -Algorithm SHA256).Hash.ToLowerInvariant();recovered_manifest_sha256=$recoveredManifestSha;original_semantic_manifest_state='UNAVAILABLE_404';authority_audit_drive_id=$authorityAuditDriveId;authority_audit_revision=$authorityAuditRevision;prestart_decision='CURRENT_PASS584_RESUME_NICK_NO_DATE_ADVANCE'}
             [System.IO.File]::WriteAllText((Join-Path $out "$($s.Ticker)_20241203_PROOF.json"),($proof|ConvertTo-Json -Depth 10),$enc)
             Write-Host "$($s.Ticker)_EVIDENCE_OK index=$($s.Index) rows=$($records.Count)"
           }
@@ -73,5 +73,5 @@ jobs:
           git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
           git -c safe.directory="$env:GITHUB_WORKSPACE" add -f '.machine1_evidence/*_20241203_ROWS.jsonl' '.machine1_evidence/*_20241203_COMPACT.txt'
           git -c safe.directory="$env:GITHUB_WORKSPACE" add '.machine1_evidence/*_20241203_PROOF.json'
-          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist governed NETV NFCX NICE evidence [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist governed NICK NICL NIKL evidence [skip ci]'
           git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-kbatch-20241203
