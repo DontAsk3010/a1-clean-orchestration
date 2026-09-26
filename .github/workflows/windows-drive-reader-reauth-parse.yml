@@ -8,6 +8,7 @@ on:
     paths:
       - 'scripts/windows/Restore-A1DriveReaderExisting.ps1'
       - 'scripts/windows/Restore-A1DriveReaderExisting.cmd'
+      - 'scripts/windows/restore_a1_drive_reader_official.py'
       - '.github/workflows/windows-drive-reader-reauth-parse.yml'
 
 permissions:
@@ -26,17 +27,27 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          $path = 'scripts\windows\Restore-A1DriveReaderExisting.ps1'
+          $ps1 = 'scripts\windows\Restore-A1DriveReaderExisting.ps1'
           $launcher = 'scripts\windows\Restore-A1DriveReaderExisting.cmd'
+          $py = 'scripts\windows\restore_a1_drive_reader_official.py'
           if (-not (Test-Path -LiteralPath $launcher -PathType Leaf)) { throw 'A1_READER_REAUTH_LAUNCHER_MISSING' }
+          if (-not (Test-Path -LiteralPath $py -PathType Leaf)) { throw 'A1_READER_REAUTH_PYTHON_HELPER_MISSING' }
           $tokens = $null
           $errors = $null
-          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $ps1),[ref]$tokens,[ref]$errors)
           if (@($errors).Count -ne 0) {
             foreach ($e in @($errors)) { Write-Host ("PARSE_ERROR|" + $e.Message) }
             throw 'A1_READER_REAUTH_PARSE_FAIL'
           }
+          $python = (Get-Command py.exe -ErrorAction SilentlyContinue)
+          if ($python) {
+            & py -3 -m py_compile $py
+          } else {
+            & python -m py_compile $py
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'A1_READER_REAUTH_PYTHON_PARSE_FAIL' }
           Write-Host 'A1_READER_REAUTH_PARSE=PASS'
+          Write-Host 'A1_READER_REAUTH_PYTHON_PARSE=PASS'
           Write-Host 'A1_READER_REAUTH_LAUNCHER_PRESENT=PASS'
           Write-Host 'CREDENTIAL_MUTATION=false'
           Write-Host 'DRIVE_WRITE_PERFORMED=false'
