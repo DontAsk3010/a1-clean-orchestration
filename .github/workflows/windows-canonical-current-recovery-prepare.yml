@@ -1,0 +1,171 @@
+name: Windows Canonical CURRENT Recovery Prepare
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - 'canonical-current-recovery-requests/current.json'
+      - 'canonical-current-recovery-requests/recovery-prepare-blocker-current.json'
+      - 'scripts/windows/Ensure-A1PortablePython311.ps1'
+      - 'scripts/windows/Invoke-A1CanonicalRecoveryPrepare.ps1'
+      - '.github/workflows/windows-canonical-current-recovery-prepare.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-canonical-current-recovery-prepare
+  cancel-in-progress: false
+
+jobs:
+  lane_a:
+    name: Recovery prepare lane A
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    outputs:
+      target_pass: ${{ steps.mark.outputs.target_pass }}
+      runner_seen: ${{ steps.route.outputs.runner_seen }}
+    env:
+      A1_RAW_DIR: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Route lane without recovery access on non-target runner
+        id: route
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ('${{ github.ref_name }}' -ne 'fix/v32-dynamic-source-universe-v1') { throw 'A1_RECOVERY_PREPARE_WRONG_BRANCH' }
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "A1_RECOVERY_PREPARE_WRONG_MACHINE:$env:COMPUTERNAME" }
+          "runner_seen=$env:RUNNER_NAME" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          if ($env:RUNNER_NAME -eq 'A1-WINDOWS-COMPUTE-02') {
+            'is_target=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host 'A1_RECOVERY_PREPARE_MACHINE2_RUNNER_PASS'
+          } else {
+            'is_target=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "A1_RECOVERY_PREPARE_NON_TARGET_LANE_HOLD:$env:RUNNER_NAME"
+            Start-Sleep -Seconds 45
+          }
+
+      - name: Parse governed recovery scripts
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          foreach ($path in @('scripts\windows\Ensure-A1PortablePython311.ps1','scripts\windows\Invoke-A1CanonicalRecoveryPrepare.ps1')) {
+            $tokens=$null; $errors=$null
+            [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)
+            if (@($errors).Count -ne 0) { foreach ($e in @($errors)) { Write-Host "PARSE_ERROR|$path|$($e.Message)" }; throw "A1_RECOVERY_PREPARE_PARSE_FAIL:$path" }
+            Write-Host "A1_RECOVERY_PREPARE_PARSE_PASS=$path"
+          }
+
+      - name: Execute governed Recovery Prepare
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & '.\scripts\windows\Invoke-A1CanonicalRecoveryPrepare.ps1'
+          Write-Host 'A1_RECOVERY_PREPARE_EXECUTOR_RETURNED_SUCCESSFULLY'
+
+      - name: Mark exact target recovery prepare PASS
+        id: mark
+        if: ${{ success() && steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          'target_pass=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host 'A1_RECOVERY_PREPARE_TARGET_LANE_PASS=true'
+
+      - name: Safety declaration
+        if: ${{ always() && steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          Write-Host 'CANONICAL CURRENT RECOVERY PREPARE GATE.'
+          Write-Host 'Writes are limited to recovery candidate/evidence under PARITY_STAGING.'
+          Write-Host 'RAW write=false; canonical CURRENT mutation=false; heavy behavior research=false; canonical promotion unauthorized.'
+
+  lane_b:
+    name: Recovery prepare lane B
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    outputs:
+      target_pass: ${{ steps.mark.outputs.target_pass }}
+      runner_seen: ${{ steps.route.outputs.runner_seen }}
+    env:
+      A1_RAW_DIR: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Route lane without recovery access on non-target runner
+        id: route
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ('${{ github.ref_name }}' -ne 'fix/v32-dynamic-source-universe-v1') { throw 'A1_RECOVERY_PREPARE_WRONG_BRANCH' }
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "A1_RECOVERY_PREPARE_WRONG_MACHINE:$env:COMPUTERNAME" }
+          "runner_seen=$env:RUNNER_NAME" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          if ($env:RUNNER_NAME -eq 'A1-WINDOWS-COMPUTE-02') {
+            'is_target=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host 'A1_RECOVERY_PREPARE_MACHINE2_RUNNER_PASS'
+          } else {
+            'is_target=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "A1_RECOVERY_PREPARE_NON_TARGET_LANE_HOLD:$env:RUNNER_NAME"
+            Start-Sleep -Seconds 45
+          }
+
+      - name: Parse governed recovery scripts
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          foreach ($path in @('scripts\windows\Ensure-A1PortablePython311.ps1','scripts\windows\Invoke-A1CanonicalRecoveryPrepare.ps1')) {
+            $tokens=$null; $errors=$null
+            [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)
+            if (@($errors).Count -ne 0) { foreach ($e in @($errors)) { Write-Host "PARSE_ERROR|$path|$($e.Message)" }; throw "A1_RECOVERY_PREPARE_PARSE_FAIL:$path" }
+            Write-Host "A1_RECOVERY_PREPARE_PARSE_PASS=$path"
+          }
+
+      - name: Execute governed Recovery Prepare
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & '.\scripts\windows\Invoke-A1CanonicalRecoveryPrepare.ps1'
+          Write-Host 'A1_RECOVERY_PREPARE_EXECUTOR_RETURNED_SUCCESSFULLY'
+
+      - name: Mark exact target recovery prepare PASS
+        id: mark
+        if: ${{ success() && steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          'target_pass=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host 'A1_RECOVERY_PREPARE_TARGET_LANE_PASS=true'
+
+      - name: Safety declaration
+        if: ${{ always() && steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          Write-Host 'CANONICAL CURRENT RECOVERY PREPARE GATE.'
+          Write-Host 'Writes are limited to recovery candidate/evidence under PARITY_STAGING.'
+          Write-Host 'RAW write=false; canonical CURRENT mutation=false; heavy behavior research=false; canonical promotion unauthorized.'
+
+  assert_target_pass:
+    name: Require one exact Machine2 recovery prepare PASS
+    if: ${{ always() }}
+    needs: [lane_a, lane_b]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assert at least one exact target lane passed
+        shell: bash
+        run: |
+          echo "lane_a_runner=${{ needs.lane_a.outputs.runner_seen }}"
+          echo "lane_b_runner=${{ needs.lane_b.outputs.runner_seen }}"
+          if [[ "${{ needs.lane_a.outputs.target_pass }}" == "true" || "${{ needs.lane_b.outputs.target_pass }}" == "true" ]]; then
+            echo 'A1_RECOVERY_PREPARE_EXACT_TARGET_PASS=true'
+            exit 0
+          fi
+          echo 'A1_RECOVERY_PREPARE_EXACT_TARGET_PASS=false'
+          exit 1

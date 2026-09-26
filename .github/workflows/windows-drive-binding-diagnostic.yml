@@ -1,0 +1,164 @@
+name: Windows Drive Binding Diagnostic
+
+on:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - '.github/workflows/windows-drive-binding-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-drive-binding-diagnostic
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    name: Diagnose Drive credential binding without exposing values
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 10
+    steps:
+      - name: Inspect runner-owned binding evidence safely
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function BoolState([string]$name, [string]$scope) {
+            $value = [Environment]::GetEnvironmentVariable($name, $scope)
+            $present = -not [string]::IsNullOrWhiteSpace($value)
+            $fileExists = $false
+            if ($present) { $fileExists = Test-Path -LiteralPath $value -PathType Leaf -ErrorAction SilentlyContinue }
+            Write-Host ("BINDING|name={0}|scope={1}|present={2}|file_exists={3}" -f $name,$scope,$present,$fileExists)
+          }
+
+          function Add-Candidate([string]$candidatePath, [string]$source, [hashtable]$seen) {
+            if ([string]::IsNullOrWhiteSpace($candidatePath)) { return }
+            $candidatePath = $candidatePath.Trim().Trim('"').Trim("'")
+            $exists = Test-Path -LiteralPath $candidatePath -PathType Leaf -ErrorAction SilentlyContinue
+            if (-not $exists) { return }
+            $full = [IO.Path]::GetFullPath($candidatePath)
+            $hash = (Get-FileHash -LiteralPath $full -Algorithm SHA256).Hash.ToLowerInvariant()
+            if (-not $seen.ContainsKey($hash)) {
+              $seen[$hash] = @{ Path=$full; Sources=@($source) }
+            } else {
+              $seen[$hash].Sources += $source
+            }
+          }
+
+          Write-Host "Computer=$env:COMPUTERNAME"
+          Write-Host "RunnerName=$env:RUNNER_NAME"
+          Write-Host "Identity=$([Security.Principal.WindowsIdentity]::GetCurrent().Name)"
+
+          foreach ($name in @('A1_DRIVE_READER_CREDENTIALS','A1_DRIVE_WRITER_CREDENTIALS','A1_GOOGLE_APPLICATION_CREDENTIALS')) {
+            foreach ($scope in @('Process','User','Machine')) { BoolState $name $scope }
+          }
+
+          $readerPath = [Environment]::GetEnvironmentVariable('A1_DRIVE_READER_CREDENTIALS','Machine')
+          if ([string]::IsNullOrWhiteSpace($readerPath)) { $readerPath = [Environment]::GetEnvironmentVariable('A1_DRIVE_READER_CREDENTIALS','Process') }
+          $readerFull = $null
+          $readerHash = $null
+          if (-not [string]::IsNullOrWhiteSpace($readerPath) -and (Test-Path -LiteralPath $readerPath -PathType Leaf -ErrorAction SilentlyContinue)) {
+            $readerFull = [IO.Path]::GetFullPath($readerPath)
+            $readerHash = (Get-FileHash -LiteralPath $readerFull -Algorithm SHA256).Hash.ToLowerInvariant()
+            Write-Host "READER_FILE|sha256_16=$($readerHash.Substring(0,16))|path_disclosed=false"
+          }
+
+          $services = @(Get-Service -ErrorAction SilentlyContinue | Where-Object { $_.Name -like 'actions.runner*' })
+          Write-Host "RUNNER_SERVICES|count=$($services.Count)"
+
+          $runnerRoots = New-Object System.Collections.Generic.HashSet[string]([StringComparer]::OrdinalIgnoreCase)
+          if (-not [string]::IsNullOrWhiteSpace($env:RUNNER_WORKSPACE)) {
+            $workDir = Split-Path -Parent $env:RUNNER_WORKSPACE
+            if ($workDir) {
+              $root = Split-Path -Parent $workDir
+              if ($root) { [void]$runnerRoots.Add($root) }
+            }
+          }
+
+          $serviceEnvWriterCount = 0
+          $candidateMap = @{}
+          foreach ($svc in $services) {
+            $regPath = "HKLM:\SYSTEM\CurrentControlSet\Services\$($svc.Name)"
+            try {
+              $reg = Get-ItemProperty -LiteralPath $regPath -ErrorAction Stop
+              $serviceEnv = @($reg.Environment)
+              foreach ($entry in $serviceEnv) {
+                if ($entry -match '^A1_DRIVE_WRITER_CREDENTIALS=(.+)$') {
+                  $serviceEnvWriterCount++
+                  Add-Candidate $Matches[1] 'SERVICE_REGISTRY_ENV' $candidateMap
+                }
+              }
+            } catch {
+              # Absence or unreadable service Environment is diagnostic only.
+            }
+
+            try {
+              $cim = Get-CimInstance Win32_Service -Filter ("Name='{0}'" -f $svc.Name.Replace("'","''")) -ErrorAction Stop
+              $startName = [string]$cim.StartName
+              $normalized = ($startName -replace '[^A-Za-z0-9]','').ToUpperInvariant()
+              $accountClass = if ($normalized -match 'LOCALSYSTEM$|^SYSTEM$') { 'SYSTEM' } elseif ($normalized -match 'NETWORKSERVICE$') { 'NETWORK_SERVICE' } elseif ($normalized -match 'LOCALSERVICE$') { 'LOCAL_SERVICE' } else { 'NAMED_ACCOUNT' }
+              Write-Host ("RUNNER_SERVICE_IDENTITY|service={0}|account_class={1}|status={2}" -f $svc.Name,$accountClass,$svc.Status)
+              $p = [string]$cim.PathName
+              if ($p -match '^["]?([^\"]+?RunnerService\.exe)') {
+                $binDir = Split-Path -Parent $Matches[1]
+                $root = Split-Path -Parent $binDir
+                if ($root) { [void]$runnerRoots.Add($root) }
+              }
+            } catch {
+              Write-Host ("RUNNER_SERVICE_IDENTITY|service={0}|account_class=UNREADABLE|status={1}" -f $svc.Name,$svc.Status)
+            }
+          }
+          Write-Host "SERVICE_REGISTRY_ENV|writer_entries=$serviceEnvWriterCount|values_disclosed=false"
+          Write-Host "RUNNER_ROOTS|count=$($runnerRoots.Count)|paths_disclosed=false"
+
+          $diagFilesScanned = 0
+          $diagMatchLines = 0
+          foreach ($root in $runnerRoots) {
+            $diag = Join-Path $root '_diag'
+            if (-not (Test-Path -LiteralPath $diag -PathType Container -ErrorAction SilentlyContinue)) { continue }
+            $logs = @(Get-ChildItem -LiteralPath $diag -File -Filter '*.log' -ErrorAction SilentlyContinue)
+            foreach ($log in $logs) {
+              $diagFilesScanned++
+              try {
+                $lines = @(Select-String -LiteralPath $log.FullName -SimpleMatch 'A1_DRIVE_WRITER_CREDENTIALS' -ErrorAction Stop)
+                foreach ($hit in $lines) {
+                  $diagMatchLines++
+                  $text = [string]$hit.Line
+                  $matches = [regex]::Matches($text, '(?i)([A-Za-z]:\\[^"'';\r\n]+?\.json)')
+                  foreach ($m in $matches) { Add-Candidate $m.Groups[1].Value 'RUNNER_DIAG' $candidateMap }
+                }
+              } catch {
+                # Do not expose log contents or paths.
+              }
+            }
+          }
+          Write-Host "RUNNER_DIAG_SCAN|files=$diagFilesScanned|matching_lines=$diagMatchLines|contents_disclosed=false"
+
+          $candidateIndex = 0
+          foreach ($hash in @($candidateMap.Keys | Sort-Object)) {
+            $candidateIndex++
+            $row = $candidateMap[$hash]
+            $sameAsReader = ($readerHash -and $hash -eq $readerHash)
+            $type = 'UNKNOWN'
+            $identityFingerprint = 'NONE'
+            try {
+              $payload = Get-Content -LiteralPath $row.Path -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
+              if ($payload.type) { $type = [string]$payload.type }
+              $identity = if ($payload.client_email) { [string]$payload.client_email } elseif ($payload.client_id) { [string]$payload.client_id } else { '' }
+              if ($identity) {
+                $bytes = [Text.Encoding]::UTF8.GetBytes($identity)
+                $sha = [Security.Cryptography.SHA256]::Create()
+                $identityFingerprint = ([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-','').ToLowerInvariant().Substring(0,16)
+                $sha.Dispose()
+              }
+            } catch {
+              $type = 'UNREADABLE_OR_NONCREDENTIAL'
+            }
+            $sources = (@($row.Sources | Sort-Object -Unique) -join '+')
+            Write-Host ("WRITER_CANDIDATE|index={0}|sha256_16={1}|same_as_reader={2}|type={3}|identity_fp16={4}|sources={5}|path_disclosed=false" -f $candidateIndex,$hash.Substring(0,16),$sameAsReader,$type,$identityFingerprint,$sources)
+          }
+          Write-Host "WRITER_CANDIDATE_SUMMARY|unique_existing_candidates=$candidateIndex"
+          Write-Host 'DIAGNOSTIC_PASS|drive_access=false|credential_values_disclosed=false|mutation=false'

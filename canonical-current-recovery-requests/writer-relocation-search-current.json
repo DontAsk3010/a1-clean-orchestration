@@ -1,0 +1,78 @@
+{
+  "schema": "A1_DRIVE_WRITER_RELOCATION_SEARCH_V1",
+  "status": "PASS_EXISTING_WRITER_REAUTHORIZED_VERIFIED_BOUND_MACHINE2",
+  "branch": "fix/v32-dynamic-source-universe-v1",
+  "machine": "PORSCHE-DESIGN",
+  "machine2_runner": "A1-WINDOWS-COMPUTE-02",
+  "current_request_enabled": false,
+  "writer_location_search_complete": true,
+  "writer_location_search_rerun_required": false,
+  "writer_replacement_authorized": false,
+  "reader_may_be_repurposed_as_writer": false,
+  "canonical_current_mutation_authorized": false,
+  "formula_stage": "CLOSED",
+  "current_reader": {
+    "path": "C:\\Users\\feri-admin\\a1-drive-auth\\reader_credentials.json",
+    "sha256": "3806f7bdf8cdbcc0a377e0866b9125a1ac0abb18113751c2d2b00dfbf679e0c7",
+    "credential_kind": "AUTHORIZED_USER_RUNTIME_CREDENTIAL"
+  },
+  "expected_writer_principal_evidence": {
+    "parity_staging_folder_id": "1WTb_lGBD6Tuwfcb-1WhsICjyJqzzBtwU",
+    "parity_staging_folder_name": "UNIVERSAL_BEHAVIOR_DATA_PLANE_PARITY_STAGING",
+    "owner_email": "fjulie8satu@gmail.com",
+    "owner_display_name": "Feri Iswahyu",
+    "role": "owner"
+  },
+  "interactive_search_result": {
+    "completed": true,
+    "distinct_runtime_candidates": 1,
+    "oauth_client_configs": 1,
+    "reader_positive_control": "PASS",
+    "secrets_disclosed": false,
+    "mutation": false
+  },
+  "expired_grant_evidence": {
+    "confirmed": true,
+    "oauth_http_status": 400,
+    "oauth_error": "invalid_grant",
+    "oauth_error_description": "Token has been expired or revoked."
+  },
+  "writer_restoration_result": {
+    "completed": true,
+    "existing_oauth_client_reused": true,
+    "new_oauth_client_created": false,
+    "principal_email": "fjulie8satu@gmail.com",
+    "full_drive_scope_granted": true,
+    "new_refresh_token_proof_pass": true,
+    "parity_staging_owner_proof": true,
+    "machine2_service_binding_pass": true,
+    "machine2_service_restart_pass": true,
+    "drive_write_performed_during_restoration": false,
+    "canonical_current_mutation": false,
+    "secrets_disclosed": false
+  },
+  "drive_guardrail_result": {
+    "status": "PASS_RECOVERY_PREREQUISITE_EXPECTED_CURRENT_404",
+    "run_id": 36132290677,
+    "head_sha": "f254ec9ab3ab175907ebfc2f8e305087100b175e",
+    "workflow_conclusion": "success",
+    "raw_reader_identity_pass": true,
+    "current_expected_missing_404_pass": true,
+    "staging_writer_identity_pass": true,
+    "reader_write_denial_in_staging_pass": true,
+    "writer_create_delete_in_staging_pass": true,
+    "raw_write_performed": false,
+    "current_write_performed": false,
+    "canonical_current_mutation": false
+  },
+  "governed_decision": "WRITER RELOCATION IS CLOSED. THE EXISTING WRITER CLIENT WAS REAUTHORIZED AS THE EXPECTED PRINCIPAL, VERIFIED WITH FULL DRIVE SCOPE, BOUND ONLY TO A1-WINDOWS-COMPUTE-02, AND THE RECOVERY-AWARE DRIVE GUARDRAIL PASSED. DO NOT REOPEN WRITER SEARCH OR REAUTHORIZATION WITHOUT A NEW MATERIAL INTEGRITY FAILURE.",
+  "next_exact_gate": "CANONICAL_CURRENT_RECOVERY_PREPARE -> EXACT_RECOVERY_CANDIDATE_READBACK -> LIGHTWEIGHT_PRESTART",
+  "forbidden": [
+    "DO_NOT_RERUN_RELOCATION_SEARCH_WITHOUT_NEW_MATERIAL_FAILURE",
+    "DO_NOT_CREATE_NEW_OAUTH_WRITER",
+    "DO_NOT_USE_READER_AS_WRITER",
+    "DO_NOT_WRITE_RAW",
+    "DO_NOT_MUTATE_CANONICAL_CURRENT",
+    "DO_NOT_START_HEAVY_MACHINE2"
+  ]
+}

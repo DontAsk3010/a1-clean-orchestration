@@ -1,0 +1,165 @@
+name: Windows Canonical CURRENT Recovery Readback
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - '.github/workflows/windows-canonical-current-recovery-readback.yml'
+      - 'scripts/windows/Readback-A1CanonicalRecoveryPrepare.ps1'
+      - 'scripts/windows/Inventory-A1CanonicalRecoveryPrepare.ps1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-canonical-current-recovery-readback
+  cancel-in-progress: false
+
+jobs:
+  lane_a:
+    name: Recovery readback lane A
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 30
+    outputs:
+      target_pass: ${{ steps.mark.outputs.target_pass }}
+      runner_seen: ${{ steps.route.outputs.runner_seen }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Route lane without Drive access on non-target runner
+        id: route
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "A1_RECOVERY_READBACK_WRONG_MACHINE:$env:COMPUTERNAME" }
+          "runner_seen=$env:RUNNER_NAME" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          if ($env:RUNNER_NAME -eq 'A1-WINDOWS-COMPUTE-02') {
+            'is_target=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host 'A1_RECOVERY_READBACK_MACHINE2_RUNNER_PASS'
+          } else {
+            'is_target=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "A1_RECOVERY_READBACK_NON_TARGET_LANE_HOLD:$env:RUNNER_NAME"
+            Start-Sleep -Seconds 45
+          }
+
+      - name: Parse recovery inventory and readback before execution
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          foreach ($path in @('scripts\windows\Inventory-A1CanonicalRecoveryPrepare.ps1','scripts\windows\Readback-A1CanonicalRecoveryPrepare.ps1')) {
+            $tokens=$null; $errors=$null
+            [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)
+            if (@($errors).Count -ne 0) { foreach ($e in @($errors)) { Write-Host "PARSE_ERROR=$path|$($e.Message)" }; throw 'A1_RECOVERY_READBACK_PARSE_FAIL' }
+          }
+          Write-Host 'A1_RECOVERY_READBACK_PARSE_PASS'
+
+      - name: Inventory recovery runs read-only
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & '.\scripts\windows\Inventory-A1CanonicalRecoveryPrepare.ps1' -ExpectedRecoverySha 'f621ccdc78dee31069a76cecfff26af80ef1681f'
+          if (-not $?) { throw 'A1_RECOVERY_INVENTORY_EXEC_FAIL' }
+
+      - name: Execute exact recovery candidate readback
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & '.\scripts\windows\Readback-A1CanonicalRecoveryPrepare.ps1' -ExpectedRecoverySha 'f621ccdc78dee31069a76cecfff26af80ef1681f'
+          if (-not $?) { throw 'A1_RECOVERY_READBACK_EXEC_FAIL' }
+          Write-Host 'A1_RECOVERY_READBACK_EXECUTOR_RETURNED_SUCCESSFULLY'
+
+      - name: Mark exact target readback PASS
+        id: mark
+        if: ${{ success() && steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          'target_pass=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host 'A1_RECOVERY_READBACK_TARGET_LANE_PASS=true'
+
+  lane_b:
+    name: Recovery readback lane B
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 30
+    outputs:
+      target_pass: ${{ steps.mark.outputs.target_pass }}
+      runner_seen: ${{ steps.route.outputs.runner_seen }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Route lane without Drive access on non-target runner
+        id: route
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "A1_RECOVERY_READBACK_WRONG_MACHINE:$env:COMPUTERNAME" }
+          "runner_seen=$env:RUNNER_NAME" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          if ($env:RUNNER_NAME -eq 'A1-WINDOWS-COMPUTE-02') {
+            'is_target=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host 'A1_RECOVERY_READBACK_MACHINE2_RUNNER_PASS'
+          } else {
+            'is_target=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "A1_RECOVERY_READBACK_NON_TARGET_LANE_HOLD:$env:RUNNER_NAME"
+            Start-Sleep -Seconds 45
+          }
+
+      - name: Parse recovery inventory and readback before execution
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          foreach ($path in @('scripts\windows\Inventory-A1CanonicalRecoveryPrepare.ps1','scripts\windows\Readback-A1CanonicalRecoveryPrepare.ps1')) {
+            $tokens=$null; $errors=$null
+            [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)
+            if (@($errors).Count -ne 0) { foreach ($e in @($errors)) { Write-Host "PARSE_ERROR=$path|$($e.Message)" }; throw 'A1_RECOVERY_READBACK_PARSE_FAIL' }
+          }
+          Write-Host 'A1_RECOVERY_READBACK_PARSE_PASS'
+
+      - name: Inventory recovery runs read-only
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & '.\scripts\windows\Inventory-A1CanonicalRecoveryPrepare.ps1' -ExpectedRecoverySha 'f621ccdc78dee31069a76cecfff26af80ef1681f'
+          if (-not $?) { throw 'A1_RECOVERY_INVENTORY_EXEC_FAIL' }
+
+      - name: Execute exact recovery candidate readback
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & '.\scripts\windows\Readback-A1CanonicalRecoveryPrepare.ps1' -ExpectedRecoverySha 'f621ccdc78dee31069a76cecfff26af80ef1681f'
+          if (-not $?) { throw 'A1_RECOVERY_READBACK_EXEC_FAIL' }
+          Write-Host 'A1_RECOVERY_READBACK_EXECUTOR_RETURNED_SUCCESSFULLY'
+
+      - name: Mark exact target readback PASS
+        id: mark
+        if: ${{ success() && steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          'target_pass=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host 'A1_RECOVERY_READBACK_TARGET_LANE_PASS=true'
+
+  assert_target_pass:
+    name: Require one exact Machine2 recovery readback PASS
+    if: ${{ always() }}
+    needs: [lane_a, lane_b]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assert at least one exact target lane passed
+        shell: bash
+        run: |
+          echo "lane_a_runner=${{ needs.lane_a.outputs.runner_seen }}"
+          echo "lane_b_runner=${{ needs.lane_b.outputs.runner_seen }}"
+          if [[ "${{ needs.lane_a.outputs.target_pass }}" == "true" || "${{ needs.lane_b.outputs.target_pass }}" == "true" ]]; then
+            echo 'A1_CANONICAL_CURRENT_RECOVERY_READBACK_EXACT_TARGET_PASS=true'
+            exit 0
+          fi
+          echo 'A1_CANONICAL_CURRENT_RECOVERY_READBACK_EXACT_TARGET_PASS=false'
+          exit 1
