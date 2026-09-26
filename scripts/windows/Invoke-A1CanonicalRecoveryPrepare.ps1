@@ -66,9 +66,9 @@ Write-Host 'A1_RECOVERY_PREPARE_SOURCE_PREFLIGHT=PASS'
 $executePy = Join-Path $env:TEMP 'a1_execute_canonical_recovery.py'
 @'
 import json
-from a1clean.canonical_recovery_exact_evidence import run_canonical_current_recovery_prepare_exact_evidence
+from a1clean.canonical_recovery import run_canonical_current_recovery_prepare
 
-result = run_canonical_current_recovery_prepare_exact_evidence()
+result = run_canonical_current_recovery_prepare()
 summary = {
     "pass": result.get("pass"),
     "status": result.get("status"),

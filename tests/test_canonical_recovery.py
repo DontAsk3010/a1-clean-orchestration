@@ -10,10 +10,10 @@ from a1clean.canonical_recovery import (
     RECOVERY_SCHEMA,
     _compare_expected_file_maps,
     _json_fingerprint,
+    _load_full_shadow_evidence,
     _load_request,
     _tree_fingerprint,
 )
-from a1clean.canonical_recovery_exact_evidence import load_full_shadow_evidence_exact
 from a1clean.config import (
     FROZEN_CURRENT_FOLDER_DRIVE_ID,
     FROZEN_GENERATION_ID,
@@ -93,11 +93,16 @@ def test_committed_data_plane_control_set_is_exactly_six() -> None:
     )
 
 
-def test_final_shadow_exact_pointer_ignores_orphan_same_named_hold(monkeypatch) -> None:
-    import a1clean.canonical_recovery_exact_evidence as exact
-
+def _shadow_case(*, folder_pointer: str = "final-pass-folder", report_pass: bool = True, report_drive_id: str = "source-drive", report_name: str = "Raw Des 02-31-2024.csv") -> tuple[list[dict], list[dict], dict, dict]:
     source_name = "Raw Des 02-31-2024.csv"
-    stable = {"source_name": source_name, "source_drive_id": "source-drive"}
+    stable = {
+        "generation_id": FROZEN_GENERATION_ID,
+        "data_plane_impl_version": FROZEN_IMPL_VERSION,
+        "source_name": source_name,
+        "source_drive_id": "source-drive",
+        "source_size_bytes": 10,
+        "source_sha256": "a" * 64,
+    }
     root_items = [
         {"id": "final", "name": "FULL_SHADOW_PARITY_FINAL.json", "mimeType": "application/json"},
         {"id": "old-hold-folder", "name": "SRC_0005_Raw_Des_02-31-2024", "mimeType": FOLDER_MIME},
@@ -108,18 +113,6 @@ def test_final_shadow_exact_pointer_ignores_orphan_same_named_hold(monkeypatch) 
         {"id": "semantic-manifest", "name": "CANDIDATE__Raw Des 02-31-2024__SEMANTIC_BUNDLES_MANIFEST.json", "mimeType": "application/json"},
         {"id": "market-index", "name": "CANDIDATE__Raw Des 02-31-2024__MARKET_DAY_INDEX.json", "mimeType": "application/json"},
     ]
-    listed: list[str] = []
-
-    def fake_list(_api, folder_id: str):
-        listed.append(folder_id)
-        if folder_id == "root":
-            return root_items
-        if folder_id == "final-pass-folder":
-            return good_items
-        if folder_id == "old-hold-folder":
-            raise AssertionError("orphan HOLD folder must not be read")
-        raise AssertionError(folder_id)
-
     family = {
         "pass": True,
         "files": [{
@@ -133,6 +126,9 @@ def test_final_shadow_exact_pointer_ignores_orphan_same_named_hold(monkeypatch) 
     }
     final = {
         "pass": True,
+        "run_folder_id": "root",
+        "generation_id": FROZEN_GENERATION_ID,
+        "data_plane_impl_version": FROZEN_IMPL_VERSION,
         "completed_source_count": 1,
         "source_summaries": [{
             "pass": True,
@@ -141,20 +137,44 @@ def test_final_shadow_exact_pointer_ignores_orphan_same_named_hold(monkeypatch) 
             "candidate_stable_source": stable,
             "physical_shards": 1,
             "semantic_bundles": 1,
-            "evidence_folder_id": "final-pass-folder",
+            "evidence_folder_id": folder_pointer,
             "source_report_file_id": "good-report",
         }],
     }
     report = {
-        "pass": True,
+        "pass": report_pass,
         "source_index": 5,
-        "source": {"name": source_name, "drive_id": "source-drive", "size": 10, "drive_md5": "deadbeef"},
+        "source": {"name": report_name, "drive_id": report_drive_id, "size": 10, "drive_md5": "deadbeef"},
+        "engine": {"generation_id": FROZEN_GENERATION_ID, "data_plane_impl_version": FROZEN_IMPL_VERSION},
         "checks": {
             "source_manifest_stable_fields": {"candidate": stable},
             "physical_shards_exact_md5": family,
             "semantic_bundles_exact_md5": family,
         },
     }
+    return root_items, good_items, final, report
+
+
+def _install_shadow_fakes(monkeypatch, *, folder_pointer: str = "final-pass-folder", report_pass: bool = True, report_drive_id: str = "source-drive", report_name: str = "Raw Des 02-31-2024.csv") -> list[str]:
+    import a1clean.canonical_recovery as recovery
+
+    root_items, good_items, final, report = _shadow_case(
+        folder_pointer=folder_pointer,
+        report_pass=report_pass,
+        report_drive_id=report_drive_id,
+        report_name=report_name,
+    )
+    listed: list[str] = []
+
+    def fake_list(_api, folder_id: str):
+        listed.append(folder_id)
+        if folder_id == "root":
+            return root_items
+        if folder_id == "final-pass-folder":
+            return good_items
+        if folder_id == "old-hold-folder":
+            raise AssertionError("orphan HOLD folder must not be read")
+        raise AssertionError(folder_id)
 
     def fake_download(_api, file_id: str):
         if file_id == "final":
@@ -163,10 +183,33 @@ def test_final_shadow_exact_pointer_ignores_orphan_same_named_hold(monkeypatch) 
             return report
         raise AssertionError(file_id)
 
-    monkeypatch.setattr(exact, "_list_children", fake_list)
-    monkeypatch.setattr(exact, "_download_json", fake_download)
-    evidence = load_full_shadow_evidence_exact(object(), "root")
+    monkeypatch.setattr(recovery, "_list_children", fake_list)
+    monkeypatch.setattr(recovery, "_download_json", fake_download)
+    return listed
+
+
+def test_final_shadow_exact_pointer_ignores_orphan_same_named_hold(monkeypatch) -> None:
+    listed = _install_shadow_fakes(monkeypatch)
+    evidence = _load_full_shadow_evidence(object(), "root")
     assert evidence["source_count"] == 1
     assert evidence["sources"][0]["historical_evidence_folder_id"] == "final-pass-folder"
     assert evidence["sources"][0]["historical_source_report_id"] == "good-report"
     assert "old-hold-folder" not in listed
+
+
+def test_final_shadow_missing_exact_evidence_folder_fails_closed(monkeypatch) -> None:
+    _install_shadow_fakes(monkeypatch, folder_pointer="missing-folder")
+    with pytest.raises(RuntimeError, match="EVIDENCE_FOLDER_NOT_DIRECT_CHILD"):
+        _load_full_shadow_evidence(object(), "root")
+
+
+def test_final_shadow_exact_report_hold_fails_closed(monkeypatch) -> None:
+    _install_shadow_fakes(monkeypatch, report_pass=False)
+    with pytest.raises(RuntimeError, match="SOURCE_EVIDENCE_NOT_PASS"):
+        _load_full_shadow_evidence(object(), "root")
+
+
+def test_final_shadow_exact_report_identity_mismatch_fails_closed(monkeypatch) -> None:
+    _install_shadow_fakes(monkeypatch, report_drive_id="wrong-source-drive")
+    with pytest.raises(RuntimeError, match="SOURCE_IDENTITY_MISMATCH"):
+        _load_full_shadow_evidence(object(), "root")
