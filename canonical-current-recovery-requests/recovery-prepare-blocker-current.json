@@ -1,8 +1,8 @@
 {
   "schema": "A1_CANONICAL_CURRENT_RECOVERY_PREPARE_BLOCKER_V1",
-  "status": "READY_FOR_GOVERNED_RECOVERY_PREPARE",
+  "status": "HOLD_READER_REAUTH_REQUIRED",
   "branch": "fix/v32-dynamic-source-universe-v1",
-  "authority_effective_date": "2026-09-25",
+  "authority_effective_date": "2026-09-26",
   "authority_lock_status": "ACTIVE",
   "owner_correction_applied": true,
   "recovery_request_trigger_revision": "20260925_03",
@@ -26,17 +26,33 @@
     "existing_oauth_client_reused": true,
     "new_oauth_client_created": false,
     "reader_repurposed_as_writer": false,
-    "principal_email": "fjulie8satu@gmail.com",
     "full_drive_scope_granted": true,
     "new_refresh_token_proof_pass": true,
     "parity_staging_owner_proof": true,
     "machine2_service_binding_pass": true,
     "machine2_service_restart_pass": true,
     "drive_write_performed_during_restoration": false,
+    "canonical_current_mutation": false,
+    "current_validity": "UNCHANGED_NO_NEW_WRITER_FAILURE_OBSERVED"
+  },
+  "reader_runtime_integrity": {
+    "status": "FAIL_INVALID_GRANT_REAUTH_REQUIRED",
+    "detected_at_recovery_prepare_run_id": 36228135661,
+    "detected_at_recovery_prepare_head_sha": "dc0ef7e898549f13da4937188f883b8bc9b85a1a",
+    "target_runner_proven": "A1-WINDOWS-COMPUTE-02",
+    "failure_stage": "SOURCE_PREFLIGHT",
+    "oauth_error": "invalid_grant",
+    "oauth_error_description": "Token has been expired or revoked.",
+    "existing_readonly_candidate_diagnostic_run_id": 36228565294,
+    "valid_existing_readonly_candidate_count": 0,
+    "current_reader_valid": false,
+    "reader_replacement_authorized": false,
+    "repair_contract": "REAUTHORIZE_THE_SAME_EXISTING_READER_OAUTH_CLIENT_WITH_DRIVE_READONLY_SCOPE_ONLY; DO_NOT_USE_WRITER_AS_READER; DO_NOT_CREATE_A_NEW_OAUTH_CLIENT",
+    "drive_write_performed": false,
     "canonical_current_mutation": false
   },
   "drive_guardrail_recovery_prerequisite": {
-    "status": "PASS_RECOVERY_PREREQUISITE_EXPECTED_CURRENT_404",
+    "last_verified_status": "PASS_RECOVERY_PREREQUISITE_EXPECTED_CURRENT_404",
     "workflow": ".github/workflows/windows-drive-guardrail-preflight.yml",
     "run_id": 36133641629,
     "head_sha": "dd2573913d09a817bacbcb47508a19c0925cdd4b",
@@ -49,7 +65,8 @@
     "writer_create_delete_in_staging_pass": true,
     "raw_write_performed": false,
     "current_write_performed": false,
-    "canonical_current_mutation": false
+    "canonical_current_mutation": false,
+    "current_validity": "STALE_DUE_TO_READER_INVALID_GRANT_REVALIDATION_REQUIRED"
   },
   "recovery_admission": {
     "prepare_only": true,
@@ -57,17 +74,22 @@
     "canonical_promotion_allowed": false,
     "raw_write_allowed": false,
     "heavy_behavior_research_allowed": false,
-    "current_404_is_expected_prerequisite": true
+    "current_404_is_expected_prerequisite": true,
+    "currently_admitted": false,
+    "hold_reason": "READER_CREDENTIAL_INVALID_GRANT"
   },
-  "governed_decision": "WRITER RESTORATION AND RECOVERY-AWARE DRIVE GUARDRAIL ARE PASS. CANONICAL CURRENT RECOVERY PREPARE IS ADMITTED ON A1-WINDOWS-COMPUTE-02, WRITING ONLY RECOVERY CANDIDATE/EVIDENCE UNDER PARITY_STAGING. CANONICAL CURRENT PROMOTION, RAW WRITE, AND HEAVY MACHINE2 RESEARCH REMAIN FORBIDDEN.",
+  "governed_decision": "RECOVERY RESOLVER REGRESSION TESTS PASS, BUT LIVE RECOVERY PREPARE IS HELD BEFORE SOURCE INTAKE BECAUSE THE GOVERNED READ-ONLY READER REFRESH TOKEN RETURNED INVALID_GRANT. WRITER RESTORATION REMAINS PASS AND MUST NOT BE REOPENED. REAUTHORIZE THE SAME EXISTING READER OAUTH CLIENT WITH DRIVE.READONLY ONLY, THEN RE-RUN THE RECOVERY-AWARE DRIVE GUARDRAIL. ONLY AFTER THAT PASS MAY RECOVERY PREPARE RESUME.",
   "forbidden_shortcuts": [
     "DO_NOT_CREATE_NEW_OAUTH_WRITER",
+    "DO_NOT_REOPEN_WRITER_RELOCATION_WITHOUT_NEW_WRITER_FAILURE",
     "DO_NOT_USE_READER_AS_WRITER",
+    "DO_NOT_USE_WRITER_AS_READER",
+    "DO_NOT_CREATE_NEW_READER_OAUTH_CLIENT",
     "DO_NOT_WRITE_RAW",
     "DO_NOT_MUTATE_CANONICAL_CURRENT",
     "DO_NOT_BYPASS_RECOVERY_PREPARE",
     "DO_NOT_START_HEAVY_MACHINE2_RESEARCH"
   ],
-  "next_exact_gate": "CANONICAL_CURRENT_RECOVERY_PREPARE -> EXACT_RECOVERY_CANDIDATE_READBACK -> LIGHTWEIGHT_PRESTART",
-  "checkpoint_role": "DURABLE_RECOVERY_ADMISSION_PROOF_TO_PREVENT_REPEAT_WRITER_OR_GUARDRAIL_DIAGNOSIS"
+  "next_exact_gate": "REAUTHORIZE_EXISTING_READER_READONLY -> RECOVERY_AWARE_DRIVE_GUARDRAIL_READBACK -> CANONICAL_CURRENT_RECOVERY_PREPARE -> EXACT_RECOVERY_CANDIDATE_READBACK -> LIGHTWEIGHT_PRESTART",
+  "checkpoint_role": "DURABLE_CURRENT_RECOVERY_BLOCKER_STATE; PRESERVES WRITER PASS WHILE FAILING CLOSED ON NEW READER INVALID_GRANT"
 }
