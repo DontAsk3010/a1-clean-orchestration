@@ -7,6 +7,7 @@ on:
       - fix/v32-dynamic-source-universe-v1
     paths:
       - 'scripts/windows/Restore-A1DriveReaderExisting.ps1'
+      - 'scripts/windows/Restore-A1DriveReaderExisting.cmd'
       - '.github/workflows/windows-drive-reader-reauth-parse.yml'
 
 permissions:
@@ -21,11 +22,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
-      - name: Parse only - no credential or Drive mutation
+      - name: Parse and verify one-click launcher - no credential or Drive mutation
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           $path = 'scripts\windows\Restore-A1DriveReaderExisting.ps1'
+          $launcher = 'scripts\windows\Restore-A1DriveReaderExisting.cmd'
+          if (-not (Test-Path -LiteralPath $launcher -PathType Leaf)) { throw 'A1_READER_REAUTH_LAUNCHER_MISSING' }
           $tokens = $null
           $errors = $null
           [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)
@@ -34,5 +37,6 @@ jobs:
             throw 'A1_READER_REAUTH_PARSE_FAIL'
           }
           Write-Host 'A1_READER_REAUTH_PARSE=PASS'
+          Write-Host 'A1_READER_REAUTH_LAUNCHER_PRESENT=PASS'
           Write-Host 'CREDENTIAL_MUTATION=false'
           Write-Host 'DRIVE_WRITE_PERFORMED=false'
