@@ -1,0 +1,17 @@
+{
+    "audit_type":  "OWNER_CORRECTED_FULL_PREFIX_REAUDIT",
+    "ticker":  "ADES",
+    "trading_date":  "2024-12-03",
+    "recovered_date_local_index":  8,
+    "source_name":  "Raw Des 02-31-2024.csv",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  20625,
+    "source_row_last":  20670,
+    "data_rows":  46,
+    "first_datetime":  "2024-12-03 09:15:00",
+    "last_datetime":  "2024-12-03 15:49:00",
+    "rows_jsonl_sha256":  "77a85194329834e5e100dcf476b869e256ece918ad97deee4e143d33f0e71d03",
+    "semantic_status":  "TRANSPORT_ONLY_NOT_SEMANTIC_COMPLETE",
+    "formula_stage":  "CLOSED",
+    "date_advance":  "PROHIBITED"
+}
