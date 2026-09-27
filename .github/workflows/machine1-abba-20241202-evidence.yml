@@ -20,6 +20,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Extract exact governed ABBA Date02 source packet
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
@@ -132,7 +137,7 @@ jobs:
           proof_path.write_text(json.dumps(proof, ensure_ascii=False, indent=2), encoding='utf-8')
           print(f'ABBA_DATE02_SOURCE_EVIDENCE_OK rows={len(rows)} source_rows={source_first}-{source_last} first={dts[0]} last={dts[-1]} packet_sha256={packet_sha} rows_sha256={rows_sha}')
           '@ | Set-Content -LiteralPath extract_abba_20241202.py -Encoding UTF8
-          py -3.11 extract_abba_20241202.py
+          python extract_abba_20241202.py
 
       - name: Upload governed ABBA Date02 evidence
         uses: actions/upload-artifact@v4
