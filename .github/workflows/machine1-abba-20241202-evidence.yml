@@ -20,124 +20,119 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
       - name: Extract exact governed ABBA Date02 source packet
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          @'
-          import csv, hashlib, json, os, pathlib
+          $raw = $env:RAW_FILE
+          $tickerExpected = 'ABBA'
+          $tradingDate = '2024-12-02'
+          $sourceFirst = 7506
+          $sourceLast = 7511
+          $expectedCount = 6
+          $expectedFirstTime = '09:55:00'
+          $expectedLastTime = '16:02:00'
+          $expectedMd5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
+          $expectedSha256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
 
-          raw = pathlib.Path(os.environ['RAW_FILE'])
-          ticker_expected = 'ABBA'
-          trading_date = '2024-12-02'
-          source_first = 7506
-          source_last = 7511
-          expected_count = 6
-          expected_first_time = '09:55:00'
-          expected_last_time = '16:02:00'
-          expected_md5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
-          expected_sha256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          if (-not (Test-Path -LiteralPath $raw -PathType Leaf)) { throw "RAW_MISSING: $raw" }
 
-          if not raw.is_file():
-              raise SystemExit(f'RAW_MISSING: {raw}')
-
-          md5 = hashlib.md5()
-          sha256 = hashlib.sha256()
-          with raw.open('rb') as f:
-              for chunk in iter(lambda: f.read(8 * 1024 * 1024), b''):
-                  md5.update(chunk)
-                  sha256.update(chunk)
-          got_md5 = md5.hexdigest()
-          got_sha256 = sha256.hexdigest()
-          if got_md5 != expected_md5 or got_sha256 != expected_sha256:
-              raise SystemExit(f'RAW_HASH_MISMATCH md5={got_md5} sha256={got_sha256}')
-
-          rows = []
-          with raw.open('r', encoding='utf-8-sig', newline='') as f:
-              reader = csv.DictReader(f)
-              header_fields = list(reader.fieldnames or [])
-              for source_row, row in enumerate(reader, start=1):
-                  if source_row < source_first:
-                      continue
-                  if source_row > source_last:
-                      break
-                  rows.append({'source_row': source_row, **row})
-
-          if len(rows) != expected_count:
-              raise SystemExit(f'ROW_COUNT_MISMATCH got={len(rows)} expected={expected_count}')
-          expected_sequence = list(range(source_first, source_last + 1))
-          if [r['source_row'] for r in rows] != expected_sequence:
-              raise SystemExit('SOURCE_ROW_SEQUENCE_MISMATCH')
-          if {r.get('RAW_TICKER', '') for r in rows} != {ticker_expected}:
-              raise SystemExit('TICKER_MISMATCH')
-
-          dts = [r.get('RAW_DATETIME_ISO', '') for r in rows]
-          if any(not dt.startswith(trading_date) for dt in dts):
-              raise SystemExit('DATE_MISMATCH')
-          ft = dts[0].split('T', 1)[-1][:8] if 'T' in dts[0] else dts[0].split(' ')[-1][:8]
-          lt = dts[-1].split('T', 1)[-1][:8] if 'T' in dts[-1] else dts[-1].split(' ')[-1][:8]
-          if ft != expected_first_time or lt != expected_last_time:
-              raise SystemExit(f'TIME_RANGE_MISMATCH got={ft}-{lt}')
-
-          packet = {
-              'schema': 'A1_CLEAN_MACHINE1_CURRENT_REVALIDATION_SOURCE_PACKET_V1',
-              'scope': 'HISTORICAL_COMPLETED_SCOPE_CURRENT_REVALIDATION_ONLY_NO_NEW_TICKER_SCOPE',
-              'revalidation_target_observation_id': 'OBS_DES2024_20241202_ABBA_001',
-              'ticker': ticker_expected,
-              'trading_date': trading_date,
-              'source_name': raw.name,
-              'source_md5': got_md5,
-              'source_sha256': got_sha256,
-              'source_row_first': source_first,
-              'source_row_last': source_last,
-              'physical_line_first': source_first + 1,
-              'physical_line_last': source_last + 1,
-              'data_rows': len(rows),
-              'first_datetime': dts[0],
-              'last_datetime': dts[-1],
-              'header_fields': header_fields,
-              'rows': rows,
+          $gotMd5 = (Get-FileHash -LiteralPath $raw -Algorithm MD5).Hash.ToLowerInvariant()
+          $gotSha256 = (Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($gotMd5 -ne $expectedMd5 -or $gotSha256 -ne $expectedSha256) {
+            throw "RAW_HASH_MISMATCH md5=$gotMd5 sha256=$gotSha256"
           }
 
-          out = pathlib.Path('machine1_abba_20241202_evidence')
-          out.mkdir(exist_ok=True)
-          packet_path = out / 'ABBA_20241202_PACKET.json'
-          rows_path = out / 'ABBA_20241202_ROWS.jsonl'
-          proof_path = out / 'EVIDENCE_PROOF.json'
-
-          packet_path.write_text(json.dumps(packet, ensure_ascii=False, indent=2), encoding='utf-8')
-          with rows_path.open('w', encoding='utf-8', newline='\n') as w:
-              for row in rows:
-                  w.write(json.dumps(row, ensure_ascii=False, separators=(',', ':')) + '\n')
-
-          packet_sha = hashlib.sha256(packet_path.read_bytes()).hexdigest()
-          rows_sha = hashlib.sha256(rows_path.read_bytes()).hexdigest()
-          proof = {
-              'schema': 'A1_CLEAN_MACHINE1_CURRENT_REVALIDATION_SOURCE_PROOF_V1',
-              'ticker': ticker_expected,
-              'trading_date': trading_date,
-              'source_md5': got_md5,
-              'source_sha256': got_sha256,
-              'source_row_first': source_first,
-              'source_row_last': source_last,
-              'data_rows': len(rows),
-              'first_datetime': dts[0],
-              'last_datetime': dts[-1],
-              'packet_sha256': packet_sha,
-              'rows_jsonl_sha256': rows_sha,
-              'checkpoint_mutated': False,
-              'drive_mutated': False,
-              'next_ticker_opened': False,
+          Add-Type -AssemblyName Microsoft.VisualBasic
+          $parser = New-Object Microsoft.VisualBasic.FileIO.TextFieldParser($raw)
+          $parser.TextFieldType = [Microsoft.VisualBasic.FileIO.FieldType]::Delimited
+          $parser.SetDelimiters(',')
+          $parser.HasFieldsEnclosedInQuotes = $true
+          try {
+            $headers = @($parser.ReadFields())
+            if ($headers.Count -eq 0) { throw 'CSV_HEADER_MISSING' }
+            $rows = New-Object System.Collections.Generic.List[object]
+            $sourceRow = 0
+            while (-not $parser.EndOfData -and $sourceRow -lt $sourceLast) {
+              $fields = @($parser.ReadFields())
+              $sourceRow++
+              if ($sourceRow -lt $sourceFirst) { continue }
+              $row = [ordered]@{ source_row = $sourceRow }
+              for ($i = 0; $i -lt $headers.Count; $i++) {
+                $value = if ($i -lt $fields.Count) { $fields[$i] } else { $null }
+                $row[$headers[$i]] = $value
+              }
+              $rows.Add([pscustomobject]$row)
+            }
           }
-          proof_path.write_text(json.dumps(proof, ensure_ascii=False, indent=2), encoding='utf-8')
-          print(f'ABBA_DATE02_SOURCE_EVIDENCE_OK rows={len(rows)} source_rows={source_first}-{source_last} first={dts[0]} last={dts[-1]} packet_sha256={packet_sha} rows_sha256={rows_sha}')
-          '@ | Set-Content -LiteralPath extract_abba_20241202.py -Encoding UTF8
-          python extract_abba_20241202.py
+          finally {
+            $parser.Close()
+          }
+
+          if ($rows.Count -ne $expectedCount) { throw "ROW_COUNT_MISMATCH got=$($rows.Count) expected=$expectedCount" }
+          $expectedSeq = $sourceFirst..$sourceLast
+          $gotSeq = @($rows | ForEach-Object { [int]$_.source_row })
+          if ((Compare-Object $expectedSeq $gotSeq)) { throw 'SOURCE_ROW_SEQUENCE_MISMATCH' }
+          $tickers = @($rows | ForEach-Object { $_.RAW_TICKER } | Sort-Object -Unique)
+          if ($tickers.Count -ne 1 -or $tickers[0] -ne $tickerExpected) { throw "TICKER_MISMATCH got=$($tickers -join ',')" }
+
+          $dts = @($rows | ForEach-Object { $_.RAW_DATETIME_ISO })
+          if (@($dts | Where-Object { -not $_.StartsWith($tradingDate) }).Count -gt 0) { throw "DATE_MISMATCH got=$($dts -join ',')" }
+          $firstTime = ([datetime]$dts[0]).ToString('HH:mm:ss')
+          $lastTime = ([datetime]$dts[-1]).ToString('HH:mm:ss')
+          if ($firstTime -ne $expectedFirstTime -or $lastTime -ne $expectedLastTime) {
+            throw "TIME_RANGE_MISMATCH got=$firstTime-$lastTime"
+          }
+
+          $out = Join-Path $PWD 'machine1_abba_20241202_evidence'
+          New-Item -ItemType Directory -Path $out -Force | Out-Null
+          $packetPath = Join-Path $out 'ABBA_20241202_PACKET.json'
+          $rowsPath = Join-Path $out 'ABBA_20241202_ROWS.jsonl'
+          $proofPath = Join-Path $out 'EVIDENCE_PROOF.json'
+
+          $packet = [ordered]@{
+            schema = 'A1_CLEAN_MACHINE1_CURRENT_REVALIDATION_SOURCE_PACKET_V1'
+            scope = 'HISTORICAL_COMPLETED_SCOPE_CURRENT_REVALIDATION_ONLY_NO_NEW_TICKER_SCOPE'
+            revalidation_target_observation_id = 'OBS_DES2024_20241202_ABBA_001'
+            ticker = $tickerExpected
+            trading_date = $tradingDate
+            source_name = [System.IO.Path]::GetFileName($raw)
+            source_md5 = $gotMd5
+            source_sha256 = $gotSha256
+            source_row_first = $sourceFirst
+            source_row_last = $sourceLast
+            physical_line_first = $sourceFirst + 1
+            physical_line_last = $sourceLast + 1
+            data_rows = $rows.Count
+            first_datetime = $dts[0]
+            last_datetime = $dts[-1]
+            header_fields = $headers
+            rows = @($rows)
+          }
+          $packet | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $packetPath -Encoding UTF8
+          @($rows | ForEach-Object { $_ | ConvertTo-Json -Compress -Depth 10 }) | Set-Content -LiteralPath $rowsPath -Encoding UTF8
+
+          $packetSha = (Get-FileHash -LiteralPath $packetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $rowsSha = (Get-FileHash -LiteralPath $rowsPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $proof = [ordered]@{
+            schema = 'A1_CLEAN_MACHINE1_CURRENT_REVALIDATION_SOURCE_PROOF_V1'
+            ticker = $tickerExpected
+            trading_date = $tradingDate
+            source_md5 = $gotMd5
+            source_sha256 = $gotSha256
+            source_row_first = $sourceFirst
+            source_row_last = $sourceLast
+            data_rows = $rows.Count
+            first_datetime = $dts[0]
+            last_datetime = $dts[-1]
+            packet_sha256 = $packetSha
+            rows_jsonl_sha256 = $rowsSha
+            checkpoint_mutated = $false
+            drive_mutated = $false
+            next_ticker_opened = $false
+          }
+          $proof | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $proofPath -Encoding UTF8
+          Write-Host "ABBA_DATE02_SOURCE_EVIDENCE_OK rows=$($rows.Count) source_rows=$sourceFirst-$sourceLast first=$($dts[0]) last=$($dts[-1]) packet_sha256=$packetSha rows_sha256=$rowsSha"
 
       - name: Upload governed ABBA Date02 evidence
         uses: actions/upload-artifact@v4
