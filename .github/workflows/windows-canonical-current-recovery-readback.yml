@@ -62,7 +62,7 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          & '.\scripts\windows\Inventory-A1CanonicalRecoveryPrepare.ps1' -ExpectedRecoverySha '8a6d9ccd8451320efbee6cae0bcc4393e49d1957'
+          & '.\scripts\windows\Inventory-A1CanonicalRecoveryPrepare.ps1' -ExpectedRecoverySha '80fa6fd7408c741eabbcd429b82451bf4e33466b'
           if (-not $?) { throw 'A1_RECOVERY_INVENTORY_EXEC_FAIL' }
 
       - name: Execute exact recovery candidate readback
@@ -70,7 +70,7 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          & '.\scripts\windows\Readback-A1CanonicalRecoveryPrepare.ps1' -ExpectedRecoverySha '8a6d9ccd8451320efbee6cae0bcc4393e49d1957'
+          & '.\scripts\windows\Readback-A1CanonicalRecoveryPrepare.ps1' -ExpectedRecoverySha '80fa6fd7408c741eabbcd429b82451bf4e33466b'
           if (-not $?) { throw 'A1_RECOVERY_READBACK_EXEC_FAIL' }
           Write-Host 'A1_RECOVERY_READBACK_EXECUTOR_RETURNED_SUCCESSFULLY'
 
@@ -126,7 +126,7 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          & '.\scripts\windows\Inventory-A1CanonicalRecoveryPrepare.ps1' -ExpectedRecoverySha '8a6d9ccd8451320efbee6cae0bcc4393e49d1957'
+          & '.\scripts\windows\Inventory-A1CanonicalRecoveryPrepare.ps1' -ExpectedRecoverySha '80fa6fd7408c741eabbcd429b82451bf4e33466b'
           if (-not $?) { throw 'A1_RECOVERY_INVENTORY_EXEC_FAIL' }
 
       - name: Execute exact recovery candidate readback
@@ -134,7 +134,7 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          & '.\scripts\windows\Readback-A1CanonicalRecoveryPrepare.ps1' -ExpectedRecoverySha '8a6d9ccd8451320efbee6cae0bcc4393e49d1957'
+          & '.\scripts\windows\Readback-A1CanonicalRecoveryPrepare.ps1' -ExpectedRecoverySha '80fa6fd7408c741eabbcd429b82451bf4e33466b'
           if (-not $?) { throw 'A1_RECOVERY_READBACK_EXEC_FAIL' }
           Write-Host 'A1_RECOVERY_READBACK_EXECUTOR_RETURNED_SUCCESSFULLY'
 
