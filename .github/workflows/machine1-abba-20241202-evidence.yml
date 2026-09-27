@@ -51,7 +51,7 @@ jobs:
           try {
             $headers = @($parser.ReadFields())
             if ($headers.Count -eq 0) { throw 'CSV_HEADER_MISSING' }
-            $rows = New-Object System.Collections.Generic.List[object]
+            $rows = @()
             $sourceRow = 0
             while (-not $parser.EndOfData -and $sourceRow -lt $sourceLast) {
               $fields = @($parser.ReadFields())
@@ -62,7 +62,7 @@ jobs:
                 $value = if ($i -lt $fields.Count) { $fields[$i] } else { $null }
                 $row[$headers[$i]] = $value
               }
-              $rows.Add([pscustomobject]$row)
+              $rows += [pscustomobject]$row
             }
           }
           finally {
@@ -107,7 +107,7 @@ jobs:
             first_datetime = $dts[0]
             last_datetime = $dts[-1]
             header_fields = $headers
-            rows = @($rows)
+            rows = $rows
           }
           $packet | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $packetPath -Encoding UTF8
           @($rows | ForEach-Object { $_ | ConvertTo-Json -Compress -Depth 10 }) | Set-Content -LiteralPath $rowsPath -Encoding UTF8
