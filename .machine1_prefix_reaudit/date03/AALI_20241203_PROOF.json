@@ -1,0 +1,17 @@
+{
+    "audit_type":  "OWNER_CORRECTED_FULL_PREFIX_REAUDIT",
+    "ticker":  "AALI",
+    "trading_date":  "2024-12-03",
+    "recovered_date_local_index":  1,
+    "source_name":  "Raw Des 02-31-2024.csv",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  5101,
+    "source_row_last":  5250,
+    "data_rows":  150,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 16:03:00",
+    "rows_jsonl_sha256":  "8ed707005b08cd8a93b3d8d18517dc0d4a40d1556fb17d0d215fe4d5c4a81b2e",
+    "semantic_status":  "TRANSPORT_ONLY_NOT_SEMANTIC_COMPLETE",
+    "formula_stage":  "CLOSED",
+    "date_advance":  "PROHIBITED"
+}
