@@ -1,0 +1,17 @@
+{
+    "audit_type":  "OWNER_CORRECTED_FULL_PREFIX_REAUDIT",
+    "ticker":  "ACES",
+    "trading_date":  "2024-12-03",
+    "recovered_date_local_index":  4,
+    "source_name":  "Raw Des 02-31-2024.csv",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  13760,
+    "source_row_last":  14081,
+    "data_rows":  322,
+    "first_datetime":  "2024-12-03 08:59:00",
+    "last_datetime":  "2024-12-03 16:14:00",
+    "rows_jsonl_sha256":  "b4ffe8363aea5ea0257c72e66370614923d19bfa61899b0a6ee9a234f79c7bd6",
+    "semantic_status":  "TRANSPORT_ONLY_NOT_SEMANTIC_COMPLETE",
+    "formula_stage":  "CLOSED",
+    "date_advance":  "PROHIBITED"
+}
