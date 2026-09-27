@@ -1,0 +1,17 @@
+{
+    "audit_type":  "OWNER_CORRECTED_FULL_PREFIX_REAUDIT",
+    "ticker":  "ABBA",
+    "trading_date":  "2024-12-03",
+    "recovered_date_local_index":  2,
+    "source_name":  "Raw Des 02-31-2024.csv",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  7512,
+    "source_row_last":  7517,
+    "data_rows":  6,
+    "first_datetime":  "2024-12-03 09:55:00",
+    "last_datetime":  "2024-12-03 16:12:00",
+    "rows_jsonl_sha256":  "0753e0d82f64523d21dd61109050a854b51c7ddc9247794f58a1032ff46dd1a7",
+    "semantic_status":  "TRANSPORT_ONLY_NOT_SEMANTIC_COMPLETE",
+    "formula_stage":  "CLOSED",
+    "date_advance":  "PROHIBITED"
+}
