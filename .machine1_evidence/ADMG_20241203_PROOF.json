@@ -1,0 +1,25 @@
+{
+    "audit_type":  "OWNER_CORRECTED_FULL_PREFIX_REAUDIT",
+    "ticker":  "ADMG",
+    "trading_date":  "2024-12-03",
+    "recovered_date_local_index":  11,
+    "source_name":  "Raw Des 02-31-2024.csv",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  22581,
+    "source_row_last":  22597,
+    "data_rows":  17,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 14:55:00",
+    "rows_jsonl_sha256":  "c2fd7ba57ef904031c076ead58b7465c96dfd6dbd3dd9e320c6a22cea1479da7",
+    "discovered_by":  "FULL_CANONICAL_RAW_SCAN_TICKER_PLUS_DATE",
+    "legacy_pointer_reference":  {
+                                     "source_row_first":  22581,
+                                     "source_row_last":  22597,
+                                     "data_rows":  17
+                                 },
+    "legacy_pointer_match":  true,
+    "source_rows_contiguous":  true,
+    "semantic_status":  "TRANSPORT_ONLY_NOT_SEMANTIC_COMPLETE",
+    "formula_stage":  "CLOSED",
+    "date_advance":  "PROHIBITED"
+}
