@@ -1,0 +1,52 @@
+name: A1 CURRENT Authority Rebind One Shot 20260928
+on:
+  push:
+    branches: [fix/v32-dynamic-source-universe-v1]
+    paths: [.github/workflows/a1-current-authority-rebind-once-20260928.yml]
+permissions:
+  contents: write
+jobs:
+  rebind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/v32-dynamic-source-universe-v1
+          fetch-depth: 0
+      - name: Rebind only authority revision IDs
+        shell: python
+        run: |
+          import json
+          p='governance/a1-clean-active-authority-lock.json'
+          with open(p,'r',encoding='utf-8') as f: d=json.load(f)
+          rev={
+            'master_handbook':'ANLCKQlAoJ0PIKZyCNZQpeCwLNO7WfYDkoQWXugnGSba6ZjNaxZz2BBy0mE1OSsis-NrkPx3nOgN2G1Eal228WwZuX_oU8N8s-ve2r_AZ1Q',
+            'sub_master_index':'ANLCKQnjtV-EjcYQhDfOMLIyLM3uK4t2z0ulr1ahHqcOuOGxmZgG83G0XCzuGzlQau7BewWC992NYBNjuAC-lnzlyGUbRfUVYM_z7287Vtg',
+            'source_capture':'ANLCKQm-UGAm1dhcZp4OERIPV_XVLeCsIOzY_8IuI6H0ctVRrQEBMmT2fNcNBYdkJ-QbBd9loaAZiO_SNGj-nvna3nV-YQrfAQH413va2CI',
+            'formula_research':'ANLCKQmyOdn_BDJq_XfE-j5LT4cvDuzOkKNdwqsg2I4qcLglUZrc0kKod6UANIRvzSNzTAe2b10bFHig6OIvaeyYq4CGvjSBoQZyKtp6l7M',
+            'behavior_reading':'ANLCKQkwi8Q7gs5uljKueYN-PvveITcmA3aD0Z5JvzCDUO5MaXdw34TiFlsHrbSN3SEOVk9SfD0ueorkWD1Zr_cLH-33xh05lcQIvY7XJ80',
+            'github_automation':'ANLCKQn8vXfz7jwWrNB-XdDgarocrJ9if-uvwLE9LBPg_osxddImwIdNZNcP-4MydtSbOLpKZizl8PW3HZWBKj6I1WyRX40Rskr3JOiAq68',
+            'machine1_dispatch_registry':'ANLCKQlJ52j4TlTtEXY9l_DphapCN9pe2R_zCgg8FNNpO5AHbUfNEBCNl_BuFK0dzm9UnVVt62KF6K1whVo0Yd_bSh_U0v8wPj8d5E8ToM4',
+            'current_execution':'ANLCKQliruPEFTdVeUVQzOPR-aDdLF4YamO3PZJ_SA_YoqrO6kkP60xeMwD0m80d7Ai9K4waHdYu45KP3zuU8HPqPDybzF0fXNU62_Uf7O4',
+            'storage_handbook':'ANLCKQlnvxiCpJkLug10lu9HkkaElTJgvQ9H1GtLAvmY2g2Y8v9iP4WHFXRXbpH2WB-JKaqKgTe_kuPT_5Dz16A2-6N1W1oTXD5O0oyMX-U',
+            'storage_manifest':'ANLCKQnM8H7xGDQmGMRqwWQZhC6rYb6l1WjFT0__7UHtM381rNb0NhA0YQ3C5PeQY73o2NYlUxQ4-p-lrNGIc60BiNEd0YQTobyRfrJBzVo'
+          }
+          for k,v in rev.items():
+            if k not in d['documents']: raise SystemExit(f'MISSING_KEY {k}')
+            d['documents'][k]['revision_id']=v
+          with open(p,'w',encoding='utf-8',newline='\n') as f:
+            json.dump(d,f,indent=2,ensure_ascii=False); f.write('\n')
+      - name: Commit lock only if changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'a1-clean-governance-bot'
+          git config user.email 'a1-clean-governance-bot@users.noreply.github.com'
+          git add governance/a1-clean-active-authority-lock.json
+          if git diff --cached --quiet; then
+            echo 'NO_CHANGE'
+            exit 0
+          fi
+          test "$(git diff --cached --name-only | wc -l)" -eq 1
+          git commit -m 'governance: rebind active authority lock to direct live CURRENT revisions [skip ci]'
+          git push origin HEAD:fix/v32-dynamic-source-universe-v1
