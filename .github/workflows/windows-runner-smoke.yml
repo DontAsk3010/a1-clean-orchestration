@@ -4,6 +4,11 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - '.github/workflows/windows-runner-smoke.yml'
 
 permissions:
   contents: read
@@ -14,7 +19,7 @@ concurrency:
 
 jobs:
   smoke:
-    name: Compute-only runner connectivity
+    name: Compute-only runner connectivity and writer-dependency probe
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 10
     env:
@@ -28,6 +33,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           Write-Host "Computer: $env:COMPUTERNAME"
+          Write-Host "Runner name: $env:RUNNER_NAME"
           Write-Host "Runner OS: $env:RUNNER_OS"
           Write-Host "Runner arch: $env:RUNNER_ARCH"
           if ($env:RUNNER_OS -ne 'Windows') { throw "Expected Windows runner" }
@@ -37,29 +43,22 @@ jobs:
         run: |
           $ErrorActionPreference = 'Continue'
           $ok = $false
-
           Write-Host "Trying python..."
           & python -c "import sys; print(sys.executable); print(sys.version); raise SystemExit(0 if sys.version_info >= (3,11) else 3)"
           if ($LASTEXITCODE -eq 0) { $ok = $true }
-
           if (-not $ok) {
             Write-Host "Trying Windows Python Launcher: py -3 ..."
             & py -3 -c "import sys; print(sys.executable); print(sys.version); raise SystemExit(0 if sys.version_info >= (3,11) else 3)"
             if ($LASTEXITCODE -eq 0) { $ok = $true }
           }
-
-          if (-not $ok) {
-            throw "Python 3.11+ is not available to the runner via 'python' or 'py -3'."
-          }
+          if (-not $ok) { throw "Python 3.11+ is not available to the runner via 'python' or 'py -3'." }
 
       - name: Verify canonical local RAW copy is readable only
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           $raw = $env:A1_RAW_DIR
-          if (-not (Test-Path -LiteralPath $raw -PathType Container)) {
-            throw "RAW folder not found: $raw"
-          }
+          if (-not (Test-Path -LiteralPath $raw -PathType Container)) { throw "RAW folder not found: $raw" }
           $files = Get-ChildItem -LiteralPath $raw -File
           $bytes = ($files | Measure-Object -Property Length -Sum).Sum
           Write-Host "RAW path: $raw"
@@ -67,8 +66,41 @@ jobs:
           Write-Host "Observed local bytes: $bytes"
           Write-Host "NOTE: counts are observational only; no fixed source-count rule is applied."
 
+      - name: Prove no active Machine2 recovery writer process
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $patterns = @(
+            'Invoke-A1CanonicalRecoveryPrepare.ps1',
+            'a1clean.canonical_recovery',
+            'canonical_recovery.py',
+            'CANONICAL_CURRENT_RECOVERY_PREPARE'
+          )
+          $hits = @()
+          $procs = @(Get-CimInstance Win32_Process | Select-Object ProcessId,Name,CommandLine)
+          foreach ($p in $procs) {
+            $cmd = [string]$p.CommandLine
+            if ([string]::IsNullOrWhiteSpace($cmd)) { continue }
+            foreach ($pattern in $patterns) {
+              if ($cmd -like "*$pattern*") {
+                # Exclude this probe's own PowerShell command line, which contains pattern literals.
+                if ($p.ProcessId -ne $PID -and $cmd -notlike '*Prove no active Machine2 recovery writer process*') {
+                  $hits += $p
+                }
+                break
+              }
+            }
+          }
+          if ($hits.Count -gt 0) {
+            foreach ($h in $hits) { Write-Host "ACTIVE_RECOVERY_WRITER_HIT|pid=$($h.ProcessId)|name=$($h.Name)|cmd=$($h.CommandLine)" }
+            throw "A1_MACHINE2_STORAGE_DEPENDENCY_HOLD_ACTIVE_LOCAL_RECOVERY_WRITER:$($hits.Count)"
+          }
+          Write-Host "A1_MACHINE2_LOCAL_RECOVERY_WRITER_ACTIVE=false"
+          Write-Host "A1_MACHINE2_STORAGE_DEPENDENCY_PROBE=PASS"
+          Write-Host "A1_MACHINE2_RUNNER_NAME=$env:RUNNER_NAME"
+
       - name: Safety declaration
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
-          Write-Host "SMOKE PASS: runner connectivity only."
+          Write-Host "SMOKE PASS: runner connectivity and read-only dependency probe only."
           Write-Host "No corpus processing, no RAW mutation, no governed runtime write, no parity staging write."
