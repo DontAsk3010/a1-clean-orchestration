@@ -38,34 +38,6 @@ jobs:
           Write-Host "Runner arch: $env:RUNNER_ARCH"
           if ($env:RUNNER_OS -ne 'Windows') { throw "Expected Windows runner" }
 
-      - name: Verify Python
-        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
-        run: |
-          $ErrorActionPreference = 'Continue'
-          $ok = $false
-          Write-Host "Trying python..."
-          & python -c "import sys; print(sys.executable); print(sys.version); raise SystemExit(0 if sys.version_info >= (3,11) else 3)"
-          if ($LASTEXITCODE -eq 0) { $ok = $true }
-          if (-not $ok) {
-            Write-Host "Trying Windows Python Launcher: py -3 ..."
-            & py -3 -c "import sys; print(sys.executable); print(sys.version); raise SystemExit(0 if sys.version_info >= (3,11) else 3)"
-            if ($LASTEXITCODE -eq 0) { $ok = $true }
-          }
-          if (-not $ok) { throw "Python 3.11+ is not available to the runner via 'python' or 'py -3'." }
-
-      - name: Verify canonical local RAW copy is readable only
-        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $raw = $env:A1_RAW_DIR
-          if (-not (Test-Path -LiteralPath $raw -PathType Container)) { throw "RAW folder not found: $raw" }
-          $files = Get-ChildItem -LiteralPath $raw -File
-          $bytes = ($files | Measure-Object -Property Length -Sum).Sum
-          Write-Host "RAW path: $raw"
-          Write-Host "Observed local file count: $($files.Count)"
-          Write-Host "Observed local bytes: $bytes"
-          Write-Host "NOTE: counts are observational only; no fixed source-count rule is applied."
-
       - name: Prove no active Machine2 recovery writer process
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
@@ -83,10 +55,7 @@ jobs:
             if ([string]::IsNullOrWhiteSpace($cmd)) { continue }
             foreach ($pattern in $patterns) {
               if ($cmd -like "*$pattern*") {
-                # Exclude this probe's own PowerShell command line, which contains pattern literals.
-                if ($p.ProcessId -ne $PID -and $cmd -notlike '*Prove no active Machine2 recovery writer process*') {
-                  $hits += $p
-                }
+                if ($p.ProcessId -ne $PID -and $cmd -notlike '*Prove no active Machine2 recovery writer process*') { $hits += $p }
                 break
               }
             }
@@ -98,6 +67,33 @@ jobs:
           Write-Host "A1_MACHINE2_LOCAL_RECOVERY_WRITER_ACTIVE=false"
           Write-Host "A1_MACHINE2_STORAGE_DEPENDENCY_PROBE=PASS"
           Write-Host "A1_MACHINE2_RUNNER_NAME=$env:RUNNER_NAME"
+
+      - name: Verify canonical local RAW copy is readable only
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $raw = $env:A1_RAW_DIR
+          if (-not (Test-Path -LiteralPath $raw -PathType Container)) { throw "RAW folder not found: $raw" }
+          $files = Get-ChildItem -LiteralPath $raw -File
+          $bytes = ($files | Measure-Object -Property Length -Sum).Sum
+          Write-Host "RAW path: $raw"
+          Write-Host "Observed local file count: $($files.Count)"
+          Write-Host "Observed local bytes: $bytes"
+          Write-Host "NOTE: counts are observational only; no fixed source-count rule is applied."
+
+      - name: Python availability diagnostic only
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $portable = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\python.exe'
+          if (Test-Path -LiteralPath $portable -PathType Leaf) {
+            & $portable -c "import sys; print(sys.executable); print(sys.version)"
+            Write-Host 'A1_PORTABLE_PYTHON_AVAILABLE=true'
+          } else {
+            Write-Host 'A1_PORTABLE_PYTHON_AVAILABLE=false'
+            Write-Host 'NOTE: storage dependency proof does not require Python; recovery workflows provision portable Python separately.'
+          }
+          exit 0
 
       - name: Safety declaration
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
