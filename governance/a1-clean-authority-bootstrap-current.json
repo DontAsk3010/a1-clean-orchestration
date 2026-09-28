@@ -1,7 +1,7 @@
 {
   "schema": "A1_CLEAN_AUTHORITY_BOOTSTRAP_V1",
   "status": "ACTIVE",
-  "scope": "PROJECT_WIDE_MACHINE2_REQUIRED_BEFORE_ANY_V32_SOURCE_READ_OR_HEAVY_COMPUTE",
+  "scope": "PROJECT_WIDE_ALL_MACHINES_REQUIRED_BEFORE_SUBSTANTIVE_WORK_OR_DURABLE_MUTATION",
   "proof_schema": "A1_CLEAN_AUTHORITY_SYNC_PROOF_V1",
   "full_authority_read_required": true,
   "google_drive_full_native_text_export_required": true,
@@ -12,20 +12,25 @@
   "renew_before_heavy_compute": true,
   "renew_before_durable_mutation": true,
   "reader_only_authority_access_required": true,
+  "storage_authority_fresh_read_before_substantive_work_required": true,
+  "storage_authority_must_travel_with_every_handoff": true,
   "authority_documents_in_required_read_order": [
-    {"key": "master_handbook", "source": "authority_lock", "required": true, "drive_revision_id": "68"},
-    {"key": "current_execution", "source": "authority_lock", "required": true, "drive_revision_id": "115"},
-    {"key": "sub_master_index", "source": "authority_lock", "required": true, "drive_revision_id": "56"},
-    {"key": "source_capture", "source": "authority_lock", "required": true, "drive_revision_id": "29"},
-    {"key": "behavior_reading", "source": "authority_lock", "required": true, "drive_revision_id": "58"},
-    {"key": "github_automation", "source": "authority_lock", "required": true, "drive_revision_id": "69"},
-    {"key": "formula_research", "source": "authority_lock", "required": true, "drive_revision_id": "45", "note": "Read for current CLOSED-stage constraints; reading does not open formula construction."},
+    {"key": "master_handbook", "source": "authority_lock", "required": true, "drive_revision_id": "74"},
+    {"key": "current_execution", "source": "authority_lock", "required": true, "drive_revision_id": "120"},
+    {"key": "sub_master_index", "source": "authority_lock", "required": true, "drive_revision_id": "62"},
+    {"key": "source_capture", "source": "authority_lock", "required": true, "drive_revision_id": "34"},
+    {"key": "behavior_reading", "source": "authority_lock", "required": true, "drive_revision_id": "63"},
+    {"key": "github_automation", "source": "authority_lock", "required": true, "drive_revision_id": "74"},
+    {"key": "formula_research", "source": "authority_lock", "required": true, "drive_revision_id": "46", "note": "Read for current CLOSED-stage constraints; reading does not open formula construction."},
     {"key": "machine1_dispatch_registry", "source": "authority_lock", "required": true, "drive_revision_id": "549", "note": "Read for cross-machine independence/date/checkpoint coordination only; never copy Machine 1 semantics into Machine 2."},
-    {"key": "stable_transition_bridge", "source": "authority_lock", "required": true, "drive_revision_id": "86"},
-    {"key": "chat_transition_protocol", "source": "explicit", "required": true, "drive_revision_id": "9", "document_id": "1sKbjR_d0doEp5tGfZZ0XlfnuwWEJeRjNokyWdGAB1D8", "revision_id": "ANLCKQnFFfHH0IKJjkVRkASTdc0K_oD0a8EZ7PtcsvzOgrGXulWiWadhYRT10b-yslqM6xLBm8_Ok8nSgLpEqVRt1cD6ti_u7BAC4atRAnA"}
+    {"key": "stable_transition_bridge", "source": "explicit", "required": true, "drive_revision_id": "87", "document_id": "1WI79YymkVcOJTRDhLwSiAESkLWFakwL9pe0oj6q1kug", "revision_id": "ANLCKQmdZdmavuZScHdrcvsgOfHDfr9Sk1xGOiuaS2dRB9mJBIyGVtn7bzAQPZQoT30cEQP3RWilonRdYjXrsvYGxEZ5eioROqefs3uDeuw"},
+    {"key": "chat_transition_protocol", "source": "explicit", "required": true, "drive_revision_id": "10", "document_id": "1sKbjR_d0doEp5tGfZZ0XlfnuwWEJeRjNokyWdGAB1D8", "revision_id": "ANLCKQl-1H0wf9KcATq_Eu5rip8eB_DNOEugo9WH_rTKy82jihtKv6inQDQHSvWBUr5-ryU6re3g-eHS8r6uoyqft_WIbcNnQ7sVEDOT5b4"},
+    {"key": "storage_handbook", "source": "authority_lock", "required": true, "drive_revision_id": "8", "document_id": "1t1C8g-cDxHFQL4t0_wupKAk_1Liz5POMjpD46JeLMkQ"},
+    {"key": "storage_manifest", "source": "authority_lock", "required": true, "drive_revision_id": "6", "document_id": "16Akf3qCzimsz15wE-pxcMqC-28e73eCNrmGPVFjuPgo"}
   ],
   "required_repo_state_files": [
     "governance/a1-clean-active-authority-lock.json",
+    "governance/a1-clean-authority-bootstrap-current.json",
     "v32-full-observation-behavior-requests/current.json",
     "v32-behavior-grouping-requests/current.json",
     "canonical-current-recovery-requests/current.json",
@@ -61,6 +66,34 @@
     "transport_integrity_proof_required_before_semantic_pass": true,
     "connector_chat_is_thin_control_plane_after_verified_file_intake": true
   },
+  "storage_contract": {
+    "one_canonical_raw_or_source_physical_payload_only": true,
+    "workers_reference_canonical_source_instead_of_persistent_source_copy": true,
+    "pull_download_extract_access_shard_physical_bin_chunk_retry_staging_recovery_transport_default_role": "EPHEMERAL_TRANSPORT",
+    "temporary_payload_physical_delete_required_after_complete_consumption_durable_outputs_exact_readback_zero_dependency": true,
+    "old_noncurrent_archive_superseded_recovery_labels_do_not_grant_retention": true,
+    "same_source_digest_compatible_schema_state_action": "REUSE_SKIP_NO_FULL_REBUILD",
+    "storage_optimization_may_not_reduce_scientific_depth_or_coverage": true,
+    "storage_correction_may_not_auto_advance_restart_or_change_assignment": true,
+    "persistent_duplicate_corpus_writer_action": "HOLD_AT_SAFE_BOUNDARY_CORRECT_STORAGE_PATH_DO_NOT_CONTINUE_DUPLICATING"
+  },
+  "machine2_storage_contract": {
+    "fresh_repo_branch_head_required": true,
+    "fresh_active_authority_lock_required": true,
+    "fresh_workflow_request_current_required": true,
+    "fresh_durable_drive_state_required": true,
+    "governed_delta_machine_full_duplicate_corpus_forbidden": true,
+    "post_commit_readback_full_duplicate_corpus_forbidden": true,
+    "automation_activation_full_duplicate_corpus_forbidden": true,
+    "candidate_current_full_duplicate_corpus_forbidden": true,
+    "recovery_bundle_full_duplicate_corpus_forbidden": true,
+    "run_folders_role": "UNIQUE_CONTROL_DELTA_PROOF_ONLY_WHEN_DURABLE_RETENTION_REQUIRED",
+    "canonical_payload_remains_single_home": true,
+    "persistent_01_access_shards_after_consumer_readback_pass_zero_dependency_forbidden": true,
+    "persistent_physical_bin_after_consumer_readback_pass_zero_dependency_forbidden": true,
+    "recovery_or_staging_payload_role_until_promoted_or_retired": "EPHEMERAL_TRANSPORT_OR_RECOVERY_HOLD",
+    "no_restart_from_zero_due_storage_correction": true
+  },
   "required_open_ended_data_families": [
     "SOURCE_PROVIDER_VERSION_CAPABILITY_RIGHTS_ENTITLEMENT",
     "SECURITY_ENTITY_REFERENCE_SYMBOL_CONTINUITY",
@@ -92,6 +125,6 @@
     "formula_stage": "CLOSED"
   },
   "renewal_triggers": ["NEW_OWNER_INSTRUCTION_OR_CORRECTION","AUTHORITY_REVISION_CHANGE","REQUEST_OR_SCHEMA_CHANGE","SOURCE_OR_MANIFEST_CHANGE","CHECKPOINT_CHANGE","WORKER_HANDOFF_OR_REPLACEMENT","RESUMED_EXECUTION_AFTER_INTERRUPTION","MATERIAL_CONTEXT_CHANGE_BEFORE_NEXT_DURABLE_MUTATION"],
-  "pass_rule": "PASS_REQUIRES_FULL_NATIVE_TEXT_EXPORT_READ_OF_EVERY_REQUIRED_AUTHORITY_DOCUMENT_AT_EXACT_BOUND_DRIVE_REVISION_PLUS_FULL_READ_AND_HASH_OF_EVERY_REQUIRED_REPO_STATE_FILE_PLUS_DATA_PRESERVATION_CONTRACT_VALIDATION; OTHERWISE_HOLD",
-  "hold_rule": "NEVER_GUESS_OR_CONTINUE_FROM_CHAT_MEMORY_WHEN_AUTHORITY_SYNC_IS_MISSING_STALE_CONFLICTING_OR_INCOMPLETE"
+  "pass_rule": "PASS_REQUIRES_FULL_NATIVE_TEXT_EXPORT_READ_OF_EVERY_REQUIRED_AUTHORITY_DOCUMENT_AT_EXACT_BOUND_DRIVE_REVISION_INCLUDING_STORAGE_HANDBOOK_AND_STORAGE_MANIFEST_PLUS_FULL_READ_AND_HASH_OF_EVERY_REQUIRED_REPO_STATE_FILE_PLUS_DATA_PRESERVATION_AND_STORAGE_CONTRACT_VALIDATION; OTHERWISE_HOLD",
+  "hold_rule": "NEVER_GUESS_OR_CONTINUE_FROM_CHAT_MEMORY_WHEN_AUTHORITY_SYNC_IS_MISSING_STALE_CONFLICTING_INCOMPLETE_OR_STORAGE_ROLE_IS_UNPROVEN"
 }
