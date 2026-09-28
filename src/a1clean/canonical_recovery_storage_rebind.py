@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+from . import canonical_recovery as cr
 from .google_drive import build_drive_api
 
 FOLDER_MIME = "application/vnd.google-apps.folder"
@@ -114,6 +115,20 @@ def _validate_checkpoint(api, req: dict[str, Any], recovered_root_id: str) -> di
         raise RuntimeError("REBIND_CHECKPOINT_SCHEMA_FAIL")
     if int(checkpoint.get("sequence") or -1) != int(req["checkpoint_sequence"]):
         raise RuntimeError("REBIND_CHECKPOINT_SEQUENCE_FAIL")
+    if checkpoint.get("run_folder_id") != req["expected_checkpoint_run_folder_id"]:
+        raise RuntimeError("REBIND_CHECKPOINT_RUN_FOLDER_ID_FAIL")
+    if checkpoint.get("run_folder_name") != req["expected_checkpoint_run_folder_name"]:
+        raise RuntimeError("REBIND_CHECKPOINT_RUN_FOLDER_NAME_FAIL")
+    if checkpoint.get("sources_folder_id") != req["expected_checkpoint_sources_folder_id"]:
+        raise RuntimeError("REBIND_CHECKPOINT_SOURCES_FOLDER_ID_FAIL")
+    if checkpoint.get("sources_folder_id") != recovered_root_id:
+        raise RuntimeError("REBIND_CHECKPOINT_RECOVERED_ROOT_BINDING_FAIL")
+    if checkpoint.get("github_sha") != req["expected_checkpoint_origin_git_sha"]:
+        raise RuntimeError("REBIND_CHECKPOINT_ORIGIN_GIT_SHA_FAIL")
+    if checkpoint.get("request_fingerprint") != req["expected_checkpoint_request_fingerprint"]:
+        raise RuntimeError("REBIND_CHECKPOINT_REQUEST_FINGERPRINT_FAIL")
+    if checkpoint.get("evidence_fingerprint") != req["expected_checkpoint_evidence_fingerprint"]:
+        raise RuntimeError("REBIND_CHECKPOINT_EVIDENCE_FINGERPRINT_FAIL")
     if checkpoint.get("generation_id") != req["expected_generation_id"]:
         raise RuntimeError("REBIND_CHECKPOINT_GENERATION_FAIL")
     if checkpoint.get("data_plane_impl_version") != req["expected_data_plane_impl_version"]:
@@ -168,10 +183,46 @@ def _validate_checkpoint(api, req: dict[str, Any], recovered_root_id: str) -> di
 
     return {
         "sequence": checkpoint["sequence"],
+        "run_folder_id": checkpoint["run_folder_id"],
+        "run_folder_name": checkpoint["run_folder_name"],
+        "sources_folder_id": checkpoint["sources_folder_id"],
+        "github_sha": checkpoint["github_sha"],
+        "request_fingerprint": checkpoint["request_fingerprint"],
+        "evidence_fingerprint": checkpoint["evidence_fingerprint"],
         "generation_id": checkpoint["generation_id"],
         "data_plane_impl_version": checkpoint["data_plane_impl_version"],
         "source_count": len(source_rows),
         "sources": source_rows,
+    }
+
+
+def _validate_external_identity(reader, repo_root: Path, req: dict[str, Any]) -> dict[str, Any]:
+    recovery_request_path = repo_root / req["recovery_request_path"]
+    recovery_request = cr._load_request(recovery_request_path)
+    current_request_fingerprint = cr._json_fingerprint(recovery_request)
+    if current_request_fingerprint != req["expected_checkpoint_request_fingerprint"]:
+        raise RuntimeError("REBIND_CURRENT_RECOVERY_REQUEST_FINGERPRINT_FAIL")
+    if recovery_request.get("full_shadow_evidence_folder_id") != req["expected_full_shadow_evidence_folder_id"]:
+        raise RuntimeError("REBIND_FULL_SHADOW_EVIDENCE_FOLDER_BINDING_FAIL")
+    if recovery_request.get("generation_id") != req["expected_generation_id"]:
+        raise RuntimeError("REBIND_CURRENT_RECOVERY_REQUEST_GENERATION_FAIL")
+    if recovery_request.get("data_plane_impl_version") != req["expected_data_plane_impl_version"]:
+        raise RuntimeError("REBIND_CURRENT_RECOVERY_REQUEST_IMPL_FAIL")
+
+    evidence = cr._load_full_shadow_evidence(reader, req["expected_full_shadow_evidence_folder_id"])
+    fresh_evidence_fingerprint = evidence["evidence_fingerprint"]
+    if fresh_evidence_fingerprint != req["expected_checkpoint_evidence_fingerprint"]:
+        raise RuntimeError("REBIND_FRESH_EVIDENCE_FINGERPRINT_FAIL")
+    return {
+        "current_recovery_request_path": req["recovery_request_path"],
+        "current_recovery_request_fingerprint": current_request_fingerprint,
+        "checkpoint_origin_git_sha": req["expected_checkpoint_origin_git_sha"],
+        "full_shadow_evidence_folder_id": req["expected_full_shadow_evidence_folder_id"],
+        "fresh_evidence_fingerprint": fresh_evidence_fingerprint,
+        "fresh_evidence_source_count": evidence["source_count"],
+        "generation_id": recovery_request["generation_id"],
+        "data_plane_impl_version": recovery_request["data_plane_impl_version"],
+        "pass": True,
     }
 
 
@@ -211,12 +262,28 @@ def execute(repo_root: Path, output: Path) -> dict[str, Any]:
     if req.get("allowed_drive_mutation") != "RECOVERED_SOURCES_TOP_LEVEL_PARENT_REBIND_ONLY":
         raise RuntimeError("REBIND_ALLOWED_MUTATION_FAIL")
 
+    required_identity_keys = (
+        "expected_checkpoint_run_folder_id",
+        "expected_checkpoint_run_folder_name",
+        "expected_checkpoint_sources_folder_id",
+        "expected_checkpoint_origin_git_sha",
+        "expected_checkpoint_request_fingerprint",
+        "expected_checkpoint_evidence_fingerprint",
+        "recovery_request_path",
+        "expected_full_shadow_evidence_folder_id",
+    )
+    for key in required_identity_keys:
+        if not str(req.get(key) or "").strip():
+            raise RuntimeError(f"REBIND_IDENTITY_LOCK_MISSING:{key}")
+
     reader = build_drive_api(read_write=False)
     writer = build_drive_api(read_write=True)
 
     recovered_id = req["recovered_sources_folder_id"]
     old_parent_id = req["old_recovery_run_folder_id"]
     target_id = req["target_data_plane_folder_id"]
+
+    identity = _validate_external_identity(reader, repo_root, req)
 
     recovered_pre = _get(reader, recovered_id)
     if recovered_pre.get("name") != req["recovered_sources_folder_name"] or recovered_pre.get("mimeType") != FOLDER_MIME:
@@ -278,12 +345,15 @@ def execute(repo_root: Path, output: Path) -> dict[str, Any]:
     post_parents = sorted(recovered_post.get("parents", []))
 
     checkpoint_post = _validate_checkpoint(reader, req, recovered_id)
+    identity_post = _validate_external_identity(reader, repo_root, req)
     subtree_post = _walk_records(reader, recovered_id)
     subtree_post_fp = _fingerprint(subtree_post)
     canonical_post_rows, canonical_post_fp = _canonical_source_guard(reader, source_ids)
 
     if checkpoint_post != checkpoint:
         raise RuntimeError("REBIND_CHECKPOINT_MAPPING_DRIFT")
+    if identity_post != identity:
+        raise RuntimeError("REBIND_EXTERNAL_IDENTITY_DRIFT")
     if subtree_post_fp != subtree_pre_fp or len(subtree_post) != len(subtree_pre):
         raise RuntimeError("REBIND_SUBTREE_FINGERPRINT_DRIFT")
     if canonical_post_fp != canonical_pre_fp or canonical_post_rows != canonical_pre_rows:
@@ -294,6 +364,7 @@ def execute(repo_root: Path, output: Path) -> dict[str, Any]:
         "pass": True,
         "status": "PASS_STORAGE_SAFE_MOVE_REBIND_EXACT_READBACK",
         "request": req,
+        "identity_contract": identity_post,
         "checkpoint": checkpoint,
         "recovered_sources": {
             "folder_id": recovered_id,
