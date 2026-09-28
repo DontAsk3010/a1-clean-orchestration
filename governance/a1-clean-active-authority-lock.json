@@ -70,27 +70,27 @@
   "documents": {
     "master_handbook": {
       "document_id": "1FVWKgoeWU9MsnOd3i8HOpprg36XrxgKInf6BQU6QTKQ",
-      "revision_id": "ANLCKQm2FJ1mt4PpvXrs_pbQZRBP9uFPy_Fb5HSNYS7tQHYgaTr2IEZ3149s-Xv-7DCS4IyuX0UExuZRnJuTbRBvdEz9TQejyU_GSo6gnIs"
+      "revision_id": "ANLCKQlAoJ0PIKZyCNZQpeCwLNO7WfYDkoQWXugnGSba6ZjNaxZz2BBy0mE1OSsis-NrkPx3nOgN2G1Eal228WwZuX_oU8N8s-ve2r_AZ1Q"
     },
     "sub_master_index": {
       "document_id": "1jpL6rPU5us0z18Gw8MxNQfbxKNdmZxVJe4vA71f7TyA",
-      "revision_id": "ANLCKQnSuuSo_HzfoIao4RSHviZcLU2xdX7Y3jUBiSbLIgWMo1Zk-iMTtxEfhywkZjr4_J94bhqGYtmD-l3k0qCNJvKCeE7-TDKnWWIIC2s"
+      "revision_id": "ANLCKQnjtV-EjcYQhDfOMLIyLM3uK4t2z0ulr1ahHqcOuOGxmZgG83G0XCzuGzlQau7BewWC992NYBNjuAC-lnzlyGUbRfUVYM_z7287Vtg"
     },
     "source_capture": {
       "document_id": "12uknstiWZxoXeDk5r0Zd5iCRBQM4k3N9obSSLKWGG6M",
-      "revision_id": "ANLCKQk4X6r5md03x8Z6-JEIDw34IPthOnwhBuOh3MF7FNCzvkyQ-eMsM16xMLO8G8nbSMYydBc_-nwlTUUei0ih0s6A7u4az0ZOAxzDqa4"
+      "revision_id": "ANLCKQm-UGAm1dhcZp4OERIPV_XVLeCsIOzY_8IuI6H0ctVRrQEBMmT2fNcNBYdkJ-QbBd9loaAZiO_SNGj-nvna3nV-YQrfAQH413va2CI"
     },
     "formula_research": {
       "document_id": "1sQu0l2qwvsjItmBycRh3siMajKEQknHOMBLlBQd3I-Q",
-      "revision_id": "ANLCKQlN9Ow3w5SVSdZ0-9kBTf01eSeMxWwWyy38SH5XEO4ptXFhAdmoDLuAORGMpHLyJHmUWkoJ9uZTFX23OmEZNVkunpXp4t7F6Kx7lVo"
+      "revision_id": "ANLCKQmyOdn_BDJq_XfE-j5LT4cvDuzOkKNdwqsg2I4qcLglUZrc0kKod6UANIRvzSNzTAe2b10bFHig6OIvaeyYq4CGvjSBoQZyKtp6l7M"
     },
     "behavior_reading": {
       "document_id": "1vDoz8E7nGVlYPl2SBneA2tCAiNNAL77nLgPPZzFlbaI",
-      "revision_id": "ANLCKQkZ_mEbQ8ajRUoJtKPLEhCUs-cNj6-RRJHTQniiTioJZUMf4KHnRMiYoyu5FkwcGlxntdzAb0FRDat-5yfkcEWqwbeRm6CRnfyXR4Q"
+      "revision_id": "ANLCKQkwi8Q7gs5uljKueYN-PvveITcmA3aD0Z5JvzCDUO5MaXdw34TiFlsHrbSN3SEOVk9SfD0ueorkWD1Zr_cLH-33xh05lcQIvY7XJ80"
     },
     "github_automation": {
       "document_id": "12PK2RTlRlggPQAScAmzNPewatB5mZqOgJ3sZfRBsbO8",
-      "revision_id": "ANLCKQk1OxdnxJfBMTB_ilWH8GLkLNfZYYKYXKqtZZMinv4tzA2HU7_UYHBKpC2IcY2AYOVK6aXwSExTYIUYDmIUFJGYk58HW5gOMClJ4I4"
+      "revision_id": "ANLCKQn8vXfz7jwWrNB-XdDgarocrJ9if-uvwLE9LBPg_osxddImwIdNZNcP-4MydtSbOLpKZizl8PW3HZWBKj6I1WyRX40Rskr3JOiAq68"
     },
     "stable_transition_bridge": {
       "document_id": "1WI79YymkVcOJTRDhLwSiAESkLWFakwL9pe0oj6q1kug",
@@ -98,15 +98,15 @@
     },
     "machine1_dispatch_registry": {
       "document_id": "1hI1HAksSGktmjL0sqB1SUhGDaS7NQILHdBoSnE2vR7Q",
-      "revision_id": "ANLCKQkVCxt7Rs_qqR5sjAInIm2IKj7OPfSqmFiUAfbDsM692_FUJZxkvJIu__bdl0WsbKZEjWhAVUCGwgVPfWG6-47QQ3AqJfSL9Sb-vTs"
+      "revision_id": "ANLCKQlJ52j4TlTtEXY9l_DphapCN9pe2R_zCgg8FNNpO5AHbUfNEBCNl_BuFK0dzm9UnVVt62KF6K1whVo0Yd_bSh_U0v8wPj8d5E8ToM4"
     },
     "current_execution": {
       "document_id": "1AdtN9N7oIYwsHr_7-R6UzBREx9DJd4s291iZJou6GZU",
-      "revision_id": "ANLCKQnaftPZyZSHcpN_wQE1N_wuL5IrFJTC0Y8ALqlEDsf5O07txqOgS298A3D7DzgEcvxULc4T8nIwF48nWS9MgAehPU2JvsK8TaI4eRw"
+      "revision_id": "ANLCKQliruPEFTdVeUVQzOPR-aDdLF4YamO3PZJ_SA_YoqrO6kkP60xeMwD0m80d7Ai9K4waHdYu45KP3zuU8HPqPDybzF0fXNU62_Uf7O4"
     },
     "storage_handbook": {
       "document_id": "1t1C8g-cDxHFQL4t0_wupKAk_1Liz5POMjpD46JeLMkQ",
-      "revision_id": "ANLCKQk4CNEGg77pz2PQIRDyJKdBYZwLeK8foExasq7s7ZkvuCQfdYZ5V_20t4UtYP6WK1J9VYb60vbme5q1It7E69F0X73GIDRIimkmplY"
+      "revision_id": "ANLCKQlnvxiCpJkLug10lu9HkkaElTJgvQ9H1GtLAvmY2g2Y8v9iP4WHFXRXbpH2WB-JKaqKgTe_kuPT_5Dz16A2-6N1W1oTXD5O0oyMX-U"
     },
     "storage_manifest": {
       "document_id": "16Akf3qCzimsz15wE-pxcMqC-28e73eCNrmGPVFjuPgo",
