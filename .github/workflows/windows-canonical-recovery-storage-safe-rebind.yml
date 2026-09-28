@@ -1,0 +1,199 @@
+name: Windows Canonical Recovery Storage-Safe Rebind
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - '.github/workflows/windows-canonical-recovery-storage-safe-rebind.yml'
+      - 'canonical-current-recovery-requests/storage-safe-rebind-current.json'
+      - 'src/a1clean/canonical_recovery_storage_rebind.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-canonical-recovery-storage-safe-rebind
+  cancel-in-progress: false
+
+jobs:
+  lane_a:
+    name: Storage-safe rebind lane A
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Route exact Machine2 runner
+        id: route
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "REBIND_WRONG_MACHINE:$env:COMPUTERNAME" }
+          if ($env:RUNNER_NAME -eq 'A1-WINDOWS-COMPUTE-02') {
+            'is_target=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host 'REBIND_EXACT_RUNNER_PASS'
+          } else {
+            'is_target=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "REBIND_NON_TARGET_LANE_SKIP:$env:RUNNER_NAME"
+            Start-Sleep -Seconds 20
+          }
+
+      - name: Provision governed runtime and validate credentials
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($name in @('A1_DRIVE_READER_CREDENTIALS','A1_DRIVE_WRITER_CREDENTIALS')) {
+            $p = [Environment]::GetEnvironmentVariable($name,'Process')
+            if ([string]::IsNullOrWhiteSpace($p) -or -not (Test-Path -LiteralPath $p -PathType Leaf)) { throw "REBIND_CREDENTIAL_BINDING_FAIL:$name" }
+          }
+          $readerHash = (Get-FileHash -LiteralPath $env:A1_DRIVE_READER_CREDENTIALS -Algorithm SHA256).Hash.ToLowerInvariant()
+          $writerHash = (Get-FileHash -LiteralPath $env:A1_DRIVE_WRITER_CREDENTIALS -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($readerHash -eq $writerHash) { throw 'REBIND_IDENTICAL_READER_WRITER_CREDENTIALS_FORBIDDEN' }
+          & '.\scripts\windows\Ensure-A1PortablePython311.ps1'
+          $py = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\python.exe'
+          $pip = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\pip.pyz'
+          $site = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\Lib\site-packages'
+          if (-not (Test-Path -LiteralPath $py -PathType Leaf)) { throw 'REBIND_PYTHON_MISSING' }
+          & $py $pip install --disable-pip-version-check --upgrade --no-deps --target $site .
+          if ($LASTEXITCODE -ne 0) { throw 'REBIND_PROJECT_INSTALL_FAIL' }
+          "A1_REBIND_PY=$py" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Validate governed request locks
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & $env:A1_REBIND_PY -m py_compile 'src\a1clean\canonical_recovery_storage_rebind.py'
+          if ($LASTEXITCODE -ne 0) { throw 'REBIND_COMPILE_FAIL' }
+          $r = Get-Content -LiteralPath 'canonical-current-recovery-requests\storage-safe-rebind-current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($r.enabled -ne $true -or $r.mode -ne 'STORAGE_SAFE_MOVE_REBIND_ONLY') { throw 'REBIND_REQUEST_MODE_FAIL' }
+          if ($r.copy_allowed -ne $false -or $r.source_regeneration_allowed -ne $false -or $r.raw_write_allowed -ne $false -or $r.physical_delete_allowed -ne $false -or $r.canonical_raw_mutation_allowed -ne $false -or $r.heavy_behavior_research_allowed -ne $false) { throw 'REBIND_REQUEST_SAFETY_LOCK_FAIL' }
+          if ($r.formula_stage -ne 'CLOSED') { throw 'REBIND_FORMULA_LOCK_FAIL' }
+          if ($r.allowed_drive_mutation -ne 'RECOVERED_SOURCES_TOP_LEVEL_PARENT_REBIND_ONLY') { throw 'REBIND_MUTATION_SCOPE_FAIL' }
+          Write-Host 'REBIND_REQUEST_LOCK_PASS'
+
+      - name: Execute exact storage-safe MOVE/REBIND
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path 'storage-safe-rebind-evidence' | Out-Null
+          $out = Join-Path (Resolve-Path 'storage-safe-rebind-evidence').Path 'STORAGE_SAFE_REBIND_RESULT.json'
+          & $env:A1_REBIND_PY -m a1clean.canonical_recovery_storage_rebind --repo-root . --output $out
+          if ($LASTEXITCODE -ne 0) { throw 'REBIND_EXECUTION_FAIL' }
+          $p = Get-Content -LiteralPath $out -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($p.pass -ne $true -or $p.status -ne 'PASS_STORAGE_SAFE_MOVE_REBIND_EXACT_READBACK') { throw 'REBIND_RESULT_NOT_PASS' }
+          if ($p.mutation.copy_performed -ne $false -or $p.mutation.source_regeneration_performed -ne $false -or $p.mutation.child_mutation_performed -ne $false -or $p.mutation.physical_delete_performed -ne $false -or $p.mutation.canonical_raw_mutation -ne $false -or $p.mutation.raw_write_performed -ne $false -or $p.mutation.heavy_behavior_research_performed -ne $false) { throw 'REBIND_FORBIDDEN_MUTATION_REPORTED' }
+          Copy-Item -LiteralPath 'canonical-current-recovery-requests\storage-safe-rebind-current.json' -Destination 'storage-safe-rebind-evidence\STORAGE_SAFE_REBIND_REQUEST.json' -Force
+          Add-Content $env:GITHUB_STEP_SUMMARY '### Canonical recovery storage-safe MOVE/REBIND'
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Status: $($p.status)"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Source count: $($p.recovered_sources.source_count)"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Descendants: $($p.recovered_sources.subtree_descendant_count)"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Subtree fingerprint: $($p.recovered_sources.subtree_fingerprint)"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Drive parent mutation performed: $($p.mutation.drive_write_performed)"
+          Add-Content $env:GITHUB_STEP_SUMMARY '- Copy: false; regeneration: false; delete: false; RAW write: false; heavy: false'
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Next gate: $($p.next_gate)"
+          Write-Host 'REBIND_EXACT_READBACK_PASS'
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() && steps.route.outputs.is_target == 'true' }}
+        with:
+          name: storage-safe-rebind-${{ github.run_id }}-lane-a
+          path: storage-safe-rebind-evidence
+          if-no-files-found: error
+          retention-days: 90
+
+  lane_b:
+    name: Storage-safe rebind lane B
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Route exact Machine2 runner
+        id: route
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "REBIND_WRONG_MACHINE:$env:COMPUTERNAME" }
+          if ($env:RUNNER_NAME -eq 'A1-WINDOWS-COMPUTE-02') {
+            'is_target=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host 'REBIND_EXACT_RUNNER_PASS'
+          } else {
+            'is_target=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "REBIND_NON_TARGET_LANE_SKIP:$env:RUNNER_NAME"
+            Start-Sleep -Seconds 20
+          }
+
+      - name: Provision governed runtime and validate credentials
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($name in @('A1_DRIVE_READER_CREDENTIALS','A1_DRIVE_WRITER_CREDENTIALS')) {
+            $p = [Environment]::GetEnvironmentVariable($name,'Process')
+            if ([string]::IsNullOrWhiteSpace($p) -or -not (Test-Path -LiteralPath $p -PathType Leaf)) { throw "REBIND_CREDENTIAL_BINDING_FAIL:$name" }
+          }
+          $readerHash = (Get-FileHash -LiteralPath $env:A1_DRIVE_READER_CREDENTIALS -Algorithm SHA256).Hash.ToLowerInvariant()
+          $writerHash = (Get-FileHash -LiteralPath $env:A1_DRIVE_WRITER_CREDENTIALS -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($readerHash -eq $writerHash) { throw 'REBIND_IDENTICAL_READER_WRITER_CREDENTIALS_FORBIDDEN' }
+          & '.\scripts\windows\Ensure-A1PortablePython311.ps1'
+          $py = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\python.exe'
+          $pip = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\pip.pyz'
+          $site = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\Lib\site-packages'
+          if (-not (Test-Path -LiteralPath $py -PathType Leaf)) { throw 'REBIND_PYTHON_MISSING' }
+          & $py $pip install --disable-pip-version-check --upgrade --no-deps --target $site .
+          if ($LASTEXITCODE -ne 0) { throw 'REBIND_PROJECT_INSTALL_FAIL' }
+          "A1_REBIND_PY=$py" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Validate governed request locks
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & $env:A1_REBIND_PY -m py_compile 'src\a1clean\canonical_recovery_storage_rebind.py'
+          if ($LASTEXITCODE -ne 0) { throw 'REBIND_COMPILE_FAIL' }
+          $r = Get-Content -LiteralPath 'canonical-current-recovery-requests\storage-safe-rebind-current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($r.enabled -ne $true -or $r.mode -ne 'STORAGE_SAFE_MOVE_REBIND_ONLY') { throw 'REBIND_REQUEST_MODE_FAIL' }
+          if ($r.copy_allowed -ne $false -or $r.source_regeneration_allowed -ne $false -or $r.raw_write_allowed -ne $false -or $r.physical_delete_allowed -ne $false -or $r.canonical_raw_mutation_allowed -ne $false -or $r.heavy_behavior_research_allowed -ne $false) { throw 'REBIND_REQUEST_SAFETY_LOCK_FAIL' }
+          if ($r.formula_stage -ne 'CLOSED') { throw 'REBIND_FORMULA_LOCK_FAIL' }
+          if ($r.allowed_drive_mutation -ne 'RECOVERED_SOURCES_TOP_LEVEL_PARENT_REBIND_ONLY') { throw 'REBIND_MUTATION_SCOPE_FAIL' }
+          Write-Host 'REBIND_REQUEST_LOCK_PASS'
+
+      - name: Execute exact storage-safe MOVE/REBIND
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path 'storage-safe-rebind-evidence' | Out-Null
+          $out = Join-Path (Resolve-Path 'storage-safe-rebind-evidence').Path 'STORAGE_SAFE_REBIND_RESULT.json'
+          & $env:A1_REBIND_PY -m a1clean.canonical_recovery_storage_rebind --repo-root . --output $out
+          if ($LASTEXITCODE -ne 0) { throw 'REBIND_EXECUTION_FAIL' }
+          $p = Get-Content -LiteralPath $out -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($p.pass -ne $true -or $p.status -ne 'PASS_STORAGE_SAFE_MOVE_REBIND_EXACT_READBACK') { throw 'REBIND_RESULT_NOT_PASS' }
+          if ($p.mutation.copy_performed -ne $false -or $p.mutation.source_regeneration_performed -ne $false -or $p.mutation.child_mutation_performed -ne $false -or $p.mutation.physical_delete_performed -ne $false -or $p.mutation.canonical_raw_mutation -ne $false -or $p.mutation.raw_write_performed -ne $false -or $p.mutation.heavy_behavior_research_performed -ne $false) { throw 'REBIND_FORBIDDEN_MUTATION_REPORTED' }
+          Copy-Item -LiteralPath 'canonical-current-recovery-requests\storage-safe-rebind-current.json' -Destination 'storage-safe-rebind-evidence\STORAGE_SAFE_REBIND_REQUEST.json' -Force
+          Add-Content $env:GITHUB_STEP_SUMMARY '### Canonical recovery storage-safe MOVE/REBIND'
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Status: $($p.status)"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Source count: $($p.recovered_sources.source_count)"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Descendants: $($p.recovered_sources.subtree_descendant_count)"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Subtree fingerprint: $($p.recovered_sources.subtree_fingerprint)"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Drive parent mutation performed: $($p.mutation.drive_write_performed)"
+          Add-Content $env:GITHUB_STEP_SUMMARY '- Copy: false; regeneration: false; delete: false; RAW write: false; heavy: false'
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Next gate: $($p.next_gate)"
+          Write-Host 'REBIND_EXACT_READBACK_PASS'
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() && steps.route.outputs.is_target == 'true' }}
+        with:
+          name: storage-safe-rebind-${{ github.run_id }}-lane-b
+          path: storage-safe-rebind-evidence
+          if-no-files-found: error
+          retention-days: 90
