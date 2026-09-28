@@ -1,0 +1,83 @@
+name: Machine1 Date03 Prefix Reaudit ADMG Evidence
+on:
+  push:
+    branches: [machine1/evidence-kbatch-20241203]
+    paths: [.github/workflows/machine1-date03-prefix-reaudit-admg-evidence.yml]
+permissions:
+  contents: write
+jobs:
+  extract:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Discover and extract exact ADMG Date03 source rows for prefix reaudit
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
+          $expected='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          $ticker='ADMG';$datePrefix='2024-12-03';$legacyFirst=22581;$legacyLast=22597;$legacyCount=17
+          if(-not(Test-Path -LiteralPath $raw -PathType Leaf)){throw 'RAW_MISSING'}
+          $got=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($got -ne $expected){throw "RAW_HASH_MISMATCH $got"}
+          $header=$null;$headerCols=$null;$tickerIdx=-1;$dtIdx=-1
+          $records=New-Object 'System.Collections.Generic.List[object]';$i=0
+          foreach($line in [System.IO.File]::ReadLines($raw,[System.Text.Encoding]::UTF8)){
+            if($i -eq 0){
+              $header=$line
+              $headerCols=@($header|ConvertFrom-Csv -Header ((1..(($header -split ',').Count))|%{"C$_"}))
+              $cols=($header -split ',')
+              $tickerIdx=[Array]::IndexOf($cols,'RAW_TICKER')
+              $dtIdx=[Array]::IndexOf($cols,'RAW_DATETIME_ISO')
+              if($tickerIdx -lt 0 -or $dtIdx -lt 0){throw 'HEADER_REQUIRED_COLUMNS_MISSING'}
+            } else {
+              $vals=$line -split ',',-1
+              if($vals.Count -gt [Math]::Max($tickerIdx,$dtIdx)){
+                $t=$vals[$tickerIdx].Trim('"');$dt=$vals[$dtIdx].Trim('"')
+                if($t -eq $ticker -and $dt.StartsWith($datePrefix)){
+                  $obj=(@($header)+@($line)|ConvertFrom-Csv)[0]
+                  $o=[ordered]@{source_row=$i};foreach($p in $obj.PSObject.Properties.Name){$o[$p]=[string]$obj.$p}
+                  [void]$records.Add([pscustomobject]$o)
+                }
+              }
+            }
+            $i++
+          }
+          if($records.Count -eq 0){throw 'NO_ADMG_DATE03_ROWS'}
+          $sourceRows=@($records|%{[int]$_.source_row})
+          $first=($sourceRows|Measure-Object -Minimum).Minimum;$last=($sourceRows|Measure-Object -Maximum).Maximum
+          $dts=@($records|%{[string]$_.RAW_DATETIME_ISO})
+          $out=Join-Path $PWD 'machine1_date03_prefix_reaudit_admg_evidence';New-Item -ItemType Directory -Force $out|Out-Null
+          $enc=New-Object System.Text.UTF8Encoding($false)
+          $rp=Join-Path $out 'ADMG_20241203_ROWS.jsonl';[System.IO.File]::WriteAllLines($rp,[string[]]@($records|%{$_|ConvertTo-Json -Compress -Depth 8}),$enc)
+          $proof=[ordered]@{
+            audit_type='OWNER_CORRECTED_FULL_PREFIX_REAUDIT';ticker=$ticker;trading_date=$datePrefix;recovered_date_local_index=11;
+            source_name='Raw Des 02-31-2024.csv';source_sha256=$got;source_row_first=$first;source_row_last=$last;data_rows=$records.Count;
+            first_datetime=$dts[0];last_datetime=$dts[-1];rows_jsonl_sha256=(Get-FileHash $rp -Algorithm SHA256).Hash.ToLowerInvariant();
+            discovered_by='FULL_CANONICAL_RAW_SCAN_TICKER_PLUS_DATE';legacy_pointer_reference=[ordered]@{source_row_first=$legacyFirst;source_row_last=$legacyLast;data_rows=$legacyCount};
+            legacy_pointer_match=(($first -eq $legacyFirst) -and ($last -eq $legacyLast) -and ($records.Count -eq $legacyCount));
+            source_rows_contiguous=((($last-$first+1) -eq $records.Count));semantic_status='TRANSPORT_ONLY_NOT_SEMANTIC_COMPLETE';formula_stage='CLOSED';date_advance='PROHIBITED'
+          }
+          [System.IO.File]::WriteAllText((Join-Path $out 'ADMG_20241203_PROOF.json'),($proof|ConvertTo-Json -Depth 10),$enc)
+          Write-Host "ADMG_EVIDENCE_OK rows=$($records.Count) first=$first last=$last firstdt=$($dts[0]) lastdt=$($dts[-1]) legacy_match=$($proof.legacy_pointer_match)"
+      - name: Upload governed ADMG reaudit evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date03-prefix-reaudit-admg-evidence
+          path: machine1_date03_prefix_reaudit_admg_evidence/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Persist transport evidence
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item -ItemType Directory -Force '.machine1_evidence'|Out-Null
+          Copy-Item 'machine1_date03_prefix_reaudit_admg_evidence/*' '.machine1_evidence/' -Force
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add -f '.machine1_evidence/ADMG_20241203_ROWS.jsonl' '.machine1_evidence/ADMG_20241203_PROOF.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist governed ADMG Date03 prefix reaudit evidence [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-kbatch-20241203
