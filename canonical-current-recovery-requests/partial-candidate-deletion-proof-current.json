@@ -1,6 +1,6 @@
 {
   "schema": "A1_CANONICAL_RECOVERY_PARTIAL_CANDIDATE_DELETION_PROOF_V1",
-  "status": "DELETE_ELIGIBLE_PROVEN_PRE_DELETE",
+  "status": "PHYSICAL_DELETE_COMPLETE_POST_DELETE_READBACK_PASS",
   "branch": "fix/v32-dynamic-source-universe-v1",
   "authority_effective_date": "2026-09-28",
   "storage_handbook_document_id": "1t1C8g-cDxHFQL4t0_wupKAk_1Liz5POMjpD46JeLMkQ",
@@ -48,7 +48,9 @@
       "drive_reference_count_excluding_storage_manifest_control_ledger": 0,
       "role": "SUPERSEDED_DUPLICATE_PLUS_EPHEMERAL_TRANSPORT",
       "canonical_successors": ["1jsWlMQtc0eSc--_jnKpbeqyPeT9sSu1Q", "1wvBmhpQIV-evJJOPN_g8nks3KZBzmVHC"],
-      "delete_eligible": true
+      "delete_eligible": true,
+      "physical_delete_performed": true,
+      "post_delete_readback": "PASS_404_NOT_FOUND"
     },
     {
       "folder_id": "1yQSuGEMQRI-3ltI1mcMLkMX0iqDGEu76",
@@ -63,10 +65,12 @@
       "drive_reference_count_excluding_storage_manifest_control_ledger": 0,
       "role": "SUPERSEDED_DUPLICATE_PLUS_EPHEMERAL_TRANSPORT",
       "canonical_successors": ["1jsWlMQtc0eSc--_jnKpbeqyPeT9sSu1Q", "1wvBmhpQIV-evJJOPN_g8nks3KZBzmVHC"],
-      "delete_eligible": true
+      "delete_eligible": true,
+      "physical_delete_performed": true,
+      "post_delete_readback": "PASS_404_NOT_FOUND"
     }
   ],
-  "combined_payload_bytes_delete_eligible": 39096319805,
+  "combined_payload_bytes_deleted": 39096319805,
   "writer_gate": {
     "github_active_writer": "PASS_ZERO_IN_PROGRESS_ON_WORKING_BRANCH_AFTER_PROBES",
     "local_runner_a1_windows_compute": "PASS_ACTIVE_RECOVERY_WRITER_FALSE",
@@ -79,7 +83,7 @@
   "formula_stage": "CLOSED",
   "heavy_behavior_research_allowed": false,
   "physical_delete_required_by_storage_authority": true,
-  "physical_delete_performed": false,
-  "post_delete_readback": "PENDING",
-  "next_exact_action": "PHYSICALLY_DELETE_BOTH_PARTIAL_CANDIDATE_FOLDERS_THEN_REQUIRE_404_OR_NOT_FOUND_POST_DELETE_READBACK; PRESERVE_RECOVERED_SOURCES; UPDATE_STORAGE_MANIFEST; THEN_STORAGE_SAFE_MOVE_REBIND_RECOVERY_ASSEMBLY_WITHOUT_SOURCE_REGENERATION"
+  "physical_delete_performed": true,
+  "post_delete_readback": "PASS_BOTH_FOLDER_IDS_404_NOT_FOUND",
+  "next_exact_action": "UPDATE_SAME_STORAGE_MANIFEST_WITH_DELETE_AND_POST_DELETE_PROOF; PRESERVE_RECOVERED_SOURCES; EXECUTE_STORAGE_SAFE_MOVE_REBIND_RECOVERY_ASSEMBLY_WITHOUT_SOURCE_REGENERATION; THEN EXACT_CANONICAL_READBACK_AND_LIGHTWEIGHT_PRESTART_BEFORE_ANY_HEAVY_BEHAVIOR_RESEARCH"
 }
