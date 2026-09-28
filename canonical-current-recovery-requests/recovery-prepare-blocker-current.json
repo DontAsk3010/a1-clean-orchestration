@@ -5,7 +5,7 @@
   "authority_effective_date": "2026-09-26",
   "authority_lock_status": "ACTIVE",
   "owner_correction_applied": true,
-  "recovery_request_trigger_revision": "20260927_02",
+  "recovery_request_trigger_revision": "20260927_04",
   "recovery_request_mode": "PREPARE_ONLY_NO_CANONICAL_WRITE",
   "machine2_request_enabled": false,
   "canonical_current_recovery_commit_authorized": false,
@@ -23,7 +23,7 @@
   "last_governed_canonical_control_snapshot_fingerprint": "aa91545d20dc16533569a3b09c5777818795af652e35508a81f0706c224fe44a",
   "authority_sync": {
     "status": "READY_BOUND_TO_CURRENT_DRIVE_REVISIONS",
-    "machine1_dispatch_registry_drive_revision_id": "518"
+    "machine1_dispatch_registry_drive_revision_id": "549"
   },
   "writer_restoration": {
     "status": "PASS_EXISTING_WRITER_REAUTHORIZED_VERIFIED_BOUND_MACHINE2",
