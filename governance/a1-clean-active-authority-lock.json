@@ -90,11 +90,15 @@
     },
     "current_execution": {
       "document_id": "1AdtN9N7oIYwsHr_7-R6UzBREx9DJd4s291iZJou6GZU",
-      "revision_id": "ANLCKQlK2bzI9kBcQsESnZK9MCajv_CMMM9DtkedoyDWVGm27TfCjvjRg_uVr3chw9mifS4N9Y2j8TMXxCLcDr2FhHnHhzkzQAbdxRK7qK8"
+      "revision_id": "ANLCKQluFKmOVZms0MSxe6M5hijr6B56hWa5wdOXzoII3-8A2ZorXzIQH4jJhGTNCsBPYdhFBl1aZ_Rhny4SXBepQDCeFzCYZt_Ng_DuROo"
     },
     "storage_handbook": {
       "document_id": "1t1C8g-cDxHFQL4t0_wupKAk_1Liz5POMjpD46JeLMkQ",
       "revision_id": "ANLCKQnSyVugu6aYCCv1n7Xv0X-b_Na5YwMXqnLKV1-kveSAGwSGLdaTYYy55SUR0j5dFy0RK1X_nDax-SdC-vn46X3idZKDou8MxOp2SbY"
+    },
+    "storage_manifest": {
+      "document_id": "16Akf3qCzimsz15wE-pxcMqC-28e73eCNrmGPVFjuPgo",
+      "revision_id": "ANLCKQmYZSI4LWv9C4zwxY8soPUAZNd1v6VFx4I_NLPmmpLfI43L0zSoh7G2xNHd_EcQu1M5OXcQeant1ViKB38k2rX7P_UJp7biOVwVvDU"
     }
   },
   "mandatory_owner_locks": [
