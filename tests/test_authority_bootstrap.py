@@ -41,10 +41,25 @@ def test_bootstrap_requires_complete_authority_chain_in_order():
         "machine1_dispatch_registry",
         "stable_transition_bridge",
         "chat_transition_protocol",
+        "storage_handbook",
+        "storage_manifest",
     ]
     assert all(row["required"] is True for row in docs)
     assert all(str(row.get("drive_revision_id", "")).isdigit() for row in docs)
-    assert [row["drive_revision_id"] for row in docs] == ["68", "115", "56", "29", "58", "69", "45", "549", "86", "9"]
+    assert [row["drive_revision_id"] for row in docs] == [
+        "74",
+        "120",
+        "62",
+        "34",
+        "63",
+        "74",
+        "46",
+        "549",
+        "87",
+        "10",
+        "8",
+        "7",
+    ]
 
 
 def test_data_contract_has_no_fixed_field_or_source_ceiling_and_preserves_unknowns():
