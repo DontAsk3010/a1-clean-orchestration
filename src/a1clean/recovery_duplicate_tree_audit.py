@@ -118,6 +118,18 @@ def _drive_reference_hits(api, needle: str) -> list[dict[str, Any]]:
             return hits
 
 
+def _origin_diag(o: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": o["id"],
+        "path": o["path"],
+        "name": o["name"],
+        "size": o["size"],
+        "md5": o.get("md5"),
+        "origin_source_folder_id": o.get("origin_source_folder_id"),
+        "origin_source_folder_name": o.get("origin_source_folder_name"),
+    }
+
+
 def audit(repo_root: Path, output: Path) -> dict[str, Any]:
     request_path = repo_root / "canonical-current-recovery-requests" / "duplicate-tree-audit-current.json"
     req = json.loads(request_path.read_text(encoding="utf-8"))
@@ -129,6 +141,10 @@ def audit(repo_root: Path, output: Path) -> dict[str, Any]:
     api = build_drive_api(read_write=False)
     recovered_files, recovered_by_path, recovered_by_name = _recovered_origin_inventory(api, req["recovered_sources_folder_id"])
     control_files, control_by_name = _control_origin_inventory(api, req["committed_control_bundle_folder_id"])
+
+    recovered_same_basename: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for rec in recovered_files:
+        recovered_same_basename[rec["name"]].append(rec)
 
     allowed_reference_ids = set(req.get("allowed_nonactive_drive_reference_ids", []))
     candidate_results: list[dict[str, Any]] = []
@@ -152,7 +168,15 @@ def audit(repo_root: Path, output: Path) -> dict[str, Any]:
                 origins = control_by_name.get(key_name, [])
                 match_rule = "CONTROL_BASENAME_SIZE_MD5"
             if not origins:
-                unmatched.append(f)
+                exact_name_content_hits = recovered_by_name.get(key_name, [])
+                same_basename_hits = recovered_same_basename.get(f["name"], [])
+                unmatched.append(
+                    {
+                        **f,
+                        "diagnostic_exact_basename_size_md5_hits": [_origin_diag(o) for o in exact_name_content_hits],
+                        "diagnostic_same_basename_hits": [_origin_diag(o) for o in same_basename_hits],
+                    }
+                )
                 continue
             matches.append(
                 {
