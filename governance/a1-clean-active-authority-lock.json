@@ -56,15 +56,46 @@
   "connector_control_plane_thin_after_file_intake": true,
   "raw_row_flooding_avoid_when_governed_file_path_available": true,
   "documents": {
-    "master_handbook": {"document_id":"1FVWKgoeWU9MsnOd3i8HOpprg36XrxgKInf6BQU6QTKQ","revision_id":"ANLCKQlScAI3mNDvRJD3ma2bwbtkXFHJLQX0XvC7kHHOX4VIz9UG_fRT8ZoHsSwmICwl98U6z4lWSpi35cegPjUZQm_Xiq8DQh6IsUH2t1Y"},
-    "sub_master_index": {"document_id":"1jpL6rPU5us0z18Gw8MxNQfbxKNdmZxVJe4vA71f7TyA","revision_id":"ANLCKQn8G20S6gOoW1Z62ukpPUX4FjY0_Sh2y6JY5YXJu73zUUEGvJ_ECAgZOB8ZwXqYWP2XkbLtjg0BuXJ4lnSF_QbDHijdBs1eRM8uyVM"},
-    "source_capture": {"document_id":"12uknstiWZxoXeDk5r0Zd5iCRBQM4k3N9obSSLKWGG6M","revision_id":"ANLCKQnI_Ip7YHuXwwo-LbdvTooJoMhDH7i8cqRZas6CfGJCOsezuOK79pvUswQVW1PPENAfhc2x3w7yHory82qIWipYSr2UIMR7TlnoYP4"},
-    "formula_research": {"document_id":"1sQu0l2qwvsjItmBycRh3siMajKEQknHOMBLlBQd3I-Q","revision_id":"ANLCKQlN9Ow3w5SVSdZ0-9kBTf01eSeMxWwWyy38SH5XEO4ptXFhAdmoDLuAORGMpHLyJHmUWkoJ9uZTFX23OmEZNVkunpXp4t7F6Kx7lVo"},
-    "behavior_reading": {"document_id":"1vDoz8E7nGVlYPl2SBneA2tCAiNNAL77nLgPPZzFlbaI","revision_id":"ANLCKQnXmEg2dJLpoaoU0lGG2oPnjmjFyTgOSebODggW4_KzrlQafUUdx4UlkikEXKvfuJe0AbE1mRaWXvHchEQNG7pkACi-zFW8LaiFHAc"},
-    "github_automation": {"document_id":"12PK2RTlRlggPQAScAmzNPewatB5mZqOgJ3sZfRBsbO8","revision_id":"ANLCKQkBCWXLyQV2bbI0cEiA_eAOvHOl9NeTUtl1Cq9PArnLgdtWhWJQSGllPWNGXqRnqapLzuRSknfqEarzyKxELVnwH_sledFQE2275DY"},
-    "stable_transition_bridge": {"document_id":"1WI79YymkVcOJTRDhLwSiAESkLWFakwL9pe0oj6q1kug","revision_id":"ANLCKQnstwFwA3Vl0prQZJnTACuvC0mWkFlBM8_Mdd8QzUqzxFDN7r29mw23w0VeqAFhukBvuZkZv8c7Lks6-PhRkk4Mjlf-lcjQ_a2doRY"},
-    "machine1_dispatch_registry": {"document_id":"1hI1HAksSGktmjL0sqB1SUhGDaS7NQILHdBoSnE2vR7Q","revision_id":"ANLCKQkVCxt7Rs_qqR5sjAInIm2IKj7OPfSqmFiUAfbDsM692_FUJZxkvJIu__bdl0WsbKZEjWhAVUCGwgVPfWG6-47QQ3AqJfSL9Sb-vTs"},
-    "current_execution": {"document_id":"1AdtN9N7oIYwsHr_7-R6UzBREx9DJd4s291iZJou6GZU","revision_id":"ANLCKQl1psKHgTUjx8nMZq-mlhOIldUCva9t19HhXXHAHlHa-e4lzZoAWoffNlQaI9_8xgoquIref6O10UP0JaksXZhG7u-hdLB9eIVokc4"}
+    "master_handbook": {
+      "document_id": "1FVWKgoeWU9MsnOd3i8HOpprg36XrxgKInf6BQU6QTKQ",
+      "revision_id": "ANLCKQmtf8mSbV7lRmF8IWggHU0AXT8j-6l0s0oGvj-6p2fkSiKpx6RDnyQnS7O4Ryq4Guf7S84qCb74lg5OWXM9cB76ckln3z80L8tSSwk"
+    },
+    "sub_master_index": {
+      "document_id": "1jpL6rPU5us0z18Gw8MxNQfbxKNdmZxVJe4vA71f7TyA",
+      "revision_id": "ANLCKQmkG3gHYDQd24bBvHxuCe4GhiLH1i89VyLsPVdOgXhBmhfypfvMcmuKUvgdtQwAtVgt6YgRcIgd21aCA8icQXqp1HL2oRs1huiuuw0"
+    },
+    "source_capture": {
+      "document_id": "12uknstiWZxoXeDk5r0Zd5iCRBQM4k3N9obSSLKWGG6M",
+      "revision_id": "ANLCKQk4hipHbGjtWQdqymNBEOQHoMSPNusxW8oIipEn-rxh9edCrwUY0_We7t9Ls3q14iQHYSw860H7R3lnMSxJB8mkNsj_c9FjPIZPhQA"
+    },
+    "formula_research": {
+      "document_id": "1sQu0l2qwvsjItmBycRh3siMajKEQknHOMBLlBQd3I-Q",
+      "revision_id": "ANLCKQlN9Ow3w5SVSdZ0-9kBTf01eSeMxWwWyy38SH5XEO4ptXFhAdmoDLuAORGMpHLyJHmUWkoJ9uZTFX23OmEZNVkunpXp4t7F6Kx7lVo"
+    },
+    "behavior_reading": {
+      "document_id": "1vDoz8E7nGVlYPl2SBneA2tCAiNNAL77nLgPPZzFlbaI",
+      "revision_id": "ANLCKQlgOCmsIFt3XYoZo6GlFo3MeKuafgtphEUo3DnPFDNQ-dxQpEk09K4b7ohcZ8r-MxuBIHremUVNY2f9slxQEJ4eqEnf_DCl3EzAbrM"
+    },
+    "github_automation": {
+      "document_id": "12PK2RTlRlggPQAScAmzNPewatB5mZqOgJ3sZfRBsbO8",
+      "revision_id": "ANLCKQmaD67f0vsSpr7kjfLAGxfO55prFCOo7Jj4fJOdDp-bycROpj4Meb8_7iS5KXc42Deo7CHjjoM7-GH0ldgUrr9aF33zxM6RITGyhgA"
+    },
+    "stable_transition_bridge": {
+      "document_id": "1WI79YymkVcOJTRDhLwSiAESkLWFakwL9pe0oj6q1kug",
+      "revision_id": "ANLCKQnstwFwA3Vl0prQZJnTACuvC0mWkFlBM8_Mdd8QzUqzxFDN7r29mw23w0VeqAFhukBvuZkZv8c7Lks6-PhRkk4Mjlf-lcjQ_a2doRY"
+    },
+    "machine1_dispatch_registry": {
+      "document_id": "1hI1HAksSGktmjL0sqB1SUhGDaS7NQILHdBoSnE2vR7Q",
+      "revision_id": "ANLCKQkVCxt7Rs_qqR5sjAInIm2IKj7OPfSqmFiUAfbDsM692_FUJZxkvJIu__bdl0WsbKZEjWhAVUCGwgVPfWG6-47QQ3AqJfSL9Sb-vTs"
+    },
+    "current_execution": {
+      "document_id": "1AdtN9N7oIYwsHr_7-R6UzBREx9DJd4s291iZJou6GZU",
+      "revision_id": "ANLCKQlK2bzI9kBcQsESnZK9MCajv_CMMM9DtkedoyDWVGm27TfCjvjRg_uVr3chw9mifS4N9Y2j8TMXxCLcDr2FhHnHhzkzQAbdxRK7qK8"
+    },
+    "storage_handbook": {
+      "document_id": "1t1C8g-cDxHFQL4t0_wupKAk_1Liz5POMjpD46JeLMkQ",
+      "revision_id": "ANLCKQnSyVugu6aYCCv1n7Xv0X-b_Na5YwMXqnLKV1-kveSAGwSGLdaTYYy55SUR0j5dFy0RK1X_nDax-SdC-vn46X3idZKDou8MxOp2SbY"
+    }
   },
   "mandatory_owner_locks": [
     "FULL_DATA_EXHAUSTIVE_MULTI_AXIS_BEHAVIOR_ATLAS",
@@ -81,7 +112,8 @@
     "NO_PREDETERMINED_FORMULA_MENU_EMERGENT_FORMULA_DISCOVERY",
     "FORMULA_CREATION_CLOSED_READINESS_ONLY_UNTIL_EXPLICIT_ADMISSION",
     "GLOBAL_LOSSLESS_ARTIFACT_DATA_PLANE_OPTIMIZE_TRANSPORT_NEVER_REDUCE_EVIDENCE",
-    "GLOBAL_MACHINE1_RENEWABLE_AUTHORITY_FULL_ASSIGNED_DATE_COMPLIANCE_AUDIT"
+    "GLOBAL_MACHINE1_RENEWABLE_AUTHORITY_FULL_ASSIGNED_DATE_COMPLIANCE_AUDIT",
+    "GLOBAL_STORAGE_DEDUP_RETENTION_NO_DATA_LOSS"
   ],
   "global_prohibitions": {
     "formula_stage_open": false,
@@ -110,7 +142,11 @@
     "transport_only_promoted_to_semantic_pass": false,
     "programmatic_generator_as_machine1_semantic_reader": false,
     "new_ticker_before_current_assigned_date_audit_readback": false,
-    "auto_advance_after_machine1_date_close": false
+    "auto_advance_after_machine1_date_close": false,
+    "destructive_cleanup_during_active_write": false,
+    "delete_unique_canonical_source_without_verified_lossless_successor": false,
+    "storage_optimization_reduces_evidence_scope": false,
+    "indefinite_duplicate_transport_retention_as_default": false
   },
   "authority_sync_renewal_triggers": [
     "NEW_OWNER_INSTRUCTION_OR_CORRECTION",
@@ -156,5 +192,17 @@
   "durable_work_rule": "ALREADY_DURABLE_READBACK_VERIFIED_WORK_IS_PRESERVED_AND_NOT_RESTARTED_SOLELY_BECAUSE_GOVERNANCE_IS_NEWER; REOPEN_ONLY_ON_GOVERNED_MATERIAL_INTEGRITY_OR_SEMANTIC_COMPLIANCE_FINDING",
   "replacement_rule": "STALE_OR_INCOMPLETE_RUNNING_CONTRACT_MUST_BE_CANCELLED_OR_GOVERNEDLY_REPLACED_BEFORE_DATA_MUTATION",
   "pass_claim_rule": "EACH_JOB_OR_WORKER_MUST_HAVE_CURRENT_READBACK_EVIDENCE; MACHINE1 ALSO REQUIRES CURRENT_ASSIGNED_DATE_AUDIT_READBACK_AFTER MATERIAL_AUTHORITY_CHANGE; PASS MUST STATE WHAT IT PROVES WHAT COVERAGE REMAINS AND WHAT REMAINS OUTSIDE_STAGE",
-  "transport_rule": "OPTIMIZE_TRANSPORT_NEVER_REDUCE_EVIDENCE; LARGE_PAYLOADS_USE_GOVERNED_LOSSLESS_FILE_OR_ARTIFACT_WHEN_AVAILABLE; VERIFY_MANIFEST_DIGEST_COUNTS_RANGES_ORDER_AND_EXTRACTION_BEFORE_SEMANTIC_PASS; CONNECTOR_CHAT_BECOMES_THIN_CONTROL_PLANE_AFTER_VERIFIED_FILE_INTAKE"
+  "transport_rule": "OPTIMIZE_TRANSPORT_NEVER_REDUCE_EVIDENCE; LARGE_PAYLOADS_USE_GOVERNED_LOSSLESS_FILE_OR_ARTIFACT_WHEN_AVAILABLE; VERIFY_MANIFEST_DIGEST_COUNTS_RANGES_ORDER_AND_EXTRACTION_BEFORE_SEMANTIC_PASS; CONNECTOR_CHAT_BECOMES_THIN_CONTROL_PLANE_AFTER_VERIFIED_FILE_INTAKE",
+  "storage_authority_effective_date": "2026-09-28",
+  "storage_scientific_scope_reduction_forbidden": true,
+  "single_canonical_source_payload_preferred_when_reconstructible": true,
+  "temporary_transport_retirement_requires_canonical_promotion_reconciliation_no_active_dependency_reconstructability_exact_readback": true,
+  "unique_canonical_source_deletion_without_lossless_successor_forbidden": true,
+  "cleanup_race_active_writer_forbidden": true,
+  "machine1_date02_date05_cleanup_wait_safe_durable_stop": true,
+  "machine2_cleanup_requires_verified_inactive_github_and_local_writer": true,
+  "storage_only_authority_change_triggers_semantic_reread": false,
+  "storage_manifest_required_before_destructive_cleanup": true,
+  "unknown_deletion_safety_classification": "RECOVERY_HOLD",
+  "storage_rule": "READ_EVERYTHING_REQUIRED_STORE_IDENTICAL_PHYSICAL_PAYLOAD_ONCE_WHERE_EXACT_RECONSTRUCTABILITY_IS_PRESERVED;TEMPORARY_PULL_DOWNLOAD_EXTRACTION_TRANSPORT_STAGING_MAY_BE_RETIRED_ONLY_AFTER_CANONICAL_PROMOTION_FULL_RECONCILIATION_NO_ACTIVE_DEPENDENCY_RECONSTRUCTABILITY_AND_EXACT_READBACK_PASS;UNIQUE_CANONICAL_SOURCE_TRUTH_REMAINS_PROTECTED;M1_DATE02_DATE05_CLEANUP_WAITS_SAFE_DURABLE_STOP;M2_CLEANUP_WAITS_VERIFIED_NO_ACTIVE_GITHUB_OR_LOCAL_WRITER;STORAGE_ONLY_CHANGE_MUST_NOT_REDUCE_SCIENTIFIC_SCOPE_OR_TRIGGER_BLANKET_SEMANTIC_REREAD"
 }
