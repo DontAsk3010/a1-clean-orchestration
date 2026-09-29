@@ -1,8 +1,8 @@
 {
   "schema": "A1_V32_FULL_OBSERVATION_BEHAVIOR_REQUEST_V2",
-  "enabled": false,
+  "enabled": true,
   "scope_class": "EVIDENCE_SUBSTRATE_ONLY_NOT_FINAL_ATLAS",
-  "purpose": "Governed HOLD while the missing canonical CURRENT control/data plane is recovered or migrated from last governed committed evidence; dynamic source-universe and the same maximum source-supported full-depth research target required independently of Machine 1 remain bound to current authority. Existing durable evidence remains preserved and reusable only under exact digest/schema/checkpoint compatibility.",
+  "purpose": "Governed Machine 2 independent full-depth evidence-substrate execution admitted after CURRENT authority/readback sweep PASS, machine-readable authority rebind PASS, storage-safe canonical recovery/rebind exact readback PASS, and lightweight dynamic-source PRESTART PASS. Dynamic source universe remains authoritative; no fixed source-count invariant; formula creation remains CLOSED; grouping remains separately gated.",
   "prestart_completeness_gate_required": true,
   "project_wide_correction_first_required": true,
   "renewable_authority_sync_required": true,
@@ -126,8 +126,8 @@
     "MATERIAL_CONTEXT_CHANGE_BEFORE_NEXT_DURABLE_MUTATION"
   ],
   "proof_note": "No PASS is permitted while this request is HOLD. After implementation, PASS must prove Machine 2 independently satisfies the current full-depth source/evidence/behavior contract; combined Machine 1 plus Machine 2 union coverage is not a substitute for Machine 2 completeness. Large payload transport may be optimized only through a verified lossless file/artifact data plane; transport optimization never reduces evidence.",
-  "canonical_current_recovery_required": true,
-  "canonical_current_recovery_prepare_required": true,
+  "canonical_current_recovery_required": false,
+  "canonical_current_recovery_prepare_required": false,
   "canonical_current_recovery_commit_authorized": false,
   "canonical_current_expected_folder_id": "1SRN-WWkHJefLGLSN6_SktpVU0Ugjwqc-",
   "canonical_current_observed_state": "MISSING_OR_INACCESSIBLE_404_NO_NAME_MATCH_20260925",
@@ -143,17 +143,17 @@
   "drive_writer_new_oauth_client_creation_authorized": false,
   "drive_writer_credential_replacement_authorized": false,
   "drive_reader_credential_may_be_repurposed_as_writer": false,
-  "recovery_prepare_current_status": "READY_FOR_GOVERNED_RECOVERY_PREPARE",
+  "recovery_prepare_current_status": "PASS_STORAGE_SAFE_RECOVERY_REBIND_AND_EXACT_READBACK",
   "last_governed_canonical_evidence": {
     "canonical_promotion_git_sha": "2f0f52523e0ffcaa807e72676cfb9a66b1329d53",
     "post_commit_readback_status": "PASS",
     "baseline_state_fingerprint": "a3856491f94ffe036144c78e4056853346ee296e4ff5841ce9b3de90ff756b14",
     "canonical_control_snapshot_fingerprint": "aa91545d20dc16533569a3b09c5777818795af652e35508a81f0706c224fe44a"
   },
-  "hold_reason": "WRITER_BLOCKER_CLEARED; GOVERNED RECOVERY PREPARE STAGING-ONLY IS ADMITTED. HEAVY EXECUTION REMAINS HOLD UNTIL RECOVERY CANDIDATE READBACK, SEPARATE GOVERNED PROMOTION/POST-PROMOTION READBACK, AND LIGHTWEIGHT DYNAMIC-SOURCE PRESTART/CURRENT COMPLETENESS READBACK PASS.",
+  "hold_reason": "PRIOR_RECOVERY_AND_PRESTART_HOLDS_SUPERSEDED_BY_DURABLE_PASS_EVIDENCE; FULL_OBSERVATION_EVIDENCE_SUBSTRATE_ADMITTED; GROUPING_AND_FORMULA_STAGES_REMAIN_SEPARATELY_GATED.",
   "service_runner_auto_recovery_enabled": false,
-  "service_runner_auto_recovery_policy": "HOLD_NO_HEAVY_EXECUTION",
+  "service_runner_auto_recovery_policy": "FULL_OBSERVATION_ONLY_GROUPING_AND_FORMULA_STILL_GATED",
   "service_runner_auto_recovery_max_consecutive_interruptions": 0,
   "transport_rule": "OPTIMIZE_TRANSPORT_NEVER_REDUCE_EVIDENCE; USE_GOVERNED_LOSSLESS_FILE_OR_ARTIFACT_FOR_LARGE_PAYLOADS_WHEN AVAILABLE; VERIFY_MANIFEST_DIGEST_COUNTS_RANGES_ORDER_EXTRACTION_AND_FULL_READ_BEFORE_PASS; KEEP_CONNECTOR_CHAT_AS_THIN_CONTROL_PLANE_AFTER_VERIFIED_INTAKE",
-  "operational_trigger": "GOVERNED_CANONICAL_CURRENT_RECOVERY_PREPARE_READY_20260927"
+  "operational_trigger": "MACHINE2_FULL_OBSERVATION_ADMITTED_AFTER_PRESTART_RUN_36597891523"
 }
