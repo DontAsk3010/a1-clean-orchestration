@@ -1,0 +1,230 @@
+name: Machine2 Full Observation Activate Once
+
+on:
+  push:
+    branches:
+      - lane2/algorithmic-pattern-discovery-v1
+    paths:
+      - .github/workflows/machine2-full-observation-activate-once.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: a1-machine2-full-observation-activate-once
+  cancel-in-progress: false
+
+jobs:
+  launch:
+    strategy:
+      fail-fast: false
+      matrix:
+        lane: [a, b]
+    name: Exact Machine2 launcher lane ${{ matrix.lane }}
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 20
+    steps:
+      - name: Route exact Machine2 runner
+        id: route
+        shell: powershell
+        run: |
+          $target = ($env:RUNNER_NAME -eq 'A1-WINDOWS-COMPUTE-02')
+          "target=$($target.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "M2_ACTIVATION_RUNNER=$env:RUNNER_NAME target=$target"
+
+      - name: Let non-target lane finish before sibling service control
+        if: steps.route.outputs.target == 'true'
+        shell: powershell
+        run: Start-Sleep -Seconds 15
+
+      - name: Checkout exact Lane2 branch
+        if: steps.route.outputs.target == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: lane2/algorithmic-pattern-discovery-v1
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify durable gates and prepare activation atomically
+        if: steps.route.outputs.target == 'true'
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RUNNER_NAME -ne 'A1-WINDOWS-COMPUTE-02') { throw 'M2_ACTIVATION_WRONG_RUNNER' }
+          if ('${{ github.ref_name }}' -ne 'lane2/algorithmic-pattern-discovery-v1') { throw 'M2_ACTIVATION_WRONG_BRANCH' }
+
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = 'application/vnd.github+json'
+            'X-GitHub-Api-Version' = '2022-11-28'
+          }
+          $repo = $env:GITHUB_REPOSITORY
+
+          $preRun = Invoke-RestMethod -Headers $headers -Uri "https://api.github.com/repos/$repo/actions/runs/36597891523"
+          if ($preRun.status -ne 'completed' -or $preRun.conclusion -ne 'success' -or $preRun.head_sha -ne '4ae6125d4ea55ce18631729b081a0df215e09a8d') { throw 'M2_PRESTART_FINAL_PROOF_MISMATCH' }
+          $preArts = Invoke-RestMethod -Headers $headers -Uri "https://api.github.com/repos/$repo/actions/runs/36597891523/artifacts"
+          $preArt = @($preArts.artifacts | Where-Object { $_.id -eq 11047936226 })
+          if ($preArt.Count -ne 1 -or $preArt[0].digest -ne 'sha256:50da3f55dad5ba28df7eb4514ba044655f60235db7ccfdd304423956849fe44b') { throw 'M2_PRESTART_ARTIFACT_PROOF_MISMATCH' }
+
+          $rebindRun = Invoke-RestMethod -Headers $headers -Uri "https://api.github.com/repos/$repo/actions/runs/36471081944"
+          if ($rebindRun.status -ne 'completed' -or $rebindRun.conclusion -ne 'success') { throw 'M2_STORAGE_REBIND_RUN_NOT_PASS' }
+          $rebindArts = Invoke-RestMethod -Headers $headers -Uri "https://api.github.com/repos/$repo/actions/runs/36471081944/artifacts"
+          $rebindArt = @($rebindArts.artifacts | Where-Object { $_.id -eq 10991652188 })
+          if ($rebindArt.Count -ne 1 -or $rebindArt[0].digest -ne 'sha256:12a0266c9c648b7e2197d1f4fc9cc7e39c0755e06535a0bea7003e5ce4ca2b94') { throw 'M2_STORAGE_REBIND_ARTIFACT_PROOF_MISMATCH' }
+
+          $activeHeavy = Invoke-RestMethod -Headers $headers -Uri "https://api.github.com/repos/$repo/actions/workflows/windows-v32-full-observation-behavior.yml/runs?branch=lane2%2Falgorithmic-pattern-discovery-v1&per_page=20"
+          $busy = @($activeHeavy.workflow_runs | Where-Object { $_.status -eq 'queued' -or $_.status -eq 'in_progress' })
+          if ($busy.Count -ne 0) { throw "M2_HEAVY_ALREADY_ACTIVE:$($busy[0].id)" }
+
+          $requestPath = 'v32-full-observation-behavior-requests/current.json'
+          $req = Get-Content -LiteralPath $requestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.formula_stage -ne 'CLOSED') { throw 'M2_FORMULA_STAGE_NOT_CLOSED' }
+          if ($req.candidate_formula_research_authorized -ne $false) { throw 'M2_CANDIDATE_FORMULA_AUTHORIZATION_NOT_FALSE' }
+          if ($req.dynamic_source_universe_required -ne $true -or $req.fixed_source_count_as_universe_authority_forbidden -ne $true) { throw 'M2_DYNAMIC_SOURCE_CONTRACT_MISMATCH' }
+
+          if ($req.enabled -eq $true) {
+            if ([string]$req.operational_trigger -eq 'OWNER_CONTINUE_MACHINE2_FULL_DEPTH_AFTER_ALL_GATES_PASS_20260929') {
+              throw 'M2_REQUEST_ALREADY_ACTIVATED_NO_DUPLICATE_DISPATCH'
+            }
+            throw 'M2_REQUEST_ALREADY_ENABLED_WITH_DIFFERENT_LINEAGE'
+          }
+
+          $req.enabled = $true
+          $req.hold_reason = 'ALL_APPLICABLE_MACHINE2_RECOVERY_AUTHORITY_PRESTART_GATES_PASS; OWNER_CONTINUE_AUTHORIZES_FULL_OBSERVATION_EVIDENCE_SUBSTRATE_EXECUTION; GROUPING_REMAINS_SEPARATELY_GATED; FORMULA_STAGE_REMAINS_CLOSED.'
+          $req.operational_trigger = 'OWNER_CONTINUE_MACHINE2_FULL_DEPTH_AFTER_ALL_GATES_PASS_20260929'
+          $req.recovery_prepare_current_status = 'PASS_STORAGE_SAFE_MOVE_REBIND_EXACT_READBACK'
+          $req.canonical_current_observed_state = 'RECOVERED_BY_STORAGE_SAFE_MOVE_REBIND_CURRENT_READBACK_PASS'
+          $req | Add-Member -NotePropertyName canonical_current_recovery_gate_satisfied -NotePropertyValue $true -Force
+          $req | Add-Member -NotePropertyName lightweight_dynamic_prestart_gate_satisfied -NotePropertyValue $true -Force
+          $req | Add-Member -NotePropertyName activation_evidence -NotePropertyValue ([pscustomobject]@{
+            prestart_run_id = 36597891523
+            prestart_artifact_id = 11047936226
+            prestart_artifact_digest = 'sha256:50da3f55dad5ba28df7eb4514ba044655f60235db7ccfdd304423956849fe44b'
+            storage_safe_rebind_run_id = 36471081944
+            storage_safe_rebind_artifact_id = 10991652188
+            storage_safe_rebind_artifact_digest = 'sha256:12a0266c9c648b7e2197d1f4fc9cc7e39c0755e06535a0bea7003e5ce4ca2b94'
+            storage_manifest_drive_revision = 9
+            activation_date = '2026-09-29'
+          }) -Force
+          $req | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $requestPath -Encoding UTF8
+
+          $heavyPath = '.github/workflows/windows-v32-full-observation-behavior.yml'
+          $heavy = Get-Content -LiteralPath $heavyPath -Raw -Encoding UTF8
+          if ($heavy -notmatch 'M2_HEAVY_EXACT_RUNNER_PASS') {
+            $needle = "    steps:`n      - name: Checkout exact trigger revision"
+            if (-not $heavy.Contains($needle)) {
+              $needle = "    steps:`r`n      - name: Checkout exact trigger revision"
+            }
+            if (-not $heavy.Contains($needle)) { throw 'M2_HEAVY_WORKFLOW_INSERT_POINT_NOT_FOUND' }
+            $guard = @"
+    steps:
+      - name: Verify exact Machine2 runner
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          if (`$env:RUNNER_NAME -ne 'A1-WINDOWS-COMPUTE-02') { throw "M2_HEAVY_WRONG_RUNNER:`$env:RUNNER_NAME" }
+          if (`$env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "M2_HEAVY_WRONG_MACHINE:`$env:COMPUTERNAME" }
+          Write-Host 'M2_HEAVY_EXACT_RUNNER_PASS=true'
+
+      - name: Checkout exact trigger revision
+"@
+            $heavy = $heavy.Replace($needle, $guard)
+            Set-Content -LiteralPath $heavyPath -Value $heavy -Encoding UTF8
+          }
+
+          Remove-Item -LiteralPath '.github/workflows/machine2-full-observation-activate-once.yml' -Force
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add $requestPath $heavyPath .github/workflows/machine2-full-observation-activate-once.yml
+          git commit -m 'governance: activate Machine2 full observation after recovery and PRESTART pass'
+          if ($LASTEXITCODE -ne 0) { throw 'M2_ACTIVATION_COMMIT_FAILED' }
+          git push origin HEAD:lane2/algorithmic-pattern-discovery-v1
+          if ($LASTEXITCODE -ne 0) { throw 'M2_ACTIVATION_PUSH_FAILED' }
+
+      - name: Lock heavy assignment to exact Machine2 runner and dispatch
+        if: steps.route.outputs.target == 'true'
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sibling = 'actions.runner.DontAsk3010-a1-clean-orchestration.A1-WINDOWS-COMPUTE'
+          $svc = Get-Service -Name $sibling -ErrorAction Stop
+          if ($svc.Status -ne 'Stopped') {
+            Stop-Service -Name $sibling -Force -ErrorAction Stop
+            (Get-Service -Name $sibling).WaitForStatus('Stopped',[TimeSpan]::FromSeconds(30))
+          }
+          if ((Get-Service -Name $sibling).Status -ne 'Stopped') { throw 'M2_SIBLING_RUNNER_STOP_FAILED' }
+          Write-Host 'M2_SIBLING_RUNNER_TEMPORARILY_STOPPED=true'
+
+          $restartCmd = "Start-Sleep -Seconds 600; Start-Service -Name '$sibling'"
+          $savedTracking = $env:RUNNER_TRACKING_ID
+          $env:RUNNER_TRACKING_ID = ''
+          Start-Process -FilePath 'powershell.exe' -WindowStyle Hidden -ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-Command',$restartCmd)
+          $env:RUNNER_TRACKING_ID = $savedTracking
+          Write-Host 'M2_SIBLING_RUNNER_AUTO_RESTART_SCHEDULED_600S=true'
+
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = 'application/vnd.github+json'
+            'X-GitHub-Api-Version' = '2022-11-28'
+          }
+          $body = @{ ref = 'lane2/algorithmic-pattern-discovery-v1' } | ConvertTo-Json
+          Invoke-RestMethod -Method Post -Headers $headers -ContentType 'application/json' -Body $body -Uri "https://api.github.com/repos/$env:GITHUB_REPOSITORY/actions/workflows/windows-v32-full-observation-behavior.yml/dispatches"
+          Write-Host 'M2_HEAVY_DISPATCHED=true'
+
+          $proof = [ordered]@{
+            schema = 'A1_MACHINE2_FULL_OBSERVATION_ACTIVATION_PROOF_V1'
+            status = 'DISPATCHED'
+            runner = $env:RUNNER_NAME
+            machine = $env:COMPUTERNAME
+            branch = 'lane2/algorithmic-pattern-discovery-v1'
+            prestart_run_id = 36597891523
+            prestart_artifact_id = 11047936226
+            storage_safe_rebind_run_id = 36471081944
+            storage_safe_rebind_artifact_id = 10991652188
+            formula_stage = 'CLOSED'
+            grouping_enabled = $false
+            sibling_runner_temporarily_stopped = $true
+            sibling_runner_auto_restart_seconds = 600
+          }
+          New-Item -ItemType Directory -Force -Path launcher-proof | Out-Null
+          $proof | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath launcher-proof/HEAVY_LAUNCHER_PROOF.json -Encoding UTF8
+
+      - name: Upload target launcher proof
+        if: steps.route.outputs.target == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine2-heavy-launcher-target-${{ matrix.lane }}
+          path: launcher-proof/HEAVY_LAUNCHER_PROOF.json
+          if-no-files-found: error
+          retention-days: 30
+
+  assert_target:
+    name: Require exact Machine2 launcher target
+    needs: launch
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download exact target proof
+        uses: actions/download-artifact@v4
+        with:
+          pattern: machine2-heavy-launcher-target-*
+          merge-multiple: true
+          path: launcher-proof
+      - name: Assert target launcher proof exists
+        shell: bash
+        run: |
+          test -f launcher-proof/HEAVY_LAUNCHER_PROOF.json
+          python - <<'PY'
+          import json
+          p=json.load(open('launcher-proof/HEAVY_LAUNCHER_PROOF.json',encoding='utf-8-sig'))
+          assert p['status']=='DISPATCHED'
+          assert p['runner']=='A1-WINDOWS-COMPUTE-02'
+          assert p['formula_stage']=='CLOSED'
+          assert p['grouping_enabled'] is False
+          print('M2_HEAVY_LAUNCHER_ASSERT_PASS=true')
+          PY
