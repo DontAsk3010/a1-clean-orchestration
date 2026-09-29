@@ -64,7 +64,15 @@ jobs:
           (out/'EVIDENCE_PROOF.json').write_text(json.dumps(proof,ensure_ascii=False,indent=2),encoding='utf-8')
           print(f'ALKA_EVIDENCE_OK rows={len(rows)} source_rows={source_first}-{source_last} first={dts[0]} last={dts[-1]} packet_sha256={ph} rows_sha256={rh}')
           '@ | Set-Content -LiteralPath extract_alka_20241205.py -Encoding UTF8
-          py -3.11 extract_alka_20241205.py
+          $python = Get-Command python -ErrorAction SilentlyContinue
+          if ($python) {
+            & $python.Source extract_alka_20241205.py
+          } else {
+            $py = Get-Command py -ErrorAction SilentlyContinue
+            if (-not $py) { throw 'Python runtime unavailable via python or py' }
+            & $py.Source -3 extract_alka_20241205.py
+          }
+          if ($LASTEXITCODE -ne 0) { throw "ALKA extractor failed with exit code $LASTEXITCODE" }
       - name: Upload governed ALKA evidence
         uses: actions/upload-artifact@v4
         with:
@@ -73,4 +81,4 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-# date05 audit transport restored to machine1 evidence runner 20260930
+# Date05 ALKA transport runtime compatibility only; scientific scope/rows unchanged.
