@@ -64,19 +64,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Download exact target proof
-        uses: actions/download-artifact@v4
-        with:
-          pattern: machine2-exact-target-*
-          merge-multiple: true
-          path: route-proof
-
-      - name: Verify request remains activated and grouping remains HOLD
+      - name: Checkout activated Lane2 state
         uses: actions/checkout@v4
         with:
           ref: lane2/algorithmic-pattern-discovery-v1
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download exact target proof after checkout
+        uses: actions/download-artifact@v4
+        with:
+          pattern: machine2-exact-target-*
+          merge-multiple: true
+          path: route-proof
 
       - name: Assert endpoint and governance state
         shell: bash
