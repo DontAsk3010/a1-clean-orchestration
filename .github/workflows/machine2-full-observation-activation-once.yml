@@ -55,7 +55,10 @@ jobs:
           assert full.get('full_source_supported_observation_envelope') is True
           assert full.get('all_source_columns_retrievable_required') is True
           assert full.get('dual_independent_full_depth_research_engines_required') is True
-          assert bootstrap['documents']['storage_manifest']['revision'] == 9
+
+          storage_rows = [x for x in bootstrap['authority_documents_in_required_read_order'] if x.get('key') == 'storage_manifest']
+          assert len(storage_rows) == 1
+          assert str(storage_rows[0].get('drive_revision_id')) == '9'
 
           full['enabled'] = True
           full['purpose'] = (
@@ -78,7 +81,6 @@ jobs:
 
           full_path.write_text(json.dumps(full, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
 
-          # Re-read and fail closed before commit.
           check = json.loads(full_path.read_text(encoding='utf-8'))
           assert check['enabled'] is True
           assert json.loads(group_path.read_text(encoding='utf-8'))['enabled'] is False
