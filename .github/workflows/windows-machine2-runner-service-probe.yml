@@ -1,0 +1,71 @@
+name: Windows Machine2 Runner Service Probe
+
+on:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - '.github/workflows/windows-machine2-runner-service-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-machine2-runner-service-probe
+  cancel-in-progress: true
+
+jobs:
+  probe_a:
+    name: Runner service probe A
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 10
+    steps:
+      - name: Read-only runner identity and service inventory
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Write-Host "M2_PROBE_RUNNER_NAME=$env:RUNNER_NAME"
+          Write-Host "M2_PROBE_COMPUTERNAME=$env:COMPUTERNAME"
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "M2_PROBE_WRONG_MACHINE:$env:COMPUTERNAME" }
+          Write-Host 'M2_PROBE_SERVICES_BEGIN'
+          @(Get-CimInstance Win32_Service | Where-Object {
+            ([string]$_.Name -match 'actions\.runner|runner') -or
+            ([string]$_.DisplayName -match 'actions\.runner|GitHub Actions|runner') -or
+            ([string]$_.PathName -match 'Runner\.Listener|actions-runner|A1-WINDOWS-COMPUTE')
+          } | Select-Object Name,DisplayName,State,StartMode,PathName | Sort-Object Name | ConvertTo-Json -Depth 4) | Write-Host
+          Write-Host 'M2_PROBE_SERVICES_END'
+          Write-Host 'M2_PROBE_PROCESSES_BEGIN'
+          @(Get-CimInstance Win32_Process | Where-Object {
+            ([string]$_.Name -match 'Runner\.(Listener|Worker)') -or
+            ([string]$_.CommandLine -match 'Runner\.(Listener|Worker)|actions-runner|A1-WINDOWS-COMPUTE')
+          } | Select-Object ProcessId,Name,CommandLine | Sort-Object ProcessId | ConvertTo-Json -Depth 4) | Write-Host
+          Write-Host 'M2_PROBE_PROCESSES_END'
+          Write-Host 'M2_PROBE_READ_ONLY_PASS=true'
+
+  probe_b:
+    name: Runner service probe B
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 10
+    steps:
+      - name: Read-only runner identity and service inventory
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Write-Host "M2_PROBE_RUNNER_NAME=$env:RUNNER_NAME"
+          Write-Host "M2_PROBE_COMPUTERNAME=$env:COMPUTERNAME"
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "M2_PROBE_WRONG_MACHINE:$env:COMPUTERNAME" }
+          Write-Host 'M2_PROBE_SERVICES_BEGIN'
+          @(Get-CimInstance Win32_Service | Where-Object {
+            ([string]$_.Name -match 'actions\.runner|runner') -or
+            ([string]$_.DisplayName -match 'actions\.runner|GitHub Actions|runner') -or
+            ([string]$_.PathName -match 'Runner\.Listener|actions-runner|A1-WINDOWS-COMPUTE')
+          } | Select-Object Name,DisplayName,State,StartMode,PathName | Sort-Object Name | ConvertTo-Json -Depth 4) | Write-Host
+          Write-Host 'M2_PROBE_SERVICES_END'
+          Write-Host 'M2_PROBE_PROCESSES_BEGIN'
+          @(Get-CimInstance Win32_Process | Where-Object {
+            ([string]$_.Name -match 'Runner\.(Listener|Worker)') -or
+            ([string]$_.CommandLine -match 'Runner\.(Listener|Worker)|actions-runner|A1-WINDOWS-COMPUTE')
+          } | Select-Object ProcessId,Name,CommandLine | Sort-Object ProcessId | ConvertTo-Json -Depth 4) | Write-Host
+          Write-Host 'M2_PROBE_PROCESSES_END'
+          Write-Host 'M2_PROBE_READ_ONLY_PASS=true'
