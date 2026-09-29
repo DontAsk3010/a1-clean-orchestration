@@ -15,7 +15,7 @@ jobs:
     runs-on: [self-hosted, windows, x64, a1-clean-machine1]
     timeout-minutes: 30
     env:
-      RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
+      RAW_FILE: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI\Raw Des 02-31-2024.csv'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,56 +23,97 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          @'
-          import csv, hashlib, json, os, pathlib
-          raw=pathlib.Path(os.environ['RAW_FILE'])
-          ticker_expected='ALKA'; trading_date='2024-12-05'
-          source_first=60416; source_last=60425; expected_count=10
-          expected_first_time='09:03:00'; expected_last_time='13:47:00'
-          semantic_bundle='Raw Des 02-31-2024__SEMANTIC_0014.jsonl'; semantic_bundle_line=103
-          expected_md5='b8d42b35c90d2dff8b18ae4e1734523b'
-          expected_sha256='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
-          if not raw.is_file(): raise SystemExit(f'RAW_MISSING: {raw}')
-          md5=hashlib.md5(); sha256=hashlib.sha256()
-          with raw.open('rb') as f:
-              for chunk in iter(lambda:f.read(8*1024*1024),b''): md5.update(chunk); sha256.update(chunk)
-          got_md5,got_sha256=md5.hexdigest(),sha256.hexdigest()
-          if got_md5!=expected_md5 or got_sha256!=expected_sha256: raise SystemExit(f'RAW_HASH_MISMATCH md5={got_md5} sha256={got_sha256}')
-          rows=[]
-          with raw.open('r',encoding='utf-8-sig',newline='') as f:
-              reader=csv.DictReader(f); header_fields=list(reader.fieldnames or [])
-              for source_row,row in enumerate(reader,start=1):
-                  if source_row<source_first: continue
-                  if source_row>source_last: break
-                  rows.append({'source_row':source_row,**row})
-          if len(rows)!=expected_count: raise SystemExit(f'ROW_COUNT_MISMATCH got={len(rows)} expected={expected_count}')
-          if [r['source_row'] for r in rows]!=list(range(source_first,source_last+1)): raise SystemExit('SOURCE_ROW_SEQUENCE_MISMATCH')
-          if {r.get('RAW_TICKER','') for r in rows}!={ticker_expected}: raise SystemExit('TICKER_MISMATCH')
-          dts=[r.get('RAW_DATETIME_ISO','') for r in rows]
-          if any(not dt.startswith(trading_date) for dt in dts): raise SystemExit('DATE_MISMATCH')
-          ft=dts[0].split('T',1)[-1][:8] if 'T' in dts[0] else dts[0].split(' ')[-1][:8]
-          lt=dts[-1].split('T',1)[-1][:8] if 'T' in dts[-1] else dts[-1].split(' ')[-1][:8]
-          if ft!=expected_first_time or lt!=expected_last_time: raise SystemExit(f'TIME_RANGE_MISMATCH got={ft}-{lt}')
-          packet={'source_name':raw.name,'source_md5':got_md5,'source_sha256':got_sha256,'generation_id':'BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01','ticker':ticker_expected,'trading_date':trading_date,'semantic_bundle':semantic_bundle,'semantic_bundle_line_number':semantic_bundle_line,'source_row_first':source_first,'source_row_last':source_last,'physical_line_first':source_first+1,'physical_line_last':source_last+1,'data_rows':len(rows),'first_datetime':dts[0],'last_datetime':dts[-1],'header_fields':header_fields,'rows':rows}
-          out=pathlib.Path('machine1_alka_20241205_evidence'); out.mkdir(exist_ok=True)
-          pp=out/'ALKA_20241205_PACKET.json'; rp=out/'ALKA_20241205_ROWS.jsonl'
-          pp.write_text(json.dumps(packet,ensure_ascii=False,indent=2),encoding='utf-8')
-          with rp.open('w',encoding='utf-8',newline='\n') as w:
-              for row in rows: w.write(json.dumps(row,ensure_ascii=False,separators=(',',':'))+'\n')
-          ph=hashlib.sha256(pp.read_bytes()).hexdigest(); rh=hashlib.sha256(rp.read_bytes()).hexdigest()
-          proof={'ticker':ticker_expected,'trading_date':trading_date,'source_md5':got_md5,'source_sha256':got_sha256,'semantic_bundle':semantic_bundle,'semantic_bundle_line_number':semantic_bundle_line,'source_row_first':source_first,'source_row_last':source_last,'data_rows':len(rows),'first_datetime':dts[0],'last_datetime':dts[-1],'packet_sha256':ph,'rows_jsonl_sha256':rh}
-          (out/'EVIDENCE_PROOF.json').write_text(json.dumps(proof,ensure_ascii=False,indent=2),encoding='utf-8')
-          print(f'ALKA_EVIDENCE_OK rows={len(rows)} source_rows={source_first}-{source_last} first={dts[0]} last={dts[-1]} packet_sha256={ph} rows_sha256={rh}')
-          '@ | Set-Content -LiteralPath extract_alka_20241205.py -Encoding UTF8
-          $python = Get-Command python -ErrorAction SilentlyContinue
-          if ($python) {
-            & $python.Source extract_alka_20241205.py
-          } else {
-            $py = Get-Command py -ErrorAction SilentlyContinue
-            if (-not $py) { throw 'Python runtime unavailable via python or py' }
-            & $py.Source -3 extract_alka_20241205.py
+          $raw = $env:RAW_FILE
+          $tickerExpected = 'ALKA'
+          $tradingDate = '2024-12-05'
+          $sourceFirst = 60416
+          $sourceLast = 60425
+          $expectedCount = 10
+          $expectedFirstTime = '09:03:00'
+          $expectedLastTime = '13:47:00'
+          $semanticBundle = 'Raw Des 02-31-2024__SEMANTIC_0014.jsonl'
+          $semanticBundleLine = 103
+          $expectedMd5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
+          $expectedSha256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+
+          if (-not (Test-Path -LiteralPath $raw -PathType Leaf)) { throw "RAW_MISSING: $raw" }
+          $gotMd5 = (Get-FileHash -LiteralPath $raw -Algorithm MD5).Hash.ToLowerInvariant()
+          $gotSha256 = (Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($gotMd5 -ne $expectedMd5 -or $gotSha256 -ne $expectedSha256) {
+            throw "RAW_HASH_MISMATCH md5=$gotMd5 sha256=$gotSha256"
           }
-          if ($LASTEXITCODE -ne 0) { throw "ALKA extractor failed with exit code $LASTEXITCODE" }
+
+          $all = Import-Csv -LiteralPath $raw
+          $rows = @()
+          for ($sourceRow = $sourceFirst; $sourceRow -le $sourceLast; $sourceRow++) {
+            $idx = $sourceRow - 1
+            if ($idx -lt 0 -or $idx -ge $all.Count) { throw "SOURCE_ROW_OUT_OF_RANGE=$sourceRow" }
+            $r = $all[$idx]
+            $o = [ordered]@{ source_row = $sourceRow }
+            foreach ($p in $r.PSObject.Properties) { $o[$p.Name] = [string]$p.Value }
+            $rows += [pscustomobject]$o
+          }
+          if ($rows.Count -ne $expectedCount) { throw "ROW_COUNT_MISMATCH got=$($rows.Count) expected=$expectedCount" }
+          $tickers = @($rows | ForEach-Object { $_.RAW_TICKER } | Sort-Object -Unique)
+          if ($tickers.Count -ne 1 -or $tickers[0] -ne $tickerExpected) { throw "TICKER_MISMATCH got=$($tickers -join ',')" }
+          $dts = @($rows | ForEach-Object { [string]$_.RAW_DATETIME_ISO })
+          foreach ($dt in $dts) { if (-not $dt.StartsWith($tradingDate)) { throw "DATE_MISMATCH dt=$dt" } }
+          function Get-TimePart([string]$dt) {
+            if ($dt.Contains('T')) { return $dt.Split('T')[1].Substring(0,8) }
+            return ($dt -split ' ')[-1].Substring(0,8)
+          }
+          $ft = Get-TimePart $dts[0]
+          $lt = Get-TimePart $dts[-1]
+          if ($ft -ne $expectedFirstTime -or $lt -ne $expectedLastTime) { throw "TIME_RANGE_MISMATCH got=$ft-$lt" }
+
+          $out = Join-Path $PWD 'machine1_alka_20241205_evidence'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $packetPath = Join-Path $out 'ALKA_20241205_PACKET.json'
+          $rowsPath = Join-Path $out 'ALKA_20241205_ROWS.jsonl'
+          $proofPath = Join-Path $out 'EVIDENCE_PROOF.json'
+          $headerFields = @($all[0].PSObject.Properties.Name)
+          $packet = [ordered]@{
+            source_name = [IO.Path]::GetFileName($raw)
+            source_md5 = $gotMd5
+            source_sha256 = $gotSha256
+            generation_id = 'BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01'
+            ticker = $tickerExpected
+            trading_date = $tradingDate
+            semantic_bundle = $semanticBundle
+            semantic_bundle_line_number = $semanticBundleLine
+            source_row_first = $sourceFirst
+            source_row_last = $sourceLast
+            physical_line_first = $sourceFirst + 1
+            physical_line_last = $sourceLast + 1
+            data_rows = $rows.Count
+            first_datetime = $dts[0]
+            last_datetime = $dts[-1]
+            header_fields = $headerFields
+            rows = $rows
+          }
+          $packet | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $packetPath -Encoding UTF8
+          $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+          $lines = @($rows | ForEach-Object { $_ | ConvertTo-Json -Compress -Depth 20 })
+          [IO.File]::WriteAllText($rowsPath, (($lines -join "`n") + "`n"), $utf8NoBom)
+          $packetSha = (Get-FileHash -LiteralPath $packetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $rowsSha = (Get-FileHash -LiteralPath $rowsPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $proof = [ordered]@{
+            ticker = $tickerExpected
+            trading_date = $tradingDate
+            source_md5 = $gotMd5
+            source_sha256 = $gotSha256
+            semantic_bundle = $semanticBundle
+            semantic_bundle_line_number = $semanticBundleLine
+            source_row_first = $sourceFirst
+            source_row_last = $sourceLast
+            data_rows = $rows.Count
+            first_datetime = $dts[0]
+            last_datetime = $dts[-1]
+            packet_sha256 = $packetSha
+            rows_jsonl_sha256 = $rowsSha
+          }
+          $proof | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $proofPath -Encoding UTF8
+          Write-Host "ALKA_EVIDENCE_OK rows=$($rows.Count) source_rows=$sourceFirst-$sourceLast first=$($dts[0]) last=$($dts[-1]) packet_sha256=$packetSha rows_sha256=$rowsSha"
       - name: Upload governed ALKA evidence
         uses: actions/upload-artifact@v4
         with:
@@ -81,4 +122,4 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-# Date05 ALKA transport runtime compatibility only; scientific scope/rows unchanged.
+# Date05 ALKA transport implementation uses native PowerShell only; scientific scope/rows unchanged.
