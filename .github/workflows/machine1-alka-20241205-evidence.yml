@@ -123,3 +123,4 @@ jobs:
           retention-days: 7
 
 # Date05 ALKA transport implementation uses native PowerShell only; scientific scope/rows unchanged.
+# Recovery retrigger 20260930: no scientific scope change; exact same ALKA range/hash gate.
