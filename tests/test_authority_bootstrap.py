@@ -58,7 +58,7 @@ def test_bootstrap_requires_complete_authority_chain_in_order():
         "87",
         "10",
         "9",
-        "8",
+        "9",
     ]
 
 
