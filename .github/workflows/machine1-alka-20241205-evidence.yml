@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   extract-alka:
-    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
     timeout-minutes: 30
     env:
       RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
@@ -73,4 +73,4 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-# date05 audit transport routed to parity runner 20260930
+# date05 audit transport restored to machine1 evidence runner 20260930
