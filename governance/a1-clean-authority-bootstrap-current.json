@@ -26,7 +26,7 @@
     {"key": "stable_transition_bridge", "source": "explicit", "required": true, "drive_revision_id": "87", "document_id": "1WI79YymkVcOJTRDhLwSiAESkLWFakwL9pe0oj6q1kug", "revision_id": "ANLCKQmdZdmavuZScHdrcvsgOfHDfr9Sk1xGOiuaS2dRB9mJBIyGVtn7bzAQPZQoT30cEQP3RWilonRdYjXrsvYGxEZ5eioROqefs3uDeuw"},
     {"key": "chat_transition_protocol", "source": "explicit", "required": true, "drive_revision_id": "10", "document_id": "1sKbjR_d0doEp5tGfZZ0XlfnuwWEJeRjNokyWdGAB1D8", "revision_id": "ANLCKQl-1H0wf9KcATq_Eu5rip8eB_DNOEugo9WH_rTKy82jihtKv6inQDQHSvWBUr5-ryU6re3g-eHS8r6uoyqft_WIbcNnQ7sVEDOT5b4"},
     {"key": "storage_handbook", "source": "authority_lock", "required": true, "drive_revision_id": "9", "document_id": "1t1C8g-cDxHFQL4t0_wupKAk_1Liz5POMjpD46JeLMkQ"},
-    {"key": "storage_manifest", "source": "authority_lock", "required": true, "drive_revision_id": "8", "document_id": "16Akf3qCzimsz15wE-pxcMqC-28e73eCNrmGPVFjuPgo"}
+    {"key": "storage_manifest", "source": "authority_lock", "required": true, "drive_revision_id": "9", "document_id": "16Akf3qCzimsz15wE-pxcMqC-28e73eCNrmGPVFjuPgo"}
   ],
   "required_repo_state_files": [
     "governance/a1-clean-active-authority-lock.json",
