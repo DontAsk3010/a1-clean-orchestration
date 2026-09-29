@@ -1,0 +1,111 @@
+name: Machine2 Full Observation Activation Once
+
+on:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - .github/workflows/machine2-full-observation-activation-once.yml
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: a1-machine2-full-observation-activation-once
+  cancel-in-progress: false
+
+jobs:
+  activate-and-dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/v32-dynamic-source-universe-v1
+          fetch-depth: 0
+
+      - name: Activate only Full Observation request and keep all higher locks closed
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          full_path = Path('v32-full-observation-behavior-requests/current.json')
+          group_path = Path('v32-behavior-grouping-requests/current.json')
+          lock_path = Path('governance/a1-clean-active-authority-lock.json')
+          bootstrap_path = Path('governance/a1-clean-authority-bootstrap-current.json')
+
+          full = json.loads(full_path.read_text(encoding='utf-8'))
+          group = json.loads(group_path.read_text(encoding='utf-8'))
+          lock = json.loads(lock_path.read_text(encoding='utf-8'))
+          bootstrap = json.loads(bootstrap_path.read_text(encoding='utf-8'))
+
+          assert full['schema'] == 'A1_V32_FULL_OBSERVATION_BEHAVIOR_REQUEST_V2'
+          assert group.get('enabled') is False
+          assert full.get('formula_stage') == 'CLOSED'
+          assert group.get('formula_stage') == 'CLOSED'
+          assert lock.get('formula_stage') == 'CLOSED'
+          assert lock.get('candidate_formula_research_authorized') is False
+          assert full.get('candidate_formula_research_authorized') is False
+          assert full.get('dynamic_source_universe_required') is True
+          assert full.get('fixed_source_count_as_universe_authority_forbidden') is True
+          assert full.get('full_source_supported_observation_envelope') is True
+          assert full.get('all_source_columns_retrievable_required') is True
+          assert full.get('dual_independent_full_depth_research_engines_required') is True
+          assert bootstrap['documents']['storage_manifest']['revision'] == 9
+
+          full['enabled'] = True
+          full['purpose'] = (
+              'Governed Machine 2 independent full-depth evidence-substrate execution admitted after '
+              'CURRENT authority/readback sweep PASS, machine-readable authority rebind PASS, '
+              'storage-safe canonical recovery/rebind exact readback PASS, and lightweight dynamic-source '
+              'PRESTART PASS. Dynamic source universe remains authoritative; no fixed source-count invariant; '
+              'formula creation remains CLOSED; grouping remains separately gated.'
+          )
+          full['hold_reason'] = (
+              'PRIOR_RECOVERY_AND_PRESTART_HOLDS_SUPERSEDED_BY_DURABLE_PASS_EVIDENCE; '
+              'FULL_OBSERVATION_EVIDENCE_SUBSTRATE_ADMITTED; GROUPING_AND_FORMULA_STAGES_REMAIN_SEPARATELY_GATED.'
+          )
+          full['operational_trigger'] = 'MACHINE2_FULL_OBSERVATION_ADMITTED_AFTER_PRESTART_RUN_36597891523'
+          full['canonical_current_recovery_required'] = False
+          full['canonical_current_recovery_prepare_required'] = False
+          full['canonical_current_recovery_commit_authorized'] = False
+          full['recovery_prepare_current_status'] = 'PASS_STORAGE_SAFE_RECOVERY_REBIND_AND_EXACT_READBACK'
+          full['service_runner_auto_recovery_policy'] = 'FULL_OBSERVATION_ONLY_GROUPING_AND_FORMULA_STILL_GATED'
+
+          full_path.write_text(json.dumps(full, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+
+          # Re-read and fail closed before commit.
+          check = json.loads(full_path.read_text(encoding='utf-8'))
+          assert check['enabled'] is True
+          assert json.loads(group_path.read_text(encoding='utf-8'))['enabled'] is False
+          assert check['formula_stage'] == 'CLOSED'
+          assert check['candidate_formula_research_authorized'] is False
+          PY
+
+      - name: Commit activation and self-retire one-shot
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/machine2-full-observation-activation-once.yml
+          git add v32-full-observation-behavior-requests/current.json
+          git commit -m 'governance: admit Machine2 full observation after recovery and PRESTART pass'
+          git push origin HEAD:fix/v32-dynamic-source-universe-v1
+
+      - name: Dispatch exact Full Observation workflow on renewed head
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api \
+            --method POST \
+            -H 'Accept: application/vnd.github+json' \
+            repos/${{ github.repository }}/actions/workflows/windows-v32-full-observation-behavior.yml/dispatches \
+            -f ref='fix/v32-dynamic-source-universe-v1'
+          echo 'FULL_OBSERVATION_DISPATCHED=true'
