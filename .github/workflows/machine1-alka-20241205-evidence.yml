@@ -12,17 +12,13 @@ permissions:
 
 jobs:
   extract-alka:
-    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 30
     env:
       RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Provide Python 3.11 runtime
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
       - name: Extract exact governed ALKA packet
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
@@ -68,7 +64,7 @@ jobs:
           (out/'EVIDENCE_PROOF.json').write_text(json.dumps(proof,ensure_ascii=False,indent=2),encoding='utf-8')
           print(f'ALKA_EVIDENCE_OK rows={len(rows)} source_rows={source_first}-{source_last} first={dts[0]} last={dts[-1]} packet_sha256={ph} rows_sha256={rh}')
           '@ | Set-Content -LiteralPath extract_alka_20241205.py -Encoding UTF8
-          python extract_alka_20241205.py
+          py -3.11 extract_alka_20241205.py
       - name: Upload governed ALKA evidence
         uses: actions/upload-artifact@v4
         with:
@@ -77,4 +73,4 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-# date05 audit retrigger with explicit Python runtime 20260930
+# date05 audit transport routed to parity runner 20260930
