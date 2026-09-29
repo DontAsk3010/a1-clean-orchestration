@@ -125,3 +125,5 @@ def test_prestart_holds_if_full_authority_proof_missing():
             source_universe=manifest,
             require_enabled=False,
         )
+
+# Control-only retrigger after CURRENT authority-binding renewal; no test semantics changed.
