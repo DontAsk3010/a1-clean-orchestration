@@ -146,7 +146,7 @@ jobs:
               --request $request `
               --authority-lock governance/a1-clean-active-authority-lock.json `
               --source-universe-manifest $env:A1_SOURCE_UNIVERSE_MANIFEST
-            if ($LASTEXITCODE -ne 0) { throw "DYNAMIC_PRESTART_REQUEST_VALIDATION_FAIL:$request:$LASTEXITCODE" }
+            if ($LASTEXITCODE -ne 0) { throw "DYNAMIC_PRESTART_REQUEST_VALIDATION_FAIL:${request}:$LASTEXITCODE" }
           }
           $full = Get-Content -LiteralPath 'v32-full-observation-behavior-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
           $group = Get-Content -LiteralPath 'v32-behavior-grouping-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -303,7 +303,7 @@ jobs:
               --request $request `
               --authority-lock governance/a1-clean-active-authority-lock.json `
               --source-universe-manifest $env:A1_SOURCE_UNIVERSE_MANIFEST
-            if ($LASTEXITCODE -ne 0) { throw "DYNAMIC_PRESTART_REQUEST_VALIDATION_FAIL:$request:$LASTEXITCODE" }
+            if ($LASTEXITCODE -ne 0) { throw "DYNAMIC_PRESTART_REQUEST_VALIDATION_FAIL:${request}:$LASTEXITCODE" }
           }
           $full = Get-Content -LiteralPath 'v32-full-observation-behavior-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
           $group = Get-Content -LiteralPath 'v32-behavior-grouping-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
