@@ -19,6 +19,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Bootstrap Python 3.11 for evidence extraction
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - name: Extract exact governed ANJT packet
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
@@ -63,7 +67,7 @@ jobs:
           (out/'EVIDENCE_PROOF.json').write_text(json.dumps({'ticker':ticker_expected,'trading_date':trading_date,'source_md5':got_md5,'source_sha256':got_sha256,'semantic_bundle':semantic_bundle,'semantic_bundle_line_number':semantic_bundle_line,'source_row_first':source_first,'source_row_last':source_last,'data_rows':len(rows),'first_datetime':dts[0],'last_datetime':dts[-1],'packet_sha256':ph},ensure_ascii=False,indent=2),encoding='utf-8')
           print(f'ANJT_EVIDENCE_OK rows={len(rows)} source_rows={source_first}-{source_last} first={dts[0]} last={dts[-1]} packet_sha256={ph}')
           '@ | Set-Content -LiteralPath extract_anjt_20241204.py -Encoding UTF8
-          py -3.11 extract_anjt_20241204.py
+          python extract_anjt_20241204.py
       - name: Upload governed ANJT evidence
         uses: actions/upload-artifact@v4
         with:
