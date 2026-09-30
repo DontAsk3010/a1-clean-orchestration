@@ -11,8 +11,8 @@ def _authority_sync() -> dict:
         "schema": "A1_CLEAN_AUTHORITY_SYNC_PROOF_V1",
         "status": "PASS",
         "full_authority_read_complete": True,
-        "authority_document_count": 10,
-        "repo_state_file_count": 6,
+        "authority_document_count": 14,
+        "repo_state_file_count": 7,
         "authority_corpus_sha256": "authority-corpus",
         "bootstrap_manifest_sha256": "bootstrap",
         "active_authority_lock_sha256": "lock",
@@ -75,6 +75,54 @@ def _request() -> dict:
     }
 
 
+def _full_lock() -> dict:
+    lock = _lock()
+    lock.update(
+        {
+            "machine2_owner_explicit_full_scientific_restart_from_beginning_required": True,
+            "machine2_old_scientific_pass_current_compliance": "NONE_ACCEPTED",
+            "machine2_old_scientific_pass_may_skip_current_reading_unit": False,
+            "machine2_old_derived_semantic_checkpoint_completion_inherited": False,
+            "machine2_canonical_raw_physical_reuse_only_after_current_integrity_proof": True,
+            "machine2_scientific_restart_cursor_authority": "EARLIEST_GOVERNED_SOURCE_DATE_TICKER_OBSERVATION_FROM_DYNAMIC_SOURCE_DISCOVERY",
+            "machine2_strict_chronological_restart_required": True,
+            "machine2_progressive_current_checkpoint_lineage_must_start_new": True,
+            "machine2_sunk_cost_exception_allowed": False,
+            "machine2_heavy_run_requires_restart_contract_prestart_pass": True,
+        }
+    )
+    lock["documents"]["machine2_master_coverage_matrix"] = {
+        "document_id": "MATRIX",
+        "revision_id": "MATRIX-REV",
+    }
+    return lock
+
+
+def _full_request() -> dict:
+    request = _request()
+    request.update(
+        {
+            "schema": "A1_V32_FULL_OBSERVATION_BEHAVIOR_REQUEST_V2",
+            "machine2_full_scientific_restart_from_beginning_required": True,
+            "old_pass_current_compliance": "NONE_ACCEPTED",
+            "old_pass_may_skip_current_reading_unit": False,
+            "old_derived_semantic_checkpoint_completion_inherited": False,
+            "canonical_raw_physical_reuse_after_current_integrity_proof_only": True,
+            "scientific_restart_cursor_authority": "EARLIEST_GOVERNED_SOURCE_DATE_TICKER_OBSERVATION_FROM_DYNAMIC_SOURCE_DISCOVERY",
+            "strict_governed_chronological_restart_required": True,
+            "progressive_current_checkpoint_lineage_must_start_new": True,
+            "date_ticker_record_timestamp_exact_resume_checkpoint_required": True,
+            "per_source_only_checkpoint_is_not_sufficient_for_exact_resume": True,
+            "all_current_master_required_layers_reread_rederive_recompute_from_beginning": True,
+            "sunk_compute_or_old_completion_exception_allowed": False,
+            "no_pass_claim": True,
+            "machine2_master_coverage_matrix_document_id": "MATRIX",
+            "machine2_master_coverage_matrix_revision_id": "MATRIX-REV",
+        }
+    )
+    return request
+
+
 def test_prestart_validates_dynamic_manifest_without_requiring_fixed_count():
     result = validate_dynamic_prestart(
         request=_request(),
@@ -126,4 +174,50 @@ def test_prestart_holds_if_full_authority_proof_missing():
             require_enabled=False,
         )
 
-# Control-only retrigger after CURRENT authority-binding renewal; no test semantics changed.
+
+def test_full_observation_prestart_requires_owner_full_restart_contract():
+    result = validate_dynamic_prestart(
+        request=_full_request(),
+        lock=_full_lock(),
+        source_universe=_source_manifest(),
+        require_enabled=False,
+    )
+    assert result["status"] == "PASS"
+    assert result["machine2_full_scientific_restart_from_beginning_required"] is True
+    assert result["old_pass_skip_allowed"] is False
+
+
+def test_full_observation_prestart_rejects_old_pass_skip():
+    request = _full_request()
+    request["old_pass_may_skip_current_reading_unit"] = True
+    with pytest.raises(RuntimeError, match="PRESTART_REQUEST_MACHINE2_RESTART_PROHIBITION_FAIL"):
+        validate_dynamic_prestart(
+            request=request,
+            lock=_full_lock(),
+            source_universe=_source_manifest(),
+            require_enabled=False,
+        )
+
+
+def test_full_observation_prestart_rejects_source_only_checkpoint_contract():
+    request = _full_request()
+    request["date_ticker_record_timestamp_exact_resume_checkpoint_required"] = False
+    with pytest.raises(RuntimeError, match="PRESTART_REQUEST_MACHINE2_RESTART_FLAG_FAIL"):
+        validate_dynamic_prestart(
+            request=request,
+            lock=_full_lock(),
+            source_universe=_source_manifest(),
+            require_enabled=False,
+        )
+
+
+def test_full_observation_prestart_rejects_coverage_matrix_revision_drift():
+    request = _full_request()
+    request["machine2_master_coverage_matrix_revision_id"] = "STALE"
+    with pytest.raises(RuntimeError, match="PRESTART_MACHINE2_COVERAGE_MATRIX_REVISION_DRIFT"):
+        validate_dynamic_prestart(
+            request=request,
+            lock=_full_lock(),
+            source_universe=_source_manifest(),
+            require_enabled=False,
+        )
