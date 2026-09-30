@@ -43,17 +43,33 @@ jobs:
             throw "RAW_HASH_MISMATCH md5=$gotMd5 sha256=$gotSha256"
           }
 
-          $all = Import-Csv -LiteralPath $raw
-          $rows = @()
-          for ($sourceRow = $sourceFirst; $sourceRow -le $sourceLast; $sourceRow++) {
-            $idx = $sourceRow - 1
-            if ($idx -lt 0 -or $idx -ge $all.Count) { throw "SOURCE_ROW_OUT_OF_RANGE=$sourceRow" }
-            $r = $all[$idx]
-            $o = [ordered]@{ source_row = $sourceRow }
-            foreach ($p in $r.PSObject.Properties) { $o[$p.Name] = [string]$p.Value }
-            $rows += [pscustomobject]$o
+          Add-Type -AssemblyName Microsoft.VisualBasic
+          $parser = New-Object Microsoft.VisualBasic.FileIO.TextFieldParser($raw)
+          $parser.TextFieldType = [Microsoft.VisualBasic.FileIO.FieldType]::Delimited
+          $parser.SetDelimiters(',')
+          $parser.HasFieldsEnclosedInQuotes = $true
+          try {
+            if ($parser.EndOfData) { throw 'RAW_EMPTY' }
+            $headerFields = @($parser.ReadFields())
+            if ($headerFields.Count -eq 0) { throw 'HEADER_EMPTY' }
+            $rows = @()
+            $sourceRow = 0
+            while (-not $parser.EndOfData -and $sourceRow -lt $sourceLast) {
+              $fields = @($parser.ReadFields())
+              $sourceRow++
+              if ($sourceRow -lt $sourceFirst) { continue }
+              if ($fields.Count -ne $headerFields.Count) { throw "FIELD_COUNT_MISMATCH source_row=$sourceRow got=$($fields.Count) expected=$($headerFields.Count)" }
+              $o = [ordered]@{ source_row = $sourceRow }
+              for ($i=0; $i -lt $headerFields.Count; $i++) { $o[[string]$headerFields[$i]] = [string]$fields[$i] }
+              $rows += [pscustomobject]$o
+            }
+          } finally {
+            $parser.Close()
           }
+
           if ($rows.Count -ne $expectedCount) { throw "ROW_COUNT_MISMATCH got=$($rows.Count) expected=$expectedCount" }
+          $seq = @($rows | ForEach-Object { [int]$_.source_row })
+          for ($i=0; $i -lt $seq.Count; $i++) { if ($seq[$i] -ne ($sourceFirst + $i)) { throw "SOURCE_ROW_SEQUENCE_MISMATCH at_index=$i got=$($seq[$i])" } }
           $tickers = @($rows | ForEach-Object { $_.RAW_TICKER } | Sort-Object -Unique)
           if ($tickers.Count -ne 1 -or $tickers[0] -ne $tickerExpected) { throw "TICKER_MISMATCH got=$($tickers -join ',')" }
           $dts = @($rows | ForEach-Object { [string]$_.RAW_DATETIME_ISO })
@@ -71,7 +87,6 @@ jobs:
           $packetPath = Join-Path $out 'AADI_20241205_PACKET.json'
           $rowsPath = Join-Path $out 'AADI_20241205_ROWS.jsonl'
           $proofPath = Join-Path $out 'EVIDENCE_PROOF.json'
-          $headerFields = @($all[0].PSObject.Properties.Name)
           $packet = [ordered]@{
             source_name = [IO.Path]::GetFileName($raw)
             source_md5 = $gotMd5
@@ -122,4 +137,4 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-# Date05 AADI transport uses canonical Machine1 native PowerShell transport; scientific scope/rows unchanged.
+# Date05 AADI transport uses native PowerShell streaming CSV parser; scientific scope/rows unchanged.
