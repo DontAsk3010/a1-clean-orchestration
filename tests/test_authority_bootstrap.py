@@ -52,8 +52,8 @@ def test_bootstrap_requires_complete_authority_chain_in_order():
     assert all(row["required"] is True for row in docs)
     assert all(str(row.get("drive_revision_id", "")).isdigit() for row in docs)
     assert [row["drive_revision_id"] for row in docs] == [
-        "82",
-        "151",
+        "83",
+        "155",
         "63",
         "35",
         "64",
@@ -63,7 +63,7 @@ def test_bootstrap_requires_complete_authority_chain_in_order():
         "7",
         "15",
         "91",
-        "6",
+        "7",
         "9",
         "16",
     ]
