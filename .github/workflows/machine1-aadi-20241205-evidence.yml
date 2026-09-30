@@ -64,7 +64,13 @@ jobs:
           (out/'EVIDENCE_PROOF.json').write_text(json.dumps(proof,ensure_ascii=False,indent=2),encoding='utf-8')
           print(f'AADI_EVIDENCE_OK rows={len(rows)} source_rows={source_first}-{source_last} first={dts[0]} last={dts[-1]} packet_sha256={ph} rows_sha256={rh}')
           '@ | Set-Content -LiteralPath extract_aadi_20241205.py -Encoding UTF8
-          py -3.11 extract_aadi_20241205.py
+          if (Get-Command py -ErrorAction SilentlyContinue) {
+            py -3.11 extract_aadi_20241205.py
+          } elseif (Get-Command python -ErrorAction SilentlyContinue) {
+            python extract_aadi_20241205.py
+          } else {
+            throw 'PYTHON_RUNTIME_NOT_FOUND'
+          }
       - name: Upload governed AADI evidence
         uses: actions/upload-artifact@v4
         with:
