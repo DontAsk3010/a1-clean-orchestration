@@ -19,55 +19,115 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Bootstrap Python 3.11 for evidence extraction
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
       - name: Extract exact governed ANJT packet
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          @'
-          import csv, hashlib, json, os, pathlib
-          raw = pathlib.Path(os.environ['RAW_FILE'])
-          ticker_expected='ANJT'; trading_date='2024-12-04'
-          source_first=70418; source_last=70451; expected_count=34
-          expected_first_time='09:00:00'; expected_last_time='16:08:00'
-          semantic_bundle='Raw Des 02-31-2024__SEMANTIC_0009.jsonl'; semantic_bundle_line=228
-          expected_md5='b8d42b35c90d2dff8b18ae4e1734523b'
-          expected_sha256='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
-          if not raw.is_file(): raise SystemExit(f'RAW_MISSING: {raw}')
-          md5=hashlib.md5(); sha256=hashlib.sha256()
-          with raw.open('rb') as f:
-              for chunk in iter(lambda:f.read(8*1024*1024),b''): md5.update(chunk); sha256.update(chunk)
-          got_md5,got_sha256=md5.hexdigest(),sha256.hexdigest()
-          if got_md5!=expected_md5 or got_sha256!=expected_sha256: raise SystemExit(f'RAW_HASH_MISMATCH md5={got_md5} sha256={got_sha256}')
-          rows=[]
-          with raw.open('r',encoding='utf-8-sig',newline='') as f:
-              reader=csv.DictReader(f); header_fields=list(reader.fieldnames or [])
-              for source_row,row in enumerate(reader,start=1):
-                  if source_row<source_first: continue
-                  if source_row>source_last: break
-                  rows.append({'source_row':source_row,**row})
-          if len(rows)!=expected_count: raise SystemExit(f'ROW_COUNT_MISMATCH got={len(rows)} expected={expected_count}')
-          if [r['source_row'] for r in rows]!=list(range(source_first,source_last+1)): raise SystemExit('SOURCE_ROW_SEQUENCE_MISMATCH')
-          if {r.get('RAW_TICKER','') for r in rows}!={ticker_expected}: raise SystemExit('TICKER_MISMATCH')
-          dts=[r.get('RAW_DATETIME_ISO','') for r in rows]
-          if any(not dt.startswith(trading_date) for dt in dts): raise SystemExit(f'DATE_MISMATCH: {dts}')
-          ft=dts[0].split('T',1)[-1][:8] if 'T' in dts[0] else dts[0].split(' ')[-1][:8]
-          lt=dts[-1].split('T',1)[-1][:8] if 'T' in dts[-1] else dts[-1].split(' ')[-1][:8]
-          if ft!=expected_first_time or lt!=expected_last_time: raise SystemExit(f'TIME_RANGE_MISMATCH got={ft}-{lt}')
-          packet={'source_name':raw.name,'source_md5':got_md5,'source_sha256':got_sha256,'generation_id':'BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01','ticker':ticker_expected,'trading_date':trading_date,'semantic_bundle':semantic_bundle,'semantic_bundle_line_number':semantic_bundle_line,'source_row_first':source_first,'source_row_last':source_last,'physical_line_first':source_first+1,'physical_line_last':source_last+1,'data_rows':len(rows),'first_datetime':dts[0],'last_datetime':dts[-1],'header_fields':header_fields,'rows':rows}
-          out=pathlib.Path('machine1_anjt_20241204_evidence'); out.mkdir(exist_ok=True)
-          pp=out/'ANJT_20241204_PACKET.json'; rp=out/'ANJT_20241204_ROWS.jsonl'
-          pp.write_text(json.dumps(packet,ensure_ascii=False,indent=2),encoding='utf-8')
-          with rp.open('w',encoding='utf-8',newline='\n') as w:
-              for row in rows: w.write(json.dumps(row,ensure_ascii=False,separators=(',',':'))+'\n')
-          ph=hashlib.sha256(pp.read_bytes()).hexdigest()
-          (out/'EVIDENCE_PROOF.json').write_text(json.dumps({'ticker':ticker_expected,'trading_date':trading_date,'source_md5':got_md5,'source_sha256':got_sha256,'semantic_bundle':semantic_bundle,'semantic_bundle_line_number':semantic_bundle_line,'source_row_first':source_first,'source_row_last':source_last,'data_rows':len(rows),'first_datetime':dts[0],'last_datetime':dts[-1],'packet_sha256':ph},ensure_ascii=False,indent=2),encoding='utf-8')
-          print(f'ANJT_EVIDENCE_OK rows={len(rows)} source_rows={source_first}-{source_last} first={dts[0]} last={dts[-1]} packet_sha256={ph}')
-          '@ | Set-Content -LiteralPath extract_anjt_20241204.py -Encoding UTF8
-          python extract_anjt_20241204.py
+          $raw = $env:RAW_FILE
+          $tickerExpected = 'ANJT'
+          $tradingDate = '2024-12-04'
+          $sourceFirst = 70418
+          $sourceLast = 70451
+          $expectedCount = 34
+          $expectedFirstTime = '09:00:00'
+          $expectedLastTime = '16:08:00'
+          $semanticBundle = 'Raw Des 02-31-2024__SEMANTIC_0009.jsonl'
+          $semanticBundleLine = 228
+          $expectedMd5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
+          $expectedSha256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          if (-not (Test-Path -LiteralPath $raw -PathType Leaf)) { throw "RAW_MISSING: $raw" }
+          $gotMd5 = (Get-FileHash -LiteralPath $raw -Algorithm MD5).Hash.ToLowerInvariant()
+          $gotSha256 = (Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($gotMd5 -ne $expectedMd5 -or $gotSha256 -ne $expectedSha256) { throw "RAW_HASH_MISMATCH md5=$gotMd5 sha256=$gotSha256" }
+          Add-Type -AssemblyName Microsoft.VisualBasic
+          $parser = New-Object Microsoft.VisualBasic.FileIO.TextFieldParser($raw, [System.Text.Encoding]::UTF8, $true)
+          $parser.TextFieldType = [Microsoft.VisualBasic.FileIO.FieldType]::Delimited
+          $parser.SetDelimiters(',')
+          $parser.HasFieldsEnclosedInQuotes = $true
+          try {
+            $headers = @($parser.ReadFields())
+            if ($headers.Count -lt 1) { throw 'HEADER_MISSING' }
+            $headers[0] = $headers[0].TrimStart([char]0xFEFF)
+            if ($headers.Count -ne 75) { throw "HEADER_FIELD_COUNT_MISMATCH got=$($headers.Count) expected=75" }
+            $rows = New-Object System.Collections.Generic.List[object]
+            $sourceRow = 0
+            while (-not $parser.EndOfData) {
+              $fields = @($parser.ReadFields())
+              $sourceRow++
+              if ($sourceRow -lt $sourceFirst) { continue }
+              if ($sourceRow -gt $sourceLast) { break }
+              if ($fields.Count -ne $headers.Count) { throw "ROW_FIELD_COUNT_MISMATCH source_row=$sourceRow got=$($fields.Count) expected=$($headers.Count)" }
+              $ordered = [ordered]@{ source_row = $sourceRow }
+              for ($i = 0; $i -lt $headers.Count; $i++) { $ordered[$headers[$i]] = $fields[$i] }
+              $rows.Add([pscustomobject]$ordered)
+            }
+          } finally {
+            $parser.Close()
+          }
+          if ($rows.Count -ne $expectedCount) { throw "ROW_COUNT_MISMATCH got=$($rows.Count) expected=$expectedCount" }
+          for ($i = 0; $i -lt $rows.Count; $i++) { if ([int]$rows[$i].source_row -ne ($sourceFirst + $i)) { throw 'SOURCE_ROW_SEQUENCE_MISMATCH' } }
+          $tickers = @($rows | ForEach-Object { $_.RAW_TICKER } | Sort-Object -Unique)
+          if ($tickers.Count -ne 1 -or $tickers[0] -ne $tickerExpected) { throw "TICKER_MISMATCH got=$($tickers -join ',')" }
+          $dts = @($rows | ForEach-Object { $_.RAW_DATETIME_ISO })
+          if (@($dts | Where-Object { -not $_.StartsWith($tradingDate) }).Count -ne 0) { throw "DATE_MISMATCH" }
+          function Get-Clock([string]$dt) {
+            if ($dt.Contains('T')) { return $dt.Split('T')[1].Substring(0,8) }
+            return $dt.Split(' ')[-1].Substring(0,8)
+          }
+          $firstTime = Get-Clock $dts[0]
+          $lastTime = Get-Clock $dts[-1]
+          if ($firstTime -ne $expectedFirstTime -or $lastTime -ne $expectedLastTime) { throw "TIME_RANGE_MISMATCH got=$firstTime-$lastTime" }
+          $out = Join-Path $PWD 'machine1_anjt_20241204_evidence'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $rowsPath = Join-Path $out 'ANJT_20241204_ROWS.jsonl'
+          $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+          $writer = New-Object System.IO.StreamWriter($rowsPath, $false, $utf8NoBom)
+          try { foreach ($row in $rows) { $writer.WriteLine(($row | ConvertTo-Json -Compress -Depth 10)) } } finally { $writer.Close() }
+          $rowsSha256 = (Get-FileHash -LiteralPath $rowsPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $packet = [ordered]@{
+            source_name = [System.IO.Path]::GetFileName($raw)
+            source_md5 = $gotMd5
+            source_sha256 = $gotSha256
+            generation_id = 'BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01'
+            ticker = $tickerExpected
+            trading_date = $tradingDate
+            semantic_bundle = $semanticBundle
+            semantic_bundle_line_number = $semanticBundleLine
+            source_row_first = $sourceFirst
+            source_row_last = $sourceLast
+            physical_line_first = $sourceFirst + 1
+            physical_line_last = $sourceLast + 1
+            data_rows = $rows.Count
+            fields_per_source_row = 75
+            first_datetime = $dts[0]
+            last_datetime = $dts[-1]
+            header_fields = $headers
+            rows_sha256 = $rowsSha256
+            rows = $rows
+          }
+          $packetPath = Join-Path $out 'ANJT_20241204_PACKET.json'
+          [System.IO.File]::WriteAllText($packetPath, ($packet | ConvertTo-Json -Depth 12), $utf8NoBom)
+          $packetSha256 = (Get-FileHash -LiteralPath $packetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $proof = [ordered]@{
+            ticker = $tickerExpected
+            trading_date = $tradingDate
+            source_md5 = $gotMd5
+            source_sha256 = $gotSha256
+            semantic_bundle = $semanticBundle
+            semantic_bundle_line_number = $semanticBundleLine
+            source_row_first = $sourceFirst
+            source_row_last = $sourceLast
+            data_rows = $rows.Count
+            fields_per_source_row = 75
+            first_datetime = $dts[0]
+            last_datetime = $dts[-1]
+            rows_sha256 = $rowsSha256
+            packet_sha256 = $packetSha256
+            historical_python_packet_sha256 = '3055b8931a9cd6134e7e4efbef9867f9e0b2e2832cf8f2c90e3c6a6300b1a657'
+            serialization_note = 'PowerShell packet serialization differs; source identity is governed by exact RAW MD5/SHA256 plus bounded row contract.'
+          }
+          [System.IO.File]::WriteAllText((Join-Path $out 'EVIDENCE_PROOF.json'), ($proof | ConvertTo-Json -Depth 10), $utf8NoBom)
+          Write-Host "ANJT_EVIDENCE_OK rows=$($rows.Count) fields=75 source_rows=$sourceFirst-$sourceLast first=$($dts[0]) last=$($dts[-1]) rows_sha256=$rowsSha256 packet_sha256=$packetSha256"
       - name: Upload governed ANJT evidence
         uses: actions/upload-artifact@v4
         with:
