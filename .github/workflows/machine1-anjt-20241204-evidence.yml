@@ -24,15 +24,10 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $raw = $env:RAW_FILE
-          $tickerExpected = 'ANJT'
-          $tradingDate = '2024-12-04'
-          $sourceFirst = 70418
-          $sourceLast = 70451
-          $expectedCount = 34
-          $expectedFirstTime = '09:00:00'
-          $expectedLastTime = '16:08:00'
-          $semanticBundle = 'Raw Des 02-31-2024__SEMANTIC_0009.jsonl'
-          $semanticBundleLine = 228
+          $tickerExpected = 'ANJT'; $tradingDate = '2024-12-04'
+          $sourceFirst = 70418; $sourceLast = 70451; $expectedCount = 34
+          $expectedFirstTime = '09:00:00'; $expectedLastTime = '16:08:00'
+          $semanticBundle = 'Raw Des 02-31-2024__SEMANTIC_0009.jsonl'; $semanticBundleLine = 228
           $expectedMd5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
           $expectedSha256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
           if (-not (Test-Path -LiteralPath $raw -PathType Leaf)) { throw "RAW_MISSING: $raw" }
@@ -42,92 +37,35 @@ jobs:
           Add-Type -AssemblyName Microsoft.VisualBasic
           $parser = New-Object Microsoft.VisualBasic.FileIO.TextFieldParser($raw, [System.Text.Encoding]::UTF8, $true)
           $parser.TextFieldType = [Microsoft.VisualBasic.FileIO.FieldType]::Delimited
-          $parser.SetDelimiters(',')
-          $parser.HasFieldsEnclosedInQuotes = $true
+          $parser.SetDelimiters(','); $parser.HasFieldsEnclosedInQuotes = $true
           try {
-            $headers = @($parser.ReadFields())
-            if ($headers.Count -lt 1) { throw 'HEADER_MISSING' }
-            $headers[0] = $headers[0].TrimStart([char]0xFEFF)
-            if ($headers.Count -ne 75) { throw "HEADER_FIELD_COUNT_MISMATCH got=$($headers.Count) expected=75" }
-            $rows = New-Object System.Collections.Generic.List[object]
-            $sourceRow = 0
+            $headers = @($parser.ReadFields()); $headers[0] = $headers[0].TrimStart([char]0xFEFF)
+            if ($headers.Count -ne 74) { throw "RAW_HEADER_FIELD_COUNT_MISMATCH got=$($headers.Count) expected=74" }
+            $rows = New-Object System.Collections.Generic.List[object]; $sourceRow = 0
             while (-not $parser.EndOfData) {
-              $fields = @($parser.ReadFields())
-              $sourceRow++
-              if ($sourceRow -lt $sourceFirst) { continue }
-              if ($sourceRow -gt $sourceLast) { break }
-              if ($fields.Count -ne $headers.Count) { throw "ROW_FIELD_COUNT_MISMATCH source_row=$sourceRow got=$($fields.Count) expected=$($headers.Count)" }
+              $fields = @($parser.ReadFields()); $sourceRow++
+              if ($sourceRow -lt $sourceFirst) { continue }; if ($sourceRow -gt $sourceLast) { break }
+              if ($fields.Count -ne 74) { throw "RAW_ROW_FIELD_COUNT_MISMATCH source_row=$sourceRow got=$($fields.Count) expected=74" }
               $ordered = [ordered]@{ source_row = $sourceRow }
               for ($i = 0; $i -lt $headers.Count; $i++) { $ordered[$headers[$i]] = $fields[$i] }
               $rows.Add([pscustomobject]$ordered)
             }
-          } finally {
-            $parser.Close()
-          }
+          } finally { $parser.Close() }
           if ($rows.Count -ne $expectedCount) { throw "ROW_COUNT_MISMATCH got=$($rows.Count) expected=$expectedCount" }
-          for ($i = 0; $i -lt $rows.Count; $i++) { if ([int]$rows[$i].source_row -ne ($sourceFirst + $i)) { throw 'SOURCE_ROW_SEQUENCE_MISMATCH' } }
-          $tickers = @($rows | ForEach-Object { $_.RAW_TICKER } | Sort-Object -Unique)
-          if ($tickers.Count -ne 1 -or $tickers[0] -ne $tickerExpected) { throw "TICKER_MISMATCH got=$($tickers -join ',')" }
-          $dts = @($rows | ForEach-Object { $_.RAW_DATETIME_ISO })
-          if (@($dts | Where-Object { -not $_.StartsWith($tradingDate) }).Count -ne 0) { throw "DATE_MISMATCH" }
-          function Get-Clock([string]$dt) {
-            if ($dt.Contains('T')) { return $dt.Split('T')[1].Substring(0,8) }
-            return $dt.Split(' ')[-1].Substring(0,8)
-          }
-          $firstTime = Get-Clock $dts[0]
-          $lastTime = Get-Clock $dts[-1]
-          if ($firstTime -ne $expectedFirstTime -or $lastTime -ne $expectedLastTime) { throw "TIME_RANGE_MISMATCH got=$firstTime-$lastTime" }
-          $out = Join-Path $PWD 'machine1_anjt_20241204_evidence'
-          New-Item -ItemType Directory -Force -Path $out | Out-Null
-          $rowsPath = Join-Path $out 'ANJT_20241204_ROWS.jsonl'
-          $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-          $writer = New-Object System.IO.StreamWriter($rowsPath, $false, $utf8NoBom)
-          try { foreach ($row in $rows) { $writer.WriteLine(($row | ConvertTo-Json -Compress -Depth 10)) } } finally { $writer.Close() }
-          $rowsSha256 = (Get-FileHash -LiteralPath $rowsPath -Algorithm SHA256).Hash.ToLowerInvariant()
-          $packet = [ordered]@{
-            source_name = [System.IO.Path]::GetFileName($raw)
-            source_md5 = $gotMd5
-            source_sha256 = $gotSha256
-            generation_id = 'BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01'
-            ticker = $tickerExpected
-            trading_date = $tradingDate
-            semantic_bundle = $semanticBundle
-            semantic_bundle_line_number = $semanticBundleLine
-            source_row_first = $sourceFirst
-            source_row_last = $sourceLast
-            physical_line_first = $sourceFirst + 1
-            physical_line_last = $sourceLast + 1
-            data_rows = $rows.Count
-            fields_per_source_row = 75
-            first_datetime = $dts[0]
-            last_datetime = $dts[-1]
-            header_fields = $headers
-            rows_sha256 = $rowsSha256
-            rows = $rows
-          }
-          $packetPath = Join-Path $out 'ANJT_20241204_PACKET.json'
-          [System.IO.File]::WriteAllText($packetPath, ($packet | ConvertTo-Json -Depth 12), $utf8NoBom)
-          $packetSha256 = (Get-FileHash -LiteralPath $packetPath -Algorithm SHA256).Hash.ToLowerInvariant()
-          $proof = [ordered]@{
-            ticker = $tickerExpected
-            trading_date = $tradingDate
-            source_md5 = $gotMd5
-            source_sha256 = $gotSha256
-            semantic_bundle = $semanticBundle
-            semantic_bundle_line_number = $semanticBundleLine
-            source_row_first = $sourceFirst
-            source_row_last = $sourceLast
-            data_rows = $rows.Count
-            fields_per_source_row = 75
-            first_datetime = $dts[0]
-            last_datetime = $dts[-1]
-            rows_sha256 = $rowsSha256
-            packet_sha256 = $packetSha256
-            historical_python_packet_sha256 = '3055b8931a9cd6134e7e4efbef9867f9e0b2e2832cf8f2c90e3c6a6300b1a657'
-            serialization_note = 'PowerShell packet serialization differs; source identity is governed by exact RAW MD5/SHA256 plus bounded row contract.'
-          }
-          [System.IO.File]::WriteAllText((Join-Path $out 'EVIDENCE_PROOF.json'), ($proof | ConvertTo-Json -Depth 10), $utf8NoBom)
-          Write-Host "ANJT_EVIDENCE_OK rows=$($rows.Count) fields=75 source_rows=$sourceFirst-$sourceLast first=$($dts[0]) last=$($dts[-1]) rows_sha256=$rowsSha256 packet_sha256=$packetSha256"
+          for ($i=0; $i -lt $rows.Count; $i++) { if ([int]$rows[$i].source_row -ne ($sourceFirst+$i)) { throw 'SOURCE_ROW_SEQUENCE_MISMATCH' }; if ($rows[$i].PSObject.Properties.Count -ne 75) { throw "RETAINED_FIELD_COUNT_MISMATCH source_row=$($rows[$i].source_row)" } }
+          $tickers = @($rows | % { $_.RAW_TICKER } | Sort-Object -Unique); if ($tickers.Count -ne 1 -or $tickers[0] -ne $tickerExpected) { throw "TICKER_MISMATCH got=$($tickers -join ',')" }
+          $dts = @($rows | % { $_.RAW_DATETIME_ISO }); if (@($dts | ? { -not $_.StartsWith($tradingDate) }).Count -ne 0) { throw 'DATE_MISMATCH' }
+          function Clock([string]$dt) { if ($dt.Contains('T')) { return $dt.Split('T')[1].Substring(0,8) }; return $dt.Split(' ')[-1].Substring(0,8) }
+          $ft=Clock $dts[0]; $lt=Clock $dts[-1]; if ($ft -ne $expectedFirstTime -or $lt -ne $expectedLastTime) { throw "TIME_RANGE_MISMATCH got=$ft-$lt" }
+          $out=Join-Path $PWD 'machine1_anjt_20241204_evidence'; New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $utf8=New-Object System.Text.UTF8Encoding($false); $rowsPath=Join-Path $out 'ANJT_20241204_ROWS.jsonl'; $w=New-Object System.IO.StreamWriter($rowsPath,$false,$utf8)
+          try { foreach($row in $rows){ $w.WriteLine(($row|ConvertTo-Json -Compress -Depth 10)) } } finally { $w.Close() }
+          $rowsSha=(Get-FileHash $rowsPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $packet=[ordered]@{source_name=[IO.Path]::GetFileName($raw);source_md5=$gotMd5;source_sha256=$gotSha256;generation_id='BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01';ticker=$tickerExpected;trading_date=$tradingDate;semantic_bundle=$semanticBundle;semantic_bundle_line_number=$semanticBundleLine;source_row_first=$sourceFirst;source_row_last=$sourceLast;physical_line_first=$sourceFirst+1;physical_line_last=$sourceLast+1;data_rows=$rows.Count;raw_fields_per_row=74;retained_fields_per_row=75;first_datetime=$dts[0];last_datetime=$dts[-1];header_fields=$headers;rows_sha256=$rowsSha;rows=$rows}
+          $packetPath=Join-Path $out 'ANJT_20241204_PACKET.json'; [IO.File]::WriteAllText($packetPath,($packet|ConvertTo-Json -Depth 12),$utf8); $packetSha=(Get-FileHash $packetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $proof=[ordered]@{ticker=$tickerExpected;trading_date=$tradingDate;source_md5=$gotMd5;source_sha256=$gotSha256;semantic_bundle=$semanticBundle;semantic_bundle_line_number=$semanticBundleLine;source_row_first=$sourceFirst;source_row_last=$sourceLast;data_rows=$rows.Count;raw_fields_per_row=74;retained_fields_per_row=75;first_datetime=$dts[0];last_datetime=$dts[-1];rows_sha256=$rowsSha;packet_sha256=$packetSha;historical_python_packet_sha256='3055b8931a9cd6134e7e4efbef9867f9e0b2e2832cf8f2c90e3c6a6300b1a657';serialization_note='PowerShell serialization differs; exact RAW hashes plus bounded row contract govern source identity.'}
+          [IO.File]::WriteAllText((Join-Path $out 'EVIDENCE_PROOF.json'),($proof|ConvertTo-Json -Depth 10),$utf8)
+          Write-Host "ANJT_EVIDENCE_OK rows=$($rows.Count) retained_fields=75 source_rows=$sourceFirst-$sourceLast first=$($dts[0]) last=$($dts[-1]) rows_sha256=$rowsSha packet_sha256=$packetSha"
       - name: Upload governed ANJT evidence
         uses: actions/upload-artifact@v4
         with:
