@@ -1,0 +1,70 @@
+{
+  "schema": "A1_CLEAN_MACHINE1_AUTHORITY_SYNC_PROOF_V1",
+  "status": "AUTHORITY_SYNC_PASS_SCOPE_REAUDIT_REQUIRED",
+  "effective_date": "2026-09-30",
+  "worker": "MACHINE_1_AI_SEMANTIC_BEHAVIOR_READER",
+  "assigned_date": "2024-12-03",
+  "owner_trigger": "OWNER_EXPLICITLY_REQUIRES_PREVIOUS_PASS_SCOPE_TO_BE_REREAD_FROM_BEGINNING_BECAUSE_CONTENT_IS_INCOMPLETE_AND_NOT_CURRENT_MASTER_COMPLIANT",
+  "restart_scope": {
+    "audit_start_index": 1,
+    "audit_start_ticker": "AALI",
+    "historical_atomic_execution_boundary": "ATOMIC_PASS610_PRESERVED_AS_HISTORY_ONLY_NOT_CURRENT_COMPLIANCE_PROOF",
+    "new_ticker_progression": "BLOCKED_UNTIL_OWNER_FULL_REREAD_AUDIT_REACHES_AND_RECONCILES_PREVIOUSLY_COMPLETED_SCOPE",
+    "auto_advance": "PROHIBITED"
+  },
+  "current_authority": {
+    "master_handbook": {
+      "document_id": "1FVWKgoeWU9MsnOd3i8HOpprg36XrxgKInf6BQU6QTKQ",
+      "revision_id": "ANLCKQn7avF0r4GwbDc6xFmpeePikx2Pl2ykv7BiNP1onNbE3ArZibMauZebw30MAJQhoyQFmbNa8i4hstNe7lSgxDAeT3h5DuSCPgo-6IU"
+    },
+    "current_execution": {
+      "document_id": "1AdtN9N7oIYwsHr_7-R6UzBREx9DJd4s291iZJou6GZU",
+      "revision_id": "ANLCKQmfijPB59R6DeFBIJdewsb10iy3rPYYoE-uMVCrN_vm1TUI38Cil6p99otpiAq2EeZ5vSBWdOgFT3foK-nTJ-8idJkb4w0X__WcoaU"
+    },
+    "sub_master_index": {
+      "document_id": "1jpL6rPU5us0z18Gw8MxNQfbxKNdmZxVJe4vA71f7TyA",
+      "revision_id": "ANLCKQnDXXJg5TzAIUNSWihE9N3nuXPx5lvjSWEhIoOR0_AyvRzHmYX9_LqqsyVzLX2dERpBz1LDdodszP5zDhRpSyOS8k95jZxWEDoWdhI"
+    },
+    "source_capture": {
+      "document_id": "12uknstiWZxoXeDk5r0Zd5iCRBQM4k3N9obSSLKWGG6M",
+      "revision_id": "ANLCKQkwjWmtTt2eiOA5kX5816TiI-9UV0hvXQE8SaD6u57nW9c4XwwuaZqqyKbnRi9fNu2vigtk0o14tupafAGOmveXV0DaPDU7F7ATX9U"
+    },
+    "behavior_reading": {
+      "document_id": "1vDoz8E7nGVlYPl2SBneA2tCAiNNAL77nLgPPZzFlbaI",
+      "revision_id": "ANLCKQmv9-Y0D9m0M_XuuGa0JfK4H8MejoWEIYJbANV083LBVT6QwhpUofxhHkEFkZLPHKTvMunhowNE8pIzN_sWlYH6UNXNCcyamUofhpI"
+    },
+    "formula_research": {
+      "document_id": "1sQu0l2qwvsjItmBycRh3siMajKEQknHOMBLlBQd3I-Q",
+      "revision_id": "ANLCKQmWtE-OhhaztZa8esO9pLQ3v_z8BEgloSEJDtGOOSR7bLDOVU7pdrFcygJydecrmB5RskpNXpZf4jqVQsDSNmnsMj8TYF-5npWLx9A"
+    },
+    "github_automation": {
+      "document_id": "12PK2RTlRlggPQAScAmzNPewatB5mZqOgJ3sZfRBsbO8",
+      "revision_id": "ANLCKQmVZJ0hbqywbh7M-7R2vmO0UzR5kg3q9eEqLtXEeT_Qvv3eUfk4r9jTdxZkTVlEAMsuO-q-EslKa4jcNz2KOecl5cqwJcAEGZmyqVE"
+    },
+    "machine1_dispatch_registry": {
+      "document_id": "1hI1HAksSGktmjL0sqB1SUhGDaS7NQILHdBoSnE2vR7Q",
+      "revision_id": "ANLCKQkdTQW-76ezszZJL8w6CShW7bbzS4N6-j6raOwA0uTWaAm9Pyj4zUGc6IiJ6C8oKw2Ia3yy6QuF_UCHIS1jpGystrefjtBgRU4IFe8"
+    },
+    "active_machine_readable_lock": {
+      "repository": "DontAsk3010/a1-clean-orchestration",
+      "branch": "fix/v32-dynamic-source-universe-v1",
+      "path": "governance/a1-clean-active-authority-lock.json",
+      "blob_sha": "d85cd9b6c1cfa2c2eec28a21a35b56d6e80f43fa",
+      "embedded_revision_map_state": "STALE_RELATIVE_TO_DIRECT_CURRENT_DRIVE_READBACK",
+      "rule_semantics_state": "ACTIVE_AND_APPLIED_WITH_DIRECT_CURRENT_REVISION_BINDING_IN_THIS_PROOF"
+    }
+  },
+  "execution_rules": {
+    "previous_pass_is_current_proof": false,
+    "reuse_verified_canonical_source_bytes": true,
+    "reuse_old_semantic_completeness_without_new_audit": false,
+    "full_actual_rows_chronological_read_required": true,
+    "pass1_complete_ticker_day_first": true,
+    "cross_date_reconciliation_deferred_to_pass3": true,
+    "known_at_hindsight_separation_required": true,
+    "missing_as_zero": false,
+    "synthetic_fill": false,
+    "formula_stage": "CLOSED"
+  },
+  "next_exact_action": "REREAD_AND_REPAIR_2024_12_03_INDEX001_AALI_FROM_EXACT_150_ROW_CANONICAL_EVIDENCE_THEN_PERSIST_EXACT_READBACK_AND_CHECKPOINT_LAST"
+}
