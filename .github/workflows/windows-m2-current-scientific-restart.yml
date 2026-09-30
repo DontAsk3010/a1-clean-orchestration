@@ -12,6 +12,7 @@ on:
       - 'src/a1clean/formula_research/v32_current_scientific_restart.py'
       - 'src/a1clean/formula_research/machine2_current_store.py'
       - 'src/a1clean/formula_research/v32_dynamic_prestart.py'
+      - 'src/a1clean/pattern_discovery/source_reader.py'
       - 'tests/test_v32_current_scientific_restart.py'
       - 'tests/test_v32_dynamic_prestart.py'
       - 'tests/test_authority_bootstrap.py'
