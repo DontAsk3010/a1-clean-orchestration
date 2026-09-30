@@ -11,6 +11,75 @@ from ..source_parity import FOLDER_MIME, _assert_folder, _download_bytes, _list_
 from .contracts import PatternDiscoveryContractError, fingerprint
 from .packet import ParsedTickerDayPacket, parse_semantic_packet
 
+_STORAGE_REBIND_REQUEST_REL = Path("canonical-current-recovery-requests/storage-safe-rebind-current.json")
+
+
+def _storage_rebind_request_path() -> Path | None:
+    candidates = (
+        Path.cwd() / _STORAGE_REBIND_REQUEST_REL,
+        Path(__file__).resolve().parents[3] / _STORAGE_REBIND_REQUEST_REL,
+    )
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _current_source_folder_map(api, *, source_name: str, stem: str) -> tuple[dict[str, Any], str]:
+    request_path = _storage_rebind_request_path()
+    if request_path is None:
+        _assert_folder(api, FROZEN_CURRENT_FOLDER_DRIVE_ID, CANONICAL_CURRENT_FOLDER_NAME)
+        root_children = _list_children(api, FROZEN_CURRENT_FOLDER_DRIVE_ID)
+        folder_map = {
+            str(item["name"]): item
+            for item in root_children
+            if item.get("mimeType") == FOLDER_MIME
+        }
+        return folder_map, "LEGACY_FROZEN_CURRENT_ROOT"
+
+    request = json.loads(request_path.read_text(encoding="utf-8"))
+    if request.get("schema") != "A1_CANONICAL_RECOVERY_STORAGE_SAFE_REBIND_REQUEST_V1":
+        raise PatternDiscoveryContractError("CURRENT_STORAGE_REBIND_SCHEMA_MISMATCH")
+    if request.get("enabled") is not True or request.get("mode") != "STORAGE_SAFE_MOVE_REBIND_ONLY":
+        raise PatternDiscoveryContractError("CURRENT_STORAGE_REBIND_NOT_ACTIVE")
+    recovered_id = str(request.get("recovered_sources_folder_id") or "")
+    recovered_name = str(request.get("recovered_sources_folder_name") or "")
+    if not recovered_id or not recovered_name:
+        raise PatternDiscoveryContractError("CURRENT_STORAGE_REBIND_ROOT_MISSING")
+    _assert_folder(api, recovered_id, recovered_name)
+
+    data_manifest_name = f"{stem}__DATA_PLANE_MANIFEST.json"
+    candidates: list[dict[str, Any]] = []
+    for source_folder in _list_children(api, recovered_id):
+        if source_folder.get("mimeType") != FOLDER_MIME:
+            continue
+        source_children = _list_children(api, str(source_folder["id"]))
+        folder_map = {
+            str(item["name"]): item
+            for item in source_children
+            if item.get("mimeType") == FOLDER_MIME
+        }
+        if "00_MANIFESTS" not in folder_map or "02_SEMANTIC_BUNDLES" not in folder_map:
+            continue
+        manifest_children = _list_children(api, str(folder_map["00_MANIFESTS"]["id"]))
+        matches = [
+            item
+            for item in manifest_children
+            if item.get("mimeType") != FOLDER_MIME and item.get("name") == data_manifest_name
+        ]
+        if len(matches) == 1:
+            candidates.append(folder_map)
+        elif len(matches) > 1:
+            raise PatternDiscoveryContractError(
+                f"CURRENT_RECOVERED_SOURCE_MANIFEST_DUPLICATE:{source_name}:{len(matches)}"
+            )
+
+    if len(candidates) != 1:
+        raise PatternDiscoveryContractError(
+            f"CURRENT_RECOVERED_SOURCE_FOLDER_CARDINALITY:{source_name}:{len(candidates)}"
+        )
+    return candidates[0], "STORAGE_SAFE_MOVE_REBIND_ONLY"
+
 
 @dataclass(frozen=True)
 class SourceEnvelopeIdentity:
@@ -102,13 +171,10 @@ class GovernedSourceReader:
         self.api = reader_api
         self.source_name = source_name
         self.stem = Path(source_name).stem
-        _assert_folder(self.api, FROZEN_CURRENT_FOLDER_DRIVE_ID, CANONICAL_CURRENT_FOLDER_NAME)
-        root_children = _list_children(self.api, FROZEN_CURRENT_FOLDER_DRIVE_ID)
-        folder_map = {
-            str(item["name"]): item
-            for item in root_children
-            if item.get("mimeType") == FOLDER_MIME
-        }
+        folder_map, topology_mode = _current_source_folder_map(
+            self.api, source_name=self.source_name, stem=self.stem
+        )
+        self.current_topology_mode = topology_mode
         for required in ("00_MANIFESTS", "02_SEMANTIC_BUNDLES"):
             if required not in folder_map:
                 raise PatternDiscoveryContractError(f"CURRENT_REQUIRED_FOLDER_MISSING:{required}")
