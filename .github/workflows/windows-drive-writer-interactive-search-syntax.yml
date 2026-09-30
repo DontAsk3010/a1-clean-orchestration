@@ -1,0 +1,67 @@
+name: Windows Drive Writer Interactive Search Syntax
+
+on:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - 'scripts/windows/Find-A1DriveWriterCredentialInteractive.ps1'
+      - 'scripts/windows/Bind-A1DriveWriterCredentialVerified.ps1'
+      - 'scripts/windows/Verify-A1DriveWriterCandidateReadOnly.ps1'
+      - 'scripts/windows/Restore-A1DriveWriterExisting.ps1'
+      - '.github/workflows/windows-drive-writer-interactive-search-syntax.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 10
+    steps:
+      - name: Require current Machine-2 runner for syntax validation
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RUNNER_NAME -ne 'A1-WINDOWS-COMPUTE-02') { throw "A1_WRITER_SYNTAX_WRONG_RUNNER:$env:RUNNER_NAME" }
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "A1_WRITER_SYNTAX_WRONG_MACHINE:$env:COMPUTERNAME" }
+          Write-Host 'A1_WRITER_SYNTAX_RUNNER_GATE_PASS'
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: Parse PowerShell safety scripts only; do not execute relocation search, verification, binding, or reauthorization
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $paths = @(
+            'scripts\windows\Find-A1DriveWriterCredentialInteractive.ps1',
+            'scripts\windows\Bind-A1DriveWriterCredentialVerified.ps1',
+            'scripts\windows\Verify-A1DriveWriterCandidateReadOnly.ps1',
+            'scripts\windows\Restore-A1DriveWriterExisting.ps1'
+          )
+          foreach ($path in $paths) {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path), [ref]$tokens, [ref]$errors)
+            if (@($errors).Count -ne 0) {
+              foreach ($e in @($errors)) { Write-Host ("PARSE_ERROR|path={0}|text={1}|message={2}" -f $path,$e.Extent.Text,$e.Message) }
+              throw "A1_WRITER_SAFETY_SCRIPT_PARSE_FAIL:${path}:$(@($errors).Count)"
+            }
+            Write-Host "A1_WRITER_SAFETY_SCRIPT_PARSE_PASS|path=$path|execution=false|mutation=false"
+          }
+
+      - name: Safety declaration
+        if: always()
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          Write-Host 'SYNTAX VALIDATION ONLY.'
+          Write-Host 'Relocation search is not executed.'
+          Write-Host 'Writer candidate verification is not executed.'
+          Write-Host 'Credential binding is not changed.'
+          Write-Host 'No Drive create/update/delete is performed.'
+          Write-Host 'No OAuth reauthorization is performed.'
+          Write-Host 'No canonical CURRENT mutation is performed.'

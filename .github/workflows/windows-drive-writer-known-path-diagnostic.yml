@@ -1,0 +1,68 @@
+name: Windows Drive Writer Known Path Diagnostic
+
+on:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - '.github/workflows/windows-drive-writer-known-path-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-drive-writer-known-path-diagnostic
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    name: Verify historical writer credential path safely
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 10
+    steps:
+      - name: Boolean-only known-path verification
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $candidate = 'C:\Users\feri-admin\a1-drive-auth\client_writer.json'
+          $exists = Test-Path -LiteralPath $candidate -PathType Leaf -ErrorAction SilentlyContinue
+          Write-Host "KNOWN_WRITER_PATH|exists=$exists|path_disclosed=false"
+          if (-not $exists) {
+            Write-Host 'KNOWN_WRITER_PATH_RESULT|status=MISSING|mutation=false|credential_content_disclosed=false'
+            exit 0
+          }
+
+          $readable = $false
+          $hash16 = 'NONE'
+          $type = 'UNREADABLE'
+          $identityFp16 = 'NONE'
+          try {
+            $hash = (Get-FileHash -LiteralPath $candidate -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()
+            $hash16 = $hash.Substring(0,16)
+            $payload = Get-Content -LiteralPath $candidate -Raw -Encoding UTF8 -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+            $readable = $true
+            if ($payload.type) { $type = [string]$payload.type } else { $type = 'UNKNOWN' }
+            $identity = if ($payload.client_email) { [string]$payload.client_email } elseif ($payload.client_id) { [string]$payload.client_id } else { '' }
+            if ($identity) {
+              $bytes = [Text.Encoding]::UTF8.GetBytes($identity)
+              $sha = [Security.Cryptography.SHA256]::Create()
+              $identityFp16 = ([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-','').ToLowerInvariant().Substring(0,16)
+              $sha.Dispose()
+            }
+          } catch {
+            $readable = $false
+          }
+
+          $readerSame = 'UNKNOWN'
+          $readerPath = $env:A1_DRIVE_READER_CREDENTIALS
+          if (-not [string]::IsNullOrWhiteSpace($readerPath) -and (Test-Path -LiteralPath $readerPath -PathType Leaf -ErrorAction SilentlyContinue) -and $readable) {
+            try {
+              $readerHash = (Get-FileHash -LiteralPath $readerPath -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()
+              $candidateHash = (Get-FileHash -LiteralPath $candidate -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()
+              $readerSame = ($readerHash -eq $candidateHash)
+            } catch { $readerSame = 'UNKNOWN' }
+          }
+
+          Write-Host "KNOWN_WRITER_FILE|readable=$readable|sha256_16=$hash16|type=$type|identity_fp16=$identityFp16|same_as_reader=$readerSame|path_disclosed=false"
+          Write-Host 'KNOWN_WRITER_PATH_RESULT|status=COMPLETE|mutation=false|credential_content_disclosed=false'

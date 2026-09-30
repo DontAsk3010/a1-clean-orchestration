@@ -1,0 +1,94 @@
+name: Windows Canonical Recovery RAW Shard Proof
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - '.github/workflows/windows-canonical-recovery-raw-shard-proof.yml'
+      - 'canonical-current-recovery-requests/raw-shard-reconstructability-current.json'
+      - 'src/a1clean/raw_shard_reconstructability.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-canonical-recovery-raw-shard-proof
+  cancel-in-progress: true
+
+jobs:
+  proof:
+    name: Read-only RAW shard proof
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Route exact recovery runner
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "RAW_SHARD_PROOF_WRONG_MACHINE:$env:COMPUTERNAME" }
+          if ($env:RUNNER_NAME -ne 'A1-WINDOWS-COMPUTE-02') { throw "RAW_SHARD_PROOF_WRONG_RUNNER:$env:RUNNER_NAME" }
+          $p = [Environment]::GetEnvironmentVariable('A1_DRIVE_READER_CREDENTIALS','Process')
+          if ([string]::IsNullOrWhiteSpace($p) -or -not (Test-Path -LiteralPath $p -PathType Leaf)) { throw 'RAW_SHARD_PROOF_READER_BINDING_FAIL' }
+          Write-Host 'RAW_SHARD_PROOF_EXACT_RUNNER_PASS'
+
+      - name: Provision governed Python runtime
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & '.\scripts\windows\Ensure-A1PortablePython311.ps1'
+          $py = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\python.exe'
+          $pip = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\pip.pyz'
+          $site = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\Lib\site-packages'
+          & $py $pip install --disable-pip-version-check --upgrade --no-deps --target $site .
+          if ($LASTEXITCODE -ne 0) { throw 'RAW_SHARD_PROOF_PROJECT_INSTALL_FAIL' }
+          "A1_PROOF_PY=$py" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Validate proof locks
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & $env:A1_PROOF_PY -m py_compile 'src\a1clean\raw_shard_reconstructability.py'
+          if ($LASTEXITCODE -ne 0) { throw 'RAW_SHARD_PROOF_COMPILE_FAIL' }
+          $r = Get-Content -LiteralPath 'canonical-current-recovery-requests\raw-shard-reconstructability-current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($r.mode -ne 'READ_ONLY_CANONICAL_RAW_CHUNK_PROOF') { throw 'RAW_SHARD_PROOF_MODE_FAIL' }
+          if ($r.drive_write_allowed -ne $false -or $r.canonical_current_mutation_allowed -ne $false -or $r.physical_delete_allowed_by_this_proof -ne $false -or $r.raw_write_allowed -ne $false -or $r.heavy_behavior_research_allowed -ne $false) { throw 'RAW_SHARD_PROOF_MUTATION_LOCK_FAIL' }
+          if ($r.formula_stage -ne 'CLOSED') { throw 'RAW_SHARD_PROOF_FORMULA_LOCK_FAIL' }
+          Write-Host 'RAW_SHARD_PROOF_NO_MUTATION_LOCK_PASS'
+
+      - name: Execute full canonical RAW shard proof
+        id: execute
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Continue'
+          New-Item -ItemType Directory -Force -Path 'raw-shard-proof-evidence' | Out-Null
+          $out = Join-Path (Resolve-Path 'raw-shard-proof-evidence').Path 'RAW_SHARD_RECONSTRUCTABILITY_RESULT.json'
+          & $env:A1_PROOF_PY -m a1clean.raw_shard_reconstructability --repo-root . --output $out
+          $code = $LASTEXITCODE
+          if (-not (Test-Path -LiteralPath $out -PathType Leaf)) { throw "RAW_SHARD_PROOF_RESULT_MISSING_EXIT_$code" }
+          $p = Get-Content -LiteralPath $out -Raw -Encoding UTF8 | ConvertFrom-Json
+          Copy-Item -LiteralPath 'canonical-current-recovery-requests\raw-shard-reconstructability-current.json' -Destination 'raw-shard-proof-evidence\RAW_SHARD_RECONSTRUCTABILITY_REQUEST.json' -Force
+          Add-Content $env:GITHUB_STEP_SUMMARY '### Canonical RAW shard reconstructability proof'
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Status: $($p.status)"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- RAW bytes: $($p.canonical_raw.streamed_size)"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- RAW chunks: $($p.canonical_raw.chunk_count)"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- RAW SHA256 pass: $($p.canonical_raw.source_identity_pass)"
+          foreach ($c in $p.candidates) { Add-Content $env:GITHUB_STEP_SUMMARY "- Candidate $($c.candidate_folder_id): shards=$($c.shard_count), bytes=$($c.total_shard_bytes), complete_partition=$($c.is_complete_raw_partition), pass=$($c.pass)" }
+          Add-Content $env:GITHUB_STEP_SUMMARY '- Drive write: false; RAW write: false; canonical mutation: false; delete: false'
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Next gate: $($p.next_gate)"
+          if ($code -ne 0 -and $code -ne 3) { throw "RAW_SHARD_PROOF_EXECUTION_ERROR_EXIT_$code" }
+          if ($code -eq 3) { exit 3 }
+          Write-Host 'RAW_SHARD_PROOF_PASS'
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: raw-shard-proof-${{ github.run_id }}
+          path: raw-shard-proof-evidence
+          if-no-files-found: error
+          retention-days: 30

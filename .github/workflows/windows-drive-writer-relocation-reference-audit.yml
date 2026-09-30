@@ -1,0 +1,156 @@
+name: Windows Drive Writer Relocation Reference Audit
+
+on:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - '.github/workflows/windows-drive-writer-relocation-reference-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-drive-writer-relocation-reference-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: Read-only writer path-reference and recycle-state audit
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 45
+    steps:
+      - name: Audit reader format, user hives, historical path references, and recycle bins safely
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "Wrong host: $env:COMPUTERNAME" }
+          $m2svc = @(Get-CimInstance Win32_Service -ErrorAction SilentlyContinue | Where-Object {
+            ([string]$_.DisplayName -like '*A1-WINDOWS-COMPUTE-02*') -or ([string]$_.PathName -like '*actions-runner-a1-02*')
+          })
+          if ($m2svc.Count -lt 1) { throw 'Machine-2 service not found.' }
+          Write-Host "REFERENCE_AUDIT_HOST_PASS|runner=$env:RUNNER_NAME|computer=$env:COMPUTERNAME|machine2_service_present=true"
+
+          function Sha([string]$path) {
+            return (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+          }
+          function ShaText([string]$text) {
+            $sha = [Security.Cryptography.SHA256]::Create()
+            try { return ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($text)))).Replace('-','').ToLowerInvariant() }
+            finally { $sha.Dispose() }
+          }
+          function Safe-JsonShape([string]$path,[string]$readerHash) {
+            try {
+              $fi = Get-Item -LiteralPath $path -Force -ErrorAction Stop
+              if ($fi.Length -gt 4MB -or $fi.Length -lt 2) { return $null }
+              $p = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
+              $props = @($p.PSObject.Properties.Name | Sort-Object)
+              $propSet = ($props -join ',')
+              $type = if ($props -contains 'type') { [string]$p.type } else { '' }
+              $kind = 'OTHER_JSON'
+              $identity = ''
+              if ($type -eq 'authorized_user') { $kind='AUTHORIZED_USER_RUNTIME_CREDENTIAL'; $identity=[string]$p.client_id }
+              elseif (($props -contains 'refresh_token') -and ($props -contains 'client_id') -and ($props -contains 'client_secret') -and ($props -contains 'token_uri')) { $kind='AUTHORIZED_USER_RUNTIME_CREDENTIAL_SHAPE'; $identity=[string]$p.client_id }
+              elseif ($type -eq 'service_account' -and ($props -contains 'client_email') -and ($props -contains 'private_key')) { $kind='SERVICE_ACCOUNT_RUNTIME_CREDENTIAL'; $identity=[string]$p.client_email }
+              elseif (($props -contains 'installed') -or ($props -contains 'web')) { $kind='OAUTH_CLIENT_CONFIG' }
+              $hash = Sha $path
+              return [pscustomobject]@{
+                Path=$fi.FullName; Name=$fi.Name; Size=$fi.Length; Hash=$hash; SameAsReader=([bool]($readerHash -and $hash -eq $readerHash));
+                Type=$type; Kind=$kind; IdentityFp16=if($identity){(ShaText $identity).Substring(0,16)}else{'NONE'}; Properties=$propSet
+              }
+            } catch { return $null }
+          }
+
+          $readerPath = $null
+          foreach ($scope in @('Process','Machine','User')) {
+            $v=[Environment]::GetEnvironmentVariable('A1_DRIVE_READER_CREDENTIALS',$scope)
+            if ($v -and (Test-Path -LiteralPath $v -PathType Leaf -ErrorAction SilentlyContinue)) { $readerPath=[IO.Path]::GetFullPath($v); break }
+          }
+          $readerHash = if ($readerPath) { Sha $readerPath } else { $null }
+          if ($readerPath) {
+            $rshape=Safe-JsonShape $readerPath $readerHash
+            if ($rshape) {
+              Write-Host ("READER_FORMAT|path={0}|sha256={1}|type={2}|kind={3}|top_level_properties={4}|secret_values_disclosed=false" -f $rshape.Path,$rshape.Hash,$rshape.Type,$rshape.Kind,$rshape.Properties)
+            } else {
+              Write-Host "READER_FORMAT|path=$readerPath|status=NOT_STANDARD_JSON_OR_UNREADABLE|secret_values_disclosed=false"
+            }
+          }
+
+          $authDir='C:\Users\feri-admin\a1-drive-auth'
+          if (Test-Path -LiteralPath $authDir -PathType Container -ErrorAction SilentlyContinue) {
+            foreach ($f in @(Get-ChildItem -LiteralPath $authDir -File -Recurse -Force -ErrorAction SilentlyContinue)) {
+              $hash=Sha $f.FullName
+              $shape=if($f.Extension -ieq '.json'){Safe-JsonShape $f.FullName $readerHash}else{$null}
+              Write-Host ("AUTH_DIR_FILE|path={0}|size={1}|last_write_utc={2}|sha256={3}|json_kind={4}|same_as_reader={5}|secret_values_disclosed=false" -f $f.FullName,$f.Length,$f.LastWriteTimeUtc.ToString('o'),$hash,($(if($shape){$shape.Kind}else{'NONJSON_OR_OTHER'})),($(if($shape){$shape.SameAsReader}else{$false})))
+            }
+          } else { Write-Host 'AUTH_DIR|status=MISSING' }
+
+          # Inspect every loaded user hive for the exact environment binding only.
+          foreach ($sid in @(Get-ChildItem Registry::HKEY_USERS -ErrorAction SilentlyContinue)) {
+            $envKey = "Registry::$($sid.Name)\Environment"
+            try {
+              $item=Get-ItemProperty -LiteralPath $envKey -Name 'A1_DRIVE_WRITER_CREDENTIALS' -ErrorAction Stop
+              $value=[string]$item.A1_DRIVE_WRITER_CREDENTIALS
+              $exists=if($value){Test-Path -LiteralPath $value -PathType Leaf -ErrorAction SilentlyContinue}else{$false}
+              Write-Host ("USER_HIVE_WRITER_BINDING|sid={0}|present=true|path={1}|file_exists={2}" -f ($sid.PSChildName),$value,$exists)
+            } catch {}
+          }
+
+          # Collect absolute JSON path references from runner diagnostics and PowerShell history without printing source lines.
+          $refs=@{}
+          function Add-Ref([string]$path,[string]$source) {
+            if([string]::IsNullOrWhiteSpace($path)){return}
+            $key=$path.ToLowerInvariant()
+            if(-not $refs.ContainsKey($key)){$refs[$key]=[ordered]@{Path=$path;Count=0;Sources=New-Object System.Collections.Generic.HashSet[string]([StringComparer]::OrdinalIgnoreCase)}}
+            $refs[$key].Count++
+            [void]$refs[$key].Sources.Add($source)
+          }
+          function Parse-ReferenceFile([string]$file,[string]$source) {
+            if(-not(Test-Path -LiteralPath $file -PathType Leaf -ErrorAction SilentlyContinue)){return}
+            try {
+              $hits=@(Select-String -LiteralPath $file -Pattern 'A1_DRIVE_WRITER_CREDENTIALS|client_writer\.json|writer_oauth_client\.json|writer_credentials\.json|drive.*writer|writer.*credential' -CaseSensitive:$false -ErrorAction Stop)
+              foreach($hit in $hits){
+                foreach($m in [regex]::Matches([string]$hit.Line,'(?i)([A-Za-z]:\\[^"'';\r\n|]+?\.json)')){Add-Ref $m.Groups[1].Value $source}
+              }
+            } catch {}
+          }
+          foreach($root in @('C:\Users\feri-admin\actions-runner-a1\_diag','C:\Users\feri-admin\actions-runner-a1-02\_diag')){
+            if(Test-Path -LiteralPath $root -PathType Container -ErrorAction SilentlyContinue){
+              foreach($f in @(Get-ChildItem -LiteralPath $root -File -Filter '*.log' -Recurse -Force -ErrorAction SilentlyContinue)){Parse-ReferenceFile $f.FullName 'RUNNER_DIAG'}
+            }
+          }
+          $psHist='C:\Users\feri-admin\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt'
+          Parse-ReferenceFile $psHist 'POWERSHELL_HISTORY'
+
+          foreach($key in @($refs.Keys|Sort-Object)){
+            $r=$refs[$key]
+            $exists=Test-Path -LiteralPath $r.Path -PathType Leaf -ErrorAction SilentlyContinue
+            $shape=$null
+            if($exists){$shape=Safe-JsonShape $r.Path $readerHash}
+            Write-Host ("HISTORICAL_WRITER_PATH_REFERENCE|path={0}|occurrences={1}|sources={2}|file_exists={3}|json_kind={4}|same_as_reader={5}|secret_values_disclosed=false" -f $r.Path,$r.Count,(@($r.Sources)-join '+'),$exists,($(if($shape){$shape.Kind}else{'NONE_OR_UNREADABLE'})),($(if($shape){$shape.SameAsReader}else{$false})))
+          }
+          Write-Host "HISTORICAL_REFERENCE_SUMMARY|unique_json_paths=$($refs.Count)"
+
+          # Recycle-bin recovery check: filenames may be renamed to $R*, so detect JSON credential shape rather than filename.
+          $recycleCandidates=0
+          $recycleDistinctRuntime=0
+          foreach($root in @('C:\$Recycle.Bin','D:\$Recycle.Bin')){
+            if(-not(Test-Path -LiteralPath $root -PathType Container -ErrorAction SilentlyContinue)){continue}
+            Write-Host "RECYCLE_SCAN_START|root=$root"
+            foreach($f in @(Get-ChildItem -LiteralPath $root -File -Recurse -Force -ErrorAction SilentlyContinue)){
+              if($f.Length -gt 4MB -or $f.Length -lt 2){continue}
+              $shape=Safe-JsonShape $f.FullName $readerHash
+              if(-not $shape){continue}
+              if($shape.Kind -eq 'OTHER_JSON'){continue}
+              $recycleCandidates++
+              $isRuntime=$shape.Kind -in @('AUTHORIZED_USER_RUNTIME_CREDENTIAL','AUTHORIZED_USER_RUNTIME_CREDENTIAL_SHAPE','SERVICE_ACCOUNT_RUNTIME_CREDENTIAL')
+              if($isRuntime -and -not $shape.SameAsReader){$recycleDistinctRuntime++}
+              Write-Host ("RECYCLE_CREDENTIAL_CANDIDATE|path={0}|size={1}|sha256={2}|kind={3}|same_as_reader={4}|identity_fp16={5}|secret_values_disclosed=false" -f $shape.Path,$shape.Size,$shape.Hash,$shape.Kind,$shape.SameAsReader,$shape.IdentityFp16)
+            }
+            Write-Host "RECYCLE_SCAN_DONE|root=$root"
+          }
+          Write-Host "RECYCLE_SUMMARY|credential_candidates=$recycleCandidates|distinct_runtime_candidates=$recycleDistinctRuntime"
+          Write-Host 'REFERENCE_AUDIT_COMPLETE|binding_changed=false|drive_write=false|oauth_reauthorization=false|canonical_current_mutation=false|secret_values_disclosed=false'

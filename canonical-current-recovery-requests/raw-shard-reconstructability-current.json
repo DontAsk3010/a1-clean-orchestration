@@ -1,0 +1,26 @@
+{
+  "schema": "A1_CANONICAL_RECOVERY_RAW_SHARD_RECONSTRUCTABILITY_REQUEST_V1",
+  "enabled": true,
+  "mode": "READ_ONLY_CANONICAL_RAW_CHUNK_PROOF",
+  "branch": "fix/v32-dynamic-source-universe-v1",
+  "canonical_raw_file_id": "1wvBmhpQIV-evJJOPN_g8nks3KZBzmVHC",
+  "canonical_raw_file_name": "Raw Des 02-31-2024.csv",
+  "canonical_raw_expected_size": 453806812,
+  "canonical_raw_expected_sha256": "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+  "chunk_size_bytes": 16777216,
+  "partial_candidate_folder_ids": [
+    "1s5EqI2CBUZxHHLMq6uKYfe7DSDMSAzQT",
+    "1yQSuGEMQRI-3ltI1mcMLkMX0iqDGEu76"
+  ],
+  "candidate_shard_folder_name": "01_ACCESS_SHARDS",
+  "candidate_shard_name_prefix": "Raw Des 02-31-2024__PHYSICAL_",
+  "drive_write_allowed": false,
+  "canonical_current_mutation_allowed": false,
+  "physical_delete_allowed_by_this_proof": false,
+  "raw_write_allowed": false,
+  "heavy_behavior_research_allowed": false,
+  "formula_stage": "CLOSED",
+  "pass_contract": "FULL_CANONICAL_RAW_SHA256_AND_SIZE_PASS_AND_EVERY_CANDIDATE_PHYSICAL_SHARD_INDEX_SIZE_MD5_MATCHES_THE_CORRESPONDING_16MIB_CANONICAL_RAW_CHUNK",
+  "next_gate_on_pass": "COMBINE_WITH_DUPLICATE_TREE_AUDIT_AND_REFRESH_ACTIVE_REFERENCE_ZERO_BEFORE_ANY_DELETE",
+  "next_gate_on_hold": "PRESERVE_PARTIAL_CANDIDATES_AND_RECONCILE_ONLY_FAILED_SHARD_SCOPE"
+}

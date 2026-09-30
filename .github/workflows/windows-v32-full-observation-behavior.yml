@@ -1,4 +1,4 @@
-name: Windows V3.2 Full Observation and Behavior Capability V2
+name: Windows V3.2 Full Observation and Behavior Capability Dynamic
 
 on:
   push:
@@ -17,11 +17,11 @@ concurrency:
 
 jobs:
   enrich:
-    name: Build/reconcile 18-source evidence substrate under latest authority contract
+    name: Dynamic-source evidence substrate under current authority contract
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 4320
     env:
-      A1_RAW_DIR: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
+      A1_RAW_DIR: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
       A1_MG_FEATURE_CACHE_ROOT: 'C:\Users\feri-admin\.a1clean\mg_normalized_cache_v1'
       PSExecutionPolicyPreference: Bypass
 
@@ -30,9 +30,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 64
+          fetch-depth: 96
 
-      - name: Provision portable Python 3.11 for service runner
+      - name: Provision portable Python 3.11
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
@@ -48,194 +48,182 @@ jobs:
             (Get-Content -LiteralPath $pth -Raw).Replace('#import site','import site') | Set-Content -LiteralPath $pth -Encoding ascii
             Invoke-WebRequest -UseBasicParsing -Uri 'https://bootstrap.pypa.io/get-pip.py' -OutFile $getPip
             & (Join-Path $pyRoot 'python.exe') $getPip --no-warn-script-location
-            if ($LASTEXITCODE -ne 0) { throw 'V32_V2_PORTABLE_PIP_BOOTSTRAP_FAILED' }
+            if ($LASTEXITCODE -ne 0) { throw 'V32_DYNAMIC_PORTABLE_PIP_BOOTSTRAP_FAILED' }
           }
           $py = Join-Path $pyRoot 'python.exe'
           & $py --version
-          if ($LASTEXITCODE -ne 0) { throw 'V32_V2_PORTABLE_PYTHON_UNAVAILABLE' }
+          if ($LASTEXITCODE -ne 0) { throw 'V32_DYNAMIC_PORTABLE_PYTHON_UNAVAILABLE' }
           "A1_PYTHON_EXE=$py" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           $pyRoot | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Validate latest authority-bound evidence request and pin semantic revision
+      - name: Install compile and run lightweight implementation tests
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          $req = Get-Content -LiteralPath 'v32-full-observation-behavior-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
-          if ($req.schema -ne 'A1_V32_FULL_OBSERVATION_BEHAVIOR_REQUEST_V2') { throw 'V32_V2_REQUEST_SCHEMA_MISMATCH' }
-          if ($req.enabled -ne $true) { throw 'V32_V2_REQUEST_DISABLED' }
-          if ($req.scope_class -ne 'EVIDENCE_SUBSTRATE_ONLY_NOT_FINAL_ATLAS') { throw 'V32_V2_SCOPE_CLASS_FAIL' }
-          if ($req.formula_stage -ne 'CLOSED') { throw 'V32_V2_FORMULA_STAGE_MUST_BE_CLOSED' }
-          if ($req.latest_authority_revision_binding_required -ne $true) { throw 'V32_V2_LATEST_AUTHORITY_BINDING_REQUIRED' }
-          if ($req.temporal_behavior_sequence_downstream_required -ne $true) { throw 'V32_V2_TEMPORAL_DOWNSTREAM_LOCK_REQUIRED' }
-          if ($req.permanent_blindspot_register_downstream_required -ne $true) { throw 'V32_V2_BLINDSPOT_DOWNSTREAM_LOCK_REQUIRED' }
-          if ($req.future_hpx_lane_gate_downstream_required -ne $true) { throw 'V32_V2_HPX_DOWNSTREAM_GATE_REQUIRED' }
+          & $env:A1_PYTHON_EXE -m pip install -e '.[test]'
+          if ($LASTEXITCODE -ne 0) { throw 'V32_DYNAMIC_INSTALL_FAILED' }
+          & $env:A1_PYTHON_EXE -m py_compile `
+            src/a1clean/formula_research/source_universe_manifest.py `
+            src/a1clean/formula_research/source_universe_drive_preflight.py `
+            src/a1clean/formula_research/v32_dynamic_prestart.py `
+            src/a1clean/formula_research/v32_observation_envelope_dynamic.py `
+            src/a1clean/formula_research/v32_full_observation_semantic_dynamic.py
+          if ($LASTEXITCODE -ne 0) { throw 'V32_DYNAMIC_COMPILE_FAILED' }
+          & $env:A1_PYTHON_EXE -m pytest -q `
+            tests/test_source_universe_manifest.py `
+            tests/test_v32_dynamic_prestart.py `
+            tests/test_v30_semantic_journey_enrichment.py `
+            tests/test_v31_full_chronological_semantic_enrichment.py `
+            tests/test_v32_observation_envelope.py `
+            tests/test_v32_full_observation_semantic_dynamic.py
+          if ($LASTEXITCODE -ne 0) { throw 'V32_DYNAMIC_TEST_FAILED' }
 
-          if ($req.formula_research_handbook_document_id -ne '1sQu0l2qwvsjItmBycRh3siMajKEQknHOMBLlBQd3I-Q') { throw 'V32_V2_FORMULA_HANDBOOK_ID_FAIL' }
-          if ($req.formula_research_handbook_revision_id -ne 'ANLCKQmx9gVLSJ5gpGRNR8btoS2hqxdhnfEFC6kmFt55FSRxPgPHatpXneQC-zAgEB3JXt7t2t-p1eZIjhl0Q6aJId-9u5-PyxmpB0tCA0o') { throw 'V32_V2_FORMULA_HANDBOOK_REVISION_FAIL' }
-          if ($req.behavior_handbook_document_id -ne '1vDoz8E7nGVlYPl2SBneA2tCAiNNAL77nLgPPZzFlbaI') { throw 'V32_V2_BEHAVIOR_HANDBOOK_ID_FAIL' }
-          if ($req.behavior_handbook_revision_id -ne 'ANLCKQkCMiCu8UcqXqgIR6asvyqgAunxTVI4raUGjhCWq45YUhhWcAvsZ0cTTf7Du5Sve3cOpWbbO7YMMuPC6CJtFKS83iPdseuiX3Sptlg') { throw 'V32_V2_BEHAVIOR_HANDBOOK_REVISION_FAIL' }
-          if ($req.github_automation_handbook_document_id -ne '12PK2RTlRlggPQAScAmzNPewatB5mZqOgJ3sZfRBsbO8') { throw 'V32_V2_GITHUB_HANDBOOK_ID_FAIL' }
-          if ($req.github_automation_handbook_revision_id -ne 'ANLCKQkuxVSCswyMzrzzq63E--k2Ab9I-0rDHZ6AzWAg8zJyBD5jQsNJKgALd1sBDj7VBde1Q5UXi1Sk56WT9aAYHTzpe20ndMd2fUyTOfc') { throw 'V32_V2_GITHUB_HANDBOOK_REVISION_FAIL' }
-          if ($req.transition_bridge_document_id -ne '1WI79YymkVcOJTRDhLwSiAESkLWFakwL9pe0oj6q1kug') { throw 'V32_V2_BRIDGE_ID_FAIL' }
-          if ($req.transition_bridge_revision_id -ne 'ANLCKQkCI_azkcX4jmlKwF4MEm7Fqh6TSTk4nkNqQ3sk4iK4Q5MyztjHvkBKqjUPQd9ofpGpS9J4e-hu7lWolBz0usLSK2XZwMAINYGyk64') { throw 'V32_V2_BRIDGE_REVISION_FAIL' }
+      - name: Verify runner credentials and current state roots
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:A1_DRIVE_READER_CREDENTIALS)) { throw 'V32_DYNAMIC_DRIVE_READER_CREDENTIALS_NOT_CONFIGURED' }
+          if (-not (Test-Path -LiteralPath $env:A1_DRIVE_READER_CREDENTIALS -PathType Leaf)) { throw 'V32_DYNAMIC_DRIVE_READER_CREDENTIALS_FILE_MISSING' }
+          if (-not (Test-Path -LiteralPath 'C:\Users\feri-admin\.a1clean' -PathType Container)) { throw 'V32_DYNAMIC_STATE_ROOT_MISSING' }
+
+      - name: Build governed dynamic source universe from current Drive controls
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $manifest = Join-Path $env:RUNNER_TEMP 'a1-source-universe-manifest.json'
+          $stamp = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
+          & $env:A1_PYTHON_EXE -m a1clean.formula_research.source_universe_drive_preflight `
+            --authority-lock governance/a1-clean-active-authority-lock.json `
+            --output $manifest `
+            --discovery-time-utc $stamp
+          if ($LASTEXITCODE -ne 0) { throw "V32_DYNAMIC_SOURCE_UNIVERSE_HOLD:$LASTEXITCODE" }
+          $u = Get-Content -LiteralPath $manifest -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($u.status -ne 'PASS' -or $u.dynamic_source_universe_required -ne $true -or $u.fixed_source_count_as_invariant_forbidden -ne $true) { throw 'V32_DYNAMIC_SOURCE_UNIVERSE_PRESTART_FAIL' }
+          if ([int]$u.source_count -lt 1 -or $u.sources.Count -ne [int]$u.source_count) { throw 'V32_DYNAMIC_SOURCE_UNIVERSE_CARDINALITY_FAIL' }
+          "A1_SOURCE_UNIVERSE_MANIFEST=$manifest" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "A1_SOURCE_UNIVERSE_COUNT=$($u.source_count)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "A1_SOURCE_UNIVERSE_DIGEST=$($u.manifest_digest)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: PRESTART latest-authority request benchmark source and semantic gate
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & $env:A1_PYTHON_EXE -m a1clean.formula_research.v32_dynamic_prestart `
+            --request v32-full-observation-behavior-requests/current.json `
+            --authority-lock governance/a1-clean-active-authority-lock.json `
+            --source-universe-manifest $env:A1_SOURCE_UNIVERSE_MANIFEST `
+            --require-enabled
+          if ($LASTEXITCODE -ne 0) { throw "V32_DYNAMIC_PRESTART_FAIL:$LASTEXITCODE" }
+
+          $req = Get-Content -LiteralPath 'v32-full-observation-behavior-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($req.schema -ne 'A1_V32_FULL_OBSERVATION_BEHAVIOR_REQUEST_V2') { throw 'V32_DYNAMIC_REQUEST_SCHEMA_MISMATCH' }
+          if ($req.scope_class -ne 'EVIDENCE_SUBSTRATE_ONLY_NOT_FINAL_ATLAS') { throw 'V32_DYNAMIC_SCOPE_CLASS_FAIL' }
+          if ($req.formula_stage -ne 'CLOSED') { throw 'V32_DYNAMIC_FORMULA_STAGE_MUST_BE_CLOSED' }
+          if ($req.full_source_supported_observation_envelope -ne $true -or $req.all_source_columns_retrievable_required -ne $true) { throw 'V32_DYNAMIC_FULL_ENVELOPE_CONTRACT_FAIL' }
+          if ($req.regular_behavior_stream_isolated -ne $true -or $req.behavior_lifecycle_required -ne $true -or $req.behavior_path_required -ne $true) { throw 'V32_DYNAMIC_BEHAVIOR_CONTRACT_FAIL' }
+          if ($req.unnamed_state_transitions_must_be_preserved -ne $true) { throw 'V32_DYNAMIC_UNNAMED_TRANSITIONS_REQUIRED' }
+          if ($req.manual_labels_used_as_hidden_targets -ne $false -or $req.arbitrary_thresholds_added -ne $false -or $req.missing_as_zero -ne $false) { throw 'V32_DYNAMIC_PROHIBITION_FAIL' }
+          if ($req.v31_immutable -ne $true -or $req.v2x_immutable -ne $true) { throw 'V32_DYNAMIC_PRIOR_LINEAGE_IMMUTABILITY_REQUIRED' }
+          if ($req.temporal_behavior_sequence_downstream_required -ne $true -or $req.permanent_blindspot_register_downstream_required -ne $true -or $req.future_hpx_lane_gate_downstream_required -ne $true) { throw 'V32_DYNAMIC_DOWNSTREAM_OWNER_LOCK_FAIL' }
+          if ($req.dual_independent_full_depth_research_engines_required -ne $true -or $req.machine1_machine2_division_of_labor_forbidden -ne $true) { throw 'V32_DYNAMIC_DUAL_ENGINE_LOCK_FAIL' }
 
           $coverage = Get-Content -LiteralPath 'v32-manual-behavior-benchmark-coverage/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
-          if ($coverage.schema -ne 'A1_V32_MANUAL_BEHAVIOR_BENCHMARK_COVERAGE_V1') { throw 'V32_V2_BENCHMARK_COVERAGE_SCHEMA_MISMATCH' }
-          if ($coverage.status -ne 'PASS_READY_FOR_FULL_CORPUS_RUN') { throw "V32_V2_BENCHMARK_COVERAGE_NOT_READY:$($coverage.status)" }
+          if ($coverage.schema -ne 'A1_V32_MANUAL_BEHAVIOR_BENCHMARK_COVERAGE_V1' -or $coverage.status -ne 'PASS_READY_FOR_FULL_CORPUS_RUN') { throw 'V32_DYNAMIC_BENCHMARK_COVERAGE_NOT_READY' }
           $blocking = @($coverage.requirements | Where-Object { [string]$_.status -match 'BLOCKING|NOT_IMPLEMENTED|NOT_COMPLETE|NOT_YET_PROVEN' })
-          if ($blocking.Count -ne 0) { throw "V32_V2_BENCHMARK_BLOCKING_REQUIREMENTS_REMAIN:$($blocking.Count)" }
-
-          if ([int64]$req.required_source_count -ne 18) { throw 'V32_V2_REQUIRED_SOURCE_COUNT_MISMATCH' }
-          if ($req.march_2025_required -ne $true) { throw 'V32_V2_MARCH_REQUIRED' }
-          if ($req.full_source_supported_observation_envelope -ne $true) { throw 'V32_V2_FULL_ENVELOPE_REQUIRED' }
-          if ($req.all_source_columns_retrievable_required -ne $true) { throw 'V32_V2_ALL_SOURCE_COLUMNS_REQUIRED' }
-          if ($req.regular_behavior_stream_isolated -ne $true) { throw 'V32_V2_REGULAR_STREAM_ISOLATION_REQUIRED' }
-          if ($req.behavior_lifecycle_required -ne $true) { throw 'V32_V2_LIFECYCLE_REQUIRED' }
-          if ($req.behavior_path_required -ne $true) { throw 'V32_V2_BEHAVIOR_PATH_REQUIRED' }
-          if ($req.unnamed_state_transitions_must_be_preserved -ne $true) { throw 'V32_V2_UNNAMED_TRANSITIONS_REQUIRED' }
-          if ($req.manual_labels_used_as_hidden_targets -ne $false) { throw 'V32_V2_MANUAL_HIDDEN_TARGET_FORBIDDEN' }
-          if ($req.arbitrary_thresholds_added -ne $false) { throw 'V32_V2_ARBITRARY_THRESHOLD_FORBIDDEN' }
-          if ($req.missing_as_zero -ne $false) { throw 'V32_V2_MISSING_AS_ZERO_FORBIDDEN' }
-          if ($req.machine1_semantic_reader_remains_independent -ne $true) { throw 'V32_V2_MACHINE1_INDEPENDENCE_REQUIRED' }
-          if ($req.formula_research_not_substitute_for_machine1_behavior_pass -ne $true) { throw 'V32_V2_MACHINE2_NOT_SUBSTITUTE_MACHINE1_REQUIRED' }
-          if ($req.manual_behavior_handbook_is_immutable_benchmark -ne $true) { throw 'V32_V2_MANUAL_BENCHMARK_IMMUTABILITY_REQUIRED' }
-          if ($req.v31_immutable -ne $true -or $req.v2x_immutable -ne $true) { throw 'V32_V2_PRIOR_LINEAGE_IMMUTABILITY_REQUIRED' }
-
-          if ([int64]$req.v31_run_id -ne 35291174908) { throw 'V32_V2_V31_RUN_BINDING_FAIL' }
-          if ([int64]$req.v31_artifact_id -ne 10533633559) { throw 'V32_V2_V31_ARTIFACT_BINDING_FAIL' }
-          if ($req.v31_artifact_digest -ne 'sha256:b1f6b891aad38fa4afcdfd7e34657fb7b44456e96c8d2985d05f4f4378961f03') { throw 'V32_V2_V31_ARTIFACT_DIGEST_FAIL' }
-          if ($req.v31_corpus_digest -ne '9c2ed57ec60c81caaa0220ce57a7392473b2cf63eb23f8c846d4e961187e8732') { throw 'V32_V2_V31_CORPUS_DIGEST_FAIL' }
-          if ([int64]$req.phase_probe_run_id -ne 35322105528) { throw 'V32_V2_PHASE_PROBE_RUN_BINDING_FAIL' }
-          if ([int64]$req.phase_probe_artifact_id -ne 10537732681) { throw 'V32_V2_PHASE_PROBE_ARTIFACT_BINDING_FAIL' }
-          if ($req.phase_probe_artifact_digest -ne 'sha256:3d07b1f7a5a16acb8cc66930c7f271f2de432a6cb52340f77e43efae0e8e7057') { throw 'V32_V2_PHASE_PROBE_DIGEST_FAIL' }
+          if ($blocking.Count -ne 0) { throw "V32_DYNAMIC_BENCHMARK_BLOCKING_REQUIREMENTS_REMAIN:$($blocking.Count)" }
 
           $softwareRevision = [string]$req.required_parent_revision
-          if ($softwareRevision -ne 'f22dc09395a7967215f93fc832d0fe81ee77d3aa') { throw 'V32_V2_PARENT_REVISION_FAIL' }
+          if ([string]::IsNullOrWhiteSpace($softwareRevision)) { throw 'V32_DYNAMIC_PARENT_REVISION_EMPTY' }
+          git -c "safe.directory=$PWD" cat-file -e "$softwareRevision^{commit}"
+          if ($LASTEXITCODE -ne 0) { throw 'V32_DYNAMIC_PARENT_REVISION_NOT_FOUND' }
           $semanticPaths = @(
             'src/a1clean/formula_research/v30_semantic_journey_enrichment.py',
             'src/a1clean/formula_research/v32_observation_envelope.py',
             'src/a1clean/formula_research/v32_behavior_lifecycle.py',
             'src/a1clean/formula_research/v32_full_observation_semantic_enrichment.py',
-            'src/a1clean/formula_research/full_chronological_cache_catalog.py',
             'src/a1clean/formula_research/haka_haki_reconstruction.py'
           )
           $semanticChanged = @(git -c "safe.directory=$PWD" diff --name-only "$softwareRevision..HEAD" -- $semanticPaths)
-          if ($LASTEXITCODE -ne 0) { throw 'V32_V2_SEMANTIC_REVISION_DIFF_CHECK_FAILED' }
-          if ($semanticChanged.Count -ne 0) { throw "V32_V2_SEMANTIC_CODE_DRIFT:$($semanticChanged -join ',')" }
+          if ($LASTEXITCODE -ne 0) { throw 'V32_DYNAMIC_SEMANTIC_REVISION_DIFF_CHECK_FAILED' }
+          if ($semanticChanged.Count -ne 0) { throw "V32_DYNAMIC_BASE_SEMANTIC_CODE_DRIFT:$($semanticChanged -join ',')" }
 
           "A1_V32_SOFTWARE_REVISION=$softwareRevision" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           $out = Join-Path 'C:\Users\feri-admin\.a1clean\v32_full_observation_behavior\schema-v3' $softwareRevision
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
           "V32_OUTPUT_ROOT=$out" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "A1_V32_SCOPE_CLASS=EVIDENCE_SUBSTRATE_ONLY_NOT_FINAL_ATLAS" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "PRESTART_COMPLETENESS_PASS|scope=V32_FULL_OBSERVATION_DYNAMIC|sources=$env:A1_SOURCE_UNIVERSE_COUNT"
 
-      - name: Install compile and test exact evidence substrate before reading data
+      - name: Build or reuse dynamic V3.2 evidence corpus
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          & $env:A1_PYTHON_EXE -m pip install -e '.[test]'
-          if ($LASTEXITCODE -ne 0) { throw 'V32_V2_INSTALL_FAILED' }
-          & $env:A1_PYTHON_EXE -m py_compile src/a1clean/formula_research/v32_observation_envelope.py src/a1clean/formula_research/v32_behavior_lifecycle.py src/a1clean/formula_research/v32_full_observation_semantic_enrichment.py
-          if ($LASTEXITCODE -ne 0) { throw 'V32_V2_COMPILE_FAILED' }
-          & $env:A1_PYTHON_EXE -m pytest -q tests/test_v30_semantic_journey_enrichment.py tests/test_v31_full_chronological_semantic_enrichment.py tests/test_v32_observation_envelope.py
-          if ($LASTEXITCODE -ne 0) { throw 'V32_V2_TEST_FAILED' }
+          & $env:A1_PYTHON_EXE -m a1clean.formula_research.v32_full_observation_semantic_dynamic `
+            --output-root $env:V32_OUTPUT_ROOT `
+            --source-universe-manifest $env:A1_SOURCE_UNIVERSE_MANIFEST
+          if ($LASTEXITCODE -ne 0) { throw "V32_DYNAMIC_RUNTIME_FAILED:$LASTEXITCODE" }
 
-      - name: Verify runner state and governed cache bindings
+      - name: Assert dynamic full-source evidence and lineage reconciliation
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          $legacyRoot = 'C:\Users\feri-admin\.a1clean'
-          if (-not (Test-Path -LiteralPath $legacyRoot -PathType Container)) { throw 'V32_V2_LEGACY_STATE_ROOT_MISSING' }
-          if ([string]::IsNullOrWhiteSpace($env:A1_DRIVE_READER_CREDENTIALS)) { throw 'V32_V2_DRIVE_READER_CREDENTIALS_NOT_CONFIGURED' }
-          if (-not (Test-Path -LiteralPath $env:A1_DRIVE_READER_CREDENTIALS -PathType Leaf)) { throw 'V32_V2_DRIVE_READER_CREDENTIALS_FILE_MISSING' }
-          if (-not (Test-Path -LiteralPath $env:A1_MG_FEATURE_CACHE_ROOT -PathType Container)) { throw 'V32_V2_LEGACY_CACHE_ROOT_MISSING' }
-          & $env:A1_PYTHON_EXE -c "from a1clean.formula_research.full_chronological_cache_catalog import LEGACY_SOURCE_NAMES; from a1clean.formula_research import telegram_mg_structure_v12_runner as v12r; missing=[s for s in LEGACY_SOURCE_NAMES if (not v12r._cache_path(s).is_file()) or (not v12r._meta_path(s).is_file())]; print('V32_CACHE_MISSING_COUNT=' + str(len(missing))); raise SystemExit(1 if missing else 0)"
-          if ($LASTEXITCODE -ne 0) { throw 'V32_V2_LEGACY_CACHE_PREFLIGHT_FAILED' }
-
-      - name: Build or reuse complete V3.2 evidence corpus
-        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
-        run: |
-          $ErrorActionPreference = 'Stop'
-          & $env:A1_PYTHON_EXE -m a1clean.formula_research.v32_full_observation_semantic_enrichment --output-root $env:V32_OUTPUT_ROOT
-          if ($LASTEXITCODE -ne 0) { throw "V32_V2_RUNTIME_FAILED:$LASTEXITCODE" }
-
-      - name: Assert full source evidence and lineage reconciliation
-        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
-        run: |
-          $ErrorActionPreference = 'Stop'
+          $u = Get-Content -LiteralPath $env:A1_SOURCE_UNIVERSE_MANIFEST -Raw -Encoding UTF8 | ConvertFrom-Json
           $m = Get-Content -LiteralPath (Join-Path $env:V32_OUTPUT_ROOT 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-          if ($m.schema -ne 'A1_V32_FULL_OBSERVATION_SEMANTIC_ENRICHMENT_V3') { throw 'V32_V2_MANIFEST_SCHEMA_FAIL' }
-          if ($m.status -ne 'PASS' -or $m.reconciliation.pass -ne $true) { throw 'V32_V2_RECONCILIATION_FAIL' }
-          if ($m.software_revision -ne $env:A1_V32_SOFTWARE_REVISION) { throw 'V32_V2_SOFTWARE_REVISION_BINDING_FAIL' }
-          if ([int64]$m.reconciliation.source_count -ne 18) { throw 'V32_V2_SOURCE_COUNT_FAIL' }
-          if ([int64]$m.reconciliation.ticker_days -ne 315637) { throw 'V32_V2_TICKER_DAY_FAIL' }
-          if ([int64]$m.reconciliation.regular_rows -ne 33733344) { throw 'V32_V2_REGULAR_ROW_FAIL' }
-          if ([int64]$m.reconciliation.governed_dates -ne 347) { throw 'V32_V2_GOVERNED_DATE_FAIL' }
-          if ([int64]$m.reconciliation.excluded_rows -ne 0) { throw 'V32_V2_EXCLUDED_ROW_FAIL' }
-          if ($m.reconciliation.full_equals_regular_plus_nonregular -ne $true) { throw 'V32_V2_LAYER_ACCOUNTING_FAIL' }
-          if ([int64]$m.reconciliation.behavior_day_profiles -ne [int64]$m.reconciliation.ticker_days) { throw 'V32_V2_BEHAVIOR_DAY_COVERAGE_FAIL' }
-          if ([int64]$m.reconciliation.behavior_paths -ne [int64]$m.reconciliation.ticker_days) { throw 'V32_V2_BEHAVIOR_PATH_COVERAGE_FAIL' }
-          if ([int64]$m.reconciliation.behavior_lifecycle_journeys -ne [int64]$m.reconciliation.event_journeys) { throw 'V32_V2_LIFECYCLE_EVENT_COVERAGE_FAIL' }
-          if ([int64]$m.reconciliation.behavior_lifecycle_contract_records -ne [int64]$m.reconciliation.behavior_lifecycle_journeys) { throw 'V32_V2_LIFECYCLE_CONTRACT_COVERAGE_FAIL' }
-          if ($m.contract.full_source_supported_observation_envelope_preserved -ne $true) { throw 'V32_V2_FULL_ENVELOPE_FLAG_FAIL' }
-          if ($m.contract.all_source_columns_retrievable_from_full_observation_layer -ne $true) { throw 'V32_V2_SOURCE_FIELD_RETRIEVABILITY_FAIL' }
-          if ($m.contract.source_values_retained_for_every_observation -ne $true) { throw 'V32_V2_SOURCE_VALUES_RETENTION_FAIL' }
-          if ($m.contract.source_packet_fingerprint_preserved -ne $true) { throw 'V32_V2_SOURCE_PACKET_FINGERPRINT_FAIL' }
-          if ($m.contract.cross_date_carry_uses_terminal_source_observation -ne $true) { throw 'V32_V2_TERMINAL_CARRY_FLAG_FAIL' }
-          if ($m.contract.manual_behavior_lifecycle_contract_materialized -ne $true) { throw 'V32_V2_LIFECYCLE_FLAG_FAIL' }
-          if ($m.contract.all_formation_runs_and_state_changes_materialized_in_behavior_path -ne $true) { throw 'V32_V2_BEHAVIOR_PATH_FLAG_FAIL' }
-          if ($m.contract.unnamed_state_transitions_preserved -ne $true) { throw 'V32_V2_UNNAMED_STATE_FLAG_FAIL' }
-          if ($m.contract.manual_labels_not_used_as_hidden_targets -ne $true) { throw 'V32_V2_MANUAL_TARGET_FLAG_FAIL' }
-          if ($m.aali_concordance_gate.pass -ne $true) { throw 'V32_V2_AALI_CONCORDANCE_FAIL' }
-          if ($m.source_summaries.Count -ne 18) { throw 'V32_V2_SOURCE_SUMMARY_COUNT_FAIL' }
+          if ($m.schema -ne 'A1_V32_FULL_OBSERVATION_SEMANTIC_ENRICHMENT_V3' -or $m.status -ne 'PASS') { throw 'V32_DYNAMIC_MANIFEST_IDENTITY_FAIL' }
+          if ($m.dynamic_source_universe -ne $true -or $m.source_count_is_dynamic -ne $true -or $m.fixed_source_count_invariant_used -ne $false) { throw 'V32_DYNAMIC_SOURCE_CONTRACT_FAIL' }
+          if ([string]$m.source_universe_manifest_digest -ne [string]$u.manifest_digest) { throw 'V32_DYNAMIC_SOURCE_MANIFEST_BINDING_FAIL' }
+          if ([int64]$m.reconciliation.source_count -ne [int64]$u.source_count) { throw 'V32_DYNAMIC_SOURCE_COUNT_RECONCILIATION_FAIL' }
+          if ($m.reconciliation.pass -ne $true -or [int64]$m.reconciliation.excluded_rows -ne 0) { throw 'V32_DYNAMIC_RECONCILIATION_FAIL' }
+          if ($m.reconciliation.full_equals_regular_plus_nonregular -ne $true) { throw 'V32_DYNAMIC_LAYER_ACCOUNTING_FAIL' }
+          if ($m.reconciliation.behavior_day_profile_coverage_pass -ne $true -or $m.reconciliation.behavior_path_coverage_pass -ne $true) { throw 'V32_DYNAMIC_BEHAVIOR_DAY_OR_PATH_COVERAGE_FAIL' }
+          if ($m.reconciliation.behavior_lifecycle_journey_coverage_pass -ne $true -or $m.reconciliation.behavior_lifecycle_contract_pass -ne $true) { throw 'V32_DYNAMIC_LIFECYCLE_COVERAGE_FAIL' }
+          if ($m.contract.full_source_supported_observation_envelope_preserved -ne $true -or $m.contract.all_source_columns_retrievable_from_full_observation_layer -ne $true) { throw 'V32_DYNAMIC_FULL_ENVELOPE_FLAG_FAIL' }
+          if ($m.contract.source_values_retained_for_every_observation -ne $true -or $m.contract.source_packet_fingerprint_preserved -ne $true) { throw 'V32_DYNAMIC_SOURCE_VALUE_RETENTION_FAIL' }
+          if ($m.contract.cross_date_carry_uses_terminal_source_observation -ne $true -or $m.contract.manual_behavior_lifecycle_contract_materialized -ne $true) { throw 'V32_DYNAMIC_TEMPORAL_CONTRACT_FAIL' }
+          if ($m.contract.unnamed_state_transitions_preserved -ne $true -or $m.contract.manual_labels_not_used_as_hidden_targets -ne $true) { throw 'V32_DYNAMIC_CAUSAL_CONTRACT_FAIL' }
+          if ($m.contract.exact_source_compatible_checkpoint_reuse -ne $true) { throw 'V32_DYNAMIC_CHECKPOINT_REUSE_CONTRACT_FAIL' }
+          if ($m.aali_concordance_gate.pass -ne $true) { throw 'V32_DYNAMIC_AALI_CONCORDANCE_FAIL' }
+          if ($m.source_summaries.Count -ne [int]$u.source_count) { throw 'V32_DYNAMIC_SOURCE_SUMMARY_COUNT_FAIL' }
           foreach ($s in $m.source_summaries) {
-            if ($s.status -ne 'PASS') { throw "V32_V2_SOURCE_NOT_PASS:$($s.source)" }
-            if ($s.all_source_columns_retrievable -ne $true) { throw "V32_V2_SOURCE_FIELDS_NOT_RETRIEVABLE:$($s.source)" }
+            if ($s.status -ne 'PASS') { throw "V32_DYNAMIC_SOURCE_NOT_PASS:$($s.source)" }
+            if ($s.all_source_columns_retrievable -ne $true) { throw "V32_DYNAMIC_SOURCE_FIELDS_NOT_RETRIEVABLE:$($s.source)" }
             foreach ($key in @('ticker_days','formation_runs','event_journeys','phase_context','full_observation_envelope','regular_behavior_stream','behavior_day_profiles','behavior_lifecycle','behavior_paths')) {
               $meta = $s.output_files.$key
-              if ($null -eq $meta -or [string]::IsNullOrWhiteSpace([string]$meta.sha256) -or [int64]$meta.bytes -lt 0) { throw "V32_V2_OUTPUT_HASH_METADATA_FAIL:$($s.source):$key" }
+              if ($null -eq $meta -or [string]::IsNullOrWhiteSpace([string]$meta.sha256) -or [int64]$meta.bytes -lt 0) { throw "V32_DYNAMIC_OUTPUT_HASH_METADATA_FAIL:$($s.source):$key" }
             }
           }
-          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value '### V3.2 authority-bound evidence substrate'
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value '### V3.2 dynamic-source evidence substrate'
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Governed sources: $($u.source_count)"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Reused exact source checkpoints: $($m.reconciliation.reused_pass_sources)"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Newly built sources: $($m.reconciliation.built_sources)"
           Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value '- Scope: evidence substrate only; NOT final atlas and NOT formula.'
-          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value '- Latest handbook revisions are bound in request and validated before data work.'
 
-      - name: Exact second-run readback and checkpoint reuse
+      - name: Exact second-run readback proves source-compatible checkpoint reuse
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          & $env:A1_PYTHON_EXE -m a1clean.formula_research.v32_full_observation_semantic_enrichment --output-root $env:V32_OUTPUT_ROOT
-          if ($LASTEXITCODE -ne 0) { throw "V32_V2_READBACK_RUNTIME_FAILED:$LASTEXITCODE" }
+          & $env:A1_PYTHON_EXE -m a1clean.formula_research.v32_full_observation_semantic_dynamic `
+            --output-root $env:V32_OUTPUT_ROOT `
+            --source-universe-manifest $env:A1_SOURCE_UNIVERSE_MANIFEST
+          if ($LASTEXITCODE -ne 0) { throw "V32_DYNAMIC_READBACK_RUNTIME_FAILED:$LASTEXITCODE" }
           $m = Get-Content -LiteralPath (Join-Path $env:V32_OUTPUT_ROOT 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-          if ([int64]$m.reconciliation.reused_pass_sources -ne 18) { throw "V32_V2_READBACK_REUSE_FAIL:$($m.reconciliation.reused_pass_sources)" }
-          if ($m.reconciliation.behavior_path_coverage_pass -ne $true) { throw 'V32_V2_READBACK_BEHAVIOR_PATH_FAIL' }
-          if ($m.reconciliation.behavior_lifecycle_contract_pass -ne $true) { throw 'V32_V2_READBACK_LIFECYCLE_CONTRACT_FAIL' }
+          if ([int64]$m.reconciliation.reused_pass_sources -ne [int64]$m.reconciliation.source_count) { throw "V32_DYNAMIC_READBACK_REUSE_FAIL:$($m.reconciliation.reused_pass_sources):$($m.reconciliation.source_count)" }
+          if ([int64]$m.reconciliation.built_sources -ne 0) { throw "V32_DYNAMIC_READBACK_UNEXPECTED_REBUILD:$($m.reconciliation.built_sources)" }
+          if ($m.reconciliation.behavior_path_coverage_pass -ne $true -or $m.reconciliation.behavior_lifecycle_contract_pass -ne $true) { throw 'V32_DYNAMIC_READBACK_COVERAGE_FAIL' }
 
       - name: Build compact governed summary artifact
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          New-Item -ItemType Directory -Force -Path 'v32-full-observation-behavior-v2-summary\checkpoints' | Out-Null
-          Copy-Item -LiteralPath 'v32-full-observation-behavior-requests\current.json' -Destination 'v32-full-observation-behavior-v2-summary\request.json' -Force
-          Copy-Item -LiteralPath (Join-Path $env:V32_OUTPUT_ROOT 'manifest.json') -Destination 'v32-full-observation-behavior-v2-summary\manifest.json' -Force
-          Copy-Item -LiteralPath (Join-Path $env:V32_OUTPUT_ROOT 'compact-sample.jsonl.gz') -Destination 'v32-full-observation-behavior-v2-summary\compact-sample.jsonl.gz' -Force
-          Get-ChildItem -LiteralPath $env:V32_OUTPUT_ROOT -Recurse -Filter 'checkpoint.json' | ForEach-Object {
-            $parent = Split-Path $_.DirectoryName -Leaf
-            Copy-Item -LiteralPath $_.FullName -Destination (Join-Path 'v32-full-observation-behavior-v2-summary\checkpoints' ($parent + '.json')) -Force
-          }
-          @{
-            trigger_revision = '${{ github.sha }}'
-            semantic_software_revision = $env:A1_V32_SOFTWARE_REVISION
-            output_root = $env:V32_OUTPUT_ROOT
-            scope_class = $env:A1_V32_SCOPE_CLASS
-            latest_authority_revision_binding = $true
-            formula_stage = 'CLOSED'
-            machine1_semantic_reader_independent = $true
-          } | ConvertTo-Json | Out-File -LiteralPath 'v32-full-observation-behavior-v2-summary\run-identity.json' -Encoding utf8
+          New-Item -ItemType Directory -Force -Path 'v32-full-observation-dynamic-summary' | Out-Null
+          Copy-Item -LiteralPath 'v32-full-observation-behavior-requests\current.json' -Destination 'v32-full-observation-dynamic-summary\request.json' -Force
+          Copy-Item -LiteralPath $env:A1_SOURCE_UNIVERSE_MANIFEST -Destination 'v32-full-observation-dynamic-summary\source-universe-manifest.json' -Force
+          Copy-Item -LiteralPath (Join-Path $env:V32_OUTPUT_ROOT 'manifest.json') -Destination 'v32-full-observation-dynamic-summary\manifest.json' -Force
+          Copy-Item -LiteralPath (Join-Path $env:V32_OUTPUT_ROOT 'compact-sample.jsonl.gz') -Destination 'v32-full-observation-dynamic-summary\compact-sample.jsonl.gz' -Force
 
-      - name: Upload V3.2 authority-bound governed summary
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: v32-full-observation-behavior-v2-summary-${{ github.run_id }}
-          path: v32-full-observation-behavior-v2-summary
+          name: v32-full-observation-dynamic-${{ github.run_id }}
+          path: v32-full-observation-dynamic-summary
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 90

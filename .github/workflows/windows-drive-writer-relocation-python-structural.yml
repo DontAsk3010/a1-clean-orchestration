@@ -1,0 +1,119 @@
+name: Windows Drive Writer Relocation Positive Control Scan
+
+on:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - '.github/workflows/windows-drive-writer-relocation-python-structural.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-drive-writer-relocation-positive-control
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    name: Positive-control structural scan for relocated writer credential
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 60
+    steps:
+      - name: Scan local credential JSON structures without exposing secret values
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "Wrong host: $env:COMPUTERNAME" }
+          $m2=@(Get-CimInstance Win32_Service -ErrorAction SilentlyContinue | Where-Object { ([string]$_.DisplayName -like '*A1-WINDOWS-COMPUTE-02*') -or ([string]$_.PathName -like '*actions-runner-a1-02*') })
+          if ($m2.Count -lt 1) { throw 'Machine-2 service not found.' }
+
+          $reader=$env:A1_DRIVE_READER_CREDENTIALS
+          if ([string]::IsNullOrWhiteSpace($reader)) { $reader=[Environment]::GetEnvironmentVariable('A1_DRIVE_READER_CREDENTIALS','Machine') }
+          if ([string]::IsNullOrWhiteSpace($reader) -or -not (Test-Path -LiteralPath $reader -PathType Leaf)) { throw 'Reader positive-control credential unavailable.' }
+          $reader=[IO.Path]::GetFullPath($reader)
+          $readerHash=(Get-FileHash -LiteralPath $reader -Algorithm SHA256).Hash.ToLowerInvariant()
+
+          function HashText([string]$text) {
+            if ([string]::IsNullOrWhiteSpace($text)) { return 'NONE' }
+            $sha=[Security.Cryptography.SHA256]::Create()
+            try { return ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($text)))).Replace('-','').ToLowerInvariant() }
+            finally { $sha.Dispose() }
+          }
+
+          function InspectCredential([string]$path,[string]$readerHash) {
+            try {
+              $fi=Get-Item -LiteralPath $path -Force -ErrorAction Stop
+              if ($fi.Length -lt 2 -or $fi.Length -gt 4MB) { return $null }
+              $p=Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
+              $props=@($p.PSObject.Properties.Name)
+              $type=if($props -contains 'type'){[string]$p.type}else{''}
+              $kind=$null
+              $identity=''
+              if($type -eq 'authorized_user'){$kind='AUTHORIZED_USER_RUNTIME_CREDENTIAL';$identity=[string]$p.client_id}
+              elseif(($props -contains 'refresh_token') -and ($props -contains 'client_id') -and ($props -contains 'client_secret') -and ($props -contains 'token_uri')){$kind='AUTHORIZED_USER_RUNTIME_CREDENTIAL_SHAPE';$identity=[string]$p.client_id}
+              elseif($type -eq 'service_account' -and ($props -contains 'client_email') -and ($props -contains 'private_key')){$kind='SERVICE_ACCOUNT_RUNTIME_CREDENTIAL';$identity=[string]$p.client_email}
+              elseif(($props -contains 'installed') -or ($props -contains 'web')){$root=if($props -contains 'installed'){$p.installed}else{$p.web};if($root -and $root.client_id){$kind='OAUTH_CLIENT_CONFIG_NOT_RUNTIME_CREDENTIAL';$identity=[string]$root.client_id}}
+              if(-not $kind){return $null}
+              $hash=(Get-FileHash -LiteralPath $fi.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+              $scopes=@()
+              if($props -contains 'scopes' -and $null -ne $p.scopes){$scopes=@($p.scopes|ForEach-Object{[string]$_})}
+              return [pscustomobject]@{
+                Path=$fi.FullName; Size=$fi.Length; Sha256=$hash; SameAsReader=($hash -eq $readerHash);
+                Kind=$kind; Type=$type; IdentityFp16=if($identity){(HashText $identity).Substring(0,16)}else{'NONE'};
+                ScopeCount=$scopes.Count; DriveWriteScopeDeclared=($scopes -contains 'https://www.googleapis.com/auth/drive')
+              }
+            } catch { return $null }
+          }
+
+          $readerRow=InspectCredential $reader $readerHash
+          if($null -eq $readerRow -or $readerRow.Kind -ne 'AUTHORIZED_USER_RUNTIME_CREDENTIAL' -or -not $readerRow.SameAsReader){throw 'POSITIVE_CONTROL_FAIL: reader format not recognized'}
+          Write-Host "POSITIVE_CONTROL_FORMAT_PASS|reader_path=$reader|reader_sha256=$readerHash|reader_kind=$($readerRow.Kind)|secret_values_disclosed=false"
+
+          $roots=New-Object System.Collections.Generic.List[string]
+          $readerParent=Split-Path -Parent $reader
+          foreach($p in @($readerParent,'C:\Users\feri-admin','C:\ProgramData','D:\')){if($p -and (Test-Path -LiteralPath $p -PathType Container -ErrorAction SilentlyContinue)){[void]$roots.Add($p)}}
+          $skipTop=@('Windows','Program Files','Program Files (x86)','$Recycle.Bin','System Volume Information','Recovery','PerfLogs','Users','ProgramData')
+          foreach($d in @(Get-ChildItem -LiteralPath 'C:\' -Directory -Force -ErrorAction SilentlyContinue)){if($skipTop -notcontains $d.Name){[void]$roots.Add($d.FullName)}}
+
+          $seenRoots=New-Object System.Collections.Generic.HashSet[string]([StringComparer]::OrdinalIgnoreCase)
+          $seenFiles=New-Object System.Collections.Generic.HashSet[string]([StringComparer]::OrdinalIgnoreCase)
+          $candidateRows=New-Object System.Collections.Generic.List[object]
+          $filesSeen=0
+          $readerEncountered=$false
+          $exclude='(?i)\\(node_modules|\.git|\.venv|venv|__pycache__|AppData\\Local\\Packages|AppData\\Local\\Google\\Chrome|AppData\\Local\\Microsoft\\Edge|AppData\\Local\\Temp|pip\\cache|npm-cache|NuGet\\Cache)\\'
+
+          foreach($root in $roots){
+            try{$fullRoot=[IO.Path]::GetFullPath($root)}catch{continue}
+            if(-not $seenRoots.Add($fullRoot)){continue}
+            Write-Host "PC_STRUCTURAL_ROOT_START|path=$fullRoot"
+            try{
+              foreach($f in @(Get-ChildItem -LiteralPath $fullRoot -File -Filter '*.json' -Recurse -Force -ErrorAction SilentlyContinue)){
+                if($f.Length -lt 2 -or $f.Length -gt 4MB){continue}
+                if($f.FullName -match $exclude){continue}
+                if(-not $seenFiles.Add($f.FullName)){continue}
+                $filesSeen++
+                if([string]::Equals([IO.Path]::GetFullPath($f.FullName),$reader,[StringComparison]::OrdinalIgnoreCase)){$readerEncountered=$true}
+                $row=InspectCredential $f.FullName $readerHash
+                if($null -ne $row){[void]$candidateRows.Add($row)}
+              }
+            }catch{Write-Host "PC_STRUCTURAL_ROOT_WARNING|path=$fullRoot|error_type=$($_.Exception.GetType().Name)|contents_disclosed=false"}
+            Write-Host "PC_STRUCTURAL_ROOT_DONE|path=$fullRoot"
+          }
+
+          if(-not $readerEncountered){throw 'POSITIVE_CONTROL_FAIL: reader file not encountered by relocation traversal'}
+          $runtime=@($candidateRows|Where-Object{$_.Kind -in @('AUTHORIZED_USER_RUNTIME_CREDENTIAL','AUTHORIZED_USER_RUNTIME_CREDENTIAL_SHAPE','SERVICE_ACCOUNT_RUNTIME_CREDENTIAL')})
+          $distinct=@($runtime|Where-Object{-not $_.SameAsReader})
+          $writeDeclared=@($distinct|Where-Object{$_.DriveWriteScopeDeclared})
+          $oauth=@($candidateRows|Where-Object{$_.Kind -eq 'OAUTH_CLIENT_CONFIG_NOT_RUNTIME_CREDENTIAL'})
+
+          foreach($r in @($candidateRows|Sort-Object Path)){
+            $safe=[ordered]@{path=$r.Path;size=$r.Size;sha256=$r.Sha256;same_as_reader=$r.SameAsReader;credential_kind=$r.Kind;type=$r.Type;identity_fp16=$r.IdentityFp16;scope_count=$r.ScopeCount;drive_write_scope_declared=$r.DriveWriteScopeDeclared}
+            Write-Host ('PC_STRUCTURAL_CREDENTIAL|'+($safe|ConvertTo-Json -Compress))
+          }
+
+          Write-Host ("PC_STRUCTURAL_SUMMARY|roots={0}|json_files_seen={1}|credential_shapes={2}|runtime_candidates={3}|runtime_distinct_from_reader={4}|distinct_runtime_drive_write_scope_declared={5}|oauth_client_configs={6}|reader_positive_control=true|mutation=false|secret_values_disclosed=false" -f $seenRoots.Count,$filesSeen,$candidateRows.Count,$runtime.Count,$distinct.Count,$writeDeclared.Count,$oauth.Count)
+          Write-Host 'PC_STRUCTURAL_COMPLETE|positive_control_pass=true|binding_changed=false|drive_write=false|oauth_reauthorization=false|canonical_current_mutation=false'

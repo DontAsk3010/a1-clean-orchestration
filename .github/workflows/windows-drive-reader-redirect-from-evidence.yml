@@ -1,0 +1,61 @@
+name: Windows Machine2 Reader Redirect From Evidence
+
+on:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - '.github/workflows/windows-drive-reader-redirect-from-evidence.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Read matching installed redirect from durable local evidence
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+          $reader = 'C:\Users\feri-admin\a1-drive-auth\reader_credentials.json'
+          $report = 'C:\Users\feri-admin\.a1clean\writer-relocation-interactive-current.json'
+          if (-not (Test-Path -LiteralPath $reader -PathType Leaf)) { throw 'READER_MISSING' }
+          if (-not (Test-Path -LiteralPath $report -PathType Leaf)) { throw 'WRITER_REPORT_MISSING' }
+          $runtime = Get-Content -LiteralPath $reader -Raw -Encoding UTF8 | ConvertFrom-Json
+          $clientId = [string]$runtime.client_id
+          $r = Get-Content -LiteralPath $report -Raw -Encoding UTF8 | ConvertFrom-Json
+          $configs = @($r.candidates | Where-Object { [string]$_.credential_kind -eq 'OAUTH_CLIENT_CONFIG_NOT_RUNTIME_CREDENTIAL' })
+          $matches = 0
+          $hosts = New-Object System.Collections.Generic.List[string]
+          $hasRedirectField = $false
+          foreach ($c in $configs) {
+            $p = [string]$c.path
+            if ([string]::IsNullOrWhiteSpace($p) -or -not (Test-Path -LiteralPath $p -PathType Leaf)) { continue }
+            try {
+              $d = Get-Content -LiteralPath $p -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
+              if (($d.PSObject.Properties.Name -contains 'installed') -and ([string]$d.installed.client_id -eq $clientId)) {
+                $matches++
+                if ($d.installed.PSObject.Properties.Name -contains 'redirect_uris') { $hasRedirectField = $true }
+                foreach ($u0 in @($d.installed.redirect_uris)) {
+                  try {
+                    $u = [Uri]([string]$u0)
+                    if ($u.Scheme -eq 'http' -and ($u.Host -eq 'localhost' -or $u.Host -eq '127.0.0.1')) { $hosts.Add($u.Host) }
+                  } catch {}
+                }
+              }
+            } catch {}
+          }
+          $uniqueHosts = @($hosts | Sort-Object -Unique)
+          Write-Host "A1_READER_EVIDENCE_REDIRECT_MATCHES=$matches"
+          Write-Host "A1_READER_EVIDENCE_REDIRECT_FIELD_PRESENT=$hasRedirectField"
+          Write-Host ("A1_READER_EVIDENCE_REDIRECT_HOSTS=" + ($uniqueHosts -join ','))
+          Write-Host 'SECRETS_DISCLOSED=false'
+          Write-Host 'CREDENTIAL_MUTATION=false'
+          Write-Host 'DRIVE_WRITE_PERFORMED=false'
+          if ($matches -lt 1) { throw 'A1_READER_EVIDENCE_NO_MATCHING_CLIENT' }

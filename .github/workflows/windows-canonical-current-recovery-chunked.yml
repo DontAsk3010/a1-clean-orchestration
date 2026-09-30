@@ -1,0 +1,166 @@
+name: Windows Canonical CURRENT Recovery Chunked
+
+on:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - 'scripts/windows/recovery_step.py'
+      - 'scripts/windows/adopt_recovery_checkpoint.py'
+      - 'scripts/windows/Invoke-A1CanonicalRecoveryPrepareChunked.ps1'
+      - '.github/workflows/windows-canonical-current-recovery-chunked.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-canonical-current-recovery-prepare
+  cancel-in-progress: true
+
+jobs:
+  lane_a:
+    name: Chunked recovery lane A
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    outputs:
+      target_pass: ${{ steps.mark.outputs.target_pass }}
+      runner_seen: ${{ steps.route.outputs.runner_seen }}
+    env:
+      A1_RAW_DIR: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Route exact Machine2 runner
+        id: route
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ('${{ github.ref_name }}' -ne 'fix/v32-dynamic-source-universe-v1') { throw 'A1_RECOVERY_CHUNKED_WRONG_BRANCH' }
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "A1_RECOVERY_CHUNKED_WRONG_MACHINE:$env:COMPUTERNAME" }
+          "runner_seen=$env:RUNNER_NAME" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          if ($env:RUNNER_NAME -eq 'A1-WINDOWS-COMPUTE-02') {
+            'is_target=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host 'A1_RECOVERY_CHUNKED_MACHINE2_RUNNER_PASS'
+          } else {
+            'is_target=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "A1_RECOVERY_CHUNKED_NON_TARGET_LANE_HOLD:$env:RUNNER_NAME"
+            Start-Sleep -Seconds 20
+          }
+
+      - name: Parse chunked recovery scripts
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $tokens=$null; $errors=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'scripts\windows\Invoke-A1CanonicalRecoveryPrepareChunked.ps1'),[ref]$tokens,[ref]$errors)
+          if (@($errors).Count -ne 0) { foreach ($e in @($errors)) { Write-Host "PARSE_ERROR|$($e.Message)" }; throw 'A1_RECOVERY_CHUNKED_PS_PARSE_FAIL' }
+          Write-Host 'A1_RECOVERY_CHUNKED_PS_PARSE_PASS'
+
+      - name: Execute checkpointed Recovery Prepare
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & '.\scripts\windows\Invoke-A1CanonicalRecoveryPrepareChunked.ps1'
+          Write-Host 'A1_RECOVERY_CHUNKED_EXECUTOR_RETURNED_SUCCESSFULLY'
+
+      - name: Mark exact target recovery PASS
+        id: mark
+        if: ${{ success() && steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          'target_pass=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host 'A1_RECOVERY_CHUNKED_TARGET_PASS=true'
+
+      - name: Safety declaration
+        if: ${{ always() && steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          Write-Host 'CHECKPOINTED RECOVERY PREPARE ONLY.'
+          Write-Host 'ONE SOURCE PER CHILD PROCESS; 60-MINUTE SOURCE WATCHDOG; ONE AUTOMATIC RETRY.'
+          Write-Host 'RAW write=false; canonical CURRENT mutation=false; heavy behavior research=false; canonical promotion unauthorized.'
+
+  lane_b:
+    name: Chunked recovery lane B
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    outputs:
+      target_pass: ${{ steps.mark.outputs.target_pass }}
+      runner_seen: ${{ steps.route.outputs.runner_seen }}
+    env:
+      A1_RAW_DIR: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Route exact Machine2 runner
+        id: route
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ('${{ github.ref_name }}' -ne 'fix/v32-dynamic-source-universe-v1') { throw 'A1_RECOVERY_CHUNKED_WRONG_BRANCH' }
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "A1_RECOVERY_CHUNKED_WRONG_MACHINE:$env:COMPUTERNAME" }
+          "runner_seen=$env:RUNNER_NAME" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          if ($env:RUNNER_NAME -eq 'A1-WINDOWS-COMPUTE-02') {
+            'is_target=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host 'A1_RECOVERY_CHUNKED_MACHINE2_RUNNER_PASS'
+          } else {
+            'is_target=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "A1_RECOVERY_CHUNKED_NON_TARGET_LANE_HOLD:$env:RUNNER_NAME"
+            Start-Sleep -Seconds 20
+          }
+
+      - name: Parse chunked recovery scripts
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $tokens=$null; $errors=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'scripts\windows\Invoke-A1CanonicalRecoveryPrepareChunked.ps1'),[ref]$tokens,[ref]$errors)
+          if (@($errors).Count -ne 0) { foreach ($e in @($errors)) { Write-Host "PARSE_ERROR|$($e.Message)" }; throw 'A1_RECOVERY_CHUNKED_PS_PARSE_FAIL' }
+          Write-Host 'A1_RECOVERY_CHUNKED_PS_PARSE_PASS'
+
+      - name: Execute checkpointed Recovery Prepare
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & '.\scripts\windows\Invoke-A1CanonicalRecoveryPrepareChunked.ps1'
+          Write-Host 'A1_RECOVERY_CHUNKED_EXECUTOR_RETURNED_SUCCESSFULLY'
+
+      - name: Mark exact target recovery PASS
+        id: mark
+        if: ${{ success() && steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          'target_pass=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host 'A1_RECOVERY_CHUNKED_TARGET_PASS=true'
+
+      - name: Safety declaration
+        if: ${{ always() && steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          Write-Host 'CHECKPOINTED RECOVERY PREPARE ONLY.'
+          Write-Host 'ONE SOURCE PER CHILD PROCESS; 60-MINUTE SOURCE WATCHDOG; ONE AUTOMATIC RETRY.'
+          Write-Host 'RAW write=false; canonical CURRENT mutation=false; heavy behavior research=false; canonical promotion unauthorized.'
+
+  assert_target_pass:
+    name: Require exact Machine2 chunked recovery PASS
+    if: ${{ always() }}
+    needs: [lane_a, lane_b]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assert at least one exact target lane passed
+        shell: bash
+        run: |
+          echo "lane_a_runner=${{ needs.lane_a.outputs.runner_seen }}"
+          echo "lane_b_runner=${{ needs.lane_b.outputs.runner_seen }}"
+          if [[ "${{ needs.lane_a.outputs.target_pass }}" == "true" || "${{ needs.lane_b.outputs.target_pass }}" == "true" ]]; then
+            echo 'A1_RECOVERY_CHUNKED_EXACT_TARGET_PASS=true'
+            exit 0
+          fi
+          echo 'A1_RECOVERY_CHUNKED_EXACT_TARGET_PASS=false'
+          exit 1

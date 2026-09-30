@@ -1,0 +1,96 @@
+name: Windows Drive Writer Direct Path Probe V2
+
+on:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - '.github/workflows/windows-drive-writer-direct-path-probe-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-drive-writer-direct-path-probe-v2
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Complete direct-path relocation probes
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 20
+    steps:
+      - name: Probe candidate writer paths directly
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "Wrong host: $env:COMPUTERNAME" }
+          $m2=@(Get-CimInstance Win32_Service -ErrorAction SilentlyContinue | Where-Object { ([string]$_.DisplayName -like '*A1-WINDOWS-COMPUTE-02*') -or ([string]$_.PathName -like '*actions-runner-a1-02*') })
+          if ($m2.Count -lt 1) { throw 'Machine-2 service not found.' }
+
+          $reader=$env:A1_DRIVE_READER_CREDENTIALS
+          if ([string]::IsNullOrWhiteSpace($reader)) { $reader=[Environment]::GetEnvironmentVariable('A1_DRIVE_READER_CREDENTIALS','Machine') }
+          if ([string]::IsNullOrWhiteSpace($reader) -or -not (Test-Path -LiteralPath $reader -PathType Leaf)) { throw 'Reader positive control unavailable.' }
+          $reader=[IO.Path]::GetFullPath($reader)
+          $readerHash=(Get-FileHash -LiteralPath $reader -Algorithm SHA256).Hash.ToLowerInvariant()
+          $readerParent=Split-Path -Parent $reader
+
+          function HashText([string]$text) {
+            $sha=[Security.Cryptography.SHA256]::Create()
+            try { return ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($text)))).Replace('-','').ToLowerInvariant() }
+            finally { $sha.Dispose() }
+          }
+          function Inspect([string]$path,[string]$source) {
+            if(-not(Test-Path -LiteralPath $path -PathType Leaf -ErrorAction SilentlyContinue)) { return $null }
+            $fi=Get-Item -LiteralPath $path -Force
+            $hash=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+            $kind='UNREADABLE_OR_UNKNOWN'; $type=''; $identity=''; $writeScope=$false; $scopeCount=0
+            try {
+              $j=Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
+              $props=@($j.PSObject.Properties.Name)
+              if($props -contains 'type'){$type=[string]$j.type}
+              if($type -eq 'authorized_user'){$kind='AUTHORIZED_USER_RUNTIME_CREDENTIAL';$identity=[string]$j.client_id}
+              elseif(($props -contains 'refresh_token') -and ($props -contains 'client_id') -and ($props -contains 'client_secret') -and ($props -contains 'token_uri')){$kind='AUTHORIZED_USER_RUNTIME_CREDENTIAL_SHAPE';$identity=[string]$j.client_id}
+              elseif($type -eq 'service_account' -and ($props -contains 'client_email') -and ($props -contains 'private_key')){$kind='SERVICE_ACCOUNT_RUNTIME_CREDENTIAL';$identity=[string]$j.client_email}
+              elseif(($props -contains 'installed') -or ($props -contains 'web')){$root=if($props -contains 'installed'){$j.installed}else{$j.web};if($root -and $root.client_id){$kind='OAUTH_CLIENT_CONFIG_NOT_RUNTIME_CREDENTIAL';$identity=[string]$root.client_id}}
+              if($props -contains 'scopes' -and $null -ne $j.scopes){$scopes=@($j.scopes|ForEach-Object{[string]$_});$scopeCount=$scopes.Count;$writeScope=$scopes -contains 'https://www.googleapis.com/auth/drive'}
+            } catch {}
+            $fp=if($identity){(HashText $identity).Substring(0,16)}else{'NONE'}
+            Write-Host ("FOUND|path={0}|source={1}|size={2}|sha256={3}|same_as_reader={4}|kind={5}|type={6}|identity_fp16={7}|scope_count={8}|drive_write_scope_declared={9}|secret_values_disclosed=false" -f $fi.FullName,$source,$fi.Length,$hash,($hash -eq $readerHash),$kind,$type,$fp,$scopeCount,$writeScope)
+            return [pscustomobject]@{Path=$fi.FullName;Hash=$hash;SameAsReader=($hash -eq $readerHash);Kind=$kind;WriteScope=$writeScope}
+          }
+
+          $positive=Inspect $reader 'POSITIVE_CONTROL_READER'
+          if($null -eq $positive -or -not $positive.SameAsReader -or $positive.Kind -ne 'AUTHORIZED_USER_RUNTIME_CREDENTIAL'){throw 'POSITIVE_CONTROL_FAIL'}
+          Write-Host "POSITIVE_CONTROL_PASS|reader=$reader|sha256=$readerHash"
+
+          $names=@(
+            'client_writer.json','writer_credentials.json','writer_oauth_client.json','client_writer_credentials.json',
+            'drive_writer_credentials.json','drive_writer.json','writer.json','oauth_writer.json','google_drive_writer.json',
+            'credentials_writer.json','writer_client.json','google_writer.json','drive_writer_oauth.json','writer_auth.json',
+            'writer_credentials_backup.json','client_writer_backup.json'
+          )
+          $dirs=@(
+            $readerParent,
+            'C:\Users\feri-admin\a1-drive-auth','C:\Users\feri-admin\.a1clean','C:\Users\feri-admin\a1-auth',
+            'C:\Users\feri-admin','C:\Users\feri-admin\actions-runner-a1','C:\Users\feri-admin\actions-runner-a1-02',
+            'C:\ProgramData\a1-clean','D:\a1-drive-auth','D:\TRADING SYSTEM\a1-drive-auth','D:\TRADING SYSTEM'
+          ) | Select-Object -Unique
+          $paths=@{}
+          $historical='C:\Users\feri-admin\a1-drive-auth\client_writer.json'
+          $row=Inspect $historical 'HISTORICAL_REFERENCE'
+          if($null -ne $row){$paths[$row.Path]=$row}
+          foreach($dir in $dirs){
+            foreach($name in $names){
+              $candidate=Join-Path $dir $name
+              $row=Inspect $candidate 'DIRECT_CANDIDATE_PATH'
+              if($null -ne $row){$paths[$row.Path]=$row}
+            }
+          }
+          $runtime=@($paths.Values|Where-Object{$_.Kind -in @('AUTHORIZED_USER_RUNTIME_CREDENTIAL','AUTHORIZED_USER_RUNTIME_CREDENTIAL_SHAPE','SERVICE_ACCOUNT_RUNTIME_CREDENTIAL')})
+          $distinct=@($runtime|Where-Object{-not $_.SameAsReader})
+          $write=@($distinct|Where-Object{$_.WriteScope})
+          Write-Host ("DIRECT_V2_SUMMARY|dirs={0}|names={1}|existing_files={2}|runtime_candidates={3}|runtime_distinct_from_reader={4}|distinct_runtime_write_scope_declared={5}|binding_changed=false|drive_write=false|oauth_reauthorization=false|canonical_current_mutation=false" -f $dirs.Count,$names.Count,$paths.Count,$runtime.Count,$distinct.Count,$write.Count)
+          Write-Host 'DIRECT_V2_COMPLETE|mutation=false|secret_values_disclosed=false'

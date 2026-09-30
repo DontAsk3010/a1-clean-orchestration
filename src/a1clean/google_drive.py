@@ -61,3 +61,16 @@ def build_drive_api(*, read_write: bool = False):
     scopes = [DRIVE_READWRITE_SCOPE if read_write else DRIVE_READONLY_SCOPE]
     creds = _load_credentials(scopes, read_write=read_write)
     return build("drive", "v3", credentials=creds, cache_discovery=False)
+
+
+def build_docs_api():
+    """Build a read-only Google Docs API client from the governed Reader credential.
+
+    Authority bootstrap is intentionally Reader-only. It may read the complete
+    structured Google Doc and its revision id, but it cannot mutate Drive/Docs.
+    """
+
+    from googleapiclient.discovery import build
+
+    creds = _load_credentials([DRIVE_READONLY_SCOPE], read_write=False)
+    return build("docs", "v1", credentials=creds, cache_discovery=False)

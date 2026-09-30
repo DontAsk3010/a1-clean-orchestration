@@ -1,0 +1,253 @@
+name: Windows Canonical Recovery Promotion PREPARE
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - '.github/workflows/windows-canonical-recovery-promotion-prepare.yml'
+      - 'canonical-current-recovery-requests/promotion-prepare-current.json'
+      - 'src/a1clean/canonical_recovery_promotion_prepare.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-canonical-recovery-promotion-prepare
+  cancel-in-progress: true
+
+jobs:
+  lane_a:
+    name: Recovery promotion PREPARE lane A
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 45
+    outputs:
+      target_pass: ${{ steps.mark.outputs.target_pass }}
+      runner_seen: ${{ steps.route.outputs.runner_seen }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Route exact Machine2 runner
+        id: route
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "RECOVERY_PROMOTION_PREPARE_WRONG_MACHINE:$env:COMPUTERNAME" }
+          "runner_seen=$env:RUNNER_NAME" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          if ($env:RUNNER_NAME -eq 'A1-WINDOWS-COMPUTE-02') {
+            'is_target=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host 'RECOVERY_PROMOTION_PREPARE_EXACT_RUNNER_PASS'
+          } else {
+            'is_target=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "RECOVERY_PROMOTION_PREPARE_NON_TARGET_SKIP:$env:RUNNER_NAME"
+            Start-Sleep -Seconds 30
+          }
+
+      - name: Provision governed Python runtime
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & '.\scripts\windows\Ensure-A1PortablePython311.ps1'
+          $py = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\python.exe'
+          $pip = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\pip.pyz'
+          $site = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\Lib\site-packages'
+          if (-not (Test-Path -LiteralPath $py -PathType Leaf)) { throw 'RECOVERY_PROMOTION_PREPARE_PYTHON_MISSING' }
+          if (-not (Test-Path -LiteralPath $pip -PathType Leaf)) { throw 'RECOVERY_PROMOTION_PREPARE_PIP_MISSING' }
+          & $py $pip install --disable-pip-version-check --upgrade --no-deps --target $site .
+          if ($LASTEXITCODE -ne 0) { throw 'RECOVERY_PROMOTION_PREPARE_PROJECT_INSTALL_FAIL' }
+          "A1_PREPARE_PY=$py" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host 'RECOVERY_PROMOTION_PREPARE_RUNTIME_PASS'
+
+      - name: Compile and validate request locks
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & $env:A1_PREPARE_PY -m py_compile 'src\a1clean\canonical_recovery_promotion_prepare.py'
+          if ($LASTEXITCODE -ne 0) { throw 'RECOVERY_PROMOTION_PREPARE_COMPILE_FAIL' }
+          $r = Get-Content -LiteralPath 'canonical-current-recovery-requests\promotion-prepare-current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($r.mode -ne 'PREPARE_ONLY_NO_CANONICAL_WRITE') { throw 'RECOVERY_PROMOTION_PREPARE_MODE_FAIL' }
+          if ($r.canonical_promotion_allowed -ne $false -or $r.canonical_current_recovery_commit_authorized -ne $false -or $r.raw_write_allowed -ne $false -or $r.heavy_behavior_research_allowed -ne $false) { throw 'RECOVERY_PROMOTION_PREPARE_REQUEST_MUTATION_FLAG_FAIL' }
+          foreach ($name in @('A1_DRIVE_READER_CREDENTIALS','A1_DRIVE_WRITER_CREDENTIALS')) {
+            $p = [Environment]::GetEnvironmentVariable($name,'Process')
+            if ([string]::IsNullOrWhiteSpace($p) -or -not (Test-Path -LiteralPath $p -PathType Leaf)) { throw "RECOVERY_PROMOTION_PREPARE_CREDENTIAL_BINDING_FAIL:$name" }
+          }
+          $readerHash = (Get-FileHash -LiteralPath $env:A1_DRIVE_READER_CREDENTIALS -Algorithm SHA256).Hash.ToLowerInvariant()
+          $writerHash = (Get-FileHash -LiteralPath $env:A1_DRIVE_WRITER_CREDENTIALS -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($readerHash -eq $writerHash) { throw 'RECOVERY_PROMOTION_PREPARE_IDENTICAL_CREDENTIALS_FORBIDDEN' }
+          Write-Host 'RECOVERY_PROMOTION_PREPARE_REQUEST_LOCK_PASS'
+
+      - name: Execute zero-write promotion PREPARE proof
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = Join-Path $env:RUNNER_TEMP 'RECOVERY_PROMOTION_PREPARE_RESULT.json'
+          & $env:A1_PREPARE_PY -m a1clean.canonical_recovery_promotion_prepare --repo-root . --output $out
+          if ($LASTEXITCODE -ne 0) { throw 'RECOVERY_PROMOTION_PREPARE_EXEC_FAIL' }
+          $p = Get-Content -LiteralPath $out -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($p.pass -ne $true -or $p.status -ne 'PASS_PREPARED_PROOF_ONLY_CANONICAL_WRITE_STILL_UNAUTHORIZED') { throw 'RECOVERY_PROMOTION_PREPARE_RESULT_NOT_PASS' }
+          if ($p.authorization.canonical_promotion_allowed -ne $false -or $p.authorization.canonical_current_recovery_commit_authorized -ne $false) { throw 'RECOVERY_PROMOTION_PREPARE_AUTHORIZATION_FLAG_DRIFT' }
+          if ($p.authorization.canonical_write_performed -ne $false -or $p.authorization.raw_write_performed -ne $false -or $p.authorization.promotion_performed -ne $false) { throw 'RECOVERY_PROMOTION_PREPARE_FORBIDDEN_WRITE_OBSERVED' }
+          if ($p.old_current.reader.state -ne 'NOT_FOUND_404' -or $p.old_current.writer.state -ne 'NOT_FOUND_404') { throw 'RECOVERY_PROMOTION_PREPARE_OLD_CURRENT_STATE_FAIL' }
+          if ($p.canonical_parent.folder_id -ne '1un30NnPgpyNas_iOj7mHMD-oHY4l0sNF' -or $p.canonical_parent.folder_name -ne '01_RUNTIME_INGEST') { throw 'RECOVERY_PROMOTION_PREPARE_PARENT_FAIL' }
+          if ($p.recovery.candidate_folder_id -ne '1T79DXm3584NVH35xRCcDsiolEAIiTtzA') { throw 'RECOVERY_PROMOTION_PREPARE_CANDIDATE_FAIL' }
+          if ([int]$p.candidate_readback.total_file_count -lt 1) { throw 'RECOVERY_PROMOTION_PREPARE_EMPTY_CANDIDATE' }
+          New-Item -ItemType Directory -Force -Path 'recovery-promotion-prepare-evidence' | Out-Null
+          Copy-Item -LiteralPath $out -Destination 'recovery-promotion-prepare-evidence\RECOVERY_PROMOTION_PREPARE_RESULT.json' -Force
+          Copy-Item -LiteralPath 'canonical-current-recovery-requests\promotion-prepare-current.json' -Destination 'recovery-promotion-prepare-evidence\PROMOTION_PREPARE_REQUEST.json' -Force
+          Add-Content $env:GITHUB_STEP_SUMMARY '### Recovery canonical promotion PREPARE'
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Candidate: $($p.recovery.candidate_folder_id)"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Candidate files: $($p.candidate_readback.total_file_count)"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Candidate identity fingerprint: $($p.candidate_readback.tree_identity_fingerprint_name_size_md5)"
+          Add-Content $env:GITHUB_STEP_SUMMARY '- Canonical write: false'
+          Add-Content $env:GITHUB_STEP_SUMMARY '- RAW write: false'
+          Add-Content $env:GITHUB_STEP_SUMMARY '- Promotion performed: false'
+          Add-Content $env:GITHUB_STEP_SUMMARY '- Next gate: explicit governed canonical promotion authorization.'
+          Write-Host 'RECOVERY_PROMOTION_PREPARE_PROOF_PASS'
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        with:
+          name: recovery-promotion-prepare-${{ github.run_id }}
+          path: recovery-promotion-prepare-evidence
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Mark exact target PREPARE PASS
+        id: mark
+        if: ${{ success() && steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          'target_pass=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host 'RECOVERY_PROMOTION_PREPARE_TARGET_PASS=true'
+
+  lane_b:
+    name: Recovery promotion PREPARE lane B
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 45
+    outputs:
+      target_pass: ${{ steps.mark.outputs.target_pass }}
+      runner_seen: ${{ steps.route.outputs.runner_seen }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Route exact Machine2 runner
+        id: route
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "RECOVERY_PROMOTION_PREPARE_WRONG_MACHINE:$env:COMPUTERNAME" }
+          "runner_seen=$env:RUNNER_NAME" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          if ($env:RUNNER_NAME -eq 'A1-WINDOWS-COMPUTE-02') {
+            'is_target=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host 'RECOVERY_PROMOTION_PREPARE_EXACT_RUNNER_PASS'
+          } else {
+            'is_target=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "RECOVERY_PROMOTION_PREPARE_NON_TARGET_SKIP:$env:RUNNER_NAME"
+            Start-Sleep -Seconds 30
+          }
+
+      - name: Provision governed Python runtime
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & '.\scripts\windows\Ensure-A1PortablePython311.ps1'
+          $py = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\python.exe'
+          $pip = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\pip.pyz'
+          $site = 'C:\Users\feri-admin\.a1clean\runtime\python-3.11.9-embed-amd64\Lib\site-packages'
+          if (-not (Test-Path -LiteralPath $py -PathType Leaf)) { throw 'RECOVERY_PROMOTION_PREPARE_PYTHON_MISSING' }
+          if (-not (Test-Path -LiteralPath $pip -PathType Leaf)) { throw 'RECOVERY_PROMOTION_PREPARE_PIP_MISSING' }
+          & $py $pip install --disable-pip-version-check --upgrade --no-deps --target $site .
+          if ($LASTEXITCODE -ne 0) { throw 'RECOVERY_PROMOTION_PREPARE_PROJECT_INSTALL_FAIL' }
+          "A1_PREPARE_PY=$py" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host 'RECOVERY_PROMOTION_PREPARE_RUNTIME_PASS'
+
+      - name: Compile and validate request locks
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & $env:A1_PREPARE_PY -m py_compile 'src\a1clean\canonical_recovery_promotion_prepare.py'
+          if ($LASTEXITCODE -ne 0) { throw 'RECOVERY_PROMOTION_PREPARE_COMPILE_FAIL' }
+          $r = Get-Content -LiteralPath 'canonical-current-recovery-requests\promotion-prepare-current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($r.mode -ne 'PREPARE_ONLY_NO_CANONICAL_WRITE') { throw 'RECOVERY_PROMOTION_PREPARE_MODE_FAIL' }
+          if ($r.canonical_promotion_allowed -ne $false -or $r.canonical_current_recovery_commit_authorized -ne $false -or $r.raw_write_allowed -ne $false -or $r.heavy_behavior_research_allowed -ne $false) { throw 'RECOVERY_PROMOTION_PREPARE_REQUEST_MUTATION_FLAG_FAIL' }
+          foreach ($name in @('A1_DRIVE_READER_CREDENTIALS','A1_DRIVE_WRITER_CREDENTIALS')) {
+            $p = [Environment]::GetEnvironmentVariable($name,'Process')
+            if ([string]::IsNullOrWhiteSpace($p) -or -not (Test-Path -LiteralPath $p -PathType Leaf)) { throw "RECOVERY_PROMOTION_PREPARE_CREDENTIAL_BINDING_FAIL:$name" }
+          }
+          $readerHash = (Get-FileHash -LiteralPath $env:A1_DRIVE_READER_CREDENTIALS -Algorithm SHA256).Hash.ToLowerInvariant()
+          $writerHash = (Get-FileHash -LiteralPath $env:A1_DRIVE_WRITER_CREDENTIALS -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($readerHash -eq $writerHash) { throw 'RECOVERY_PROMOTION_PREPARE_IDENTICAL_CREDENTIALS_FORBIDDEN' }
+          Write-Host 'RECOVERY_PROMOTION_PREPARE_REQUEST_LOCK_PASS'
+
+      - name: Execute zero-write promotion PREPARE proof
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = Join-Path $env:RUNNER_TEMP 'RECOVERY_PROMOTION_PREPARE_RESULT.json'
+          & $env:A1_PREPARE_PY -m a1clean.canonical_recovery_promotion_prepare --repo-root . --output $out
+          if ($LASTEXITCODE -ne 0) { throw 'RECOVERY_PROMOTION_PREPARE_EXEC_FAIL' }
+          $p = Get-Content -LiteralPath $out -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($p.pass -ne $true -or $p.status -ne 'PASS_PREPARED_PROOF_ONLY_CANONICAL_WRITE_STILL_UNAUTHORIZED') { throw 'RECOVERY_PROMOTION_PREPARE_RESULT_NOT_PASS' }
+          if ($p.authorization.canonical_promotion_allowed -ne $false -or $p.authorization.canonical_current_recovery_commit_authorized -ne $false) { throw 'RECOVERY_PROMOTION_PREPARE_AUTHORIZATION_FLAG_DRIFT' }
+          if ($p.authorization.canonical_write_performed -ne $false -or $p.authorization.raw_write_performed -ne $false -or $p.authorization.promotion_performed -ne $false) { throw 'RECOVERY_PROMOTION_PREPARE_FORBIDDEN_WRITE_OBSERVED' }
+          if ($p.old_current.reader.state -ne 'NOT_FOUND_404' -or $p.old_current.writer.state -ne 'NOT_FOUND_404') { throw 'RECOVERY_PROMOTION_PREPARE_OLD_CURRENT_STATE_FAIL' }
+          if ($p.canonical_parent.folder_id -ne '1un30NnPgpyNas_iOj7mHMD-oHY4l0sNF' -or $p.canonical_parent.folder_name -ne '01_RUNTIME_INGEST') { throw 'RECOVERY_PROMOTION_PREPARE_PARENT_FAIL' }
+          if ($p.recovery.candidate_folder_id -ne '1T79DXm3584NVH35xRCcDsiolEAIiTtzA') { throw 'RECOVERY_PROMOTION_PREPARE_CANDIDATE_FAIL' }
+          if ([int]$p.candidate_readback.total_file_count -lt 1) { throw 'RECOVERY_PROMOTION_PREPARE_EMPTY_CANDIDATE' }
+          New-Item -ItemType Directory -Force -Path 'recovery-promotion-prepare-evidence' | Out-Null
+          Copy-Item -LiteralPath $out -Destination 'recovery-promotion-prepare-evidence\RECOVERY_PROMOTION_PREPARE_RESULT.json' -Force
+          Copy-Item -LiteralPath 'canonical-current-recovery-requests\promotion-prepare-current.json' -Destination 'recovery-promotion-prepare-evidence\PROMOTION_PREPARE_REQUEST.json' -Force
+          Add-Content $env:GITHUB_STEP_SUMMARY '### Recovery canonical promotion PREPARE'
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Candidate: $($p.recovery.candidate_folder_id)"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Candidate files: $($p.candidate_readback.total_file_count)"
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Candidate identity fingerprint: $($p.candidate_readback.tree_identity_fingerprint_name_size_md5)"
+          Add-Content $env:GITHUB_STEP_SUMMARY '- Canonical write: false'
+          Add-Content $env:GITHUB_STEP_SUMMARY '- RAW write: false'
+          Add-Content $env:GITHUB_STEP_SUMMARY '- Promotion performed: false'
+          Add-Content $env:GITHUB_STEP_SUMMARY '- Next gate: explicit governed canonical promotion authorization.'
+          Write-Host 'RECOVERY_PROMOTION_PREPARE_PROOF_PASS'
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ steps.route.outputs.is_target == 'true' }}
+        with:
+          name: recovery-promotion-prepare-${{ github.run_id }}
+          path: recovery-promotion-prepare-evidence
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Mark exact target PREPARE PASS
+        id: mark
+        if: ${{ success() && steps.route.outputs.is_target == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          'target_pass=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host 'RECOVERY_PROMOTION_PREPARE_TARGET_PASS=true'
+
+  assert_target_pass:
+    name: Require one exact Machine2 promotion PREPARE PASS
+    if: ${{ always() }}
+    needs: [lane_a, lane_b]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assert at least one exact target lane passed
+        shell: bash
+        run: |
+          echo "lane_a_runner=${{ needs.lane_a.outputs.runner_seen }}"
+          echo "lane_b_runner=${{ needs.lane_b.outputs.runner_seen }}"
+          if [[ "${{ needs.lane_a.outputs.target_pass }}" == "true" || "${{ needs.lane_b.outputs.target_pass }}" == "true" ]]; then
+            echo 'RECOVERY_PROMOTION_PREPARE_EXACT_TARGET_PASS=true'
+            exit 0
+          fi
+          echo 'RECOVERY_PROMOTION_PREPARE_EXACT_TARGET_PASS=false'
+          exit 1

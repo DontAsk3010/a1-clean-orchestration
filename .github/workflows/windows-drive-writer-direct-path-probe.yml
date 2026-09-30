@@ -1,0 +1,144 @@
+name: Windows Drive Writer Direct Path Probe
+
+on:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - '.github/workflows/windows-drive-writer-direct-path-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-drive-writer-direct-path-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Direct-path read-only probe for relocated writer credential
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 30
+    steps:
+      - name: Probe exact and referenced writer paths without directory enumeration
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "Wrong host: $env:COMPUTERNAME" }
+          $m2=@(Get-CimInstance Win32_Service -ErrorAction SilentlyContinue | Where-Object { ([string]$_.DisplayName -like '*A1-WINDOWS-COMPUTE-02*') -or ([string]$_.PathName -like '*actions-runner-a1-02*') })
+          if ($m2.Count -lt 1) { throw 'Machine-2 service not found.' }
+
+          $reader=$env:A1_DRIVE_READER_CREDENTIALS
+          if ([string]::IsNullOrWhiteSpace($reader)) { $reader=[Environment]::GetEnvironmentVariable('A1_DRIVE_READER_CREDENTIALS','Machine') }
+          if ([string]::IsNullOrWhiteSpace($reader) -or -not (Test-Path -LiteralPath $reader -PathType Leaf)) { throw 'Reader positive control unavailable.' }
+          $reader=[IO.Path]::GetFullPath($reader)
+          $readerHash=(Get-FileHash -LiteralPath $reader -Algorithm SHA256).Hash.ToLowerInvariant()
+          $readerParent=Split-Path -Parent $reader
+
+          function HashText([string]$text) {
+            if ([string]::IsNullOrWhiteSpace($text)) { return 'NONE' }
+            $sha=[Security.Cryptography.SHA256]::Create()
+            try { return ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($text)))).Replace('-','').ToLowerInvariant() }
+            finally { $sha.Dispose() }
+          }
+
+          function InspectCandidate([string]$path,[string]$source,[string]$readerHash) {
+            $exists=Test-Path -LiteralPath $path -PathType Leaf -ErrorAction SilentlyContinue
+            if(-not $exists){
+              Write-Host ("DIRECT_PROBE|path={0}|source={1}|exists=false" -f $path,$source)
+              return $null
+            }
+            $fi=Get-Item -LiteralPath $path -Force -ErrorAction Stop
+            $hash=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+            $kind='UNREADABLE_OR_UNKNOWN'
+            $identity=''
+            $type=''
+            $scopeCount=0
+            $driveWrite=$false
+            try{
+              $p=Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
+              $props=@($p.PSObject.Properties.Name)
+              $type=if($props -contains 'type'){[string]$p.type}else{''}
+              if($type -eq 'authorized_user'){$kind='AUTHORIZED_USER_RUNTIME_CREDENTIAL';$identity=[string]$p.client_id}
+              elseif(($props -contains 'refresh_token') -and ($props -contains 'client_id') -and ($props -contains 'client_secret') -and ($props -contains 'token_uri')){$kind='AUTHORIZED_USER_RUNTIME_CREDENTIAL_SHAPE';$identity=[string]$p.client_id}
+              elseif($type -eq 'service_account' -and ($props -contains 'client_email') -and ($props -contains 'private_key')){$kind='SERVICE_ACCOUNT_RUNTIME_CREDENTIAL';$identity=[string]$p.client_email}
+              elseif(($props -contains 'installed') -or ($props -contains 'web')){$root=if($props -contains 'installed'){$p.installed}else{$p.web};if($root -and $root.client_id){$kind='OAUTH_CLIENT_CONFIG_NOT_RUNTIME_CREDENTIAL';$identity=[string]$root.client_id}}
+              if($props -contains 'scopes' -and $null -ne $p.scopes){$scopes=@($p.scopes|ForEach-Object{[string]$_});$scopeCount=$scopes.Count;$driveWrite=$scopes -contains 'https://www.googleapis.com/auth/drive'}
+            }catch{}
+            $fp=if($identity){(HashText $identity).Substring(0,16)}else{'NONE'}
+            Write-Host ("DIRECT_CANDIDATE|path={0}|source={1}|exists=true|size={2}|sha256={3}|same_as_reader={4}|kind={5}|type={6}|identity_fp16={7}|scope_count={8}|drive_write_scope_declared={9}|secret_values_disclosed=false" -f $fi.FullName,$source,$fi.Length,$hash,($hash -eq $readerHash),$kind,$type,$fp,$scopeCount,$driveWrite)
+            return [pscustomobject]@{Path=$fi.FullName;Hash=$hash;SameAsReader=($hash -eq $readerHash);Kind=$kind;DriveWrite=$driveWrite;Source=$source}
+          }
+
+          # Positive control proves exact-path access works even where listing is restricted.
+          $readerInfo=InspectCandidate $reader 'POSITIVE_CONTROL_READER' $readerHash
+          if($null -eq $readerInfo -or -not $readerInfo.SameAsReader -or $readerInfo.Kind -ne 'AUTHORIZED_USER_RUNTIME_CREDENTIAL'){throw 'DIRECT_PATH_POSITIVE_CONTROL_FAIL'}
+          Write-Host "DIRECT_PATH_POSITIVE_CONTROL_PASS|reader=$reader|sha256=$readerHash"
+
+          $names=New-Object System.Collections.Generic.HashSet[string]([StringComparer]::OrdinalIgnoreCase)
+          foreach($n in @(
+            'client_writer.json','writer_credentials.json','writer_oauth_client.json','client_writer_credentials.json',
+            'drive_writer_credentials.json','drive_writer.json','writer.json','oauth_writer.json','google_drive_writer.json',
+            'credentials_writer.json','writer_client.json','google_writer.json','drive_writer_oauth.json','writer_auth.json',
+            'writer_credentials_backup.json','client_writer_backup.json'
+          )){[void]$names.Add($n)}
+
+          # Recover writer-like JSON filenames/path references from runner diagnostics and PowerShell history without printing source lines.
+          $referenceFiles=New-Object System.Collections.Generic.List[object]
+          foreach($root in @('C:\Users\feri-admin\actions-runner-a1\_diag','C:\Users\feri-admin\actions-runner-a1-02\_diag')){
+            if(Test-Path -LiteralPath $root -PathType Container -ErrorAction SilentlyContinue){
+              foreach($f in @(Get-ChildItem -LiteralPath $root -File -Filter '*.log' -Recurse -Force -ErrorAction SilentlyContinue)){[void]$referenceFiles.Add([pscustomobject]@{Path=$f.FullName;Source='RUNNER_DIAG'})}
+            }
+          }
+          $hist='C:\Users\feri-admin\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt'
+          if(Test-Path -LiteralPath $hist -PathType Leaf -ErrorAction SilentlyContinue){[void]$referenceFiles.Add([pscustomobject]@{Path=$hist;Source='POWERSHELL_HISTORY'})}
+
+          $absoluteRefs=New-Object System.Collections.Generic.HashSet[string]([StringComparer]::OrdinalIgnoreCase)
+          foreach($rf in $referenceFiles){
+            try{
+              foreach($hit in @(Select-String -LiteralPath $rf.Path -Pattern 'A1_DRIVE_WRITER_CREDENTIALS|writer[^\r\n]*\.json|\.json[^\r\n]*writer' -CaseSensitive:$false -ErrorAction Stop)){
+                $line=[string]$hit.Line
+                foreach($m in [regex]::Matches($line,'(?i)([A-Za-z]:\\[^"'';|\r\n]+?\.json)')){[void]$absoluteRefs.Add($m.Groups[1].Value)}
+                foreach($m in [regex]::Matches($line,'(?i)([A-Za-z0-9._-]*writer[A-Za-z0-9._-]*\.json)')){[void]$names.Add($m.Groups[1].Value)}
+              }
+            }catch{}
+          }
+          foreach($r in @($absoluteRefs|Sort-Object)){Write-Host "REFERENCE_ABSOLUTE_JSON|path=$r"}
+          foreach($n in @($names|Sort-Object)){Write-Host "REFERENCE_OR_CANDIDATE_FILENAME|name=$n"}
+
+          $baseDirs=New-Object System.Collections.Generic.HashSet[string]([StringComparer]::OrdinalIgnoreCase)
+          foreach($d in @(
+            $readerParent,
+            'C:\Users\feri-admin\a1-drive-auth',
+            'C:\Users\feri-admin\.a1clean',
+            'C:\Users\feri-admin\a1-auth',
+            'C:\Users\feri-admin',
+            'C:\Users\feri-admin\actions-runner-a1',
+            'C:\Users\feri-admin\actions-runner-a1-02',
+            'C:\ProgramData\a1-clean',
+            'D:\a1-drive-auth',
+            'D:\TRADING SYSTEM\a1-drive-auth',
+            'D:\TRADING SYSTEM'
+          )){if($d){[void]$baseDirs.Add($d)}}
+
+          $found=New-Object System.Collections.Generic.Dictionary[string,object]([StringComparer]::OrdinalIgnoreCase)
+          foreach($r in $absoluteRefs){
+            $row=InspectCandidate $r 'HISTORICAL_ABSOLUTE_REFERENCE' $readerHash
+            if($null -ne $row){$found[$row.Path]=$row}
+          }
+          foreach($dir in $baseDirs){
+            foreach($name in $names){
+              $p=Join-Path $dir $name
+              $row=InspectCandidate $p 'DIRECT_BASEDIR_FILENAME_PROBE' $readerHash
+              if($null -ne $row){$found[$row.Path]=$row}
+            }
+          }
+
+          $runtime=@($found.Values|Where-Object{$_.Kind -in @('AUTHORIZED_USER_RUNTIME_CREDENTIAL','AUTHORIZED_USER_RUNTIME_CREDENTIAL_SHAPE','SERVICE_ACCOUNT_RUNTIME_CREDENTIAL')})
+          $distinct=@($runtime|Where-Object{-not $_.SameAsReader})
+          $writeDeclared=@($distinct|Where-Object{$_.DriveWrite})
+          Write-Host ("DIRECT_PATH_SUMMARY|candidate_filenames={0}|absolute_references={1}|base_dirs={2}|existing_files={3}|runtime_candidates={4}|runtime_distinct_from_reader={5}|distinct_runtime_write_scope_declared={6}|binding_changed=false|drive_write=false|oauth_reauthorization=false|canonical_current_mutation=false" -f $names.Count,$absoluteRefs.Count,$baseDirs.Count,$found.Count,$runtime.Count,$distinct.Count,$writeDeclared.Count)
+          Write-Host 'DIRECT_PATH_PROBE_COMPLETE|secret_values_disclosed=false|mutation=false'

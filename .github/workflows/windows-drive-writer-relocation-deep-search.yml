@@ -1,0 +1,252 @@
+name: Windows Drive Writer Relocation Deep Search
+
+on:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - '.github/workflows/windows-drive-writer-relocation-deep-search.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-drive-writer-relocation-deep-search
+  cancel-in-progress: false
+
+jobs:
+  search:
+    name: Deep read-only search for relocated Drive writer credential
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 60
+    steps:
+      - name: Search renamed credential/config and runner diagnostic references safely
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+
+          if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') {
+            throw "Wrong physical host: expected PORSCHE-DESIGN, observed $env:COMPUTERNAME"
+          }
+          $machine2Services = @(Get-CimInstance Win32_Service -ErrorAction SilentlyContinue | Where-Object {
+            ([string]$_.DisplayName -like '*A1-WINDOWS-COMPUTE-02*') -or
+            ([string]$_.PathName -like '*actions-runner-a1-02*')
+          })
+          if ($machine2Services.Count -lt 1) {
+            throw 'Current Machine-2 runner service A1-WINDOWS-COMPUTE-02 was not found on PORSCHE-DESIGN.'
+          }
+          Write-Host "HOST_GATE_PASS|executing_runner=$env:RUNNER_NAME|computer=$env:COMPUTERNAME|machine2_service_count=$($machine2Services.Count)|target_service_present=true"
+
+          function Sha256Text([string]$text) {
+            if ([string]::IsNullOrWhiteSpace($text)) { return 'NONE' }
+            $sha = [Security.Cryptography.SHA256]::Create()
+            try {
+              $bytes = [Text.Encoding]::UTF8.GetBytes($text)
+              return ([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-','').ToLowerInvariant()
+            } finally { $sha.Dispose() }
+          }
+
+          function Get-ReaderHash {
+            foreach ($scope in @('Process','Machine','User')) {
+              $p = [Environment]::GetEnvironmentVariable('A1_DRIVE_READER_CREDENTIALS',$scope)
+              if ($p -and (Test-Path -LiteralPath $p -PathType Leaf -ErrorAction SilentlyContinue)) {
+                return (Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLowerInvariant()
+              }
+            }
+            return $null
+          }
+
+          function Add-Path([hashtable]$map,[string]$path,[string]$source) {
+            if ([string]::IsNullOrWhiteSpace($path)) { return }
+            try { $full = [IO.Path]::GetFullPath($path.Trim().Trim('"').Trim("'")) } catch { return }
+            if (-not (Test-Path -LiteralPath $full -PathType Leaf -ErrorAction SilentlyContinue)) { return }
+            $key = $full.ToLowerInvariant()
+            if (-not $map.ContainsKey($key)) {
+              $map[$key] = [ordered]@{Path=$full;Sources=New-Object System.Collections.Generic.List[string]}
+            }
+            if (-not $map[$key].Sources.Contains($source)) { [void]$map[$key].Sources.Add($source) }
+          }
+
+          function Inspect-JsonCredential([string]$path,[string]$readerHash) {
+            $item = Get-Item -LiteralPath $path -Force -ErrorAction Stop
+            if ($item.Length -gt 4MB) { return $null }
+            $hash = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+            $kind = 'NOT_CREDENTIAL_SHAPE'
+            $identity = ''
+            $scopeState = 'UNKNOWN'
+            $scopeCount = 0
+            $writeScope = $false
+            $payloadType = ''
+            try {
+              $payload = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
+              $props = @($payload.PSObject.Properties.Name)
+              if ($props -contains 'type') { $payloadType = [string]$payload.type }
+              if ($payload.type -eq 'service_account') {
+                $kind = 'SERVICE_ACCOUNT_RUNTIME_CREDENTIAL'
+                $identity = [string]$payload.client_email
+                $scopeState = 'SCOPES_RUNTIME_BOUND_NOT_STORED_IN_FILE'
+              } elseif ($payload.type -eq 'authorized_user') {
+                $kind = 'AUTHORIZED_USER_RUNTIME_CREDENTIAL'
+                $identity = [string]$payload.client_id
+              } elseif (($props -contains 'refresh_token') -and ($props -contains 'client_id') -and ($props -contains 'client_secret') -and ($props -contains 'token_uri')) {
+                $kind = 'AUTHORIZED_USER_RUNTIME_CREDENTIAL_SHAPE'
+                $identity = [string]$payload.client_id
+              } elseif (($props -contains 'installed') -or ($props -contains 'web')) {
+                $kind = 'OAUTH_CLIENT_CONFIG_NOT_RUNTIME_CREDENTIAL'
+                $root = if ($props -contains 'installed') { $payload.installed } else { $payload.web }
+                $identity = [string]$root.client_id
+                $scopeState = 'NOT_APPLICABLE_OAUTH_CLIENT_CONFIG'
+              }
+              if ($kind -in @('AUTHORIZED_USER_RUNTIME_CREDENTIAL','AUTHORIZED_USER_RUNTIME_CREDENTIAL_SHAPE')) {
+                if ($props -contains 'scopes' -and $null -ne $payload.scopes) {
+                  $scopes = @($payload.scopes | ForEach-Object {[string]$_})
+                  $scopeCount = $scopes.Count
+                  $writeScope = $scopes -contains 'https://www.googleapis.com/auth/drive'
+                  $scopeState = if ($writeScope) {'DRIVE_WRITE_SCOPE_DECLARED'} else {'SCOPES_DECLARED_NO_FULL_DRIVE_WRITE'}
+                } else {
+                  $scopeState = 'SCOPE_NOT_DECLARED_IN_FILE'
+                }
+              }
+            } catch { return $null }
+            if ($kind -eq 'NOT_CREDENTIAL_SHAPE') { return $null }
+            $fp = if ($identity) {(Sha256Text $identity).Substring(0,16)} else {'NONE'}
+            return [pscustomobject]@{
+              Path=$path; Name=$item.Name; Size=$item.Length; LastWriteUtc=$item.LastWriteTimeUtc.ToString('o');
+              Sha256=$hash; SameAsReader=([bool]($readerHash -and $hash -eq $readerHash));
+              Kind=$kind; PayloadType=$payloadType; IdentityFp16=$fp; ScopeState=$scopeState;
+              ScopeCount=$scopeCount; DriveWriteScopeDeclared=$writeScope
+            }
+          }
+
+          Write-Host "DEEP_RELOCATION_START|runner=$env:RUNNER_NAME|computer=$env:COMPUTERNAME|identity=$([Security.Principal.WindowsIdentity]::GetCurrent().Name)|mutation=false|secret_values_disclosed=false"
+          $readerHash = Get-ReaderHash
+          if ($readerHash) { Write-Host "READER_REFERENCE|sha256_16=$($readerHash.Substring(0,16))" } else { Write-Host 'READER_REFERENCE|status=UNAVAILABLE' }
+
+          $paths = @{}
+          $runnerRoots = New-Object System.Collections.Generic.HashSet[string]([StringComparer]::OrdinalIgnoreCase)
+          foreach ($svc in @(Get-Service -ErrorAction SilentlyContinue | Where-Object {$_.Name -like 'actions.runner*'})) {
+            try {
+              $cim = Get-CimInstance Win32_Service -Filter ("Name='{0}'" -f $svc.Name.Replace("'","''")) -ErrorAction Stop
+              $sp = [string]$cim.PathName
+              Write-Host ("RUNNER_SERVICE|display={0}|status={1}|account={2}|path={3}" -f $svc.DisplayName,$svc.Status,$cim.StartName,$sp)
+              if ($sp -match '^["]?([^\"]+?RunnerService\.exe)') {
+                $bin = Split-Path -Parent $Matches[1]
+                $root = Split-Path -Parent $bin
+                if ($root) { [void]$runnerRoots.Add($root) }
+              }
+              $regPath = "HKLM:\SYSTEM\CurrentControlSet\Services\$($svc.Name)"
+              try {
+                $reg = Get-ItemProperty -LiteralPath $regPath -ErrorAction Stop
+                foreach ($entry in @($reg.Environment)) {
+                  if ([string]$entry -match '^A1_DRIVE_WRITER_CREDENTIALS=(.+)$') {
+                    $candidate = $Matches[1].Trim().Trim('"').Trim("'")
+                    $exists = Test-Path -LiteralPath $candidate -PathType Leaf -ErrorAction SilentlyContinue
+                    Write-Host ("SERVICE_WRITER_REFERENCE|display={0}|file_exists={1}|path={2}" -f $svc.DisplayName,$exists,$candidate)
+                    if ($exists) { Add-Path $paths $candidate 'SERVICE_REGISTRY_ENV' }
+                  }
+                }
+              } catch {}
+            } catch {}
+          }
+
+          foreach ($r in @($runnerRoots)) {
+            if (-not (Test-Path -LiteralPath $r -PathType Container -ErrorAction SilentlyContinue)) { continue }
+            Write-Host "RUNNER_ROOT|path=$r"
+            $diag = Join-Path $r '_diag'
+            if (Test-Path -LiteralPath $diag -PathType Container -ErrorAction SilentlyContinue) {
+              foreach ($log in @(Get-ChildItem -LiteralPath $diag -File -Filter '*.log' -Force -ErrorAction SilentlyContinue)) {
+                try {
+                  $hits = @(Select-String -LiteralPath $log.FullName -Pattern 'A1_DRIVE_WRITER_CREDENTIALS|client_writer\.json|writer_oauth_client\.json|drive.*writer|writer.*drive' -CaseSensitive:$false -ErrorAction Stop)
+                  if ($hits.Count -gt 0) {
+                    Write-Host "RUNNER_DIAG_REFERENCE|runner_root=$r|log_name=$($log.Name)|matches=$($hits.Count)|contents_disclosed=false"
+                    foreach ($hit in $hits) {
+                      foreach ($m in [regex]::Matches([string]$hit.Line,'(?i)([A-Za-z]:\\[^"'';\r\n]+?\.json)')) {
+                        if (Test-Path -LiteralPath $m.Groups[1].Value -PathType Leaf -ErrorAction SilentlyContinue) {
+                          Add-Path $paths $m.Groups[1].Value 'RUNNER_DIAG_REFERENCE'
+                        }
+                      }
+                    }
+                  }
+                } catch {}
+              }
+            }
+          }
+
+          $scanRoots = New-Object System.Collections.Generic.List[string]
+          foreach ($r in @(
+            'C:\Users\feri-admin',
+            'C:\ProgramData',
+            'D:\'
+          )) {
+            if (Test-Path -LiteralPath $r -PathType Container -ErrorAction SilentlyContinue) { [void]$scanRoots.Add($r) }
+          }
+
+          $nameRegex = '(?i)(writer|credential|credentials|oauth|token|client[_-]?secret|client[_-]?oauth|drive[_-]?auth|auth[_-]?client|google[_-]?auth)'
+          foreach ($root in $scanRoots) {
+            Write-Host "GENERIC_NAME_SCAN_START|root=$root"
+            try {
+              Get-ChildItem -LiteralPath $root -File -Recurse -Force -ErrorAction SilentlyContinue |
+                Where-Object { $_.Extension -ieq '.json' -and $_.Length -le 4MB -and $_.Name -match $nameRegex } |
+                ForEach-Object { Add-Path $paths $_.FullName 'GENERIC_CREDENTIAL_FILENAME_SCAN' }
+            } catch {}
+            Write-Host "GENERIC_NAME_SCAN_DONE|root=$root"
+          }
+
+          # Current runner/user config references can recover a moved path even when the credential file was renamed.
+          $configRoots = @('C:\Users\feri-admin','C:\ProgramData')
+          foreach ($root in $configRoots) {
+            if (-not (Test-Path -LiteralPath $root -PathType Container -ErrorAction SilentlyContinue)) { continue }
+            Write-Host "CONFIG_REFERENCE_SCAN_START|root=$root"
+            try {
+              Get-ChildItem -LiteralPath $root -File -Recurse -Force -ErrorAction SilentlyContinue |
+                Where-Object { $_.Length -le 4MB -and $_.Extension -in @('.ps1','.psm1','.cmd','.bat','.env','.ini','.cfg','.conf','.txt','.json','.yml','.yaml','.log') } |
+                ForEach-Object {
+                  try {
+                    $hits = @(Select-String -LiteralPath $_.FullName -SimpleMatch 'A1_DRIVE_WRITER_CREDENTIALS' -ErrorAction Stop)
+                    if ($hits.Count -gt 0) {
+                      Write-Host "CONFIG_WRITER_REFERENCE|file=$($_.FullName)|matches=$($hits.Count)|contents_disclosed=false"
+                      foreach ($hit in $hits) {
+                        foreach ($m in [regex]::Matches([string]$hit.Line,'(?i)([A-Za-z]:\\[^"'';\r\n]+?\.json)')) {
+                          if (Test-Path -LiteralPath $m.Groups[1].Value -PathType Leaf -ErrorAction SilentlyContinue) {
+                            Add-Path $paths $m.Groups[1].Value 'CONFIG_WRITER_REFERENCE'
+                          }
+                        }
+                      }
+                    }
+                  } catch {}
+                }
+            } catch {}
+            Write-Host "CONFIG_REFERENCE_SCAN_DONE|root=$root"
+          }
+
+          Write-Host "DISCOVERED_JSON_PATHS|count=$($paths.Count)"
+          $credentialCount = 0
+          $runtimeCount = 0
+          $oauthConfigCount = 0
+          $distinctFromReaderRuntimeCount = 0
+          $driveWriteDeclaredRuntimeCount = 0
+          foreach ($key in @($paths.Keys | Sort-Object)) {
+            $row = $paths[$key]
+            $info = Inspect-JsonCredential $row.Path $readerHash
+            if ($null -eq $info) { continue }
+            $credentialCount++
+            $isRuntime = $info.Kind -in @('AUTHORIZED_USER_RUNTIME_CREDENTIAL','AUTHORIZED_USER_RUNTIME_CREDENTIAL_SHAPE','SERVICE_ACCOUNT_RUNTIME_CREDENTIAL')
+            if ($isRuntime) {
+              $runtimeCount++
+              if (-not $info.SameAsReader) { $distinctFromReaderRuntimeCount++ }
+              if ($info.DriveWriteScopeDeclared) { $driveWriteDeclaredRuntimeCount++ }
+            } else { $oauthConfigCount++ }
+            $safe = [ordered]@{
+              path=$info.Path; name=$info.Name; size=$info.Size; last_write_utc=$info.LastWriteUtc;
+              sha256=$info.Sha256; same_as_reader=$info.SameAsReader; credential_kind=$info.Kind;
+              payload_type=$info.PayloadType; identity_fp16=$info.IdentityFp16; scope_state=$info.ScopeState;
+              scope_count=$info.ScopeCount; drive_write_scope_declared=$info.DriveWriteScopeDeclared;
+              discovery_sources=(@($row.Sources) -join '+')
+            }
+            Write-Host ('CREDENTIAL_CANDIDATE|' + ($safe | ConvertTo-Json -Compress -Depth 4))
+          }
+
+          Write-Host ("DEEP_RELOCATION_SUMMARY|credential_shape_candidates={0}|runtime_candidates={1}|oauth_client_configs={2}|runtime_distinct_from_reader={3}|runtime_drive_write_scope_declared={4}|mutation=false|secret_values_disclosed=false" -f $credentialCount,$runtimeCount,$oauthConfigCount,$distinctFromReaderRuntimeCount,$driveWriteDeclaredRuntimeCount)
+          Write-Host 'DEEP_RELOCATION_COMPLETE|binding_changed=false|drive_write=false|oauth_reauthorization=false|canonical_current_mutation=false'

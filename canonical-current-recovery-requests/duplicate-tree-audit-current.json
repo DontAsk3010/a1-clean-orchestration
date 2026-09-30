@@ -1,0 +1,30 @@
+{
+  "schema": "A1_CANONICAL_RECOVERY_DUPLICATE_TREE_AUDIT_REQUEST_V1",
+  "enabled": true,
+  "mode": "READ_ONLY_METADATA_AUDIT",
+  "branch": "fix/v32-dynamic-source-universe-v1",
+  "purpose": "Prove whether both retained partial CANDIDATE_CURRENT trees are exact duplicates of accepted RECOVERED_SOURCES and/or committed control origins before any physical deletion or canonical recovery assembly.",
+  "partial_candidate_folder_ids": [
+    "1s5EqI2CBUZxHHLMq6uKYfe7DSDMSAzQT",
+    "1yQSuGEMQRI-3ltI1mcMLkMX0iqDGEu76"
+  ],
+  "recovered_sources_folder_id": "1jsWlMQtc0eSc--_jnKpbeqyPeT9sSu1Q",
+  "committed_control_bundle_folder_id": "1IKflAPURwdcPPNxYDdCNLQt7TTcLsnl9",
+  "recovery_run_folder_id": "1Vd7ixZiQMfyo5pJGbzqpGuQYsN0bCnDR",
+  "storage_manifest_document_id": "16Akf3qCzimsz15wE-pxcMqC-28e73eCNrmGPVFjuPgo",
+  "allowed_nonactive_drive_reference_ids": [
+    "16Akf3qCzimsz15wE-pxcMqC-28e73eCNrmGPVFjuPgo"
+  ],
+  "matching_contract": "CANDIDATE_FILE_MUST_MATCH_RECOVERED_SOURCE_LOGICAL_PATH_PLUS_SIZE_PLUS_MD5_OR_COMMITTED_CONTROL_BASENAME_PLUS_SIZE_PLUS_MD5",
+  "missing_md5_policy": "HOLD",
+  "unmatched_file_policy": "HOLD",
+  "unexpected_drive_reference_policy": "HOLD",
+  "repo_reference_search_external_result": "PASS_ZERO_EXACT_ID_REFERENCES_AT_REQUEST_CREATION",
+  "canonical_current_mutation_allowed": false,
+  "physical_delete_allowed_by_this_audit": false,
+  "raw_write_allowed": false,
+  "heavy_behavior_research_allowed": false,
+  "formula_stage": "CLOSED",
+  "next_gate_on_pass": "SEPARATE_PHYSICAL_DELETE_WITH_POST_DELETE_READBACK_THEN_STORAGE_SAFE_MOVE_REBIND_ASSEMBLY",
+  "next_gate_on_hold": "PRESERVE_ALL_OBJECTS_AND_RECONCILE_ONLY_THE_FAILED_REFERENCE_OR_MATCH_SCOPE"
+}

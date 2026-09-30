@@ -1,0 +1,157 @@
+name: Windows V3.2 Lossless Artifact Export
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_name:
+        description: Exact governed source_name to export as one complete transport unit
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-v32-lossless-artifact-export-${{ inputs.source_name }}
+  cancel-in-progress: false
+
+jobs:
+  export:
+    name: Lossless source-unit export under current M2 authority
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 720
+    env:
+      PSExecutionPolicyPreference: Bypass
+
+    steps:
+      - name: Checkout exact dispatch revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 96
+
+      - name: Fail fast while Machine 2 request is HOLD
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $req = Get-Content -LiteralPath 'v32-full-observation-behavior-requests\current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          $auth = Get-Content -LiteralPath 'governance\a1-clean-active-authority-lock.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($auth.status -ne 'ACTIVE') { throw 'V32_TRANSPORT_AUTHORITY_NOT_ACTIVE' }
+          if ($req.enabled -ne $true) { throw "V32_TRANSPORT_HOLD_REQUEST_DISABLED:$($req.recovery_prepare_current_status)" }
+          if ($req.formula_stage -ne 'CLOSED') { throw 'V32_TRANSPORT_FORMULA_STAGE_MUST_BE_CLOSED' }
+          if ($auth.lossless_artifact_transport_preferred_for_large_payloads -ne $true -or $auth.transport_optimization_may_not_reduce_evidence -ne $true) { throw 'V32_TRANSPORT_AUTHORITY_LOSSLESS_LOCK_FAIL' }
+          if ($req.transport_integrity_proof_required -ne $true -or $req.connector_control_plane_thin_after_file_intake -ne $true) { throw 'V32_TRANSPORT_REQUEST_LOCK_FAIL' }
+          Write-Host 'V32_TRANSPORT_REQUEST_GATE_PASS'
+
+      - name: Provision portable Python 3.11
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $pyRoot = Join-Path $env:RUNNER_TEMP 'a1-python-3.11.9'
+          $zip = Join-Path $env:RUNNER_TEMP 'python-3.11.9-embed-amd64.zip'
+          $getPip = Join-Path $env:RUNNER_TEMP 'get-pip.py'
+          if (-not (Test-Path -LiteralPath (Join-Path $pyRoot 'python.exe') -PathType Leaf)) {
+            Remove-Item -LiteralPath $pyRoot -Recurse -Force -ErrorAction SilentlyContinue
+            New-Item -ItemType Directory -Force -Path $pyRoot | Out-Null
+            Invoke-WebRequest -UseBasicParsing -Uri 'https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-amd64.zip' -OutFile $zip
+            Expand-Archive -LiteralPath $zip -DestinationPath $pyRoot -Force
+            $pth = Join-Path $pyRoot 'python311._pth'
+            (Get-Content -LiteralPath $pth -Raw).Replace('#import site','import site') | Set-Content -LiteralPath $pth -Encoding ascii
+            Invoke-WebRequest -UseBasicParsing -Uri 'https://bootstrap.pypa.io/get-pip.py' -OutFile $getPip
+            & (Join-Path $pyRoot 'python.exe') $getPip --no-warn-script-location
+            if ($LASTEXITCODE -ne 0) { throw 'V32_TRANSPORT_PIP_BOOTSTRAP_FAILED' }
+          }
+          $py = Join-Path $pyRoot 'python.exe'
+          & $py --version
+          if ($LASTEXITCODE -ne 0) { throw 'V32_TRANSPORT_PYTHON_UNAVAILABLE' }
+          "A1_PYTHON_EXE=$py" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $pyRoot | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Install current package and compile transport code
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & $env:A1_PYTHON_EXE -m pip install -e '.'
+          if ($LASTEXITCODE -ne 0) { throw 'V32_TRANSPORT_INSTALL_FAILED' }
+          & $env:A1_PYTHON_EXE -m py_compile `
+            scripts/v32_lossless_source_unit_export.py `
+            src/a1clean/formula_research/source_universe_drive_preflight.py `
+            src/a1clean/formula_research/v32_dynamic_prestart.py
+          if ($LASTEXITCODE -ne 0) { throw 'V32_TRANSPORT_COMPILE_FAILED' }
+
+      - name: Verify reader binding for lightweight current-source preflight
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:A1_DRIVE_READER_CREDENTIALS)) { throw 'V32_TRANSPORT_READER_NOT_CONFIGURED' }
+          if (-not (Test-Path -LiteralPath $env:A1_DRIVE_READER_CREDENTIALS -PathType Leaf)) { throw 'V32_TRANSPORT_READER_FILE_MISSING' }
+
+      - name: Fresh current dynamic-source PRESTART proof before export
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sourceManifest = Join-Path $env:RUNNER_TEMP 'v32-transport-source-universe.json'
+          $stamp = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
+          & $env:A1_PYTHON_EXE -m a1clean.formula_research.source_universe_drive_preflight `
+            --authority-lock governance/a1-clean-active-authority-lock.json `
+            --output $sourceManifest `
+            --discovery-time-utc $stamp
+          if ($LASTEXITCODE -ne 0) { throw "V32_TRANSPORT_SOURCE_PREFLIGHT_FAIL:$LASTEXITCODE" }
+          & $env:A1_PYTHON_EXE -m a1clean.formula_research.v32_dynamic_prestart `
+            --request v32-full-observation-behavior-requests/current.json `
+            --authority-lock governance/a1-clean-active-authority-lock.json `
+            --source-universe-manifest $sourceManifest `
+            --require-enabled
+          if ($LASTEXITCODE -ne 0) { throw "V32_TRANSPORT_PRESTART_FAIL:$LASTEXITCODE" }
+          $req = Get-Content -LiteralPath 'v32-full-observation-behavior-requests\current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          $u = Get-Content -LiteralPath $sourceManifest -Raw -Encoding UTF8 | ConvertFrom-Json
+          $root = Join-Path 'C:\Users\feri-admin\.a1clean\v32_full_observation_behavior\schema-v3' ([string]$req.required_parent_revision)
+          $corpusManifest = Join-Path $root 'manifest.json'
+          if (-not (Test-Path -LiteralPath $corpusManifest -PathType Leaf)) { throw "V32_TRANSPORT_CORPUS_MANIFEST_MISSING:$root" }
+          $m = Get-Content -LiteralPath $corpusManifest -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($m.status -ne 'PASS') { throw 'V32_TRANSPORT_CORPUS_NOT_PASS' }
+          if ([string]$m.source_universe_manifest_digest -ne [string]$u.manifest_digest) { throw 'V32_TRANSPORT_STALE_CORPUS_SOURCE_UNIVERSE_DIGEST' }
+          if ([string]$m.software_revision -ne [string]$req.required_parent_revision) { throw 'V32_TRANSPORT_STALE_CORPUS_SOFTWARE_REVISION' }
+          "A1_TRANSPORT_OUTPUT_ROOT=$root" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "A1_TRANSPORT_SOURCE_MANIFEST=$sourceManifest" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "V32_TRANSPORT_PRESTART_PASS|sources=$($u.source_count)|digest=$($u.manifest_digest)"
+
+      - name: Build and roundtrip-verify one complete governed source unit
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $stage = Join-Path $env:RUNNER_TEMP ("v32-lossless-source-unit-" + $env:GITHUB_RUN_ID)
+          & $env:A1_PYTHON_EXE scripts/v32_lossless_source_unit_export.py `
+            --authority governance/a1-clean-active-authority-lock.json `
+            --request v32-full-observation-behavior-requests/current.json `
+            --output-root $env:A1_TRANSPORT_OUTPUT_ROOT `
+            --source-name '${{ inputs.source_name }}' `
+            --stage $stage
+          if ($LASTEXITCODE -ne 0) { throw "V32_TRANSPORT_EXPORT_FAIL:$LASTEXITCODE" }
+          "A1_TRANSPORT_STAGE=$stage" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $proof = Get-Content -LiteralPath (Join-Path $stage 'TRANSPORT_INTEGRITY_PROOF.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($proof.status -ne 'PASS' -or [int64]$proof.rows_omitted_for_transport -ne 0 -or $proof.sampling_used -ne $false) { throw 'V32_TRANSPORT_PROOF_FAIL' }
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value '### Machine 2 lossless source-unit transport'
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Source: $($proof.source_name)"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Source rows: $($proof.observed_counts_and_ranges.source_rows)"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Payload SHA256: $($proof.payload_zip_sha256)"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value '- Raw/V2 rows sent through connector/chat: NO'
+
+      - name: Upload verified lossless transport artifact
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: v32-m2-lossless-source-unit-${{ github.run_id }}
+          path: |
+            ${{ env.A1_TRANSPORT_STAGE }}/v32-source-unit-lossless.zip
+            ${{ env.A1_TRANSPORT_STAGE }}/TRANSPORT_INTEGRITY_PROOF.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Record Actions artifact control-plane metadata
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Actions artifact id: ${{ steps.upload.outputs.artifact-id }}"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Actions artifact digest: ${{ steps.upload.outputs.artifact-digest }}"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value '- Next intake rule: download artifact as file, extract locally, verify TRANSPORT_INTEGRITY_PROOF before semantic use.'

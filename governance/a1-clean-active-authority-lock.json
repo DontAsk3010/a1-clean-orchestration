@@ -1,7 +1,7 @@
 {
   "schema": "A1_CLEAN_ACTIVE_AUTHORITY_LOCK_V1",
   "status": "ACTIVE",
-  "effective_date": "2026-09-24",
+  "effective_date": "2026-09-28",
   "prestart_completeness_gate_required": true,
   "dynamic_source_universe_required": true,
   "fixed_source_count_as_invariant_forbidden": true,
@@ -13,6 +13,22 @@
   "full_read_new_or_resumed_chat_required": true,
   "current_readback_required_for_pass_claim": true,
   "owner_correction_requires_pre_execution_reconciliation": true,
+  "machine1_current_authority_compliance_audit_required": true,
+  "material_authority_change_requires_worker_fresh_read_and_assigned_date_scope_audit": true,
+  "previous_pass_not_automatic_current_compliance": true,
+  "transport_only_never_semantic_pass": true,
+  "machine1_semantic_template_substitution_forbidden": true,
+  "machine1_normalized_mass_template_detection_required": true,
+  "machine1_auto_advance_forbidden": true,
+  "machine1_date_audit_persistence_required": true,
+  "authority_renewal_execution_gate_required_before_next_substantive_work": true,
+  "machine1_current_compliance_classifications": [
+    "CURRENT_COMPLIANT",
+    "CURRENT_COMPLIANT_ENRICHMENT_REQUIRED",
+    "SEMANTIC_REREAD_REQUIRED",
+    "INTEGRITY_HOLD",
+    "NOT_YET_AUDITED"
+  ],
   "dual_independent_full_depth_research_engines_required": true,
   "machine1_machine2_division_of_labor_forbidden": true,
   "same_maximum_source_supported_completeness_target_required": true,
@@ -22,46 +38,79 @@
   "independent_storage_checkpoint_provenance_required": true,
   "cross_machine_disagreement_must_be_preserved": true,
   "machine_specific_coverage_gap_must_be_explicit": true,
-  "candidate_formula_research_authorized": true,
+  "no_predetermined_formula_menu_required": true,
+  "emergent_formula_discovery_required": true,
+  "predetermined_formula_targets_authorized": false,
+  "candidate_formula_research_authorized": false,
+  "formula_readiness_research_allowed": true,
+  "formula_candidate_construction_authorized": false,
+  "formula_discovery_admission_open": false,
   "machine2_atlas_to_authoritative_formula_admission_open": false,
   "production_live_telegram_formula_promotion_open": false,
   "formula_stage": "CLOSED",
+  "lossless_artifact_transport_preferred_for_large_payloads": true,
+  "transport_optimization_may_not_reduce_evidence": true,
+  "artifact_integrity_manifest_required": true,
+  "artifact_transport_integrity_readback_required": true,
+  "full_verified_payload_read_required_before_semantic_pass": true,
+  "connector_control_plane_thin_after_file_intake": true,
+  "raw_row_flooding_avoid_when_governed_file_path_available": true,
+  "canonical_storage_root_name": "A1_CLEAN_QHPX_CANONICAL",
+  "canonical_storage_root_id": "1VisucgXypwG7M_ErRDp-_IQu1kuP6TRk",
+  "canonical_storage_topology": {
+    "00_AUTHORITY_CURRENT": "1oT7NkloxbvyNXyo4S-gYXQyFCDklimrR",
+    "01_CANONICAL_SOURCE": "1iCQt11-u37T4nobRCVJQICEl7xmmxv-m",
+    "02_MACHINE1": "1vkJvkOAx-6m9IPd02oghRqUl65okxeJY",
+    "03_MACHINE2": "1K4AGWyamGtd5cBCu2odcRzosl4k9DXHA",
+    "04_SHARED_EVIDENCE": "1hdCNgbMEnAl56Pxuww2z9eZbp0GRGZMO",
+    "05_RECOVERY_HOLD": "1Vi4X48c2g3r_CAc9M4H3JDyWA5eKb_rs",
+    "90_EPHEMERAL": "1qurXKcIln4O6pIj2y7XNqlwIAvymLrRi",
+    "99_STORAGE_CONTROL": "1P6Tj-vqYCtp0s15iUmq8Qv4Qfx1mB8fD"
+  },
   "documents": {
     "master_handbook": {
       "document_id": "1FVWKgoeWU9MsnOd3i8HOpprg36XrxgKInf6BQU6QTKQ",
-      "revision_id": "ANLCKQlU5xwDz07HGtQk35ef6hVChfD29A7gd2kj5RUvKAIoZQpkELD2uZyL_7J7NqZYoTAapU-eZ3EZtlIyGDUyI6QYSyCoz5zabDJ6S_Y"
+      "revision_id": "ANLCKQlY5oe9LEhk8yvbFDJRAMcppectuDN3zekMTXMa7YN4lx3SfjRYXKQsXCHE3ykla0sSQgWZNYJwMj2B8fR_yb6kgbUCGN0tce2GUDk"
     },
     "sub_master_index": {
       "document_id": "1jpL6rPU5us0z18Gw8MxNQfbxKNdmZxVJe4vA71f7TyA",
-      "revision_id": "ANLCKQnlJZxmkQo9xpQzD7HFGePvCMSJn6e4uzKV_McbHc4FHJzpIZtN3388X-vlvmdigdzGhMT12z3LBsBhIRGoJud7pWqZjab3yArkTSc"
+      "revision_id": "ANLCKQmDXXL_cQVNOwmKlEl1u1Vb1wbPaJaWpWZwGrVTqRnmNFFSm1Pr411yuoa4wfe4QeGk_7FsW94_sB5U6YMpidoLzB7sGfQTYdpoGZY"
     },
     "source_capture": {
       "document_id": "12uknstiWZxoXeDk5r0Zd5iCRBQM4k3N9obSSLKWGG6M",
-      "revision_id": "ANLCKQlhjGZ3OsJAeHAQoa6DISuXDM7KX0WHb8DmJ2cC-GpFr_X5XnzSvPs304eo_Tcm9jzZDZOiMWW3-EvyDmMfLD9zq5uzWR0WLsae2nc"
+      "revision_id": "ANLCKQkw7t-1CMeBTOjeOgVz3exdEe-cVTxy13frw2YrIoJqr81BfO0zAIjocwACdHdNd96o8UmqfCHej4_kGcJqkwpixAcuDAg61krjD8s"
     },
     "formula_research": {
       "document_id": "1sQu0l2qwvsjItmBycRh3siMajKEQknHOMBLlBQd3I-Q",
-      "revision_id": "ANLCKQm2woLnrwb7OTPu2bQsDmms2i0VXxEBu6lwqjr7RcYfYZMQG0uiFScc5F0LG3WJZxPMWnJUbT9VkFf6EyOAakfauYePziKNIZSs0kc"
+      "revision_id": "ANLCKQmWt2C2wMkx9IYp8BhmD_ZdqE0QoVVBMPX28Dy84ALdpUtVhd4mXAIeYvQkt3ZcU3zfqzoNiEjABbmBco839XaUlOQ3l88_M16f3k8"
     },
     "behavior_reading": {
       "document_id": "1vDoz8E7nGVlYPl2SBneA2tCAiNNAL77nLgPPZzFlbaI",
-      "revision_id": "ANLCKQlMgHFfhBfbB3uGXrX5BVQK_7UUoBUEHYoXKHEtg01EfB4lBNHoHImCSShNepDHBABhTrQN4fMqYbJ_RkQAPxT1tt0Ix8WRHAWPwCA"
+      "revision_id": "ANLCKQmv9otR53_S4CtwfYoTCmIbzaElpoXtzuTE1XsvWgZ4Q2SN_gZLFSlNmhTe_BJSydYl85h5HyXlk4EDTN5EYBIl2SM5yqV6ixebZTs"
     },
     "github_automation": {
       "document_id": "12PK2RTlRlggPQAScAmzNPewatB5mZqOgJ3sZfRBsbO8",
-      "revision_id": "ANLCKQn6-m4KQFGaLO1WDmIs25zF3Rka9wBOZH5AEy2l7YGLenqaN_b-YYQP4IC3iWnr3Bbi7AURVkOvRcIcEsDVZA5hH9-vDJpKVQYPxmY"
+      "revision_id": "ANLCKQnee0qX4AmnA3WD_aRSztYKYKRNo0RDRBo_OKDscGt_W0J0Pzxn2qveYBoXJU1Nmpp6kJFvwkhDTDR-FcqAf8bukEFhfLFWE54kVyc"
     },
     "stable_transition_bridge": {
       "document_id": "1WI79YymkVcOJTRDhLwSiAESkLWFakwL9pe0oj6q1kug",
-      "revision_id": "ANLCKQnRhC_3oh-geNg_Xn-H8DQATa4ghAqeJpHHpU7gwl5nikV3tUcvaUxEL_EJASxgtFJIfBfl1JgjeFI5FZ35pThmRhRzU3RA1cO-Nmg"
+      "revision_id": "ANLCKQmdZdmavuZScHdrcvsgOfHDfr9Sk1xGOiuaS2dRB9mJBIyGVtn7bzAQPZQoT30cEQP3RWilonRdYjXrsvYGxEZ5eioROqefs3uDeuw"
     },
     "machine1_dispatch_registry": {
       "document_id": "1hI1HAksSGktmjL0sqB1SUhGDaS7NQILHdBoSnE2vR7Q",
-      "revision_id": "ANLCKQmrMAQHe_MUjjk_Hdl5E0U65ZF6jNWYjX1IgDpG-QZ_A9gxORBGq4TP_iTk49VuVxBKgSuYD5QorFahmW1xQemH4iEjLXLEnoXtslQ"
+      "revision_id": "ANLCKQksGC7XYhHHUXNU8vrBzlfNxArJQDuxw29O_sBTDED_Q-xrB-rNRB5FrZhaddXxwon71LvRaMKz3a8n9Q9NM5TDXxK4S4WwpvPuHgw"
     },
     "current_execution": {
       "document_id": "1AdtN9N7oIYwsHr_7-R6UzBREx9DJd4s291iZJou6GZU",
-      "revision_id": "ANLCKQn_ONLpVdx92fb7z8PqrbkIyesEAvAhxvXi5kETuGoJwnohuGS7ZuNSpJrwlVm7X7pDqrwndzfIDKE9KyKNKHU3FuW9L13_K8rvxYU"
+      "revision_id": "ANLCKQl-eztWxUEOr_tgJD4QWqQyNeLUAXo1lZe5lkS-z3CSKj55SB9V8DK7D0bf39_zDUM2gddoXxWgBhFevwdsMWRcBx0FUKjeir0UH54"
+    },
+    "storage_handbook": {
+      "document_id": "1t1C8g-cDxHFQL4t0_wupKAk_1Liz5POMjpD46JeLMkQ",
+      "revision_id": "ANLCKQnBbmHXeS63-OfEOZsgX2IiVSsZepi4pVmf52PVQHLP4q4U8EBtn98VpyUG0A4y-efFwUKp09wgISI5tC0UaUfWGv52S-ErdD5GuGE"
+    },
+    "storage_manifest": {
+      "document_id": "16Akf3qCzimsz15wE-pxcMqC-28e73eCNrmGPVFjuPgo",
+      "revision_id": "ANLCKQkALKgw1nCOolpDBjZPS2PO_MuGAGq29odylBQzCKd6KhSY9TbmaQWlOHz4H04_kXBGl26_vgSPyAcE95hIBL1revci2U1dO0oNeeY"
     }
   },
   "mandatory_owner_locks": [
@@ -75,10 +124,20 @@
     "GLOBAL_MACHINE1_ALL_DATE_ALL_WORKER_CONSISTENCY",
     "GLOBAL_FULL_READ_NEW_OR_RESUMED_CHAT_BOOTSTRAP",
     "DUAL_INDEPENDENT_FULL_DEPTH_RESEARCH_ENGINES_NO_DIVISION_OF_LABOR",
-    "SAME_MAXIMUM_SOURCE_SUPPORTED_COMPLETENESS_TARGET_PER_MACHINE"
+    "SAME_MAXIMUM_SOURCE_SUPPORTED_COMPLETENESS_TARGET_PER_MACHINE",
+    "NO_PREDETERMINED_FORMULA_MENU_EMERGENT_FORMULA_DISCOVERY",
+    "FORMULA_CREATION_CLOSED_READINESS_ONLY_UNTIL_EXPLICIT_ADMISSION",
+    "GLOBAL_LOSSLESS_ARTIFACT_DATA_PLANE_OPTIMIZE_TRANSPORT_NEVER_REDUCE_EVIDENCE",
+    "GLOBAL_MACHINE1_RENEWABLE_AUTHORITY_FULL_ASSIGNED_DATE_COMPLIANCE_AUDIT",
+    "GLOBAL_STORAGE_DEDUP_RETENTION_NO_DATA_LOSS",
+    "CANONICAL_STORAGE_RESTRUCTURE_SCIENTIFIC_SCOPE_NONREDUCTION",
+    "TEMPORARY_PAYLOAD_PHYSICAL_RETIREMENT_AFTER_PROOF"
   ],
   "global_prohibitions": {
     "formula_stage_open": false,
+    "predetermined_formula_menu": false,
+    "candidate_formula_construction": false,
+    "afl_candidate_construction": false,
     "sampling_or_winner_only": false,
     "arbitrary_thresholds": false,
     "manual_labels_as_hidden_targets": false,
@@ -92,7 +151,23 @@
     "machine_scope_partition_as_scientific_design": false,
     "cross_machine_missing_dimension_excused_by_other_machine": false,
     "silent_cross_machine_semantic_copy": false,
-    "combined_union_used_to_hide_per_machine_coverage_gap": false
+    "combined_union_used_to_hide_per_machine_coverage_gap": false,
+    "lossy_transport_or_summary_substitution_for_full_evidence": false,
+    "speed_or_connector_quota_used_to_drop_rows_or_fields": false,
+    "semantic_pass_before_transport_integrity_readback": false,
+    "raw_row_flooding_as_default_when_lossless_file_path_available": false,
+    "old_pass_as_current_compliance_without_audit": false,
+    "transport_only_promoted_to_semantic_pass": false,
+    "programmatic_generator_as_machine1_semantic_reader": false,
+    "new_ticker_before_current_assigned_date_audit_readback": false,
+    "auto_advance_after_machine1_date_close": false,
+    "destructive_cleanup_during_active_write": false,
+    "delete_unique_canonical_source_without_verified_lossless_successor": false,
+    "storage_optimization_reduces_evidence_scope": false,
+    "indefinite_duplicate_transport_retention_as_default": false,
+    "storage_reorganization_by_copy_when_move_or_rebind_is_safe": false,
+    "old_noncurrent_hidden_archive_parking_for_unused_payload": false,
+    "storage_cleanup_drops_rows_fields_event_times_or_group_memberships": false
   },
   "authority_sync_renewal_triggers": [
     "NEW_OWNER_INSTRUCTION_OR_CORRECTION",
@@ -104,13 +179,59 @@
     "RESUMED_EXECUTION_AFTER_INTERRUPTION",
     "MATERIAL_CONTEXT_CHANGE_BEFORE_NEXT_DURABLE_MUTATION"
   ],
+  "machine1_current_containment_20260926": {
+    "2024-12-02": "PRESERVE_VALID_LINEAGE_BUT_OWNER_DIRECTED_CURRENT_SOURCE_REREAD_REVALIDATION_REQUIRED_FOR_HISTORICAL_COMPLETED_SCOPE",
+    "2024-12-03": "PRESERVE_VALID_LINEAGE_BUT_OWNER_DIRECTED_CURRENT_SOURCE_REREAD_REVALIDATION_REQUIRED_FOR_HISTORICAL_COMPLETED_SCOPE",
+    "2024-12-04": "PRESERVE_VALID_LINEAGE_OWNER_REREAD_CURSOR_PASS001_AALI_ORDINARY_BOUNDARY_PASS206",
+    "2024-12-05_PASS001_PASS259": "PRESERVE_VALID_LINEAGE_AND_CURRENT_SOURCE_REVALIDATION_REREAD_REQUIRED",
+    "2024-12-05_PASS260_PASS891": "SEMANTIC_REREAD_REQUIRED_REUSE_VERIFIED_LOSSLESS_SOURCE_EVIDENCE",
+    "2024-12-05_DATE_PASS": "HOLD_FOR_CURRENT_SEMANTIC_COMPLIANCE_UNTIL_REPAIR_AND_RECONCILIATION",
+    "2024-12-06_PASS001_PASS888": "SEMANTIC_REREAD_REQUIRED_REUSE_VERIFIED_SOURCE_EVIDENCE_WHILE_TEMPORARY_TRANSPORT_RETENTION_IS_DEPENDENCY_SCOPED_ONLY",
+    "2024-12-06_DATE_PASS": "INVALID_AS_CURRENT_SEMANTIC_PROOF_HOLD_PENDING_REPAIR_AND_RECONCILIATION",
+    "2024-12-07_OR_LATER": "NO_AUTO_ADVANCE_NO_OWNER_UNREQUESTED_CLAIM"
+  },
+  "machine1_date05_current_audit": {
+    "audit_document_id": "1vuX8ZeD0WavjLKiBrVypwDwezqbmXh1sgpR-WpS-ZG8",
+    "authority_sync": "PASS_RENEWED_TO_CURRENT",
+    "pass001_pass259": "CURRENT_COMPLIANT_ENRICHMENT_REQUIRED_WITH_OWNER_CURRENT_SOURCE_REREAD_REVALIDATION",
+    "pass260_pass891": "SEMANTIC_REREAD_REQUIRED",
+    "tail_transport_integrity": "PASS_632_CONTEXTS_59275_ROWS",
+    "tail_artifact_id": 10851674861,
+    "next_exact_resume": "PASS029_DATE05_ALKA_CURRENT_REVALIDATION_REREAD_PREMUTATION",
+    "date_local_pass_current_validity": "INVALID_PENDING_REPAIR",
+    "heavy_semantic_repair_started": false
+  },
   "dual_engine_rule": "MACHINE_1_AND_MACHINE_2_INDEPENDENTLY_TARGET_THE_SAME_MAXIMUM_SOURCE_SUPPORTED_FACT_DERIVATION_SEMANTIC_TEMPORAL_GROUPING_RECURRENCE_DISCRIMINATOR_READY_CORPUS; DIFFERENCE_IS_METHOD_AND_EXECUTION_ONLY_NOT_SCIENTIFIC_SCOPE",
   "coverage_gap_rule": "IF_A_SUPPORTED_DIMENSION_IS_MISSING_FROM_ONE_MACHINE_RECORD_MACHINE_SPECIFIC_COVERAGE_GAP_AND_ENRICH_OR_BACKFILL_WHERE_GOVERNED; DO_NOT_DELEGATE_PERMANENT_OWNERSHIP_TO_THE_OTHER_MACHINE",
   "disagreement_rule": "PRESERVE_INDEPENDENT_OUTPUTS_AND_PROVENANCE; INVESTIGATE_DISAGREEMENT_AS_AMBIGUITY_COVERAGE_SEMANTIC_IMPLEMENTATION_OR_SCIENTIFIC_SIGNAL; NEVER_FORCE_AGREEMENT_BY_COPYING",
+  "formula_discovery_rule": "CURRENT FORMULA CREATION IS CLOSED; DO NOT PRESELECT REQUIRED FORMULAS OR HORIZONS; BUILD RICH GOVERNED EVIDENCE AND ALLOW RECURRENT COMBINATIONS CONDITIONAL_RECURRENCE NEAR_TWINS NEGATIVE_EVIDENCE AND CAUSAL_DISCRIMINATORS TO SUPPORT A LATER EXPLICIT GOVERNED FORMULA_DISCOVERY_ADMISSION",
   "correction_first_rule": "OWNER_INSTRUCTION_OR_CORRECTION -> FRESH_CURRENT_AUTHORITY_READ -> LIVE_REGISTRY_REQUEST_CHECKPOINT_SOURCE_SCHEMA_MANIFEST_RECONCILIATION -> CONFLICT_GAP_CHECK -> CORRECTED_EXECUTION_DECISION -> EXECUTE -> EXACT_READBACK_PROOF",
-  "prestart_rule": "NO_HEAVY_SOURCE_READ_OR_COMPUTE_UNTIL_REQUEST_AND_IMPLEMENTATION_PASS_CURRENT_AUTHORITY_LOCK_AND_STAGE_CONTRACT",
-  "source_universe_rule": "CANONICAL_OR_GOVERNED_READY_SOURCE_MEMBERSHIP_IS_DISCOVERED_DURING_PREFLIGHT; OBSERVED_COUNTS_ARE_EVIDENCE_ONLY; EXTRA_OR_MISSING_SOURCE_MUST_NOT_BE_SILENTLY_OMITTED",
-  "durable_work_rule": "ALREADY_DURABLE_READBACK_VERIFIED_WORK_IS_PRESERVED_AND_NOT_RESTARTED_SOLELY_BECAUSE_GOVERNANCE_IS_NEWER; REOPEN_ONLY_ON_GOVERNED_MATERIAL_INTEGRITY_FINDING",
+  "machine1_authority_renewal_rule": "MATERIAL_AUTHORITY_CHANGE -> SAFE_ATOMIC_BOUNDARY -> FRESH_READ_CURRENT_AUTHORITY -> AUDIT_ALL_PREVIOUSLY_COMPLETED_ASSIGNED_DATE_SCOPE -> CLASSIFY_EACH_SCOPE -> PERSIST_AUTHORITY_SYNC_PROOF_AND_CURRENT_AUTHORITY_DATE_AUDIT -> EXACT_READBACK -> ONLY_THEN_RESUME_SUBSTANTIVE_WORK",
+  "machine1_semantic_identity_rule": "OPTIMIZE_DATA_DELIVERY_NEVER_REPLACE_THE_SEMANTIC_READER; MACHINE1_REMAINS_LANGUAGE_MODEL_SEMANTIC_BEHAVIOR_READER; PROGRAMMATIC_TEMPLATE_GENERATION_IS_NOT_MACHINE1_SEMANTIC_PASS",
+  "prestart_rule": "NO_HEAVY_SOURCE_READ_OR_COMPUTE_UNTIL REQUEST_AND_IMPLEMENTATION_PASS_CURRENT_AUTHORITY_LOCK_AND_STAGE_CONTRACT",
+  "source_universe_rule": "CANONICAL_OR_GOVERNED_READY_SOURCE_MEMBERSHIP_IS_DISCOVERED_DURING_PREFLIGHT; OBSERVED_COUNTS_ARE EVIDENCE ONLY; EXTRA_OR_MISSING_SOURCE_MUST_NOT_BE_SILENTLY_OMITTED",
+  "durable_work_rule": "ALREADY_DURABLE_READBACK_VERIFIED_WORK_REMAINS_VALID_LINEAGE_FOR_WHAT_IT ACTUALLY_PROVED; OWNER_DIRECTED_CURRENT_HANDBOOK_SOURCE_REREAD_REVALIDATION_MUST_STILL_BE_PERFORMED_WHEN_EXPLICITLY_REQUIRED; REUSE_MEANS_NO_UNNECESSARY_RAW_REPULL_OR_DUPLICATE_RECOMPUTE_NOT_NO_REREAD",
   "replacement_rule": "STALE_OR_INCOMPLETE_RUNNING_CONTRACT_MUST_BE_CANCELLED_OR_GOVERNEDLY_REPLACED_BEFORE_DATA_MUTATION",
-  "pass_claim_rule": "EACH_JOB_OR_WORKER_MUST_HAVE_CURRENT_READBACK_EVIDENCE_AND_STATE_WHAT_PASS_PROVES_WHAT_PER_MACHINE_COVERAGE_REMAINS_AND_WHAT_REMAINS_OUTSIDE_ITS_STAGE"
+  "pass_claim_rule": "EACH_JOB_OR_WORKER_MUST_HAVE_CURRENT_READBACK_EVIDENCE; MACHINE1 ALSO REQUIRES CURRENT_ASSIGNED_DATE_AUDIT_READBACK_AFTER MATERIAL_AUTHORITY_CHANGE; PASS MUST STATE WHAT_IT_PROVES WHAT_COVERAGE_REMAINS AND WHAT_REMAINS_OUTSIDE_STAGE",
+  "transport_rule": "OPTIMIZE_TRANSPORT_NEVER_REDUCE_EVIDENCE; LARGE_PAYLOADS_USE_GOVERNED_LOSSLESS_FILE_OR_ARTIFACT_WHEN_AVAILABLE; VERIFY_MANIFEST_DIGEST_COUNTS_RANGES_ORDER_AND_EXTRACTION_BEFORE_SEMANTIC_PASS; AFTER_COMPLETE_GOVERNED_CONSUMPTION_PERSISTENCE_RECONCILIATION_READBACK_AND_ZERO_ACTIVE_DEPENDENCY_TEMPORARY_PAYLOAD_MUST_BE_PHYSICALLY_DELETED",
+  "storage_authority_effective_date": "2026-09-28",
+  "storage_scientific_scope_reduction_forbidden": true,
+  "scientific_rows_fields_event_times_grouping_may_not_be_reduced_for_storage": true,
+  "single_canonical_source_payload_preferred_when_reconstructible": true,
+  "temporary_transport_retirement_requires_canonical_promotion_reconciliation_no_active_dependency_reconstructability_exact_readback": true,
+  "temporary_payload_eol_physical_delete_required_after_complete_consumption_persist_reconcile_readback_zero_dependency": true,
+  "unique_canonical_source_deletion_without_lossless_successor_forbidden": true,
+  "cleanup_race_active_writer_forbidden": true,
+  "machine1_owner_confirmed_stopped_for_storage_cleanup": true,
+  "machine1_date02_date05_cleanup_wait_safe_durable_stop": false,
+  "machine2_cleanup_requires_verified_inactive_github_and_local_writer": true,
+  "storage_only_authority_change_triggers_semantic_reread": false,
+  "storage_manifest_required_before_destructive_cleanup": true,
+  "unknown_deletion_safety_classification": "RECOVERY_HOLD",
+  "unused_old_noncurrent_hidden_archive_parking_forbidden": true,
+  "storage_migration_move_or_rebind_preferred_copy_for_reorganization_forbidden": true,
+  "owner_directed_historical_source_reread_revalidation_not_blocked_by_reuse_rule": true,
+  "transport_preservation_is_dependency_lifetime_not_indefinite": true,
+  "recovery_hold_requires_exact_blocker_and_next_verification_action": true,
+  "storage_rule": "READ_AND_RECORD_EVERYTHING_REQUIRED_WITHOUT_REDUCING_ROWS_FIELDS_EVENT_TIMES_CHRONOLOGY_PROVENANCE_OR_GROUP_MEMBERSHIPS;STORE_IDENTICAL_PHYSICAL_PAYLOAD_ONCE_WHERE_EXACT_RECONSTRUCTABILITY_IS_PRESERVED;MOVE_OR_REBIND_VERIFIED_CURRENT_OBJECTS_INTO_CANONICAL_TREE_WHEN_SAFE_AND_DO_NOT_COPY_SOLELY_FOR_REORGANIZATION;TEMPORARY_PULL_DOWNLOAD_EXTRACTION_TRANSPORT_SHARD_CHUNK_RETRY_STAGING_OR_SCRATCH_MUST_BE_PHYSICALLY_DELETED_AFTER_COMPLETE_GOVERNED_CONSUMPTION_ALL_REQUIRED_DURABLE_RESULTS_AND_POINTERS_PERSIST_RECONCILIATION_EXACT_READBACK_AND_ZERO_ACTIVE_DEPENDENCY;UNIQUE_CANONICAL_SOURCE_AND_UNIQUE_SCIENTIFIC_RESULTS_REMAIN_PROTECTED;M1_IS_OWNER_CONFIRMED_STOPPED_FOR_STORAGE_CLEANUP_WITHOUT_WORKER_RESTART;M2_CLEANUP_STILL_WAITS_VERIFIED_NO_ACTIVE_GITHUB_OR_LOCAL_WRITER;STORAGE_CHANGE_MUST_NOT_REDUCE_SCIENTIFIC_SCOPE_OR_OVERRIDE_OWNER_DIRECTED_HISTORICAL_SOURCE_REREAD_REVALIDATION"
 }
