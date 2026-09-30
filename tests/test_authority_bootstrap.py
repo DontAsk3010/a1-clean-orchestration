@@ -24,6 +24,9 @@ def test_bootstrap_contract_is_active_and_fail_closed():
     assert manifest["fail_closed_on_missing_unreadable_or_revision_drift"] is True
     assert manifest["renew_before_source_discovery"] is True
     assert manifest["renew_before_heavy_compute"] is True
+    assert manifest["machine2_full_scientific_restart_from_beginning_required"] is True
+    assert manifest["machine2_old_pass_skip_forbidden"] is True
+    assert manifest["machine2_old_derived_semantic_checkpoint_completion_inherited"] is False
 
 
 def test_bootstrap_requires_complete_authority_chain_in_order():
@@ -39,26 +42,30 @@ def test_bootstrap_requires_complete_authority_chain_in_order():
         "github_automation",
         "formula_research",
         "machine1_dispatch_registry",
-        "stable_transition_bridge",
+        "canonical_handoff",
         "chat_transition_protocol",
+        "stable_transition_bridge",
+        "machine2_master_coverage_matrix",
         "storage_handbook",
         "storage_manifest",
     ]
     assert all(row["required"] is True for row in docs)
     assert all(str(row.get("drive_revision_id", "")).isdigit() for row in docs)
     assert [row["drive_revision_id"] for row in docs] == [
-        "77",
-        "126",
+        "82",
+        "151",
         "63",
         "35",
         "64",
-        "76",
+        "84",
         "47",
-        "553",
-        "87",
-        "10",
+        "575",
+        "7",
+        "15",
+        "91",
+        "6",
         "9",
-        "9",
+        "16",
     ]
 
 
@@ -100,10 +107,14 @@ def test_open_ended_family_registry_covers_current_and_future_source_evidence():
     assert "UNKNOWN" in set(manifest["evidence_classes_that_must_not_be_dropped"])
 
 
-def test_machine2_remains_independent_full_depth_and_formula_closed():
+def test_machine2_remains_independent_full_depth_formula_closed_and_restarts_science_from_beginning():
     manifest = _load("governance/a1-clean-authority-bootstrap-current.json")
     scope = manifest["machine2_scientific_scope"]
     assert scope["independent_full_depth_engine_required"] is True
     assert scope["same_maximum_source_supported_completeness_target_as_machine1"] is True
     assert scope["division_of_labor_as_scientific_design_forbidden"] is True
+    assert scope["full_scientific_restart_from_beginning_required"] is True
+    assert scope["old_pass_skip_forbidden"] is True
+    assert scope["old_derived_semantic_checkpoint_completion_inherited"] is False
+    assert scope["canonical_raw_physical_reuse_after_integrity_proof_only"] is True
     assert scope["formula_stage"] == "CLOSED"
