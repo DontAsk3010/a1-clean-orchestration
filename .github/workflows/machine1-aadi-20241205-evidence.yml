@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   extract-aadi:
-    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
     timeout-minutes: 30
     env:
       RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
@@ -64,13 +64,7 @@ jobs:
           (out/'EVIDENCE_PROOF.json').write_text(json.dumps(proof,ensure_ascii=False,indent=2),encoding='utf-8')
           print(f'AADI_EVIDENCE_OK rows={len(rows)} source_rows={source_first}-{source_last} first={dts[0]} last={dts[-1]} packet_sha256={ph} rows_sha256={rh}')
           '@ | Set-Content -LiteralPath extract_aadi_20241205.py -Encoding UTF8
-          if (Get-Command py -ErrorAction SilentlyContinue) {
-            py -3.11 extract_aadi_20241205.py
-          } elseif (Get-Command python -ErrorAction SilentlyContinue) {
-            python extract_aadi_20241205.py
-          } else {
-            throw 'PYTHON_RUNTIME_NOT_FOUND'
-          }
+          py -3.11 extract_aadi_20241205.py
       - name: Upload governed AADI evidence
         uses: actions/upload-artifact@v4
         with:
