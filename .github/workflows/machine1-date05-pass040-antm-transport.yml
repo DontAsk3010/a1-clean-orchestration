@@ -49,8 +49,8 @@ jobs:
           if($selected.Count -ne $expectedCount){throw "ROW_COUNT_MISMATCH got=$($selected.Count) expected=$expectedCount"}
           $parsed=@((@($header)+@($selected)) | ConvertFrom-Csv)
           if($parsed.Count -ne $expectedCount){throw "PARSE_COUNT_MISMATCH got=$($parsed.Count) expected=$expectedCount"}
-          $headerFields=@($header | ConvertFrom-Csv).PSObject.Properties.Name.Count
-          if($parsed[0].PSObject.Properties.Count -ne 74){throw "FIELD_COUNT_MISMATCH got=$($parsed[0].PSObject.Properties.Count) expected=74"}
+          $fieldCount=@($parsed[0].PSObject.Properties).Count
+          if($fieldCount -ne 74){throw "FIELD_COUNT_MISMATCH got=$fieldCount expected=74"}
           $tickers=@($parsed|ForEach-Object{$_.RAW_TICKER}|Sort-Object -Unique)
           if($tickers.Count -ne 1 -or $tickers[0] -ne $expectedTicker){throw "TICKER_MISMATCH got=$($tickers -join ',')"}
           $dates=@($parsed|ForEach-Object{[string]$_.RAW_DATETIME_ISO})
@@ -85,14 +85,14 @@ jobs:
             machine='MACHINE_1';worker='DATE05';pass='PASS040';ticker=$expectedTicker;trading_date=$expectedDate;
             source_name='Raw Des 02-31-2024.csv';source_sha256=$sha;source_size=$fi.Length;
             manifest_line=117;source_row_first=$start;source_row_last=$end;physical_line_first=($start+1);physical_line_last=($end+1);actual_rows=$records.Count;
-            fields_per_row=$parsed[0].PSObject.Properties.Count;first_datetime=$dates[0];last_datetime=$dates[$dates.Count-1];chronology_verified=$true;duplicate_exact_row_groups=$duplicateExactRows;
+            fields_per_row=$fieldCount;first_datetime=$dates[0];last_datetime=$dates[$dates.Count-1];chronology_verified=$true;duplicate_exact_row_groups=$duplicateExactRows;
             rows_jsonl_sha256=$rowsSha;raw_exact_csv_sha256=$csvSha;
             transport_only=$true;semantic_read_performed=$false;checkpoint_mutated=$false;drive_mutated=$false;next_ticker_opened=$false;integrity='PASS'
           }
           [System.IO.File]::WriteAllText((Join-Path $out 'ANTM_20241205_PROOF.json'),($proof|ConvertTo-Json -Depth 8),$utf8)
           $hashes=Get-ChildItem -LiteralPath $out -File|Sort-Object Name|ForEach-Object{((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())+'  '+$_.Name}
           [System.IO.File]::WriteAllLines((Join-Path $out '_ARTIFACT_SHA256.txt'),[string[]]$hashes,$utf8)
-          Write-Host "PASS040_ANTM_TRANSPORT_READY rows=$($records.Count) first=$($dates[0]) last=$($dates[$dates.Count-1]) source_sha=$sha"
+          Write-Host "PASS040_ANTM_TRANSPORT_READY rows=$($records.Count) fields=$fieldCount first=$($dates[0]) last=$($dates[$dates.Count-1]) source_sha=$sha"
       - name: Upload governed ANTM exact transport artifact
         uses: actions/upload-artifact@v4
         with:
