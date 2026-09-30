@@ -1,9 +1,17 @@
 from __future__ import annotations
 
+import pytest
+
 from a1clean.formula_research.machine2_current_store import (
     MACHINE2_CHECKPOINT_FOLDER_ID,
     MACHINE2_CURRENT_STATE_FOLDER_ID,
     MACHINE2_SEMANTIC_OUTPUT_FOLDER_ID,
+)
+from a1clean.formula_research.m2_current_execution_contract import (
+    SAFE_ATOMIC_UNITS_PER_SHARD,
+    assert_safe_atomic_units_per_shard,
+    validate_checkpoint_exact_resume,
+    validate_request_for_current_atomic_restart,
 )
 from a1clean.formula_research.v32_current_scientific_restart import (
     CHECKPOINT_NAME,
@@ -33,12 +41,70 @@ def _bar(i: int, *, close: float, volume: float, value: float, nbss: float, high
     }
 
 
+def _exact_ref(position: int) -> dict:
+    return {
+        "selection_position": position,
+        "manifest_index": position + 10,
+        "trading_date": "2024-12-02",
+        "ticker": "AALI",
+        "data_row_count": 300,
+        "first_clock_time": "09:00:00",
+        "last_clock_time": "15:49:00",
+        "source_row_first": 1000 + position * 300,
+        "source_row_last": 1299 + position * 300,
+    }
+
+
+def _open_request() -> dict:
+    return {
+        "enabled": True,
+        "restart_authorized": True,
+        "machine2_full_scientific_restart_from_beginning_required": True,
+        "old_pass_may_skip_current_reading_unit": False,
+        "old_derived_semantic_checkpoint_completion_inherited": False,
+        "date_ticker_record_timestamp_exact_resume_checkpoint_required": True,
+        "per_source_only_checkpoint_is_not_sufficient_for_exact_resume": True,
+        "strict_governed_chronological_restart_required": True,
+        "progressive_current_checkpoint_lineage_must_start_new": True,
+        "formula_stage": "CLOSED",
+        "grouping_stage": "CLOSED_UNTIL_SEPARATELY_ADMITTED",
+    }
+
+
 def test_current_restart_has_new_lineage_and_canonical_machine2_home():
     assert LINEAGE == "MACHINE2_CURRENT_FULL_RESTART_FROM_BEGINNING_V1"
     assert "CURRENT_FULL_RESTART" in CHECKPOINT_NAME
     assert MACHINE2_CHECKPOINT_FOLDER_ID == "15L4xQfPxNaulE-uiaGXVYwDdY-2-pBt5"
     assert MACHINE2_SEMANTIC_OUTPUT_FOLDER_ID == "1oHmkK-D-k7aBZn2nK-7KzMS2tujlvzj5"
     assert MACHINE2_CURRENT_STATE_FOLDER_ID == "1UGEgtftUAasKWF0OHdbDGgYErF60m4zB"
+
+
+def test_current_atomic_execution_contract_requires_one_unit_per_shard():
+    assert SAFE_ATOMIC_UNITS_PER_SHARD == 1
+    assert_safe_atomic_units_per_shard(1)
+    with pytest.raises(RuntimeError, match="M2_CURRENT_SAFE_ATOMIC_CHECKPOINT_REQUIRES_UNITS_PER_SHARD_1"):
+        assert_safe_atomic_units_per_shard(20)
+
+
+def test_current_atomic_execution_contract_rejects_disabled_request():
+    request = _open_request()
+    validate_request_for_current_atomic_restart(request)
+    request["enabled"] = False
+    with pytest.raises(RuntimeError, match="M2_CURRENT_HEAVY_RESTART_NOT_AUTHORIZED"):
+        validate_request_for_current_atomic_restart(request)
+
+
+def test_exact_resume_checkpoint_requires_contiguous_full_unit_identity():
+    checkpoint = {
+        "status": "IN_PROGRESS",
+        "completed_units_in_current_date": 1,
+        "last_completed": _exact_ref(0),
+        "next_exact_resume_point": _exact_ref(1),
+    }
+    validate_checkpoint_exact_resume(checkpoint)
+    checkpoint["next_exact_resume_point"] = _exact_ref(2)
+    with pytest.raises(RuntimeError, match="M2_CURRENT_RESUME_POSITION_NOT_CONTIGUOUS"):
+        validate_checkpoint_exact_resume(checkpoint)
 
 
 def test_continuous_enrichment_preserves_path_effort_response_attempts_and_known_at_uncertainty():

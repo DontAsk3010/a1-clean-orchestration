@@ -9,6 +9,7 @@ on:
       - 'v32-full-observation-behavior-requests/current.json'
       - 'governance/a1-clean-active-authority-lock.json'
       - 'governance/a1-clean-authority-bootstrap-current.json'
+      - 'src/a1clean/formula_research/m2_current_execution_contract.py'
       - 'src/a1clean/formula_research/v32_current_scientific_restart.py'
       - 'src/a1clean/formula_research/machine2_current_store.py'
       - 'src/a1clean/formula_research/v32_dynamic_prestart.py'
@@ -74,7 +75,7 @@ jobs:
           }
 
       - name: Provision portable Python 3.11
-        if: ${{ steps.route.outputs.is_target == 'true' && steps.gate.outputs.open == 'true' }}
+        if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
@@ -98,7 +99,7 @@ jobs:
           "A1_PYTHON_EXE=$py" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Install and run CURRENT restart contract tests
-        if: ${{ steps.route.outputs.is_target == 'true' && steps.gate.outputs.open == 'true' }}
+        if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
@@ -110,6 +111,26 @@ jobs:
             tests/test_v32_dynamic_prestart.py `
             tests/test_v32_current_scientific_restart.py
           if ($LASTEXITCODE -ne 0) { throw 'M2_CURRENT_CONTRACT_TEST_FAILED' }
+
+      - name: Validate CURRENT atomic restart execution contract
+        if: ${{ steps.route.outputs.is_target == 'true' && steps.gate.outputs.open == 'true' }}
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $script = @'
+          import json
+          from a1clean.formula_research.m2_current_execution_contract import (
+              assert_safe_atomic_units_per_shard,
+              validate_request_for_current_atomic_restart,
+          )
+          with open('v32-full-observation-behavior-requests/current.json', encoding='utf-8') as fh:
+              request = json.load(fh)
+          validate_request_for_current_atomic_restart(request)
+          assert_safe_atomic_units_per_shard(1)
+          print('M2_CURRENT_ATOMIC_EXECUTION_CONTRACT_PASS')
+          '@
+          $script | & $env:A1_PYTHON_EXE -
+          if ($LASTEXITCODE -ne 0) { throw 'M2_CURRENT_ATOMIC_EXECUTION_CONTRACT_HOLD' }
 
       - name: Fresh-read complete authority and discover live source universe
         if: ${{ steps.route.outputs.is_target == 'true' && steps.gate.outputs.open == 'true' }}
@@ -181,7 +202,7 @@ jobs:
             --request v32-full-observation-behavior-requests/current.json `
             --source-universe-manifest $env:A1_M2_SOURCE_UNIVERSE_MANIFEST `
             --trading-date $env:A1_M2_FIRST_DATE `
-            --units-per-shard 20 `
+            --units-per-shard 1 `
             --software-revision $env:GITHUB_SHA
           if ($LASTEXITCODE -ne 0) { throw 'M2_CURRENT_FIRST_DATE_EXECUTION_HOLD' }
 
@@ -193,6 +214,7 @@ jobs:
           $script = @'
           from a1clean.google_drive import build_drive_api
           from a1clean.formula_research.machine2_current_store import Machine2CurrentStore
+          from a1clean.formula_research.m2_current_execution_contract import validate_checkpoint_exact_resume
           from a1clean.formula_research.v32_current_scientific_restart import CHECKPOINT_NAME, LINEAGE
           s = Machine2CurrentStore(build_drive_api(read_write=True))
           cp = s.read_json_optional(s.checkpoint_folder_id, CHECKPOINT_NAME)
@@ -206,6 +228,11 @@ jobs:
           assert cp['completed_source_rows_in_current_date'] > 0
           assert cp['next_exact_resume_point'] is None
           assert cp.get('date_close')
+          validate_checkpoint_exact_resume(cp)
+          shards = list(cp.get('output_shards') or [])
+          assert shards
+          assert all(int(row.get('packet_count') or 0) == 1 for row in shards)
+          assert all(int(row['selection_position_first']) == int(row['selection_position_last']) for row in shards)
           print('M2_CURRENT_DATE_CLOSE_READBACK_PASS')
           print(cp['current_date'])
           print(cp['completed_units_in_current_date'])
