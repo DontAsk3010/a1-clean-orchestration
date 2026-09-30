@@ -136,7 +136,7 @@ jobs:
           Write-Host "AUTHORITY_SYNC_PASS|docs=$($a.authority_document_count)|states=$($a.repo_state_file_count)|digest=$($a.authority_corpus_sha256)"
           Write-Host "DYNAMIC_SOURCE_UNIVERSE_PASS|sources=$($u.source_count)|digest=$($u.manifest_digest)"
 
-      - name: Validate both HOLD requests against current authority and dynamic universe
+      - name: Validate CURRENT requests against current authority and dynamic universe
         if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
@@ -150,8 +150,15 @@ jobs:
           }
           $full = Get-Content -LiteralPath 'v32-full-observation-behavior-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
           $group = Get-Content -LiteralPath 'v32-behavior-grouping-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
-          if ($full.enabled -ne $false -or $group.enabled -ne $false) { throw 'DYNAMIC_PRESTART_EXPECTED_HOLD_REQUESTS' }
-          Write-Host 'DYNAMIC_PRESTART_CONTROL_PLANE_PASS|heavy_execution=HOLD'
+          if ($group.enabled -ne $false) { throw 'DYNAMIC_PRESTART_GROUPING_MUST_REMAIN_HOLD' }
+          if ($full.enabled -eq $true) {
+            if ($full.restart_authorized -ne $true) { throw 'DYNAMIC_PRESTART_FULL_OPEN_WITHOUT_RESTART_AUTHORIZATION' }
+            if ($full.status -ne 'OWNER_AUTHORIZED_CURRENT_FULL_SCIENTIFIC_RESTART_FROM_BEGINNING') { throw 'DYNAMIC_PRESTART_FULL_OPEN_STATUS_INVALID' }
+            Write-Host 'DYNAMIC_PRESTART_CONTROL_PLANE_PASS|full_observation=OPEN|grouping=HOLD'
+          } else {
+            if ($full.restart_authorized -ne $false) { throw 'DYNAMIC_PRESTART_FULL_HOLD_WITH_RESTART_AUTHORIZATION' }
+            Write-Host 'DYNAMIC_PRESTART_CONTROL_PLANE_PASS|full_observation=HOLD|grouping=HOLD'
+          }
 
       - name: Publish compact PRESTART evidence
         if: ${{ steps.route.outputs.is_target == 'true' }}
@@ -165,13 +172,16 @@ jobs:
           Copy-Item -LiteralPath 'governance\a1-clean-active-authority-lock.json' -Destination 'dynamic-source-prestart-evidence\authority-lock.json' -Force
           Copy-Item -LiteralPath 'v32-full-observation-behavior-requests\current.json' -Destination 'dynamic-source-prestart-evidence\full-observation-request.json' -Force
           Copy-Item -LiteralPath 'v32-behavior-grouping-requests\current.json' -Destination 'dynamic-source-prestart-evidence\grouping-request.json' -Force
+          $full = Get-Content -LiteralPath 'v32-full-observation-behavior-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          $fullState = if ($full.enabled -eq $true) { 'OPEN_FOR_CURRENT_FULL_RESTART' } else { 'HOLD' }
           Add-Content $env:GITHUB_STEP_SUMMARY '### Dynamic source universe PRESTART'
           Add-Content $env:GITHUB_STEP_SUMMARY "- Exact runner: $env:RUNNER_NAME / $env:COMPUTERNAME"
           Add-Content $env:GITHUB_STEP_SUMMARY "- Full authority docs read: PASS ($((Get-Content $env:A1_AUTHORITY_SYNC_PROOF -Raw | ConvertFrom-Json).authority_document_count))"
           Add-Content $env:GITHUB_STEP_SUMMARY "- Authority corpus digest: $env:A1_AUTHORITY_CORPUS_DIGEST"
           Add-Content $env:GITHUB_STEP_SUMMARY "- Governed source count: $env:A1_SOURCE_UNIVERSE_COUNT"
           Add-Content $env:GITHUB_STEP_SUMMARY "- Manifest digest: $env:A1_SOURCE_UNIVERSE_DIGEST"
-          Add-Content $env:GITHUB_STEP_SUMMARY '- Heavy execution remains HOLD because both requests are disabled.'
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Full Observation: $fullState"
+          Add-Content $env:GITHUB_STEP_SUMMARY '- Grouping: HOLD'
 
       - uses: actions/upload-artifact@v4
         if: ${{ steps.route.outputs.is_target == 'true' }}
@@ -293,7 +303,7 @@ jobs:
           Write-Host "AUTHORITY_SYNC_PASS|docs=$($a.authority_document_count)|states=$($a.repo_state_file_count)|digest=$($a.authority_corpus_sha256)"
           Write-Host "DYNAMIC_SOURCE_UNIVERSE_PASS|sources=$($u.source_count)|digest=$($u.manifest_digest)"
 
-      - name: Validate both HOLD requests against current authority and dynamic universe
+      - name: Validate CURRENT requests against current authority and dynamic universe
         if: ${{ steps.route.outputs.is_target == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
@@ -307,8 +317,15 @@ jobs:
           }
           $full = Get-Content -LiteralPath 'v32-full-observation-behavior-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
           $group = Get-Content -LiteralPath 'v32-behavior-grouping-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
-          if ($full.enabled -ne $false -or $group.enabled -ne $false) { throw 'DYNAMIC_PRESTART_EXPECTED_HOLD_REQUESTS' }
-          Write-Host 'DYNAMIC_PRESTART_CONTROL_PLANE_PASS|heavy_execution=HOLD'
+          if ($group.enabled -ne $false) { throw 'DYNAMIC_PRESTART_GROUPING_MUST_REMAIN_HOLD' }
+          if ($full.enabled -eq $true) {
+            if ($full.restart_authorized -ne $true) { throw 'DYNAMIC_PRESTART_FULL_OPEN_WITHOUT_RESTART_AUTHORIZATION' }
+            if ($full.status -ne 'OWNER_AUTHORIZED_CURRENT_FULL_SCIENTIFIC_RESTART_FROM_BEGINNING') { throw 'DYNAMIC_PRESTART_FULL_OPEN_STATUS_INVALID' }
+            Write-Host 'DYNAMIC_PRESTART_CONTROL_PLANE_PASS|full_observation=OPEN|grouping=HOLD'
+          } else {
+            if ($full.restart_authorized -ne $false) { throw 'DYNAMIC_PRESTART_FULL_HOLD_WITH_RESTART_AUTHORIZATION' }
+            Write-Host 'DYNAMIC_PRESTART_CONTROL_PLANE_PASS|full_observation=HOLD|grouping=HOLD'
+          }
 
       - name: Publish compact PRESTART evidence
         if: ${{ steps.route.outputs.is_target == 'true' }}
@@ -322,13 +339,16 @@ jobs:
           Copy-Item -LiteralPath 'governance\a1-clean-active-authority-lock.json' -Destination 'dynamic-source-prestart-evidence\authority-lock.json' -Force
           Copy-Item -LiteralPath 'v32-full-observation-behavior-requests\current.json' -Destination 'dynamic-source-prestart-evidence\full-observation-request.json' -Force
           Copy-Item -LiteralPath 'v32-behavior-grouping-requests\current.json' -Destination 'dynamic-source-prestart-evidence\grouping-request.json' -Force
+          $full = Get-Content -LiteralPath 'v32-full-observation-behavior-requests/current.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          $fullState = if ($full.enabled -eq $true) { 'OPEN_FOR_CURRENT_FULL_RESTART' } else { 'HOLD' }
           Add-Content $env:GITHUB_STEP_SUMMARY '### Dynamic source universe PRESTART'
           Add-Content $env:GITHUB_STEP_SUMMARY "- Exact runner: $env:RUNNER_NAME / $env:COMPUTERNAME"
           Add-Content $env:GITHUB_STEP_SUMMARY "- Full authority docs read: PASS ($((Get-Content $env:A1_AUTHORITY_SYNC_PROOF -Raw | ConvertFrom-Json).authority_document_count))"
           Add-Content $env:GITHUB_STEP_SUMMARY "- Authority corpus digest: $env:A1_AUTHORITY_CORPUS_DIGEST"
           Add-Content $env:GITHUB_STEP_SUMMARY "- Governed source count: $env:A1_SOURCE_UNIVERSE_COUNT"
           Add-Content $env:GITHUB_STEP_SUMMARY "- Manifest digest: $env:A1_SOURCE_UNIVERSE_DIGEST"
-          Add-Content $env:GITHUB_STEP_SUMMARY '- Heavy execution remains HOLD because both requests are disabled.'
+          Add-Content $env:GITHUB_STEP_SUMMARY "- Full Observation: $fullState"
+          Add-Content $env:GITHUB_STEP_SUMMARY '- Grouping: HOLD'
 
       - uses: actions/upload-artifact@v4
         if: ${{ steps.route.outputs.is_target == 'true' }}
