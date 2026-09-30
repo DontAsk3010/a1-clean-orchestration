@@ -18,9 +18,86 @@ _REQUEST_AUTHORITY_BINDINGS = (
     ("current_execution_document_id", "current_execution_revision_id", "current_execution"),
 )
 
+_FULL_OBSERVATION_RESTART_TRUE = (
+    "machine2_full_scientific_restart_from_beginning_required",
+    "canonical_raw_physical_reuse_after_current_integrity_proof_only",
+    "strict_governed_chronological_restart_required",
+    "progressive_current_checkpoint_lineage_must_start_new",
+    "date_ticker_record_timestamp_exact_resume_checkpoint_required",
+    "per_source_only_checkpoint_is_not_sufficient_for_exact_resume",
+    "all_current_master_required_layers_reread_rederive_recompute_from_beginning",
+)
+
+_FULL_OBSERVATION_RESTART_FALSE = (
+    "old_pass_may_skip_current_reading_unit",
+    "old_derived_semantic_checkpoint_completion_inherited",
+    "sunk_compute_or_old_completion_exception_allowed",
+)
+
+_LOCK_RESTART_TRUE = (
+    "machine2_owner_explicit_full_scientific_restart_from_beginning_required",
+    "machine2_canonical_raw_physical_reuse_only_after_current_integrity_proof",
+    "machine2_strict_chronological_restart_required",
+    "machine2_progressive_current_checkpoint_lineage_must_start_new",
+    "machine2_heavy_run_requires_restart_contract_prestart_pass",
+)
+
+_LOCK_RESTART_FALSE = (
+    "machine2_old_scientific_pass_may_skip_current_reading_unit",
+    "machine2_old_derived_semantic_checkpoint_completion_inherited",
+    "machine2_sunk_cost_exception_allowed",
+)
+
 
 def _load(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _is_full_observation_request(request: dict[str, Any]) -> bool:
+    return str(request.get("schema") or "").startswith("A1_V32_FULL_OBSERVATION_BEHAVIOR_REQUEST_")
+
+
+def _validate_full_restart_contract(request: dict[str, Any], lock: dict[str, Any]) -> None:
+    for key in _LOCK_RESTART_TRUE:
+        if lock.get(key) is not True:
+            raise RuntimeError(f"PRESTART_LOCK_MACHINE2_RESTART_FLAG_FAIL:{key}")
+    for key in _LOCK_RESTART_FALSE:
+        if lock.get(key) is not False:
+            raise RuntimeError(f"PRESTART_LOCK_MACHINE2_RESTART_PROHIBITION_FAIL:{key}")
+    if lock.get("machine2_old_scientific_pass_current_compliance") != "NONE_ACCEPTED":
+        raise RuntimeError("PRESTART_LOCK_OLD_PASS_CURRENT_COMPLIANCE_FAIL")
+    if lock.get("machine2_scientific_restart_cursor_authority") != (
+        "EARLIEST_GOVERNED_SOURCE_DATE_TICKER_OBSERVATION_FROM_DYNAMIC_SOURCE_DISCOVERY"
+    ):
+        raise RuntimeError("PRESTART_LOCK_RESTART_CURSOR_AUTHORITY_FAIL")
+
+    for key in _FULL_OBSERVATION_RESTART_TRUE:
+        if request.get(key) is not True:
+            raise RuntimeError(f"PRESTART_REQUEST_MACHINE2_RESTART_FLAG_FAIL:{key}")
+    for key in _FULL_OBSERVATION_RESTART_FALSE:
+        if request.get(key) is not False:
+            raise RuntimeError(f"PRESTART_REQUEST_MACHINE2_RESTART_PROHIBITION_FAIL:{key}")
+    if request.get("old_pass_current_compliance") != "NONE_ACCEPTED":
+        raise RuntimeError("PRESTART_REQUEST_OLD_PASS_CURRENT_COMPLIANCE_FAIL")
+    if request.get("scientific_restart_cursor_authority") != (
+        "EARLIEST_GOVERNED_SOURCE_DATE_TICKER_OBSERVATION_FROM_DYNAMIC_SOURCE_DISCOVERY"
+    ):
+        raise RuntimeError("PRESTART_REQUEST_RESTART_CURSOR_AUTHORITY_FAIL")
+    if request.get("no_pass_claim") is not True:
+        raise RuntimeError("PRESTART_REQUEST_NO_PASS_CLAIM_FAIL")
+
+    documents = dict(lock.get("documents") or {})
+    matrix = dict(documents.get("machine2_master_coverage_matrix") or {})
+    if not matrix:
+        raise RuntimeError("PRESTART_MACHINE2_COVERAGE_MATRIX_LOCK_MISSING")
+    if str(request.get("machine2_master_coverage_matrix_document_id") or "") != str(
+        matrix.get("document_id") or ""
+    ):
+        raise RuntimeError("PRESTART_MACHINE2_COVERAGE_MATRIX_DOCUMENT_ID_DRIFT")
+    if str(request.get("machine2_master_coverage_matrix_revision_id") or "") != str(
+        matrix.get("revision_id") or ""
+    ):
+        raise RuntimeError("PRESTART_MACHINE2_COVERAGE_MATRIX_REVISION_DRIFT")
 
 
 def validate_dynamic_prestart(
@@ -63,6 +140,9 @@ def validate_dynamic_prestart(
         if str(request.get(revision_field) or "") != str(node.get("revision_id") or ""):
             raise RuntimeError(f"PRESTART_AUTHORITY_REVISION_DRIFT:{lock_key}")
 
+    if _is_full_observation_request(request):
+        _validate_full_restart_contract(request, lock)
+
     if not manifest_digest_is_valid(source_universe):
         raise RuntimeError("PRESTART_SOURCE_UNIVERSE_DIGEST_FAIL")
     authority_sync = source_universe.get("authority_sync")
@@ -96,6 +176,10 @@ def validate_dynamic_prestart(
         "authority_corpus_sha256": authority_sync.get("authority_corpus_sha256"),
         "next_source_authority": "SOURCE_UNIVERSE_MANIFEST",
         "fixed_source_count_invariant_used": False,
+        "machine2_full_scientific_restart_from_beginning_required": bool(
+            request.get("machine2_full_scientific_restart_from_beginning_required")
+        ),
+        "old_pass_skip_allowed": bool(request.get("old_pass_may_skip_current_reading_unit")),
         "formula_stage": "CLOSED",
     }
 
