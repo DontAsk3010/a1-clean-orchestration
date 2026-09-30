@@ -13,8 +13,10 @@ on:
       - 'src/a1clean/formula_research/v32_current_scientific_restart.py'
       - 'src/a1clean/formula_research/machine2_current_store.py'
       - 'src/a1clean/formula_research/v32_dynamic_prestart.py'
+      - 'src/a1clean/formula_research/source_universe_semantic_date_reconcile.py'
       - 'src/a1clean/pattern_discovery/source_reader.py'
       - 'tests/test_v32_current_scientific_restart.py'
+      - 'tests/test_source_universe_semantic_date_reconcile.py'
       - 'tests/test_v32_dynamic_prestart.py'
       - 'tests/test_authority_bootstrap.py'
   workflow_dispatch:
@@ -108,6 +110,7 @@ jobs:
           & $env:A1_PYTHON_EXE -m pytest -q `
             tests/test_authority_bootstrap.py `
             tests/test_source_universe_manifest.py `
+            tests/test_source_universe_semantic_date_reconcile.py `
             tests/test_v32_dynamic_prestart.py `
             tests/test_v32_current_scientific_restart.py
           if ($LASTEXITCODE -ne 0) { throw 'M2_CURRENT_CONTRACT_TEST_FAILED' }
@@ -151,6 +154,10 @@ jobs:
             --output $manifest `
             --discovery-time-utc $stamp
           if ($LASTEXITCODE -ne 0) { throw 'M2_CURRENT_AUTHORITY_OR_SOURCE_UNIVERSE_HOLD' }
+          & $env:A1_PYTHON_EXE -m a1clean.formula_research.source_universe_semantic_date_reconcile `
+            --manifest $manifest `
+            --output $manifest
+          if ($LASTEXITCODE -ne 0) { throw 'M2_CURRENT_SEMANTIC_DATE_ENVELOPE_RECONCILIATION_HOLD' }
           & $env:A1_PYTHON_EXE -m a1clean.formula_research.v32_dynamic_prestart `
             --request v32-full-observation-behavior-requests/current.json `
             --authority-lock governance/a1-clean-active-authority-lock.json `
@@ -173,11 +180,16 @@ jobs:
           m = json.load(open(p, encoding='utf-8'))
           if m.get('status') != 'PASS' or not m.get('sources'):
               raise SystemExit('M2_CURRENT_SOURCE_UNIVERSE_NOT_PASS')
+          reconciliation = m.get('semantic_date_envelope_reconciliation') or {}
+          if reconciliation.get('status') != 'PASS':
+              raise SystemExit('M2_CURRENT_SEMANTIC_DATE_RECONCILIATION_NOT_PASS')
           source = m['sources'][0]['source_name']
           reader = GovernedSourceReader(build_drive_api(read_write=False), source_name=source)
           if not reader.semantic_manifest_rows:
               raise SystemExit('M2_CURRENT_FIRST_SOURCE_MANIFEST_EMPTY')
           first = reader.semantic_manifest_rows[0]
+          if str(m['sources'][0].get('first_date')) != str(first.trading_date):
+              raise SystemExit('M2_CURRENT_FIRST_SOURCE_DATE_RECONCILIATION_DRIFT')
           print(source)
           print(first.trading_date)
           print(first.ticker)
