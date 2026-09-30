@@ -28,8 +28,8 @@ jobs:
           $expectedSha='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
           $expectedTicker='ALKA'
           $expectedDate='2024-12-05'
-          $expectedFirst='2024-12-05T09:03:00'
-          $expectedLast='2024-12-05T13:47:00'
+          $expectedFirst='2024-12-05 09:03:00'
+          $expectedLast='2024-12-05 13:47:00'
           if(-not (Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING $raw"}
           $fi=Get-Item -LiteralPath $raw
           if($fi.Length -ne $expectedSize){throw "RAW_SIZE_MISMATCH got=$($fi.Length) expected=$expectedSize"}
