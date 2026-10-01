@@ -21,26 +21,46 @@ jobs:
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 10
     steps:
-      - name: Read-only runner identity and service inventory
+      - name: Read-only runner identity and exact Machine2 service inventory
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           Write-Host "M2_PROBE_RUNNER_NAME=$env:RUNNER_NAME"
           Write-Host "M2_PROBE_COMPUTERNAME=$env:COMPUTERNAME"
           if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "M2_PROBE_WRONG_MACHINE:$env:COMPUTERNAME" }
-          Write-Host 'M2_PROBE_SERVICES_BEGIN'
-          @(Get-CimInstance Win32_Service | Where-Object {
+
+          $services = @(Get-CimInstance Win32_Service | Where-Object {
             ([string]$_.Name -match 'actions\.runner|runner') -or
             ([string]$_.DisplayName -match 'actions\.runner|GitHub Actions|runner') -or
             ([string]$_.PathName -match 'Runner\.Listener|actions-runner|A1-WINDOWS-COMPUTE')
-          } | Select-Object Name,DisplayName,State,StartMode,PathName | Sort-Object Name | ConvertTo-Json -Depth 4) | Write-Host
+          } | Select-Object Name,DisplayName,State,StartMode,PathName | Sort-Object Name)
+          Write-Host 'M2_PROBE_SERVICES_BEGIN'
+          @($services | ConvertTo-Json -Depth 4) | Write-Host
           Write-Host 'M2_PROBE_SERVICES_END'
-          Write-Host 'M2_PROBE_PROCESSES_BEGIN'
-          @(Get-CimInstance Win32_Process | Where-Object {
+
+          $processes = @(Get-CimInstance Win32_Process | Where-Object {
             ([string]$_.Name -match 'Runner\.(Listener|Worker)') -or
             ([string]$_.CommandLine -match 'Runner\.(Listener|Worker)|actions-runner|A1-WINDOWS-COMPUTE')
-          } | Select-Object ProcessId,Name,CommandLine | Sort-Object ProcessId | ConvertTo-Json -Depth 4) | Write-Host
+          } | Select-Object ProcessId,Name,CommandLine | Sort-Object ProcessId)
+          Write-Host 'M2_PROBE_PROCESSES_BEGIN'
+          @($processes | ConvertTo-Json -Depth 4) | Write-Host
           Write-Host 'M2_PROBE_PROCESSES_END'
+
+          $targetServices = @($services | Where-Object {
+            ([string]$_.PathName -match 'actions-runner-a1-02') -or
+            ([string]$_.Name -match 'A1-WINDOWS-COMPUTE-02') -or
+            ([string]$_.DisplayName -match 'A1-WINDOWS-COMPUTE-02')
+          })
+          Write-Host "M2_TARGET_SERVICE_CANDIDATE_COUNT=$($targetServices.Count)"
+          @($targetServices | ConvertTo-Json -Depth 4) | Write-Host
+          if ($targetServices.Count -ne 1) { throw "M2_TARGET_SERVICE_IDENTITY_HOLD:count=$($targetServices.Count)" }
+          $target = $targetServices[0]
+          Write-Host "M2_TARGET_SERVICE_NAME=$($target.Name)"
+          Write-Host "M2_TARGET_SERVICE_STATE=$($target.State)"
+          Write-Host "M2_TARGET_SERVICE_STARTMODE=$($target.StartMode)"
+          if ($target.State -ne 'Running') { throw "M2_TARGET_SERVICE_NOT_RUNNING:$($target.State)" }
+          if ($target.StartMode -ne 'Auto') { throw "M2_TARGET_SERVICE_NOT_AUTO:$($target.StartMode)" }
+          Write-Host 'M2_TARGET_SERVICE_EXACT_READ_ONLY_PASS=true'
           Write-Host 'M2_PROBE_READ_ONLY_PASS=true'
 
   probe_b:
@@ -48,24 +68,44 @@ jobs:
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 10
     steps:
-      - name: Read-only runner identity and service inventory
+      - name: Read-only runner identity and exact Machine2 service inventory
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           Write-Host "M2_PROBE_RUNNER_NAME=$env:RUNNER_NAME"
           Write-Host "M2_PROBE_COMPUTERNAME=$env:COMPUTERNAME"
           if ($env:COMPUTERNAME -ne 'PORSCHE-DESIGN') { throw "M2_PROBE_WRONG_MACHINE:$env:COMPUTERNAME" }
-          Write-Host 'M2_PROBE_SERVICES_BEGIN'
-          @(Get-CimInstance Win32_Service | Where-Object {
+
+          $services = @(Get-CimInstance Win32_Service | Where-Object {
             ([string]$_.Name -match 'actions\.runner|runner') -or
             ([string]$_.DisplayName -match 'actions\.runner|GitHub Actions|runner') -or
             ([string]$_.PathName -match 'Runner\.Listener|actions-runner|A1-WINDOWS-COMPUTE')
-          } | Select-Object Name,DisplayName,State,StartMode,PathName | Sort-Object Name | ConvertTo-Json -Depth 4) | Write-Host
+          } | Select-Object Name,DisplayName,State,StartMode,PathName | Sort-Object Name)
+          Write-Host 'M2_PROBE_SERVICES_BEGIN'
+          @($services | ConvertTo-Json -Depth 4) | Write-Host
           Write-Host 'M2_PROBE_SERVICES_END'
-          Write-Host 'M2_PROBE_PROCESSES_BEGIN'
-          @(Get-CimInstance Win32_Process | Where-Object {
+
+          $processes = @(Get-CimInstance Win32_Process | Where-Object {
             ([string]$_.Name -match 'Runner\.(Listener|Worker)') -or
             ([string]$_.CommandLine -match 'Runner\.(Listener|Worker)|actions-runner|A1-WINDOWS-COMPUTE')
-          } | Select-Object ProcessId,Name,CommandLine | Sort-Object ProcessId | ConvertTo-Json -Depth 4) | Write-Host
+          } | Select-Object ProcessId,Name,CommandLine | Sort-Object ProcessId)
+          Write-Host 'M2_PROBE_PROCESSES_BEGIN'
+          @($processes | ConvertTo-Json -Depth 4) | Write-Host
           Write-Host 'M2_PROBE_PROCESSES_END'
+
+          $targetServices = @($services | Where-Object {
+            ([string]$_.PathName -match 'actions-runner-a1-02') -or
+            ([string]$_.Name -match 'A1-WINDOWS-COMPUTE-02') -or
+            ([string]$_.DisplayName -match 'A1-WINDOWS-COMPUTE-02')
+          })
+          Write-Host "M2_TARGET_SERVICE_CANDIDATE_COUNT=$($targetServices.Count)"
+          @($targetServices | ConvertTo-Json -Depth 4) | Write-Host
+          if ($targetServices.Count -ne 1) { throw "M2_TARGET_SERVICE_IDENTITY_HOLD:count=$($targetServices.Count)" }
+          $target = $targetServices[0]
+          Write-Host "M2_TARGET_SERVICE_NAME=$($target.Name)"
+          Write-Host "M2_TARGET_SERVICE_STATE=$($target.State)"
+          Write-Host "M2_TARGET_SERVICE_STARTMODE=$($target.StartMode)"
+          if ($target.State -ne 'Running') { throw "M2_TARGET_SERVICE_NOT_RUNNING:$($target.State)" }
+          if ($target.StartMode -ne 'Auto') { throw "M2_TARGET_SERVICE_NOT_AUTO:$($target.StartMode)" }
+          Write-Host 'M2_TARGET_SERVICE_EXACT_READ_ONLY_PASS=true'
           Write-Host 'M2_PROBE_READ_ONLY_PASS=true'
