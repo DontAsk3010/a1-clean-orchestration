@@ -1,0 +1,73 @@
+name: Windows Machine2 Local GH Admin Probe
+
+on:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - '.github/workflows/windows-machine2-local-gh-admin-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-machine2-local-gh-admin-probe
+  cancel-in-progress: true
+
+jobs:
+  probe_a:
+    name: Local GH admin probe A
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 8
+    steps:
+      - name: Probe only if this job landed on exact target
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Write-Host "M2_LOCAL_GH_PROBE_RUNNER=$env:RUNNER_NAME"
+          if ($env:RUNNER_NAME -ne 'A1-WINDOWS-COMPUTE-02') {
+            Write-Host 'M2_LOCAL_GH_NON_TARGET_NO_MUTATION=true'
+            exit 0
+          }
+          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
+          $gh = Get-Command gh -ErrorAction SilentlyContinue
+          if (-not $gh) { throw 'M2_LOCAL_GH_CLI_NOT_AVAILABLE' }
+          Write-Host "M2_LOCAL_GH_PATH=$($gh.Source)"
+          & gh auth status --hostname github.com
+          if ($LASTEXITCODE -ne 0) { throw 'M2_LOCAL_GH_AUTH_STATUS_FAILED' }
+          $json = & gh api 'repos/DontAsk3010/a1-clean-orchestration/actions/runners/32/labels'
+          if ($LASTEXITCODE -ne 0) { throw 'M2_LOCAL_GH_RUNNER_LABEL_READ_FAILED' }
+          $d = $json | ConvertFrom-Json
+          $labels = @($d.labels | ForEach-Object { [string]$_.name } | Sort-Object)
+          Write-Host ('M2_LOCAL_GH_RUNNER_LABELS=' + ($labels -join ','))
+          Write-Host 'M2_LOCAL_GH_RUNNER_LABEL_ADMIN_READ_PASS=true'
+
+  probe_b:
+    name: Local GH admin probe B
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 8
+    steps:
+      - name: Probe only if this job landed on exact target
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Write-Host "M2_LOCAL_GH_PROBE_RUNNER=$env:RUNNER_NAME"
+          if ($env:RUNNER_NAME -ne 'A1-WINDOWS-COMPUTE-02') {
+            Write-Host 'M2_LOCAL_GH_NON_TARGET_NO_MUTATION=true'
+            exit 0
+          }
+          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
+          $gh = Get-Command gh -ErrorAction SilentlyContinue
+          if (-not $gh) { throw 'M2_LOCAL_GH_CLI_NOT_AVAILABLE' }
+          Write-Host "M2_LOCAL_GH_PATH=$($gh.Source)"
+          & gh auth status --hostname github.com
+          if ($LASTEXITCODE -ne 0) { throw 'M2_LOCAL_GH_AUTH_STATUS_FAILED' }
+          $json = & gh api 'repos/DontAsk3010/a1-clean-orchestration/actions/runners/32/labels'
+          if ($LASTEXITCODE -ne 0) { throw 'M2_LOCAL_GH_RUNNER_LABEL_READ_FAILED' }
+          $d = $json | ConvertFrom-Json
+          $labels = @($d.labels | ForEach-Object { [string]$_.name } | Sort-Object)
+          Write-Host ('M2_LOCAL_GH_RUNNER_LABELS=' + ($labels -join ','))
+          Write-Host 'M2_LOCAL_GH_RUNNER_LABEL_ADMIN_READ_PASS=true'
