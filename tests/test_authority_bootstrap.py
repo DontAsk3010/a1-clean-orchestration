@@ -31,6 +31,7 @@ def test_bootstrap_contract_is_active_and_fail_closed():
     assert manifest["machine2_full_scientific_restart_from_beginning_required"] is True
     assert manifest["machine2_old_pass_skip_forbidden"] is True
     assert manifest["machine2_old_derived_semantic_checkpoint_completion_inherited"] is False
+    assert manifest["machine2_owner_hard_lock_full_depth_required"] is True
 
 
 def test_bootstrap_requires_complete_authority_chain_in_order():
@@ -38,6 +39,7 @@ def test_bootstrap_requires_complete_authority_chain_in_order():
     docs = manifest["authority_documents_in_required_read_order"]
     keys = [row["key"] for row in docs]
     assert keys == [
+        "machine2_owner_hard_lock",
         "master_handbook",
         "current_execution",
         "sub_master_index",
@@ -56,8 +58,9 @@ def test_bootstrap_requires_complete_authority_chain_in_order():
     assert all(row["required"] is True for row in docs)
     assert all(str(row.get("drive_revision_id", "")).isdigit() for row in docs)
     assert [row["drive_revision_id"] for row in docs] == [
+        "1",
         "83",
-        "156",
+        "158",
         "63",
         "35",
         "64",
@@ -67,10 +70,19 @@ def test_bootstrap_requires_complete_authority_chain_in_order():
         "7",
         "15",
         "91",
-        "8",
+        "10",
         "9",
         "16",
     ]
+
+
+def test_machine2_owner_hard_lock_is_exact_bound_material_authority():
+    manifest = _load("governance/a1-clean-authority-bootstrap-current.json")
+    docs = manifest["authority_documents_in_required_read_order"]
+    owner = next(row for row in docs if row["key"] == "machine2_owner_hard_lock")
+    assert owner["document_id"] == "1JUIXxdjVD4OsW50RY4r76E_uUp6ukCdUxJTmyJ0w5YM"
+    assert owner["drive_revision_id"] == "1"
+    assert drive_revision_policy(owner) == "EXACT_BOUND"
 
 
 def test_machine1_dispatch_registry_is_live_read_operational_not_exact_revision_blocker():
@@ -132,9 +144,9 @@ def test_material_authority_revision_drift_still_holds_fail_closed():
         "full_authority_read_complete": False,
         "authority_documents": [
             {
-                "key": "master_handbook",
+                "key": "machine2_owner_hard_lock",
                 "full_read": True,
-                "expected_revision": "83",
+                "expected_revision": "1",
                 "observed_revision": "999",
             },
             {
@@ -148,8 +160,8 @@ def test_material_authority_revision_drift_still_holds_fail_closed():
         "holds": [
             {
                 "reason": "AUTHORITY_DOCUMENT_REVISION_DRIFT",
-                "key": "master_handbook",
-                "expected_revision": "83",
+                "key": "machine2_owner_hard_lock",
+                "expected_revision": "1",
                 "observed_revision": "999",
             },
             {
@@ -167,8 +179,8 @@ def test_material_authority_revision_drift_still_holds_fail_closed():
     assert reconciled["holds"] == [
         {
             "reason": "AUTHORITY_DOCUMENT_REVISION_DRIFT",
-            "key": "master_handbook",
-            "expected_revision": "83",
+            "key": "machine2_owner_hard_lock",
+            "expected_revision": "1",
             "observed_revision": "999",
         }
     ]
@@ -247,4 +259,11 @@ def test_machine2_remains_independent_full_depth_formula_closed_and_restarts_sci
     assert scope["old_pass_skip_forbidden"] is True
     assert scope["old_derived_semantic_checkpoint_completion_inherited"] is False
     assert scope["canonical_raw_physical_reuse_after_integrity_proof_only"] is True
+    assert scope["programmatic_processing_allowed"] is True
+    assert scope["programmatic_semantic_state_detection_allowed_with_full_lineage"] is True
+    assert scope["all_actual_source_supported_1m_rows_required_when_available"] is True
+    assert scope["missing_minute_as_flat_forbidden"] is True
+    assert scope["missing_minute_as_zero_forbidden"] is True
+    assert scope["full_owner_hard_lock_domains_required"] is True
+    assert scope["current_scientific_lineage"] == "MACHINE2_CURRENT_FULL_DEPTH_RESTART_FROM_BEGINNING_V3"
     assert scope["formula_stage"] == "CLOSED"
