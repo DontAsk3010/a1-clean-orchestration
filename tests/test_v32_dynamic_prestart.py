@@ -6,6 +6,14 @@ from a1clean.formula_research.source_universe_manifest import build_source_unive
 from a1clean.formula_research.v32_dynamic_prestart import validate_dynamic_prestart
 
 
+_CURRENT_FULL_DEPTH_REVALIDATION_KEY = (
+    "all_current_master_required_layers_reread_rederive_recompute_or_explicitly_revalidate_from_beginning"
+)
+_STALE_FULL_DEPTH_REVALIDATION_KEY = (
+    "all_current_master_required_layers_reread_rederive_recompute_from_beginning"
+)
+
+
 def _authority_sync() -> dict:
     return {
         "schema": "A1_CLEAN_AUTHORITY_SYNC_PROOF_V1",
@@ -102,7 +110,7 @@ def _full_request() -> dict:
     request = _request()
     request.update(
         {
-            "schema": "A1_V32_FULL_OBSERVATION_BEHAVIOR_REQUEST_V2",
+            "schema": "A1_V32_FULL_OBSERVATION_BEHAVIOR_REQUEST_V3",
             "machine2_full_scientific_restart_from_beginning_required": True,
             "old_pass_current_compliance": "NONE_ACCEPTED",
             "old_pass_may_skip_current_reading_unit": False,
@@ -113,7 +121,7 @@ def _full_request() -> dict:
             "progressive_current_checkpoint_lineage_must_start_new": True,
             "date_ticker_record_timestamp_exact_resume_checkpoint_required": True,
             "per_source_only_checkpoint_is_not_sufficient_for_exact_resume": True,
-            "all_current_master_required_layers_reread_rederive_recompute_from_beginning": True,
+            _CURRENT_FULL_DEPTH_REVALIDATION_KEY: True,
             "sunk_compute_or_old_completion_exception_allowed": False,
             "no_pass_claim": True,
             "machine2_master_coverage_matrix_document_id": "MATRIX",
@@ -185,6 +193,22 @@ def test_full_observation_prestart_requires_owner_full_restart_contract():
     assert result["status"] == "PASS"
     assert result["machine2_full_scientific_restart_from_beginning_required"] is True
     assert result["old_pass_skip_allowed"] is False
+
+
+def test_full_observation_prestart_requires_current_v3_full_depth_revalidation_key():
+    request = _full_request()
+    request.pop(_CURRENT_FULL_DEPTH_REVALIDATION_KEY)
+    request[_STALE_FULL_DEPTH_REVALIDATION_KEY] = True
+    with pytest.raises(
+        RuntimeError,
+        match=f"PRESTART_REQUEST_MACHINE2_RESTART_FLAG_FAIL:{_CURRENT_FULL_DEPTH_REVALIDATION_KEY}",
+    ):
+        validate_dynamic_prestart(
+            request=request,
+            lock=_full_lock(),
+            source_universe=_source_manifest(),
+            require_enabled=False,
+        )
 
 
 def test_full_observation_prestart_rejects_old_pass_skip():

@@ -25,7 +25,7 @@ _FULL_OBSERVATION_RESTART_TRUE = (
     "progressive_current_checkpoint_lineage_must_start_new",
     "date_ticker_record_timestamp_exact_resume_checkpoint_required",
     "per_source_only_checkpoint_is_not_sufficient_for_exact_resume",
-    "all_current_master_required_layers_reread_rederive_recompute_from_beginning",
+    "all_current_master_required_layers_reread_rederive_recompute_or_explicitly_revalidate_from_beginning",
 )
 
 _FULL_OBSERVATION_RESTART_FALSE = (
