@@ -11,6 +11,7 @@ from a1clean.formula_research.m2_current_execution_contract import (
     SAFE_ATOMIC_UNITS_PER_SHARD,
     assert_safe_atomic_units_per_shard,
     validate_checkpoint_exact_resume,
+    validate_checkpoint_governance_identity,
     validate_request_for_current_atomic_restart,
 )
 from a1clean.formula_research.v32_current_scientific_restart import (
@@ -18,6 +19,25 @@ from a1clean.formula_research.v32_current_scientific_restart import (
     LINEAGE,
     PRIOR_LINEAGE,
     build_continuous_current_enrichment,
+)
+
+
+_REQUIRED_AUTHORITY_KEYS = (
+    "machine2_owner_hard_lock",
+    "master_handbook",
+    "current_execution",
+    "sub_master_index",
+    "source_capture",
+    "behavior_reading",
+    "formula_research",
+    "github_automation",
+    "machine1_dispatch_registry",
+    "canonical_handoff",
+    "chat_transition_protocol",
+    "stable_transition_bridge",
+    "machine2_master_coverage_matrix",
+    "storage_handbook",
+    "storage_manifest",
 )
 
 
@@ -53,6 +73,95 @@ def _exact_ref(position: int) -> dict:
         "last_clock_time": "15:49:00",
         "source_row_first": 1000 + position * 300,
         "source_row_last": 1299 + position * 300,
+    }
+
+
+def _authority_bindings() -> dict:
+    return {
+        key: {
+            "document_id": f"doc-{key}",
+            "authority_revision_label": f"authority-revision-{key}",
+            "drive_revision_id": "1",
+        }
+        for key in _REQUIRED_AUTHORITY_KEYS
+    }
+
+
+def _checkpoint_identity() -> dict:
+    authority_digest = "a" * 64
+    manifest_digest = "b" * 64
+    head = "c" * 40
+    source_name = "Raw Des 02-31-2024.csv"
+    return {
+        "lineage": LINEAGE,
+        "request_sha256": "d" * 64,
+        "software_revision": head,
+        "source_universe_manifest_digest": manifest_digest,
+        "authority_corpus_sha256": authority_digest,
+        "work_id": "workflow-ref",
+        "run_id": "12345",
+        "repository": "DontAsk3010/a1-clean-orchestration",
+        "branch": "fix/v32-dynamic-source-universe-v1",
+        "exact_head": head,
+        "workflow_identity": {
+            "workflow": "Windows Machine2 CURRENT Scientific Restart",
+            "workflow_ref": "workflow-ref",
+            "workflow_sha": head,
+        },
+        "schema_versions": {
+            "checkpoint": "A1_M2_CURRENT_FULL_DEPTH_CHECKPOINT_V3",
+            "scientific_object": "A1_M2_CURRENT_FULL_DEPTH_TICKER_DAY_OBJECT_V3",
+            "date_close": "A1_M2_CURRENT_FULL_DEPTH_DATE_CLOSE_V3",
+            "owner_full_depth_extension": "V2_EXACT_TIMESTAMP_ALIGNMENT",
+        },
+        "tests_bound_by_exact_head": True,
+        "authority_bindings": _authority_bindings(),
+        "authority_sync_readback": {
+            "schema": "A1_CLEAN_AUTHORITY_SYNC_PROOF_V1",
+            "status": "PASS",
+            "full_authority_read_complete": True,
+            "authority_document_count": len(_REQUIRED_AUTHORITY_KEYS),
+            "repo_state_file_count": 9,
+            "authority_corpus_sha256": authority_digest,
+            "bootstrap_manifest_sha256": "e" * 64,
+            "active_authority_lock_sha256": "f" * 64,
+        },
+        "source_universe_generation": {
+            "generation_ids": ["generation-1"],
+            "data_plane_impl_versions": ["impl-1"],
+            "source_count": 1,
+        },
+        "source_identity_by_name": {
+            source_name: {
+                "source_drive_id": "source-drive-id",
+                "source_sha256": "1" * 64,
+                "eligibility": "ELIGIBLE_GOVERNED_ACTIVE",
+                "readiness": "DATA_PLANE_READY_SEMANTIC_READINESS_EXTERNAL",
+                "first_date": "2024-12-02",
+                "first_time": "09:00:00",
+                "last_date": "2024-12-31",
+                "last_time": "15:49:00",
+                "schema_source_capability": {
+                    "generation_id": "generation-1",
+                    "data_plane_impl_version": "impl-1",
+                },
+            }
+        },
+        "canonical_artifact_pointers": {
+            "checkpoint_folder_id": MACHINE2_CHECKPOINT_FOLDER_ID,
+            "semantic_output_folder_id": MACHINE2_SEMANTIC_OUTPUT_FOLDER_ID,
+            "current_state_folder_id": MACHINE2_CURRENT_STATE_FOLDER_ID,
+        },
+        "checkpoint_write_readback_state": "EXACT_BYTE_READBACK_ENFORCED_OR_WRITE_FAILS",
+        "current_gaps_at_prestart": [],
+        "hold_or_anomaly_at_prestart": None,
+        "temporary_artifacts": [],
+        "transport_integrity_proof": {
+            "source_universe_manifest_digest": manifest_digest,
+            "authority_corpus_sha256": authority_digest,
+            "manifest_status": "PASS",
+        },
+        "current_source": source_name,
     }
 
 
@@ -163,8 +272,24 @@ def test_owner_full_depth_contract_requires_semantic_label_lineage_fields():
         validate_request_for_current_atomic_restart(request)
 
 
+def test_checkpoint_governance_identity_requires_complete_authority_chain():
+    checkpoint = _checkpoint_identity()
+    validate_checkpoint_governance_identity(checkpoint)
+    checkpoint["authority_bindings"].pop("storage_manifest")
+    with pytest.raises(RuntimeError, match="M2_CURRENT_CHECKPOINT_AUTHORITY_BINDINGS_MISSING"):
+        validate_checkpoint_governance_identity(checkpoint)
+
+
+def test_checkpoint_governance_identity_rejects_unclosed_prestart_gap():
+    checkpoint = _checkpoint_identity()
+    checkpoint["current_gaps_at_prestart"] = ["HOLD_ROUTING"]
+    with pytest.raises(RuntimeError, match="M2_CURRENT_CHECKPOINT_PRESTART_GAPS_NOT_CLOSED"):
+        validate_checkpoint_governance_identity(checkpoint)
+
+
 def test_exact_resume_checkpoint_requires_contiguous_full_unit_identity():
     checkpoint = {
+        **_checkpoint_identity(),
         "status": "IN_PROGRESS",
         "completed_units_in_current_date": 1,
         "last_completed": _exact_ref(0),
