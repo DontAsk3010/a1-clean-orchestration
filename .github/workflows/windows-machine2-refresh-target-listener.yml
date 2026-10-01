@@ -21,51 +21,105 @@ jobs:
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 8
     steps:
-      - name: Restart target listener only from non-target runner
+      - id: discover
+        name: Service discovery - exact target listener
+        if: runner.name == 'A1-WINDOWS-COMPUTE'
+        continue-on-error: true
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          Write-Host "M2_REFRESH_EXECUTOR=$env:RUNNER_NAME"
-          if ($env:RUNNER_NAME -ne 'A1-WINDOWS-COMPUTE') {
-            Write-Host 'M2_REFRESH_NON_EXECUTOR_NO_MUTATION=true'
-            exit 0
-          }
           $targets = @(Get-CimInstance Win32_Service | Where-Object { ([string]$_.PathName -match 'actions-runner-a1-02') })
+          Write-Host "M2_REFRESH_TARGET_SERVICE_CANDIDATE_COUNT=$($targets.Count)"
           if ($targets.Count -ne 1) { throw "M2_REFRESH_TARGET_SERVICE_CARDINALITY:$($targets.Count)" }
           $name = [string]$targets[0].Name
           Write-Host "M2_REFRESH_TARGET_SERVICE=$name"
-          Restart-Service -Name $name -Force
+          Write-Host "M2_REFRESH_TARGET_STATE_BEFORE=$($targets[0].State)"
+          Write-Host 'M2_REFRESH_SERVICE_DISCOVERY_PASS=true'
+      - id: restart
+        name: Service control - restart exact target listener
+        if: runner.name == 'A1-WINDOWS-COMPUTE'
+        continue-on-error: true
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $targets = @(Get-CimInstance Win32_Service | Where-Object { ([string]$_.PathName -match 'actions-runner-a1-02') })
+          if ($targets.Count -ne 1) { throw "M2_REFRESH_TARGET_SERVICE_CARDINALITY_CONTROL:$($targets.Count)" }
+          $name = [string]$targets[0].Name
+          Restart-Service -Name $name -Force -ErrorAction Stop
+          Write-Host 'M2_REFRESH_SERVICE_CONTROL_COMMAND_PASS=true'
+      - id: poststate
+        name: Post-state - exact target listener running
+        if: runner.name == 'A1-WINDOWS-COMPUTE'
+        continue-on-error: true
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $targets = @(Get-CimInstance Win32_Service | Where-Object { ([string]$_.PathName -match 'actions-runner-a1-02') })
+          if ($targets.Count -ne 1) { throw "M2_REFRESH_TARGET_SERVICE_CARDINALITY_POST:$($targets.Count)" }
+          $name = [string]$targets[0].Name
           $deadline = (Get-Date).AddSeconds(30)
           do {
             Start-Sleep -Seconds 1
             $svc = Get-Service -Name $name
           } while ($svc.Status -ne 'Running' -and (Get-Date) -lt $deadline)
+          Write-Host "M2_REFRESH_TARGET_STATE_AFTER=$($svc.Status)"
           if ($svc.Status -ne 'Running') { throw "M2_REFRESH_TARGET_SERVICE_NOT_RUNNING:$($svc.Status)" }
-          Write-Host 'M2_REFRESH_TARGET_LISTENER_PASS=true'
+          Write-Host 'M2_REFRESH_TARGET_LISTENER_POSTSTATE_PASS=true'
+      - name: Non-executor no mutation marker
+        if: runner.name != 'A1-WINDOWS-COMPUTE'
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: Write-Host 'M2_REFRESH_NON_EXECUTOR_NO_MUTATION=true'
 
   refresh_b:
     name: Target listener refresh candidate B
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 8
     steps:
-      - name: Restart target listener only from non-target runner
+      - id: discover
+        name: Service discovery - exact target listener
+        if: runner.name == 'A1-WINDOWS-COMPUTE'
+        continue-on-error: true
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          Write-Host "M2_REFRESH_EXECUTOR=$env:RUNNER_NAME"
-          if ($env:RUNNER_NAME -ne 'A1-WINDOWS-COMPUTE') {
-            Write-Host 'M2_REFRESH_NON_EXECUTOR_NO_MUTATION=true'
-            exit 0
-          }
           $targets = @(Get-CimInstance Win32_Service | Where-Object { ([string]$_.PathName -match 'actions-runner-a1-02') })
+          Write-Host "M2_REFRESH_TARGET_SERVICE_CANDIDATE_COUNT=$($targets.Count)"
           if ($targets.Count -ne 1) { throw "M2_REFRESH_TARGET_SERVICE_CARDINALITY:$($targets.Count)" }
           $name = [string]$targets[0].Name
           Write-Host "M2_REFRESH_TARGET_SERVICE=$name"
-          Restart-Service -Name $name -Force
+          Write-Host "M2_REFRESH_TARGET_STATE_BEFORE=$($targets[0].State)"
+          Write-Host 'M2_REFRESH_SERVICE_DISCOVERY_PASS=true'
+      - id: restart
+        name: Service control - restart exact target listener
+        if: runner.name == 'A1-WINDOWS-COMPUTE'
+        continue-on-error: true
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $targets = @(Get-CimInstance Win32_Service | Where-Object { ([string]$_.PathName -match 'actions-runner-a1-02') })
+          if ($targets.Count -ne 1) { throw "M2_REFRESH_TARGET_SERVICE_CARDINALITY_CONTROL:$($targets.Count)" }
+          $name = [string]$targets[0].Name
+          Restart-Service -Name $name -Force -ErrorAction Stop
+          Write-Host 'M2_REFRESH_SERVICE_CONTROL_COMMAND_PASS=true'
+      - id: poststate
+        name: Post-state - exact target listener running
+        if: runner.name == 'A1-WINDOWS-COMPUTE'
+        continue-on-error: true
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $targets = @(Get-CimInstance Win32_Service | Where-Object { ([string]$_.PathName -match 'actions-runner-a1-02') })
+          if ($targets.Count -ne 1) { throw "M2_REFRESH_TARGET_SERVICE_CARDINALITY_POST:$($targets.Count)" }
+          $name = [string]$targets[0].Name
           $deadline = (Get-Date).AddSeconds(30)
           do {
             Start-Sleep -Seconds 1
             $svc = Get-Service -Name $name
           } while ($svc.Status -ne 'Running' -and (Get-Date) -lt $deadline)
+          Write-Host "M2_REFRESH_TARGET_STATE_AFTER=$($svc.Status)"
           if ($svc.Status -ne 'Running') { throw "M2_REFRESH_TARGET_SERVICE_NOT_RUNNING:$($svc.Status)" }
-          Write-Host 'M2_REFRESH_TARGET_LISTENER_PASS=true'
+          Write-Host 'M2_REFRESH_TARGET_LISTENER_POSTSTATE_PASS=true'
+      - name: Non-executor no mutation marker
+        if: runner.name != 'A1-WINDOWS-COMPUTE'
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: Write-Host 'M2_REFRESH_NON_EXECUTOR_NO_MUTATION=true'
