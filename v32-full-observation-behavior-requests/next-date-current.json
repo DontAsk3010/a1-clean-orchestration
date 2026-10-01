@@ -1,0 +1,20 @@
+{
+  "schema": "A1_M2_CURRENT_EXPLICIT_NEXT_DATE_AUTHORIZATION_V1",
+  "enabled": false,
+  "lineage": "MACHINE2_CURRENT_FULL_DEPTH_RESTART_FROM_BEGINNING_V3",
+  "authorization_state": "HOLD_UNTIL_PRIOR_DATE_CLOSE_EXACT_READBACK_AND_CURRENT_PRESTART_PASS",
+  "one_date_per_authorization": true,
+  "exact_next_governed_successor_only": true,
+  "arbitrary_target_date_forbidden": true,
+  "prior_checkpoint_must_be_date_closed": true,
+  "fresh_current_prestart_required": true,
+  "identity_rebind_only_at_safe_date_boundary": true,
+  "carry_forward_required": true,
+  "no_auto_advance_after_date_close": true,
+  "expected_last_closed_source": "Raw Des 02-31-2024.csv",
+  "expected_last_closed_date": "2024-12-02",
+  "owner_authority_basis": "2026-10-01 owner instruction to continue Machine 2 under the complete CURRENT authority chain without shortcut or false PASS",
+  "activation_rule": "ENABLE_ONLY_AFTER_2024-12-02_DATE_CLOSED_PLUS_EXACT_READBACK_PASS; THEN THIS AUTHORIZATION MAY OPEN ONLY THE EXACT GOVERNED SUCCESSOR DERIVED BY CODE",
+  "formula_stage": "CLOSED",
+  "grouping_stage": "HOLD"
+}
