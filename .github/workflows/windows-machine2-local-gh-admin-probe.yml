@@ -21,19 +21,20 @@ jobs:
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 8
     steps:
-      - name: Record actual runner identity
-        shell: powershell
-        run: Write-Host "M2_LOCAL_GH_PROBE_RUNNER=$env:RUNNER_NAME"
-      - name: Target gate - gh CLI present
+      - id: ghcli
+        name: Target gate - gh CLI present
         if: runner.name == 'A1-WINDOWS-COMPUTE-02'
+        continue-on-error: true
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           $gh = Get-Command gh -ErrorAction SilentlyContinue
           if (-not $gh) { throw 'M2_LOCAL_GH_CLI_NOT_AVAILABLE' }
           Write-Host 'M2_LOCAL_GH_CLI_PRESENT=true'
-      - name: Target gate - local gh auth valid
+      - id: ghauth
+        name: Target gate - local gh auth valid
         if: runner.name == 'A1-WINDOWS-COMPUTE-02'
+        continue-on-error: true
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
@@ -42,8 +43,10 @@ jobs:
           & gh auth status --hostname github.com
           if ($LASTEXITCODE -ne 0) { throw 'M2_LOCAL_GH_AUTH_STATUS_FAILED' }
           Write-Host 'M2_LOCAL_GH_AUTH_STATUS_PASS=true'
-      - name: Target gate - runner label admin read
+      - id: labelread
+        name: Target gate - runner label admin read
         if: runner.name == 'A1-WINDOWS-COMPUTE-02'
+        continue-on-error: true
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
@@ -55,9 +58,22 @@ jobs:
           $labels = @($d.labels | ForEach-Object { [string]$_.name } | Sort-Object)
           Write-Host ('M2_LOCAL_GH_RUNNER_LABELS=' + ($labels -join ','))
           Write-Host 'M2_LOCAL_GH_RUNNER_LABEL_ADMIN_READ_PASS=true'
+      - name: Target verdict
+        if: always() && runner.name == 'A1-WINDOWS-COMPUTE-02'
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        env:
+          GHCLI_OUTCOME: ${{ steps.ghcli.outcome }}
+          GHAUTH_OUTCOME: ${{ steps.ghauth.outcome }}
+          LABELREAD_OUTCOME: ${{ steps.labelread.outcome }}
+        run: |
+          Write-Host "M2_GHCLI_OUTCOME=$env:GHCLI_OUTCOME"
+          Write-Host "M2_GHAUTH_OUTCOME=$env:GHAUTH_OUTCOME"
+          Write-Host "M2_LABELREAD_OUTCOME=$env:LABELREAD_OUTCOME"
+          if ($env:GHCLI_OUTCOME -ne 'success' -or $env:GHAUTH_OUTCOME -ne 'success' -or $env:LABELREAD_OUTCOME -ne 'success') { throw 'M2_LOCAL_GH_ADMIN_CAPABILITY_HOLD' }
+          Write-Host 'M2_LOCAL_GH_ADMIN_CAPABILITY_PASS=true'
       - name: Non-target no mutation marker
-        if: runner.name != 'A1-WINDOWS-COMPUTE-02'
-        shell: powershell
+        if: always() && runner.name != 'A1-WINDOWS-COMPUTE-02'
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: Write-Host 'M2_LOCAL_GH_NON_TARGET_NO_MUTATION=true'
 
   probe_b:
@@ -65,19 +81,20 @@ jobs:
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 8
     steps:
-      - name: Record actual runner identity
-        shell: powershell
-        run: Write-Host "M2_LOCAL_GH_PROBE_RUNNER=$env:RUNNER_NAME"
-      - name: Target gate - gh CLI present
+      - id: ghcli
+        name: Target gate - gh CLI present
         if: runner.name == 'A1-WINDOWS-COMPUTE-02'
+        continue-on-error: true
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           $gh = Get-Command gh -ErrorAction SilentlyContinue
           if (-not $gh) { throw 'M2_LOCAL_GH_CLI_NOT_AVAILABLE' }
           Write-Host 'M2_LOCAL_GH_CLI_PRESENT=true'
-      - name: Target gate - local gh auth valid
+      - id: ghauth
+        name: Target gate - local gh auth valid
         if: runner.name == 'A1-WINDOWS-COMPUTE-02'
+        continue-on-error: true
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
@@ -86,8 +103,10 @@ jobs:
           & gh auth status --hostname github.com
           if ($LASTEXITCODE -ne 0) { throw 'M2_LOCAL_GH_AUTH_STATUS_FAILED' }
           Write-Host 'M2_LOCAL_GH_AUTH_STATUS_PASS=true'
-      - name: Target gate - runner label admin read
+      - id: labelread
+        name: Target gate - runner label admin read
         if: runner.name == 'A1-WINDOWS-COMPUTE-02'
+        continue-on-error: true
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
@@ -99,7 +118,20 @@ jobs:
           $labels = @($d.labels | ForEach-Object { [string]$_.name } | Sort-Object)
           Write-Host ('M2_LOCAL_GH_RUNNER_LABELS=' + ($labels -join ','))
           Write-Host 'M2_LOCAL_GH_RUNNER_LABEL_ADMIN_READ_PASS=true'
+      - name: Target verdict
+        if: always() && runner.name == 'A1-WINDOWS-COMPUTE-02'
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        env:
+          GHCLI_OUTCOME: ${{ steps.ghcli.outcome }}
+          GHAUTH_OUTCOME: ${{ steps.ghauth.outcome }}
+          LABELREAD_OUTCOME: ${{ steps.labelread.outcome }}
+        run: |
+          Write-Host "M2_GHCLI_OUTCOME=$env:GHCLI_OUTCOME"
+          Write-Host "M2_GHAUTH_OUTCOME=$env:GHAUTH_OUTCOME"
+          Write-Host "M2_LABELREAD_OUTCOME=$env:LABELREAD_OUTCOME"
+          if ($env:GHCLI_OUTCOME -ne 'success' -or $env:GHAUTH_OUTCOME -ne 'success' -or $env:LABELREAD_OUTCOME -ne 'success') { throw 'M2_LOCAL_GH_ADMIN_CAPABILITY_HOLD' }
+          Write-Host 'M2_LOCAL_GH_ADMIN_CAPABILITY_PASS=true'
       - name: Non-target no mutation marker
-        if: runner.name != 'A1-WINDOWS-COMPUTE-02'
-        shell: powershell
+        if: always() && runner.name != 'A1-WINDOWS-COMPUTE-02'
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: Write-Host 'M2_LOCAL_GH_NON_TARGET_NO_MUTATION=true'
