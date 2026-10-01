@@ -1,5 +1,6 @@
 name: Machine1 ARKA 2024-12-04 Governed Evidence Extract
 
+# Infrastructure-only retrigger: preserve governed ARKA source contract and native PowerShell extraction.
 on:
   push:
     branches:
