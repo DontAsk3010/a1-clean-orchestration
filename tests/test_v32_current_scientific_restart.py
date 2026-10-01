@@ -16,6 +16,7 @@ from a1clean.formula_research.m2_current_execution_contract import (
 from a1clean.formula_research.v32_current_scientific_restart import (
     CHECKPOINT_NAME,
     LINEAGE,
+    PRIOR_LINEAGE,
     build_continuous_current_enrichment,
 )
 
@@ -71,9 +72,11 @@ def _open_request() -> dict:
     }
 
 
-def test_current_restart_has_new_lineage_and_canonical_machine2_home():
-    assert LINEAGE == "MACHINE2_CURRENT_FULL_RESTART_FROM_BEGINNING_V1"
-    assert "CURRENT_FULL_RESTART" in CHECKPOINT_NAME
+def test_current_restart_has_owner_override_v2_lineage_and_canonical_machine2_home():
+    assert PRIOR_LINEAGE == "MACHINE2_CURRENT_FULL_RESTART_FROM_BEGINNING_V1"
+    assert LINEAGE == "MACHINE2_CURRENT_FULL_RESTART_FROM_BEGINNING_V2"
+    assert CHECKPOINT_NAME == f"{LINEAGE}__CHECKPOINT_CURRENT.json"
+    assert PRIOR_LINEAGE not in CHECKPOINT_NAME
     assert MACHINE2_CHECKPOINT_FOLDER_ID == "15L4xQfPxNaulE-uiaGXVYwDdY-2-pBt5"
     assert MACHINE2_SEMANTIC_OUTPUT_FOLDER_ID == "1oHmkK-D-k7aBZn2nK-7KzMS2tujlvzj5"
     assert MACHINE2_CURRENT_STATE_FOLDER_ID == "1UGEgtftUAasKWF0OHdbDGgYErF60m4zB"
