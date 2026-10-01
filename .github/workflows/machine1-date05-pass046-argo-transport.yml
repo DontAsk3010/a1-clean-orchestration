@@ -101,3 +101,5 @@ jobs:
           if-no-files-found: error
           compression-level: 9
           retention-days: 7
+
+# ACCESS_REMATERIALIZATION_TRIGGER_20261001_PASS046_ARGO
