@@ -26,7 +26,7 @@
     {"key":"behavior_reading","source":"authority_lock","required":true,"drive_revision_id":"64"},
     {"key":"github_automation","source":"authority_lock","required":true,"drive_revision_id":"84"},
     {"key":"formula_research","source":"authority_lock","required":true,"drive_revision_id":"47","note":"Read for current CLOSED-stage constraints; reading does not open formula construction."},
-    {"key":"machine1_dispatch_registry","source":"authority_lock","required":true,"drive_revision_id":"575","note":"Read for cross-machine independence/date/checkpoint coordination only; never copy Machine 1 semantics into Machine 2."},
+    {"key":"machine1_dispatch_registry","source":"authority_lock","required":true,"drive_revision_id":"585","note":"Read for cross-machine independence/date/checkpoint coordination only; never copy Machine 1 semantics into Machine 2."},
     {"key":"canonical_handoff","source":"authority_lock","required":true,"drive_revision_id":"7"},
     {"key":"chat_transition_protocol","source":"authority_lock","required":true,"drive_revision_id":"15"},
     {"key":"stable_transition_bridge","source":"authority_lock","required":true,"drive_revision_id":"91"},
