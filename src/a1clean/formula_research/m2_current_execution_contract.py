@@ -79,6 +79,48 @@ _REQUIRED_REF_FIELDS = (
     "source_row_last",
 )
 
+_REQUIRED_CHECKPOINT_IDENTITY_FIELDS = (
+    "lineage",
+    "request_sha256",
+    "software_revision",
+    "source_universe_manifest_digest",
+    "authority_corpus_sha256",
+    "work_id",
+    "run_id",
+    "repository",
+    "branch",
+    "exact_head",
+    "workflow_identity",
+    "schema_versions",
+    "authority_bindings",
+    "authority_sync_readback",
+    "source_universe_generation",
+    "source_identity_by_name",
+    "canonical_artifact_pointers",
+    "checkpoint_write_readback_state",
+    "current_gaps_at_prestart",
+    "temporary_artifacts",
+    "transport_integrity_proof",
+)
+
+_REQUIRED_AUTHORITY_BINDING_KEYS = {
+    "machine2_owner_hard_lock",
+    "master_handbook",
+    "current_execution",
+    "sub_master_index",
+    "source_capture",
+    "behavior_reading",
+    "formula_research",
+    "github_automation",
+    "machine1_dispatch_registry",
+    "canonical_handoff",
+    "chat_transition_protocol",
+    "stable_transition_bridge",
+    "machine2_master_coverage_matrix",
+    "storage_handbook",
+    "storage_manifest",
+}
+
 
 def validate_request_for_current_atomic_restart(request: Mapping[str, Any]) -> None:
     if request.get("enabled") is not True or request.get("restart_authorized") is not True:
@@ -115,7 +157,62 @@ def validate_exact_unit_ref(ref: Mapping[str, Any] | None, *, label: str) -> Non
         raise RuntimeError(f"M2_CURRENT_EXACT_REF_RANGE_INVALID:{label}")
 
 
+def validate_checkpoint_governance_identity(checkpoint: Mapping[str, Any]) -> None:
+    missing = [key for key in _REQUIRED_CHECKPOINT_IDENTITY_FIELDS if key not in checkpoint or checkpoint.get(key) in (None, "")]
+    if missing:
+        raise RuntimeError(f"M2_CURRENT_CHECKPOINT_GOVERNANCE_FIELDS_MISSING:{missing}")
+
+    if checkpoint.get("exact_head") != checkpoint.get("software_revision"):
+        raise RuntimeError("M2_CURRENT_CHECKPOINT_HEAD_SOFTWARE_REVISION_MISMATCH")
+    if checkpoint.get("checkpoint_write_readback_state") != "EXACT_BYTE_READBACK_ENFORCED_OR_WRITE_FAILS":
+        raise RuntimeError("M2_CURRENT_CHECKPOINT_READBACK_CONTRACT_MISSING")
+
+    bindings = checkpoint.get("authority_bindings")
+    if not isinstance(bindings, Mapping):
+        raise RuntimeError("M2_CURRENT_CHECKPOINT_AUTHORITY_BINDINGS_NOT_OBJECT")
+    missing_bindings = sorted(_REQUIRED_AUTHORITY_BINDING_KEYS - set(bindings))
+    if missing_bindings:
+        raise RuntimeError(f"M2_CURRENT_CHECKPOINT_AUTHORITY_BINDINGS_MISSING:{missing_bindings}")
+    for key in sorted(_REQUIRED_AUTHORITY_BINDING_KEYS):
+        row = bindings.get(key)
+        if not isinstance(row, Mapping):
+            raise RuntimeError(f"M2_CURRENT_CHECKPOINT_AUTHORITY_BINDING_INVALID:{key}")
+        for field in ("document_id", "authority_revision_label", "drive_revision_id"):
+            if row.get(field) in (None, ""):
+                raise RuntimeError(f"M2_CURRENT_CHECKPOINT_AUTHORITY_BINDING_FIELD_MISSING:{key}:{field}")
+
+    sync = checkpoint.get("authority_sync_readback")
+    if not isinstance(sync, Mapping) or sync.get("status") != "PASS" or sync.get("full_authority_read_complete") is not True:
+        raise RuntimeError("M2_CURRENT_CHECKPOINT_AUTHORITY_SYNC_NOT_PASS")
+    if sync.get("authority_corpus_sha256") != checkpoint.get("authority_corpus_sha256"):
+        raise RuntimeError("M2_CURRENT_CHECKPOINT_AUTHORITY_CORPUS_DIGEST_MISMATCH")
+
+    source_map = checkpoint.get("source_identity_by_name")
+    if not isinstance(source_map, Mapping) or not source_map:
+        raise RuntimeError("M2_CURRENT_CHECKPOINT_SOURCE_IDENTITY_MAP_EMPTY")
+    current_source = checkpoint.get("current_source")
+    if current_source not in (None, "") and current_source not in source_map:
+        raise RuntimeError(f"M2_CURRENT_CHECKPOINT_CURRENT_SOURCE_NOT_BOUND:{current_source}")
+
+    transport = checkpoint.get("transport_integrity_proof")
+    if not isinstance(transport, Mapping):
+        raise RuntimeError("M2_CURRENT_CHECKPOINT_TRANSPORT_PROOF_MISSING")
+    if transport.get("source_universe_manifest_digest") != checkpoint.get("source_universe_manifest_digest"):
+        raise RuntimeError("M2_CURRENT_CHECKPOINT_SOURCE_MANIFEST_DIGEST_MISMATCH")
+    if transport.get("authority_corpus_sha256") != checkpoint.get("authority_corpus_sha256"):
+        raise RuntimeError("M2_CURRENT_CHECKPOINT_TRANSPORT_AUTHORITY_DIGEST_MISMATCH")
+    if transport.get("manifest_status") != "PASS":
+        raise RuntimeError("M2_CURRENT_CHECKPOINT_SOURCE_MANIFEST_NOT_PASS")
+
+    gaps = checkpoint.get("current_gaps_at_prestart")
+    if not isinstance(gaps, list):
+        raise RuntimeError("M2_CURRENT_CHECKPOINT_GAPS_STATE_NOT_LIST")
+    if gaps:
+        raise RuntimeError(f"M2_CURRENT_CHECKPOINT_PRESTART_GAPS_NOT_CLOSED:{gaps}")
+
+
 def validate_checkpoint_exact_resume(checkpoint: Mapping[str, Any]) -> None:
+    validate_checkpoint_governance_identity(checkpoint)
     status = str(checkpoint.get("status") or "")
     completed = int(checkpoint.get("completed_units_in_current_date") or 0)
     if completed < 0:
