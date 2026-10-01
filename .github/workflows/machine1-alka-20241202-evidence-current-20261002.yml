@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Extract exact governed ALKA Date02 source packet
-        shell: powershell
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference='Stop'
           $raw=$env:RAW_FILE; $first=60368; $last=60384; $expected=17
