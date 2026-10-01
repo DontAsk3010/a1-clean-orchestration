@@ -21,10 +21,10 @@ from a1clean.formula_research.v32_current_scientific_restart import (
 )
 
 
-def _bar(i: int, *, close: float, volume: float, value: float, nbss: float, high: float, low: float) -> dict:
+def _bar(i: int, *, close: float, volume: float, value: float, nbss: float, high: float, low: float, timestamp: str | None = None) -> dict:
     return {
         "source_row": 100 + i,
-        "timestamp": f"2024-12-02 09:{i:02d}:00",
+        "timestamp": timestamp or f"2024-12-02 09:{i:02d}:00",
         "source_phase": "REGULAR_SESSION1",
         "regular_behavior_eligible": True,
         "open": close - 1.0,
@@ -67,8 +67,60 @@ def _open_request() -> dict:
         "per_source_only_checkpoint_is_not_sufficient_for_exact_resume": True,
         "strict_governed_chronological_restart_required": True,
         "progressive_current_checkpoint_lineage_must_start_new": True,
+        "owner_hard_lock_full_depth_required": True,
+        "programmatic_processing_allowed": True,
+        "shallow_or_unauditable_processing_allowed": False,
+        "full_source_supported_observation_envelope": True,
+        "all_source_columns_retrievable_required": True,
+        "all_actual_source_supported_1m_rows_required_when_available": True,
+        "missing_minute_as_flat_forbidden": True,
+        "missing_minute_as_zero_forbidden": True,
+        "synthetic_missing_bar_fill_forbidden": True,
+        "sparse_ticker_all_actual_rows_required": True,
+        "primitive_facts_preserved_before_compression": True,
+        "exact_time_known_at_hindsight_separation_required": True,
+        "price_path_location_memory_required": True,
+        "effort_response_nonresponse_required": True,
+        "negative_quiet_failure_contradiction_required": True,
+        "attempts_retests_loops_nested_episodes_required": True,
+        "state_maturity_persistence_decay_required": True,
+        "lead_lag_relationship_graph_required": True,
+        "behavior_lifecycle_required": True,
+        "behavior_path_required": True,
+        "cross_date_continuity_required": True,
+        "open_left_right_censoring_required": True,
+        "market_sector_cross_sectional_context_required_when_source_supported": True,
+        "data_quality_separate_from_market_behavior_required": True,
+        "near_twin_counterexample_required_at_applicable_stage": True,
+        "base_rate_denominator_readiness_required": True,
+        "formation_snapshot_required": True,
+        "formation_known_at_vs_hindsight_wall_required": True,
+        "availability_unknown_true_zero_discipline_required": True,
+        "semantic_label_full_lineage_required": True,
+        "dynamic_source_universe_required": True,
+        "fixed_source_count_as_universe_authority_forbidden": True,
+        "machine1_machine2_division_of_labor_forbidden": True,
+        "dual_independent_full_depth_research_engines_required": True,
+        "same_maximum_source_supported_completeness_target_required": True,
+        "missing_as_zero": False,
+        "sampling_used": False,
+        "winner_only_filtering_used": False,
+        "summary_only_substitution_used": False,
+        "no_pass_claim": True,
+        "full_depth_required_domains_spec_path": "governance/machine2-full-depth-required-domains-current.json",
+        "semantic_label_required_fields": [
+            "definition_version",
+            "source_parents",
+            "exact_time_or_range",
+            "known_at_eligibility",
+            "derived_parents",
+            "reason_features",
+            "availability",
+            "uncertainty",
+            "transition_lineage",
+        ],
         "formula_stage": "CLOSED",
-        "grouping_stage": "CLOSED_UNTIL_SEPARATELY_ADMITTED",
+        "grouping_stage": "CLOSED_UNTIL_SEPARATELY_ADMITTED_AFTER_REQUIRED_EVIDENCE_DEPTH",
     }
 
 
@@ -94,6 +146,20 @@ def test_current_atomic_execution_contract_rejects_disabled_request():
     validate_request_for_current_atomic_restart(request)
     request["enabled"] = False
     with pytest.raises(RuntimeError, match="M2_CURRENT_HEAVY_RESTART_NOT_AUTHORIZED"):
+        validate_request_for_current_atomic_restart(request)
+
+
+def test_owner_full_depth_contract_fails_closed_when_required_domain_flag_is_missing():
+    request = _open_request()
+    request["attempts_retests_loops_nested_episodes_required"] = False
+    with pytest.raises(RuntimeError, match="M2_CURRENT_REQUEST_CONTRACT_MISMATCH:attempts_retests_loops_nested_episodes_required"):
+        validate_request_for_current_atomic_restart(request)
+
+
+def test_owner_full_depth_contract_requires_semantic_label_lineage_fields():
+    request = _open_request()
+    request["semantic_label_required_fields"].remove("transition_lineage")
+    with pytest.raises(RuntimeError, match="M2_CURRENT_SEMANTIC_LABEL_LINEAGE_FIELDS_MISSING"):
         validate_request_for_current_atomic_restart(request)
 
 
@@ -129,6 +195,19 @@ def test_continuous_enrichment_preserves_path_effort_response_attempts_and_known
     assert last["causal_timing"]["known_at_status"] == "UNKNOWN_UNPROVEN_BAR_TIMESTAMP_COMPLETION_SEMANTICS"
     assert last["multi_timescale_descendants"]["3_actual_bars"]["status"] == "AVAILABLE"
     assert last["multi_timescale_descendants"]["5_actual_bars"]["status"] == "INSUFFICIENT_PRIOR_ACTUAL_BARS"
+
+
+def test_current_restart_does_not_synthesize_missing_one_minute_rows():
+    bars = [
+        _bar(0, close=100, volume=10, value=1000, nbss=0, high=100, low=100, timestamp="2024-12-02 09:00:00"),
+        _bar(1, close=101, volume=20, value=2000, nbss=0, high=101, low=101, timestamp="2024-12-02 09:05:00"),
+    ]
+    result = build_continuous_current_enrichment(bars)
+    assert result["derived_observation_count"] == 2
+    assert result["timestamp_discontinuity_count"] == 1
+    gap = result["timestamp_discontinuities"][0]
+    assert gap["delta_seconds"] == 300.0
+    assert gap["interpretation"] == "SESSION_RECESS_OR_SOURCE_GAP_NOT_INFERRED"
 
 
 def test_current_restart_does_not_turn_missing_or_unproven_timing_into_zero():
