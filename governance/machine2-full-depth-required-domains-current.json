@@ -1,0 +1,130 @@
+{
+  "schema": "A1_MACHINE2_FULL_DEPTH_REQUIRED_DOMAINS_V1",
+  "status": "OWNER_HARD_LOCK_CURRENT",
+  "owner_instruction_date": "2026-10-01",
+  "target": "METHOD_INDEPENDENT_MAXIMUM_SOURCE_SUPPORTED_COMPLETENESS",
+  "machine2_role": "INDEPENDENT_FULL_DEPTH_RESEARCH_ENGINE",
+  "programmatic_processing_allowed": true,
+  "depth_reduction_allowed": false,
+  "formula_stage": "CLOSED",
+  "actual_base_resolution_contract": {
+    "use_actual_governed_source_resolution": true,
+    "when_raw_interval_sec_60_each_actual_row_is_one_minute_observation": true,
+    "all_actual_rows_required": true,
+    "missing_minute_is_flat": false,
+    "missing_minute_is_zero": false,
+    "synthetic_fill_allowed": false,
+    "sampling_allowed": false,
+    "summary_substitution_allowed": false,
+    "sparse_ticker_rows_must_all_be_read": true
+  },
+  "required_domains": {
+    "authority_sync_currentness": {
+      "status": "REQUIRED_PRESTART",
+      "blocking": true
+    },
+    "full_actual_1m_source_chronology": {
+      "status": "IMPLEMENTED_NEEDS_REVALIDATION",
+      "blocking": true,
+      "current_evidence": ["GovernedSourceReader lossless packet", "source observation reconciliation", "continuous_current_enrichment"]
+    },
+    "primitive_source_facts_and_all_fields_retrievable": {
+      "status": "IMPLEMENTED_NEEDS_REVALIDATION",
+      "blocking": true
+    },
+    "exact_time_known_at_formation_eligibility": {
+      "status": "SEMANTIC_REPRESENTATION_GAP",
+      "blocking": true,
+      "reason": "Current continuous enrichment explicitly carries KNOWN_AT_BAR_COMPLETION_SEMANTICS_UNPROVEN; exact formation eligibility must be proven, not guessed."
+    },
+    "price_path_location_memory": {
+      "status": "IMPLEMENTED_NEEDS_REVALIDATION",
+      "blocking": true,
+      "current_evidence": ["body", "wick", "range", "displacement", "cumulative path", "path efficiency", "running high/low", "location", "fresh extremes", "open relation"]
+    },
+    "effort_response_nonresponse": {
+      "status": "IMPLEMENTED_NEEDS_REVALIDATION",
+      "blocking": true,
+      "reason": "Current engine has volume/NBSS response efficiency and negative evidence, but definitions/windows/lag/persistence/availability must satisfy the hard-lock contract."
+    },
+    "negative_quiet_failure_contradiction": {
+      "status": "IMPLEMENTED_NEEDS_REVALIDATION",
+      "blocking": true
+    },
+    "attempts_retests_loops_nested_episodes": {
+      "status": "SEMANTIC_REPRESENTATION_GAP",
+      "blocking": true,
+      "reason": "Current engine counts fresh-high/fresh-low/open-cross attempts and state transitions, but does not yet prove the complete attempt/retest/loop/nested-episode contract."
+    },
+    "state_maturity_persistence_decay": {
+      "status": "SEMANTIC_REPRESENTATION_GAP",
+      "blocking": true,
+      "reason": "Lifecycle includes duration/weakening/recovery fields, but generic state age, persistence, maturity, decay, disappearance/reappearance and diminishing response are not yet proven complete."
+    },
+    "lead_lag_relationship_graph": {
+      "status": "IMPLEMENTED_NEEDS_REVALIDATION",
+      "blocking": true,
+      "reason": "Current engine records per-observation lane changes; exact first-mover/lag/persistence/recurrence graph must be proven."
+    },
+    "event_journey_lifecycle": {
+      "status": "IMPLEMENTED_NEEDS_REVALIDATION",
+      "blocking": true,
+      "current_evidence": ["causal_start", "confirmation", "peak/trough/extreme", "weakening", "failure", "recovery", "rebase/transformation", "invalidation", "event_end/open"]
+    },
+    "cross_date_continuity_open_censoring": {
+      "status": "IMPLEMENTED_NEEDS_REVALIDATION",
+      "blocking": true
+    },
+    "market_sector_cross_sectional_mechanism_context": {
+      "status": "DATA_COVERAGE_GAP",
+      "blocking": true,
+      "reason": "Current object declares market/sector, corporate-action and several mechanics lanes UNKNOWN/PARTIAL; source-supported context must be bound where available and explicitly unavailable otherwise."
+    },
+    "data_quality_separate_from_market_behavior": {
+      "status": "IMPLEMENTED_NEEDS_REVALIDATION",
+      "blocking": true,
+      "reason": "Timestamp discontinuities are present; duplicate/out-of-order/stale/delayed/partial/reconnect/correction/clock/schema/lane disappearance coverage must be proven."
+    },
+    "near_twin_counterexample": {
+      "status": "ATLAS_GROUPING_GAP",
+      "blocking": true
+    },
+    "base_rate_denominator_readiness": {
+      "status": "ATLAS_GROUPING_GAP",
+      "blocking": true
+    },
+    "formation_snapshot": {
+      "status": "IMPLEMENTED_NEEDS_REVALIDATION",
+      "blocking": true
+    },
+    "formation_known_at_vs_hindsight_wall": {
+      "status": "IMPLEMENTED_NEEDS_REVALIDATION",
+      "blocking": true
+    },
+    "availability_unknown_true_zero_discipline": {
+      "status": "IMPLEMENTED_NEEDS_REVALIDATION",
+      "blocking": true
+    },
+    "dynamic_source_universe_reconciliation": {
+      "status": "IMPLEMENTED_NEEDS_REVALIDATION",
+      "blocking": true
+    },
+    "provenance_version_definition_lineage": {
+      "status": "IMPLEMENTED_NEEDS_REVALIDATION",
+      "blocking": true,
+      "reason": "Every semantic/programmatic label must additionally prove definition_version, source parents, exact time/range, known-at eligibility, derived parents, reasons/features, availability, uncertainty and transition lineage."
+    },
+    "auditable_output_parity_with_machine1": {
+      "status": "SEMANTIC_REPRESENTATION_GAP",
+      "blocking": true,
+      "reason": "Full parity cannot be claimed until every mandatory domain is proven and exact readback succeeds."
+    },
+    "formula_wall": {
+      "status": "IMPLEMENTED_AND_PROVEN",
+      "blocking": true,
+      "required_value": "CLOSED"
+    }
+  },
+  "promotion_rule": "NO_HEAVY_CURRENT_RUN_UNTIL_ALL_IMPLEMENTABLE_BLOCKING_DOMAINS_ARE_IMPLEMENTED_AND_PROVEN_OR_EXPLICITLY_PROVEN_UNAVAILABLE_NOT_APPLICABLE_WITH_REASON_AND_PRESTART_PASSES_CURRENT_AUTHORITY",
+  "no_pass_claim": true
+}
