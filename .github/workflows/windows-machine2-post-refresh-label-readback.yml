@@ -1,0 +1,69 @@
+name: Windows Machine2 Post Refresh Label Readback
+
+on:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - '.github/workflows/windows-machine2-post-refresh-label-readback.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  readback_a:
+    name: Post-refresh label readback A
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 5
+    steps:
+      - name: Read exact server-side label state only on target
+        if: runner.name == 'A1-WINDOWS-COMPUTE-02'
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
+          $target = ((& gh api 'repos/DontAsk3010/a1-clean-orchestration/actions/runners/32/labels') | ConvertFrom-Json)
+          if ($LASTEXITCODE -ne 0) { throw 'M2_POST_REFRESH_TARGET_LABEL_READ_FAILED' }
+          $other = ((& gh api 'repos/DontAsk3010/a1-clean-orchestration/actions/runners/31/labels') | ConvertFrom-Json)
+          if ($LASTEXITCODE -ne 0) { throw 'M2_POST_REFRESH_OTHER_LABEL_READ_FAILED' }
+          $targetNames = @($target.labels | ForEach-Object { [string]$_.name } | Sort-Object)
+          $otherNames = @($other.labels | ForEach-Object { [string]$_.name } | Sort-Object)
+          Write-Host ('M2_POST_REFRESH_TARGET_LABELS=' + ($targetNames -join ','))
+          Write-Host ('M2_POST_REFRESH_OTHER_LABELS=' + ($otherNames -join ','))
+          if ($targetNames -notcontains 'a1-machine2-exact') { throw 'M2_POST_REFRESH_UNIQUE_LABEL_MISSING_ON_TARGET' }
+          if ($otherNames -contains 'a1-machine2-exact') { throw 'M2_POST_REFRESH_UNIQUE_LABEL_PRESENT_ON_OTHER' }
+          Write-Host 'M2_POST_REFRESH_UNIQUE_LABEL_PERSISTENCE_PASS=true'
+      - name: Non-target no mutation marker
+        if: runner.name != 'A1-WINDOWS-COMPUTE-02'
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: Write-Host 'M2_POST_REFRESH_NON_TARGET_NO_MUTATION=true'
+
+  readback_b:
+    name: Post-refresh label readback B
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 5
+    steps:
+      - name: Read exact server-side label state only on target
+        if: runner.name == 'A1-WINDOWS-COMPUTE-02'
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
+          $target = ((& gh api 'repos/DontAsk3010/a1-clean-orchestration/actions/runners/32/labels') | ConvertFrom-Json)
+          if ($LASTEXITCODE -ne 0) { throw 'M2_POST_REFRESH_TARGET_LABEL_READ_FAILED' }
+          $other = ((& gh api 'repos/DontAsk3010/a1-clean-orchestration/actions/runners/31/labels') | ConvertFrom-Json)
+          if ($LASTEXITCODE -ne 0) { throw 'M2_POST_REFRESH_OTHER_LABEL_READ_FAILED' }
+          $targetNames = @($target.labels | ForEach-Object { [string]$_.name } | Sort-Object)
+          $otherNames = @($other.labels | ForEach-Object { [string]$_.name } | Sort-Object)
+          Write-Host ('M2_POST_REFRESH_TARGET_LABELS=' + ($targetNames -join ','))
+          Write-Host ('M2_POST_REFRESH_OTHER_LABELS=' + ($otherNames -join ','))
+          if ($targetNames -notcontains 'a1-machine2-exact') { throw 'M2_POST_REFRESH_UNIQUE_LABEL_MISSING_ON_TARGET' }
+          if ($otherNames -contains 'a1-machine2-exact') { throw 'M2_POST_REFRESH_UNIQUE_LABEL_PRESENT_ON_OTHER' }
+          Write-Host 'M2_POST_REFRESH_UNIQUE_LABEL_PERSISTENCE_PASS=true'
+      - name: Non-target no mutation marker
+        if: runner.name != 'A1-WINDOWS-COMPUTE-02'
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: Write-Host 'M2_POST_REFRESH_NON_TARGET_NO_MUTATION=true'
