@@ -124,9 +124,9 @@ def _open_request() -> dict:
     }
 
 
-def test_current_restart_has_owner_override_v2_lineage_and_canonical_machine2_home():
-    assert PRIOR_LINEAGE == "MACHINE2_CURRENT_FULL_RESTART_FROM_BEGINNING_V1"
-    assert LINEAGE == "MACHINE2_CURRENT_FULL_RESTART_FROM_BEGINNING_V2"
+def test_current_restart_has_new_owner_full_depth_v3_lineage_and_canonical_machine2_home():
+    assert PRIOR_LINEAGE == "MACHINE2_CURRENT_FULL_RESTART_FROM_BEGINNING_V2"
+    assert LINEAGE == "MACHINE2_CURRENT_FULL_DEPTH_RESTART_FROM_BEGINNING_V3"
     assert CHECKPOINT_NAME == f"{LINEAGE}__CHECKPOINT_CURRENT.json"
     assert PRIOR_LINEAGE not in CHECKPOINT_NAME
     assert MACHINE2_CHECKPOINT_FOLDER_ID == "15L4xQfPxNaulE-uiaGXVYwDdY-2-pBt5"
