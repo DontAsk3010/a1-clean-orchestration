@@ -15,6 +15,7 @@ DEFAULT_MANIFEST = Path("governance/a1-clean-authority-bootstrap-current.json")
 DEFAULT_LOCK = Path("governance/a1-clean-active-authority-lock.json")
 
 _REQUEST_BINDINGS = (
+    ("machine2_owner_hard_lock", "owner_hard_lock_document_id", "owner_hard_lock_revision_id"),
     ("master_handbook", "master_handbook_document_id", "master_handbook_revision_id"),
     ("source_capture", "source_capture_handbook_document_id", "source_capture_handbook_revision_id"),
     ("formula_research", "formula_research_handbook_document_id", "formula_research_handbook_revision_id"),
@@ -23,6 +24,7 @@ _REQUEST_BINDINGS = (
     ("stable_transition_bridge", "transition_bridge_document_id", "transition_bridge_revision_id"),
     ("machine1_dispatch_registry", "machine1_dispatch_registry_document_id", "machine1_dispatch_registry_revision_id"),
     ("current_execution", "current_execution_document_id", "current_execution_revision_id"),
+    ("machine2_master_coverage_matrix", "machine2_master_coverage_matrix_document_id", "machine2_master_coverage_matrix_revision_id"),
 )
 
 _REQUIRED_PRESERVATION_TRUE = (
@@ -75,6 +77,40 @@ _REQUIRED_DATA_FAMILIES = {
     "UNKNOWN_FUTURE_PROVIDER_SPECIFIC_PHYSICAL_FIELDS_AND_RECORD_FAMILIES",
 }
 
+_REQUEST_FULL_DEPTH_TRUE = (
+    "owner_hard_lock_full_depth_required",
+    "programmatic_processing_allowed",
+    "full_source_supported_observation_envelope",
+    "all_source_columns_retrievable_required",
+    "all_actual_source_supported_1m_rows_required_when_available",
+    "missing_minute_as_flat_forbidden",
+    "missing_minute_as_zero_forbidden",
+    "synthetic_missing_bar_fill_forbidden",
+    "sparse_ticker_all_actual_rows_required",
+    "primitive_facts_preserved_before_compression",
+    "exact_time_known_at_hindsight_separation_required",
+    "price_path_location_memory_required",
+    "effort_response_nonresponse_required",
+    "negative_quiet_failure_contradiction_required",
+    "attempts_retests_loops_nested_episodes_required",
+    "state_maturity_persistence_decay_required",
+    "lead_lag_relationship_graph_required",
+    "behavior_lifecycle_required",
+    "behavior_path_required",
+    "cross_date_continuity_required",
+    "open_left_right_censoring_required",
+    "market_sector_cross_sectional_context_required_when_source_supported",
+    "data_quality_separate_from_market_behavior_required",
+    "near_twin_counterexample_required_at_applicable_stage",
+    "base_rate_denominator_readiness_required",
+    "formation_snapshot_required",
+    "formation_known_at_vs_hindsight_wall_required",
+    "availability_unknown_true_zero_discipline_required",
+    "semantic_label_full_lineage_required",
+    "dual_independent_full_depth_research_engines_required",
+    "same_maximum_source_supported_completeness_target_required",
+)
+
 
 def _canon(obj: Any) -> str:
     return json.dumps(obj, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
@@ -113,6 +149,10 @@ def validate_bootstrap_contract(manifest: dict[str, Any], lock: dict[str, Any]) 
         "fixed_source_count_as_invariant_forbidden",
         "renewable_authority_sync_required",
         "full_read_new_or_resumed_chat_required",
+        "machine2_owner_hard_lock_full_depth_required",
+        "machine2_all_actual_source_supported_1m_rows_required_when_available",
+        "machine2_missing_minute_as_flat_forbidden",
+        "machine2_missing_minute_as_zero_forbidden",
     ):
         if lock.get(key) is not True:
             raise RuntimeError(f"AUTHORITY_BOOTSTRAP_LOCK_FLAG_FAIL:{key}")
@@ -143,9 +183,17 @@ def validate_bootstrap_contract(manifest: dict[str, Any], lock: dict[str, Any]) 
         "division_of_labor_as_scientific_design_forbidden",
         "cross_machine_disagreement_preserved",
         "machine_specific_coverage_gap_explicit",
+        "programmatic_processing_allowed",
+        "programmatic_semantic_state_detection_allowed_with_full_lineage",
+        "all_actual_source_supported_1m_rows_required_when_available",
+        "missing_minute_as_flat_forbidden",
+        "missing_minute_as_zero_forbidden",
+        "full_owner_hard_lock_domains_required",
     ):
         if scientific.get(key) is not True:
             raise RuntimeError(f"AUTHORITY_BOOTSTRAP_SCIENTIFIC_SCOPE_FAIL:{key}")
+    if scientific.get("current_scientific_lineage") != "MACHINE2_CURRENT_FULL_DEPTH_RESTART_FROM_BEGINNING_V3":
+        raise RuntimeError("AUTHORITY_BOOTSTRAP_MACHINE2_LINEAGE_NOT_FULL_DEPTH_V3")
     if scientific.get("formula_stage") != "CLOSED":
         raise RuntimeError("AUTHORITY_BOOTSTRAP_SCIENTIFIC_FORMULA_STAGE_FAIL")
 
@@ -233,14 +281,23 @@ def _validate_request_against_lock(request: dict[str, Any], lock: dict[str, Any]
         "renewable_authority_sync_required",
         "dynamic_source_universe_required",
         "fixed_source_count_as_universe_authority_forbidden",
-        "full_source_supported_observation_envelope",
-        "all_source_columns_retrievable_required",
+        *_REQUEST_FULL_DEPTH_TRUE,
     ):
         if request.get(key) is not True:
             holds.append({"reason": "REQUEST_REQUIRED_FLAG_FAIL", "key": key})
-    for key in ("manual_labels_used_as_hidden_targets", "arbitrary_thresholds_added", "missing_as_zero"):
+    for key in (
+        "manual_labels_used_as_hidden_targets",
+        "arbitrary_thresholds_added",
+        "missing_as_zero",
+        "sampling_used",
+        "winner_only_filtering_used",
+        "summary_only_substitution_used",
+        "prior_v1_v2_scientific_completion_inherited",
+    ):
         if request.get(key) is not False:
             holds.append({"reason": "REQUEST_PROHIBITION_FLAG_FAIL", "key": key})
+    if request.get("current_scientific_lineage") != "MACHINE2_CURRENT_FULL_DEPTH_RESTART_FROM_BEGINNING_V3":
+        holds.append({"reason": "REQUEST_MACHINE2_LINEAGE_NOT_FULL_DEPTH_V3"})
     documents = dict(lock.get("documents") or {})
     for lock_key, id_field, revision_field in _REQUEST_BINDINGS:
         if id_field not in request and revision_field not in request:
@@ -278,162 +335,130 @@ def build_authority_sync_proof(
     drive_api: Any,
     manifest_sha256: str,
     lock_sha256: str,
+    run_id: str | None = None,
 ) -> dict[str, Any]:
+    validate_bootstrap_contract(manifest, lock)
     holds: list[dict[str, Any]] = []
-    document_evidence: list[dict[str, Any]] = []
-    for index, row in enumerate(manifest["authority_documents_in_required_read_order"], start=1):
-        key = str(row["key"])
+    doc_proofs: list[dict[str, Any]] = []
+    for row in manifest.get("authority_documents_in_required_read_order", []):
+        key = str(row.get("key") or "")
+        expected_drive_revision = str(row.get("drive_revision_id") or "")
+        document_id, revision_id = _resolve_document_binding(row, lock)
         try:
-            document_id, expected_revision = _resolve_document_binding(row, lock)
-            loaded = _read_full_document_via_drive(drive_api, document_id)
-            meta = loaded["metadata"]
-            observed_document_id = str(meta.get("id") or "")
-            observed_revision = str(loaded["latest_revision_id"] or "")
-            if observed_document_id != document_id:
-                holds.append({"reason": "AUTHORITY_DOCUMENT_ID_MISMATCH", "key": key})
-            if observed_revision != expected_revision:
-                holds.append({
-                    "reason": "AUTHORITY_DOCUMENT_REVISION_DRIFT",
+            full = _read_full_document_via_drive(drive_api, document_id)
+            latest_revision = str(full["latest_revision_id"])
+            revision_match = latest_revision == expected_drive_revision
+            if not revision_match:
+                holds.append(
+                    {
+                        "reason": "AUTHORITY_DOCUMENT_REVISION_DRIFT",
+                        "key": key,
+                        "expected_revision": expected_drive_revision,
+                        "observed_revision": latest_revision,
+                    }
+                )
+            doc_proofs.append(
+                {
                     "key": key,
-                    "expected_revision": expected_revision,
-                    "observed_revision": observed_revision,
-                })
-            raw = loaded["raw"]
-            text = loaded["text"]
-            document_evidence.append({
-                "read_order": index,
-                "key": key,
-                "document_id": document_id,
-                "title": meta.get("name"),
-                "expected_revision": expected_revision,
-                "observed_revision": observed_revision,
-                "observed_modified_time": meta.get("modifiedTime"),
-                "observed_drive_version": meta.get("version"),
-                "export_mime_type": "text/plain",
-                "full_native_export_sha256": _sha256_bytes(raw),
-                "extracted_text_sha256": _sha256_bytes(text.encode("utf-8")),
-                "native_export_bytes": len(raw),
-                "extracted_text_utf8_bytes": len(text.encode("utf-8")),
-                "full_read": True,
-            })
+                    "document_id": document_id,
+                    "authority_lock_revision_id": revision_id,
+                    "expected_revision": expected_drive_revision,
+                    "observed_revision": latest_revision,
+                    "revision_match": revision_match,
+                    "full_read": True,
+                    "byte_count": len(full["raw"]),
+                    "text_char_count": len(full["text"]),
+                    "sha256": _sha256_bytes(full["raw"]),
+                    "modified_time": full["metadata"].get("modifiedTime"),
+                    "drive_version": full["metadata"].get("version"),
+                }
+            )
         except Exception as exc:
             holds.append({"reason": "AUTHORITY_DOCUMENT_READ_FAIL", "key": key, "error": f"{type(exc).__name__}:{exc}"})
-            document_evidence.append({"read_order": index, "key": key, "full_read": False})
+            doc_proofs.append(
+                {
+                    "key": key,
+                    "document_id": document_id,
+                    "authority_lock_revision_id": revision_id,
+                    "expected_revision": expected_drive_revision,
+                    "full_read": False,
+                    "error": f"{type(exc).__name__}:{exc}",
+                }
+            )
 
-    state_evidence: list[dict[str, Any]] = []
-    for rel in manifest["required_repo_state_files"]:
+    repo_proofs: list[dict[str, Any]] = []
+    for rel in manifest.get("required_repo_state_files", []):
         path = repo_root / str(rel)
         if not path.is_file():
-            holds.append({"reason": "REQUIRED_REPO_STATE_MISSING", "path": str(rel)})
-            state_evidence.append({"path": str(rel), "full_read": False})
+            holds.append({"reason": "REPO_STATE_FILE_MISSING", "path": str(rel)})
+            repo_proofs.append({"path": str(rel), "full_read": False})
             continue
+        raw = path.read_bytes()
         try:
-            raw = path.read_bytes()
-            obj = json.loads(raw.decode("utf-8"))
-            if not isinstance(obj, dict):
-                raise RuntimeError("JSON_OBJECT_REQUIRED")
-            _validate_repo_state(Path(str(rel)), obj, lock, holds)
-            state_evidence.append({
-                "path": str(rel),
-                "sha256": _sha256_bytes(raw),
-                "utf8_bytes": len(raw),
-                "schema": obj.get("schema"),
-                "status": obj.get("status"),
-                "full_read": True,
-            })
+            obj = json.loads(raw.decode("utf-8-sig")) if path.suffix.lower() == ".json" else {"status": "NON_JSON_FULL_READ"}
         except Exception as exc:
-            holds.append({"reason": "REQUIRED_REPO_STATE_READ_FAIL", "path": str(rel), "error": f"{type(exc).__name__}:{exc}"})
-            state_evidence.append({"path": str(rel), "full_read": False})
+            holds.append({"reason": "REPO_STATE_FILE_PARSE_FAIL", "path": str(rel), "error": f"{type(exc).__name__}:{exc}"})
+            repo_proofs.append({"path": str(rel), "full_read": True, "sha256": _sha256_bytes(raw), "parse_ok": False})
+            continue
+        _validate_repo_state(path.relative_to(repo_root), obj, lock, holds)
+        repo_proofs.append(
+            {
+                "path": str(rel),
+                "full_read": True,
+                "parse_ok": True,
+                "byte_count": len(raw),
+                "sha256": _sha256_bytes(raw),
+            }
+        )
 
-    corpus_material = {
-        "documents": [{
-            "key": row.get("key"),
-            "document_id": row.get("document_id"),
-            "observed_revision": row.get("observed_revision"),
-            "full_native_export_sha256": row.get("full_native_export_sha256"),
-            "extracted_text_sha256": row.get("extracted_text_sha256"),
-        } for row in document_evidence],
-        "repo_state": [{"path": row.get("path"), "sha256": row.get("sha256")} for row in state_evidence],
-        "manifest_sha256": manifest_sha256,
-        "lock_sha256": lock_sha256,
-    }
-    full_read_complete = (
-        all(row.get("full_read") is True for row in document_evidence)
-        and all(row.get("full_read") is True for row in state_evidence)
-        and not holds
-    )
     return {
         "schema": PROOF_SCHEMA,
-        "status": "PASS" if full_read_complete else "HOLD",
-        "generated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
-        "full_authority_read_complete": full_read_complete,
-        "summary_or_chat_memory_used_as_authority": False,
-        "drive_access_mode": "READER_ONLY",
-        "authority_document_transport": "GOOGLE_DRIVE_NATIVE_TEXT_EXPORT",
-        "authority_document_count": len(document_evidence),
-        "repo_state_file_count": len(state_evidence),
-        "authority_documents": document_evidence,
-        "repo_state_files": state_evidence,
-        "authority_corpus_sha256": _sha256_json(corpus_material),
-        "bootstrap_manifest_sha256": manifest_sha256,
+        "status": "PASS" if not holds else "HOLD",
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "run_id": run_id,
+        "manifest_sha256": manifest_sha256,
         "active_authority_lock_sha256": lock_sha256,
-        "data_preservation_contract_sha256": _sha256_json(manifest["data_preservation_contract"]),
-        "required_data_family_registry_sha256": _sha256_json(manifest["required_open_ended_data_families"]),
-        "formula_stage": "CLOSED",
+        "authority_documents": doc_proofs,
+        "repo_state_files": repo_proofs,
+        "data_preservation_contract_sha256": _sha256_json(manifest.get("data_preservation_contract")),
+        "machine2_scientific_scope_sha256": _sha256_json(manifest.get("machine2_scientific_scope")),
+        "full_authority_read_complete": not holds,
         "holds": holds,
-        "next_gate": "SOURCE_UNIVERSE_DISCOVERY" if full_read_complete else "HOLD_AUTHORITY_RECONCILIATION_REQUIRED",
     }
 
 
-def run_authority_bootstrap(
-    *,
-    manifest_path: Path = DEFAULT_MANIFEST,
-    authority_lock_path: Path = DEFAULT_LOCK,
-    output_path: Path | None = None,
-    repo_root: Path = Path("."),
-    drive_api: Any | None = None,
-) -> dict[str, Any]:
+def main() -> int:
+    parser = argparse.ArgumentParser(description="A1 CLEAN fresh-current authority sync proof")
+    parser.add_argument("--repo-root", default=".")
+    parser.add_argument("--manifest", default=str(DEFAULT_MANIFEST))
+    parser.add_argument("--lock", default=str(DEFAULT_LOCK))
+    parser.add_argument("--out", required=True)
+    parser.add_argument("--run-id", default=None)
+    args = parser.parse_args()
+
+    repo_root = Path(args.repo_root).resolve()
+    manifest_path = (repo_root / args.manifest).resolve() if not Path(args.manifest).is_absolute() else Path(args.manifest)
+    lock_path = (repo_root / args.lock).resolve() if not Path(args.lock).is_absolute() else Path(args.lock)
+    out_path = Path(args.out).resolve()
+
     manifest_raw = manifest_path.read_bytes()
-    lock_raw = authority_lock_path.read_bytes()
-    manifest = json.loads(manifest_raw.decode("utf-8"))
-    lock = json.loads(lock_raw.decode("utf-8"))
-    validate_bootstrap_contract(manifest, lock)
-    api = drive_api if drive_api is not None else build_drive_api(read_write=False)
+    lock_raw = lock_path.read_bytes()
+    manifest = json.loads(manifest_raw.decode("utf-8-sig"))
+    lock = json.loads(lock_raw.decode("utf-8-sig"))
+    drive_api = build_drive_api()
     proof = build_authority_sync_proof(
         manifest=manifest,
         lock=lock,
         repo_root=repo_root,
-        drive_api=api,
+        drive_api=drive_api,
         manifest_sha256=_sha256_bytes(manifest_raw),
         lock_sha256=_sha256_bytes(lock_raw),
+        run_id=args.run_id,
     )
-    if output_path is not None:
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(json.dumps(proof, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    return proof
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
-    parser.add_argument("--authority-lock", type=Path, default=DEFAULT_LOCK)
-    parser.add_argument("--output", type=Path, required=True)
-    args = parser.parse_args()
-    proof = run_authority_bootstrap(
-        manifest_path=args.manifest,
-        authority_lock_path=args.authority_lock,
-        output_path=args.output,
-    )
-    print(json.dumps({
-        "schema": proof["schema"],
-        "status": proof["status"],
-        "full_authority_read_complete": proof["full_authority_read_complete"],
-        "authority_document_count": proof["authority_document_count"],
-        "repo_state_file_count": proof["repo_state_file_count"],
-        "authority_corpus_sha256": proof["authority_corpus_sha256"],
-        "hold_count": len(proof["holds"]),
-    }, sort_keys=True))
-    return 0 if proof["status"] == "PASS" else 2
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(proof, indent=2, sort_keys=True), encoding="utf-8")
+    print(json.dumps({"status": proof["status"], "holds": proof["holds"], "out": str(out_path)}, indent=2))
+    return 0 if proof["status"] == "PASS" else 3
 
 
 if __name__ == "__main__":
