@@ -2,16 +2,16 @@
   "schema": "A1_MACHINE2_V3_RECOVERY_STATE_V1",
   "status": "HOLD_REQUIRES_RECONCILIATION",
   "scientific_lineage": "MACHINE2_CURRENT_FULL_DEPTH_RESTART_FROM_BEGINNING_V3",
-  "recorded_on": "2026-10-01",
+  "recorded_on": "2026-10-02",
   "repository": "DontAsk3010/a1-clean-orchestration",
   "branch": "fix/v32-dynamic-source-universe-v1",
-  "current_head_at_record_creation": "ba080b75a51e9ab6cf7ca1919579a10a04a0f9ab",
+  "current_head_at_record_creation": "adcc38b316d0c8d56a5e778d8fe2a7184ca016eb",
   "request_state": {
     "path": "v32-full-observation-behavior-requests/current.json",
     "enabled": false,
     "restart_authorized": false,
     "status": "OWNER_FORCED_HOLD",
-    "hold_reason": "HOLD_ROUTING_PLUS_PROGRESSIVE_CHECKPOINT_CONTRACT_REPAIR_REQUIRED"
+    "hold_reason": "HOLD_ROUTING_PLUS_PROGRESSIVE_CHECKPOINT_AND_PARTIAL_OUTPUT_SUPERSESSION_RECONCILIATION_REQUIRED"
   },
   "superseded_run": {
     "run_id": 36876526337,
@@ -30,6 +30,9 @@
     "trading_date": "2024-12-02",
     "completed_units": 672,
     "completed_source_rows": 73251,
+    "physical_output_boundary_verified": true,
+    "last_physical_shard_name": "MACHINE2_CURRENT_FULL_DEPTH_RESTART_FROM_BEGINNING_V3__2024-12-02__SHARD_00672.jsonl",
+    "last_physical_shard_created_utc": "2026-10-01T17:02:05Z",
     "last_completed": {
       "ticker": "PZZA",
       "selection_position": 671,
@@ -58,47 +61,58 @@
     "must_inherit_v1_v2_cursor": false,
     "concrete_source_date_ticker_must_be_resolved_fresh_after_prestart": true
   },
+  "runner_routing_proof": {
+    "probe_commit": "adcc38b316d0c8d56a5e778d8fe2a7184ca016eb",
+    "probe_run_id": 36908344504,
+    "probe_mode": "READ_ONLY_LOCAL_REGISTRATION_AND_SERVICE_IDENTITY",
+    "target_runner": {
+      "agent_id": 32,
+      "agent_name": "A1-WINDOWS-COMPUTE-02",
+      "service_state": "Running",
+      "service_start_mode": "Auto",
+      "service_path": "C:\\Users\\feri-admin\\actions-runner-a1-02\\bin\\RunnerService.exe",
+      "local_runner_config_labels_property_present": false
+    },
+    "other_runner": {
+      "agent_id": 31,
+      "agent_name": "A1-WINDOWS-COMPUTE",
+      "local_runner_config_labels_property_present": false
+    },
+    "shared_workflow_labels": ["self-hosted", "windows", "x64", "a1-clean-parity"],
+    "same_probe_dispatched_one_job_to_each_runner": true,
+    "unique_server_side_label_proven": false,
+    "deterministic_target_selector_proven": false,
+    "conclusion": "HOLD_ROUTING"
+  },
   "repairs_already_committed": [
-    {
-      "commit": "dfad3ec43f262172bd83185a7147d6dcf677aea5",
-      "change": "Request forced HOLD; heavy restart disabled."
-    },
-    {
-      "commit": "8ddcc61aa4d9564133fe62bef6f948f1b4ed4a8d",
-      "change": "Complete authority/source/workflow/readback identity added to V3 checkpoint construction."
-    },
-    {
-      "commit": "596c30cb3e0928b9e87b14b324752523c8c3e001",
-      "change": "Checkpoint validation now fails closed on incomplete governance identity."
-    },
-    {
-      "commit": "d7c7b6ecc6b5c7c4674bbfa2125200db0a6fc974",
-      "change": "Tests updated to require complete checkpoint governance identity and reject open prestart gaps."
-    },
-    {
-      "commit": "630b07948f4ff9618ae708798ac515052ba80fff",
-      "change": "Concurrency changed to cancel superseded CURRENT runs on correction."
-    },
-    {
-      "commit": "ba080b75a51e9ab6cf7ca1919579a10a04a0f9ab",
-      "change": "Representative V2-vs-V3 sentinel audit persisted; inherited scientific completion classified NOT_CURRENT_COMPLIANT."
-    }
+    {"commit": "dfad3ec43f262172bd83185a7147d6dcf677aea5", "change": "Request forced HOLD; heavy restart disabled."},
+    {"commit": "8ddcc61aa4d9564133fe62bef6f948f1b4ed4a8d", "change": "Complete authority/source/workflow/readback identity added to V3 checkpoint construction."},
+    {"commit": "596c30cb3e0928b9e87b14b324752523c8c3e001", "change": "Checkpoint validation now fails closed on incomplete governance identity."},
+    {"commit": "d7c7b6ecc6b5c7c4674bbfa2125200db0a6fc974", "change": "Tests updated to require complete checkpoint governance identity and reject open prestart gaps."},
+    {"commit": "630b07948f4ff9618ae708798ac515052ba80fff", "change": "Concurrency changed to cancel superseded CURRENT runs on correction."},
+    {"commit": "ba080b75a51e9ab6cf7ca1919579a10a04a0f9ab", "change": "Representative V2-vs-V3 sentinel audit persisted; inherited scientific completion classified NOT_CURRENT_COMPLIANT."},
+    {"commit": "adcc38b316d0c8d56a5e778d8fe2a7184ca016eb", "change": "Read-only local runner registration/service probe strengthened; exact target identity proven but no unique server-side label proven."}
   ],
   "blocking_gaps": [
     {
       "code": "HOLD_ROUTING",
-      "state": "OPEN",
-      "requirement": "Prove a unique configured runner label or other supported deterministic selector for A1-WINDOWS-COMPUTE-02; do not guess the selector."
+      "state": "OPEN_EXTERNAL_CONFIGURATION_PROOF_REQUIRED",
+      "requirement": "Prove a unique configured GitHub runner label or other supported deterministic selector for agent 32 / A1-WINDOWS-COMPUTE-02. Shared labels are proven non-deterministic; local .runner does not expose server-side labels; do not guess the selector."
+    },
+    {
+      "code": "PARTIAL_V3_OUTPUT_SUPERSESSION_STORAGE_RECONCILIATION",
+      "state": "OPEN_INTERNAL",
+      "requirement": "The 672 old V3 shards are RECOVERY_HOLD and must not be overwritten before a compliant successor exists. A fresh generation must persist without colliding with old shard object names; after exact successor/readback/reconstructability proof, old partial payloads become delete candidates under Storage authority, not permanent archive."
     },
     {
       "code": "CHECKPOINT_REPAIR_RUNTIME_VALIDATION",
       "state": "OPEN",
-      "requirement": "Run repaired tests and exact checkpoint construction/readback on the exact repaired HEAD after routing is valid."
+      "requirement": "Run exact checkpoint construction/readback on the exact repaired HEAD only after routing is valid and partial-output supersession storage is non-destructive."
     },
     {
       "code": "FRESH_PRESTART_AFTER_REPAIR",
       "state": "OPEN",
-      "requirement": "Fresh-read CURRENT authority and dynamic source universe, then rerun PRESTART after routing/checkpoint repair."
+      "requirement": "Fresh-read CURRENT authority and dynamic source universe, then rerun PRESTART after routing/checkpoint/storage repair."
     },
     {
       "code": "KNOWN_AT_BAR_COMPLETION_SEMANTICS",
@@ -113,12 +127,14 @@
   ],
   "preservation": {
     "canonical_raw_source_truth": "PRESERVE",
-    "superseded_v3_partial_outputs": "PRESERVE_AS_NONPROMOTABLE_AUDIT_EVIDENCE",
-    "v1_v2_outputs": "PRESERVE_AS_AUDIT_HISTORY_NOT_CURRENT_COMPLETION",
+    "superseded_v3_partial_outputs": "RECOVERY_HOLD_UNTIL_COMPLIANT_SUCCESSOR_AND_EXACT_READBACK_THEN_DELETE_IF_GATE_PASS",
+    "superseded_v3_checkpoint": "RECOVERY_HOLD_UNTIL_COMPLIANT_SUCCESSOR_AND_EXACT_READBACK_THEN_DELETE_OR_REBIND_IF_GATE_PASS",
+    "v1_v2_outputs": "AUDIT_HISTORY_NOT_CURRENT_COMPLETION",
+    "hidden_old_noncurrent_archive_parking": "FORBIDDEN",
     "blind_duplicate_repull": "FORBIDDEN"
   },
   "grouping": "HOLD",
   "formula_stage": "CLOSED",
   "higher_pass_claim": false,
-  "next_exact_action": "Resolve and prove deterministic A1-WINDOWS-COMPUTE-02 routing without guessing a runner label; then exact-readback repaired HEAD/request and run lightweight PRESTART only."
+  "next_exact_action": "Keep heavy execution HOLD. Implement and test non-colliding execution-generation storage for a future compliant V3 restart without changing the scientific V3 lineage; independently obtain/prove a deterministic GitHub selector for agent 32 / A1-WINDOWS-COMPUTE-02. Only after both close, fresh-read authority/source universe and run lightweight PRESTART."
 }
