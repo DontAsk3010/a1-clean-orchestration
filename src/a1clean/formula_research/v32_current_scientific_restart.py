@@ -11,7 +11,7 @@ is persisted. V1 checkpoint/shards can never move the V2 cursor or be overwritte
 """
 
 from . import v32_current_scientific_restart_engine as _engine
-from .m2_full_depth_extension import augment_scientific_object
+from .m2_full_depth_extension_v2 import augment_scientific_object
 
 
 PRIOR_LINEAGE = "MACHINE2_CURRENT_FULL_RESTART_FROM_BEGINNING_V1"
@@ -23,8 +23,8 @@ CHECKPOINT_NAME = f"{LINEAGE}__CHECKPOINT_CURRENT.json"
 CURRENT_STATE_NAME = f"{LINEAGE}__STATE_CURRENT.json"
 OWNER_OVERRIDE_EFFECTIVE_DATE = "2026-10-01"
 OWNER_FULL_DEPTH_EXTENSION_ACTIVE = True
+OWNER_FULL_DEPTH_EXTENSION_VERSION = "V2_EXACT_TIMESTAMP_ALIGNMENT"
 
-# Patch the implementation module's globals before any scientific unit runs.
 _engine.LINEAGE = LINEAGE
 _engine.CHECKPOINT_SCHEMA = CHECKPOINT_SCHEMA
 _engine.SCIENTIFIC_OBJECT_SCHEMA = SCIENTIFIC_OBJECT_SCHEMA
@@ -32,8 +32,6 @@ _engine.DATE_CLOSE_SCHEMA = DATE_CLOSE_SCHEMA
 _engine.CHECKPOINT_NAME = CHECKPOINT_NAME
 _engine.CURRENT_STATE_NAME = CURRENT_STATE_NAME
 
-# Preserve the proven base builder, then augment every scientific object with
-# objective full-depth topology/lineage required by the latest OWNER hard lock.
 _BASE_BUILD_CURRENT_SCIENTIFIC_OBJECT = _engine.build_current_scientific_object
 
 
@@ -42,11 +40,10 @@ def build_current_scientific_object(*args, **kwargs):
     return augment_scientific_object(obj)
 
 
-# Critical: run_trading_date resolves this name from the engine module globals.
-# Rebind it so persisted shards receive the full-depth augmentation too.
+# run_trading_date resolves the builder from the engine module globals, so bind
+# the corrected timestamp-aligned full-depth builder before any persisted unit.
 _engine.build_current_scientific_object = build_current_scientific_object
 
-# Public surface used by tests/workflows and existing callers.
 build_continuous_current_enrichment = _engine.build_continuous_current_enrichment
 run_trading_date = _engine.run_trading_date
 main = _engine.main
