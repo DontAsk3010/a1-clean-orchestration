@@ -18,9 +18,11 @@
   "machine2_old_pass_skip_forbidden": true,
   "machine2_old_derived_semantic_checkpoint_completion_inherited": false,
   "machine2_physical_raw_reuse_only_after_current_integrity_proof": true,
+  "machine2_owner_hard_lock_full_depth_required": true,
   "authority_documents_in_required_read_order": [
+    {"key":"machine2_owner_hard_lock","source":"authority_lock","required":true,"drive_revision_id":"1","document_id":"1JUIXxdjVD4OsW50RY4r76E_uUp6ukCdUxJTmyJ0w5YM","note":"Latest explicit Machine 2 owner directive; precedence above Master for Machine 2 execution and must be integrated additively with all still-valid Master requirements."},
     {"key":"master_handbook","source":"authority_lock","required":true,"drive_revision_id":"83"},
-    {"key":"current_execution","source":"authority_lock","required":true,"drive_revision_id":"156"},
+    {"key":"current_execution","source":"authority_lock","required":true,"drive_revision_id":"158"},
     {"key":"sub_master_index","source":"authority_lock","required":true,"drive_revision_id":"63"},
     {"key":"source_capture","source":"authority_lock","required":true,"drive_revision_id":"35"},
     {"key":"behavior_reading","source":"authority_lock","required":true,"drive_revision_id":"64"},
@@ -30,13 +32,15 @@
     {"key":"canonical_handoff","source":"authority_lock","required":true,"drive_revision_id":"7"},
     {"key":"chat_transition_protocol","source":"authority_lock","required":true,"drive_revision_id":"15"},
     {"key":"stable_transition_bridge","source":"authority_lock","required":true,"drive_revision_id":"91"},
-    {"key":"machine2_master_coverage_matrix","source":"authority_lock","required":true,"drive_revision_id":"8"},
+    {"key":"machine2_master_coverage_matrix","source":"authority_lock","required":true,"drive_revision_id":"10"},
     {"key":"storage_handbook","source":"authority_lock","required":true,"drive_revision_id":"9"},
     {"key":"storage_manifest","source":"authority_lock","required":true,"drive_revision_id":"16"}
   ],
   "required_repo_state_files": [
     "governance/a1-clean-active-authority-lock.json",
     "governance/a1-clean-authority-bootstrap-current.json",
+    "governance/machine2-full-depth-required-domains-current.json",
+    "governance/machine2-semantic-reader-contract-current.md",
     "v32-full-observation-behavior-requests/current.json",
     "v32-behavior-grouping-requests/current.json",
     "canonical-current-recovery-requests/current.json",
@@ -133,9 +137,16 @@
     "old_pass_skip_forbidden": true,
     "old_derived_semantic_checkpoint_completion_inherited": false,
     "canonical_raw_physical_reuse_after_integrity_proof_only": true,
+    "programmatic_processing_allowed": true,
+    "programmatic_semantic_state_detection_allowed_with_full_lineage": true,
+    "all_actual_source_supported_1m_rows_required_when_available": true,
+    "missing_minute_as_flat_forbidden": true,
+    "missing_minute_as_zero_forbidden": true,
+    "full_owner_hard_lock_domains_required": true,
+    "current_scientific_lineage": "MACHINE2_CURRENT_FULL_DEPTH_RESTART_FROM_BEGINNING_V3",
     "formula_stage": "CLOSED"
   },
   "renewal_triggers": ["NEW_OWNER_INSTRUCTION_OR_CORRECTION","AUTHORITY_REVISION_CHANGE","REQUEST_OR_SCHEMA_CHANGE","SOURCE_OR_MANIFEST_CHANGE","CHECKPOINT_CHANGE","WORKER_HANDOFF_OR_REPLACEMENT","RESUMED_EXECUTION_AFTER_INTERRUPTION","MATERIAL_CONTEXT_CHANGE_BEFORE_NEXT_DURABLE_MUTATION"],
-  "pass_rule": "PASS_REQUIRES_FULL_NATIVE_TEXT_EXPORT_READ_OF_EVERY_REQUIRED_AUTHORITY_DOCUMENT_AT_EXACT_BOUND_DRIVE_REVISION_INCLUDING_CURRENT_MASTER_CURRENT_EXECUTION_BEHAVIOR_AUTOMATION_CANONICAL_HANDOFF_TRANSITION_COVERAGE_MATRIX_STORAGE_HANDBOOK_AND_STORAGE_MANIFEST_PLUS_FULL_READ_AND_HASH_OF_EVERY_REQUIRED_REPO_STATE_FILE_PLUS_DATA_PRESERVATION_STORAGE_AND_MACHINE2_FULL_RESTART_CONTRACT_VALIDATION; OTHERWISE_HOLD",
+  "pass_rule": "PASS_REQUIRES_FULL_NATIVE_TEXT_EXPORT_READ_OF_EVERY_REQUIRED_AUTHORITY_DOCUMENT_AT_EXACT_BOUND_DRIVE_REVISION_INCLUDING_LATEST_MACHINE2_OWNER_HARD_LOCK_CURRENT_MASTER_CURRENT_EXECUTION_BEHAVIOR_AUTOMATION_CANONICAL_HANDOFF_TRANSITION_COVERAGE_MATRIX_STORAGE_HANDBOOK_AND_STORAGE_MANIFEST_PLUS_FULL_READ_AND_HASH_OF_EVERY_REQUIRED_REPO_STATE_FILE_PLUS_DATA_PRESERVATION_STORAGE_AND_MACHINE2_FULL_DEPTH_RESTART_CONTRACT_VALIDATION; OTHERWISE_HOLD",
   "hold_rule": "NEVER_GUESS_CONTINUE_FROM_CHAT_MEMORY_OR_REUSE_OLD_MACHINE2_SCIENTIFIC_PASS_WHEN_AUTHORITY_SYNC_IS_MISSING_STALE_CONFLICTING_INCOMPLETE_OR_STORAGE_ROLE_IS_UNPROVEN"
 }
