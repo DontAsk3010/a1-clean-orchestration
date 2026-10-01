@@ -21,53 +21,85 @@ jobs:
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 8
     steps:
-      - name: Probe only if this job landed on exact target
+      - name: Record actual runner identity
+        shell: powershell
+        run: Write-Host "M2_LOCAL_GH_PROBE_RUNNER=$env:RUNNER_NAME"
+      - name: Target gate - gh CLI present
+        if: runner.name == 'A1-WINDOWS-COMPUTE-02'
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          Write-Host "M2_LOCAL_GH_PROBE_RUNNER=$env:RUNNER_NAME"
-          if ($env:RUNNER_NAME -ne 'A1-WINDOWS-COMPUTE-02') {
-            Write-Host 'M2_LOCAL_GH_NON_TARGET_NO_MUTATION=true'
-            exit 0
-          }
-          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
-          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
           $gh = Get-Command gh -ErrorAction SilentlyContinue
           if (-not $gh) { throw 'M2_LOCAL_GH_CLI_NOT_AVAILABLE' }
-          Write-Host "M2_LOCAL_GH_PATH=$($gh.Source)"
+          Write-Host 'M2_LOCAL_GH_CLI_PRESENT=true'
+      - name: Target gate - local gh auth valid
+        if: runner.name == 'A1-WINDOWS-COMPUTE-02'
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
           & gh auth status --hostname github.com
           if ($LASTEXITCODE -ne 0) { throw 'M2_LOCAL_GH_AUTH_STATUS_FAILED' }
+          Write-Host 'M2_LOCAL_GH_AUTH_STATUS_PASS=true'
+      - name: Target gate - runner label admin read
+        if: runner.name == 'A1-WINDOWS-COMPUTE-02'
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
           $json = & gh api 'repos/DontAsk3010/a1-clean-orchestration/actions/runners/32/labels'
           if ($LASTEXITCODE -ne 0) { throw 'M2_LOCAL_GH_RUNNER_LABEL_READ_FAILED' }
           $d = $json | ConvertFrom-Json
           $labels = @($d.labels | ForEach-Object { [string]$_.name } | Sort-Object)
           Write-Host ('M2_LOCAL_GH_RUNNER_LABELS=' + ($labels -join ','))
           Write-Host 'M2_LOCAL_GH_RUNNER_LABEL_ADMIN_READ_PASS=true'
+      - name: Non-target no mutation marker
+        if: runner.name != 'A1-WINDOWS-COMPUTE-02'
+        shell: powershell
+        run: Write-Host 'M2_LOCAL_GH_NON_TARGET_NO_MUTATION=true'
 
   probe_b:
     name: Local GH admin probe B
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 8
     steps:
-      - name: Probe only if this job landed on exact target
+      - name: Record actual runner identity
+        shell: powershell
+        run: Write-Host "M2_LOCAL_GH_PROBE_RUNNER=$env:RUNNER_NAME"
+      - name: Target gate - gh CLI present
+        if: runner.name == 'A1-WINDOWS-COMPUTE-02'
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
-          Write-Host "M2_LOCAL_GH_PROBE_RUNNER=$env:RUNNER_NAME"
-          if ($env:RUNNER_NAME -ne 'A1-WINDOWS-COMPUTE-02') {
-            Write-Host 'M2_LOCAL_GH_NON_TARGET_NO_MUTATION=true'
-            exit 0
-          }
-          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
-          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
           $gh = Get-Command gh -ErrorAction SilentlyContinue
           if (-not $gh) { throw 'M2_LOCAL_GH_CLI_NOT_AVAILABLE' }
-          Write-Host "M2_LOCAL_GH_PATH=$($gh.Source)"
+          Write-Host 'M2_LOCAL_GH_CLI_PRESENT=true'
+      - name: Target gate - local gh auth valid
+        if: runner.name == 'A1-WINDOWS-COMPUTE-02'
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
           & gh auth status --hostname github.com
           if ($LASTEXITCODE -ne 0) { throw 'M2_LOCAL_GH_AUTH_STATUS_FAILED' }
+          Write-Host 'M2_LOCAL_GH_AUTH_STATUS_PASS=true'
+      - name: Target gate - runner label admin read
+        if: runner.name == 'A1-WINDOWS-COMPUTE-02'
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
           $json = & gh api 'repos/DontAsk3010/a1-clean-orchestration/actions/runners/32/labels'
           if ($LASTEXITCODE -ne 0) { throw 'M2_LOCAL_GH_RUNNER_LABEL_READ_FAILED' }
           $d = $json | ConvertFrom-Json
           $labels = @($d.labels | ForEach-Object { [string]$_.name } | Sort-Object)
           Write-Host ('M2_LOCAL_GH_RUNNER_LABELS=' + ($labels -join ','))
           Write-Host 'M2_LOCAL_GH_RUNNER_LABEL_ADMIN_READ_PASS=true'
+      - name: Non-target no mutation marker
+        if: runner.name != 'A1-WINDOWS-COMPUTE-02'
+        shell: powershell
+        run: Write-Host 'M2_LOCAL_GH_NON_TARGET_NO_MUTATION=true'
