@@ -27,16 +27,11 @@ def drive_revision_policy(row: dict[str, Any]) -> str:
 
 
 def _resolve_drive_bound_document(row: dict[str, Any], lock: dict[str, Any]) -> tuple[str, str]:
-    """Resolve the document ID from authority, but compare the revision in Drive's own ID namespace.
+    """Resolve a bootstrap row in the Drive-revision namespace.
 
-    The legacy authority `revision_id` fields are Google Docs revision tokens (ANLCK...).
-    Reader OAuth currently has Drive API access but not Docs API access. Google Drive revision
-    IDs are numeric for these native Docs and are not interchangeable with Docs revision tokens.
-    The bootstrap manifest therefore pins the exact current Drive `currentRevisionId` for every
-    exact-bound authority document. Full text is still exported and hashed before PASS.
-
-    For READ_CURRENT_LIVE operational documents the numeric value remains a provenance anchor;
-    any newer observed Drive revision is accepted only after the same full native export succeeds.
+    Kept only as a compatibility helper for callers/tests that need to inspect the
+    manifest binding directly. The CURRENT authority bootstrap core already compares
+    ``drive_revision_id`` natively and therefore does not require resolver monkeypatching.
     """
     source = str(row.get("source") or "")
     if source == "authority_lock":
@@ -129,27 +124,36 @@ def run_authority_bootstrap_drive_revision(
     repo_root: Path = Path("."),
     drive_api: Any | None = None,
 ) -> dict[str, Any]:
+    """Run the CURRENT bootstrap using Drive-native revision IDs.
+
+    The authority bootstrap core now owns full-read validation and compares each
+    manifest row's ``drive_revision_id`` directly. This adapter only supplies the
+    current files/API, then applies the one explicit READ_CURRENT_LIVE exception.
+    It intentionally does not monkeypatch the core resolver and does not depend on
+    the removed legacy ``run_authority_bootstrap`` entry point.
+    """
     import json
 
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest_raw = manifest_path.read_bytes()
+    lock_raw = authority_lock_path.read_bytes()
+    manifest = json.loads(manifest_raw.decode("utf-8-sig"))
+    lock = json.loads(lock_raw.decode("utf-8-sig"))
     validate_drive_revision_bindings(manifest)
 
-    original = _base._resolve_document_binding
-    _base._resolve_document_binding = _resolve_drive_bound_document
-    try:
-        proof = _base.run_authority_bootstrap(
-            manifest_path=manifest_path,
-            authority_lock_path=authority_lock_path,
-            output_path=None,
-            repo_root=repo_root,
-            drive_api=drive_api,
-        )
-    finally:
-        _base._resolve_document_binding = original
+    api = drive_api if drive_api is not None else _base.build_drive_api()
+    proof = _base.build_authority_sync_proof(
+        manifest=manifest,
+        lock=lock,
+        repo_root=repo_root.resolve(),
+        drive_api=api,
+        manifest_sha256=_base._sha256_bytes(manifest_raw),
+        lock_sha256=_base._sha256_bytes(lock_raw),
+    )
 
     proof = apply_drive_revision_policy(manifest, proof)
     proof["revision_namespace"] = "GOOGLE_DRIVE_CURRENT_REVISION_ID"
     proof["legacy_docs_revision_tokens_used_for_drive_comparison"] = False
     if output_path is not None:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(json.dumps(proof, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return proof

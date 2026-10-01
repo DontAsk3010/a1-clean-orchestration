@@ -3,10 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import a1clean.authority_bootstrap_drive_revision as drive_revision_module
 from a1clean.authority_bootstrap import validate_bootstrap_contract
 from a1clean.authority_bootstrap_drive_revision import (
     apply_drive_revision_policy,
     drive_revision_policy,
+    run_authority_bootstrap_drive_revision,
     validate_drive_revision_bindings,
 )
 
@@ -209,6 +211,59 @@ def test_registry_read_failure_is_still_a_hard_hold():
     assert reconciled["status"] == "HOLD"
     assert reconciled["full_authority_read_complete"] is False
     assert reconciled["holds"][0]["reason"] == "AUTHORITY_DOCUMENT_READ_FAIL"
+
+
+def test_drive_revision_adapter_calls_current_builder_not_removed_legacy_entrypoint(tmp_path, monkeypatch):
+    manifest_path = tmp_path / "bootstrap.json"
+    lock_path = tmp_path / "lock.json"
+    manifest = {
+        "authority_documents_in_required_read_order": [
+            {
+                "key": "master_handbook",
+                "source": "explicit",
+                "document_id": "doc-1",
+                "revision_id": "authority-revision-label",
+                "drive_revision_id": "83",
+            }
+        ]
+    }
+    lock = {"documents": {}}
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    lock_path.write_text(json.dumps(lock), encoding="utf-8")
+
+    captured = {}
+
+    def fake_current_builder(**kwargs):
+        captured.update(kwargs)
+        return {
+            "schema": "A1_CLEAN_AUTHORITY_SYNC_PROOF_V1",
+            "status": "PASS",
+            "full_authority_read_complete": True,
+            "authority_documents": [{"key": "master_handbook", "full_read": True}],
+            "repo_state_files": [],
+            "holds": [],
+        }
+
+    monkeypatch.setattr(drive_revision_module._base, "build_authority_sync_proof", fake_current_builder)
+    assert not hasattr(drive_revision_module._base, "run_authority_bootstrap")
+
+    fake_drive = object()
+    result = run_authority_bootstrap_drive_revision(
+        manifest_path=manifest_path,
+        authority_lock_path=lock_path,
+        repo_root=tmp_path,
+        drive_api=fake_drive,
+    )
+
+    assert captured["manifest"] == manifest
+    assert captured["lock"] == lock
+    assert captured["drive_api"] is fake_drive
+    assert captured["repo_root"] == tmp_path.resolve()
+    assert len(captured["manifest_sha256"]) == 64
+    assert len(captured["lock_sha256"]) == 64
+    assert result["status"] == "PASS"
+    assert result["revision_namespace"] == "GOOGLE_DRIVE_CURRENT_REVISION_ID"
+    assert result["legacy_docs_revision_tokens_used_for_drive_comparison"] is False
 
 
 def test_data_contract_has_no_fixed_field_or_source_ceiling_and_preserves_unknowns():
