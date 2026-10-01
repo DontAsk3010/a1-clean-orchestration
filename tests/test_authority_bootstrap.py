@@ -4,7 +4,11 @@ import json
 from pathlib import Path
 
 from a1clean.authority_bootstrap import validate_bootstrap_contract
-from a1clean.authority_bootstrap_drive_revision import validate_drive_revision_bindings
+from a1clean.authority_bootstrap_drive_revision import (
+    apply_drive_revision_policy,
+    drive_revision_policy,
+    validate_drive_revision_bindings,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -67,6 +71,132 @@ def test_bootstrap_requires_complete_authority_chain_in_order():
         "9",
         "16",
     ]
+
+
+def test_machine1_dispatch_registry_is_live_read_operational_not_exact_revision_blocker():
+    manifest = _load("governance/a1-clean-authority-bootstrap-current.json")
+    docs = manifest["authority_documents_in_required_read_order"]
+    registry = next(row for row in docs if row["key"] == "machine1_dispatch_registry")
+    master = next(row for row in docs if row["key"] == "master_handbook")
+
+    assert drive_revision_policy(registry) == "READ_CURRENT_LIVE"
+    assert drive_revision_policy(master) == "EXACT_BOUND"
+
+    proof = {
+        "status": "HOLD",
+        "full_authority_read_complete": False,
+        "authority_documents": [
+            {
+                "key": "master_handbook",
+                "full_read": True,
+                "expected_revision": "83",
+                "observed_revision": "83",
+            },
+            {
+                "key": "machine1_dispatch_registry",
+                "full_read": True,
+                "expected_revision": "587",
+                "observed_revision": "999",
+            },
+        ],
+        "repo_state_files": [{"path": "state.json", "full_read": True}],
+        "holds": [
+            {
+                "reason": "AUTHORITY_DOCUMENT_REVISION_DRIFT",
+                "key": "machine1_dispatch_registry",
+                "expected_revision": "587",
+                "observed_revision": "999",
+            }
+        ],
+    }
+
+    reconciled = apply_drive_revision_policy(manifest, proof)
+    assert reconciled["status"] == "PASS"
+    assert reconciled["full_authority_read_complete"] is True
+    assert reconciled["holds"] == []
+    assert len(reconciled["accepted_live_revision_drifts"]) == 1
+    registry_evidence = next(
+        row
+        for row in reconciled["authority_documents"]
+        if row["key"] == "machine1_dispatch_registry"
+    )
+    assert registry_evidence["revision_policy"] == "READ_CURRENT_LIVE"
+    assert registry_evidence["revision_match_required"] is False
+    assert registry_evidence["observed_revision_accepted_as_live_current"] is True
+
+
+def test_material_authority_revision_drift_still_holds_fail_closed():
+    manifest = _load("governance/a1-clean-authority-bootstrap-current.json")
+    proof = {
+        "status": "HOLD",
+        "full_authority_read_complete": False,
+        "authority_documents": [
+            {
+                "key": "master_handbook",
+                "full_read": True,
+                "expected_revision": "83",
+                "observed_revision": "999",
+            },
+            {
+                "key": "machine1_dispatch_registry",
+                "full_read": True,
+                "expected_revision": "587",
+                "observed_revision": "999",
+            },
+        ],
+        "repo_state_files": [{"path": "state.json", "full_read": True}],
+        "holds": [
+            {
+                "reason": "AUTHORITY_DOCUMENT_REVISION_DRIFT",
+                "key": "master_handbook",
+                "expected_revision": "83",
+                "observed_revision": "999",
+            },
+            {
+                "reason": "AUTHORITY_DOCUMENT_REVISION_DRIFT",
+                "key": "machine1_dispatch_registry",
+                "expected_revision": "587",
+                "observed_revision": "999",
+            },
+        ],
+    }
+
+    reconciled = apply_drive_revision_policy(manifest, proof)
+    assert reconciled["status"] == "HOLD"
+    assert reconciled["full_authority_read_complete"] is False
+    assert reconciled["holds"] == [
+        {
+            "reason": "AUTHORITY_DOCUMENT_REVISION_DRIFT",
+            "key": "master_handbook",
+            "expected_revision": "83",
+            "observed_revision": "999",
+        }
+    ]
+
+
+def test_registry_read_failure_is_still_a_hard_hold():
+    manifest = _load("governance/a1-clean-authority-bootstrap-current.json")
+    proof = {
+        "status": "HOLD",
+        "full_authority_read_complete": False,
+        "authority_documents": [
+            {"key": "master_handbook", "full_read": True},
+            {"key": "machine1_dispatch_registry", "full_read": False},
+        ],
+        "repo_state_files": [{"path": "state.json", "full_read": True}],
+        "holds": [
+            {
+                "reason": "AUTHORITY_DOCUMENT_READ_FAIL",
+                "key": "machine1_dispatch_registry",
+                "error": "RuntimeError:unreadable",
+            }
+        ],
+    }
+
+    reconciled = apply_drive_revision_policy(manifest, proof)
+    assert reconciled["status"] == "HOLD"
+    assert reconciled["full_authority_read_complete"] is False
+    assert reconciled["holds"][0]["reason"] == "AUTHORITY_DOCUMENT_READ_FAIL"
 
 
 def test_data_contract_has_no_fixed_field_or_source_ceiling_and_preserves_unknowns():
