@@ -5,13 +5,18 @@
   "recorded_on": "2026-10-02",
   "repository": "DontAsk3010/a1-clean-orchestration",
   "branch": "fix/v32-dynamic-source-universe-v1",
-  "current_head_at_record_creation": "adcc38b316d0c8d56a5e778d8fe2a7184ca016eb",
+  "current_head_before_this_record_update": "586280aeb95e13426205a9cf11c56098c85b0d23",
   "request_state": {
     "path": "v32-full-observation-behavior-requests/current.json",
     "enabled": false,
     "restart_authorized": false,
     "status": "OWNER_FORCED_HOLD",
-    "hold_reason": "HOLD_ROUTING_PLUS_PROGRESSIVE_CHECKPOINT_AND_PARTIAL_OUTPUT_SUPERSESSION_RECONCILIATION_REQUIRED"
+    "actual_request_hold_reason": "HOLD_ROUTING_PLUS_PROGRESSIVE_CHECKPOINT_CONTRACT_REPAIR_REQUIRED",
+    "effective_current_blockers": [
+      "HOLD_ROUTING",
+      "CHECKPOINT_REPAIR_RUNTIME_VALIDATION_AFTER_ROUTING",
+      "FRESH_PRESTART_AFTER_REPAIR"
+    ]
   },
   "superseded_run": {
     "run_id": 36876526337,
@@ -84,6 +89,23 @@
     "deterministic_target_selector_proven": false,
     "conclusion": "HOLD_ROUTING"
   },
+  "storage_generation_repair": {
+    "scientific_lineage_changed": false,
+    "scientific_lineage": "MACHINE2_CURRENT_FULL_DEPTH_RESTART_FROM_BEGINNING_V3",
+    "physical_artifact_generation_key": "EXACT_40_CHAR_GITHUB_SHA",
+    "store_commit": "1cb707f9879380bbc43d5c54f47646e68091a253",
+    "test_file_commit": "818acc5d14cf126d9dd79d9a2d1bd015e926d9c4",
+    "lightweight_contract_workflow_commit": "586280aeb95e13426205a9cf11c56098c85b0d23",
+    "lightweight_contract_run_id": 36910285532,
+    "lightweight_contract_run_conclusion": "success",
+    "compile_pass": true,
+    "unit_test_pass": true,
+    "drive_write_performed_by_contract_test": false,
+    "old_672_shards_overwritten": false,
+    "runtime_drive_readback_pass": false,
+    "runtime_drive_readback_state": "NOT_RUN_BECAUSE_HOLD_ROUTING",
+    "status": "CODE_AND_UNIT_CONTRACT_PASS_RUNTIME_PENDING"
+  },
   "repairs_already_committed": [
     {"commit": "dfad3ec43f262172bd83185a7147d6dcf677aea5", "change": "Request forced HOLD; heavy restart disabled."},
     {"commit": "8ddcc61aa4d9564133fe62bef6f948f1b4ed4a8d", "change": "Complete authority/source/workflow/readback identity added to V3 checkpoint construction."},
@@ -91,7 +113,10 @@
     {"commit": "d7c7b6ecc6b5c7c4674bbfa2125200db0a6fc974", "change": "Tests updated to require complete checkpoint governance identity and reject open prestart gaps."},
     {"commit": "630b07948f4ff9618ae708798ac515052ba80fff", "change": "Concurrency changed to cancel superseded CURRENT runs on correction."},
     {"commit": "ba080b75a51e9ab6cf7ca1919579a10a04a0f9ab", "change": "Representative V2-vs-V3 sentinel audit persisted; inherited scientific completion classified NOT_CURRENT_COMPLIANT."},
-    {"commit": "adcc38b316d0c8d56a5e778d8fe2a7184ca016eb", "change": "Read-only local runner registration/service probe strengthened; exact target identity proven but no unique server-side label proven."}
+    {"commit": "adcc38b316d0c8d56a5e778d8fe2a7184ca016eb", "change": "Read-only local runner registration/service probe proved exact target identity but no unique server-side label."},
+    {"commit": "1cb707f9879380bbc43d5c54f47646e68091a253", "change": "V3 durable artifacts physically generation-scoped by exact Git HEAD to prevent overwrite of partial evidence."},
+    {"commit": "818acc5d14cf126d9dd79d9a2d1bd015e926d9c4", "change": "Generation storage contract tests corrected for GitHub environment semantics."},
+    {"commit": "586280aeb95e13426205a9cf11c56098c85b0d23", "change": "Lightweight GitHub-hosted generation-storage contract gate added; run 36910285532 PASS."}
   ],
   "blocking_gaps": [
     {
@@ -101,18 +126,18 @@
     },
     {
       "code": "PARTIAL_V3_OUTPUT_SUPERSESSION_STORAGE_RECONCILIATION",
-      "state": "OPEN_INTERNAL",
-      "requirement": "The 672 old V3 shards are RECOVERY_HOLD and must not be overwritten before a compliant successor exists. A fresh generation must persist without colliding with old shard object names; after exact successor/readback/reconstructability proof, old partial payloads become delete candidates under Storage authority, not permanent archive."
+      "state": "CODE_AND_UNIT_CONTRACT_PASS_RUNTIME_PENDING",
+      "requirement": "Generation-scoped physical names now prevent collision. Keep old 672 shards RECOVERY_HOLD until a compliant successor is actually written/read back; only then run exact supersession/reconstructability/deletion gate."
     },
     {
       "code": "CHECKPOINT_REPAIR_RUNTIME_VALIDATION",
-      "state": "OPEN",
-      "requirement": "Run exact checkpoint construction/readback on the exact repaired HEAD only after routing is valid and partial-output supersession storage is non-destructive."
+      "state": "OPEN_AFTER_ROUTING",
+      "requirement": "Run exact generation-scoped checkpoint construction/readback on the exact repaired HEAD only after routing is valid."
     },
     {
       "code": "FRESH_PRESTART_AFTER_REPAIR",
-      "state": "OPEN",
-      "requirement": "Fresh-read CURRENT authority and dynamic source universe, then rerun PRESTART after routing/checkpoint/storage repair."
+      "state": "OPEN_AFTER_ROUTING",
+      "requirement": "Fresh-read CURRENT authority and dynamic source universe, then rerun PRESTART after deterministic routing is proven."
     },
     {
       "code": "KNOWN_AT_BAR_COMPLETION_SEMANTICS",
@@ -136,5 +161,5 @@
   "grouping": "HOLD",
   "formula_stage": "CLOSED",
   "higher_pass_claim": false,
-  "next_exact_action": "Keep heavy execution HOLD. Implement and test non-colliding execution-generation storage for a future compliant V3 restart without changing the scientific V3 lineage; independently obtain/prove a deterministic GitHub selector for agent 32 / A1-WINDOWS-COMPUTE-02. Only after both close, fresh-read authority/source universe and run lightweight PRESTART."
+  "next_exact_action": "Keep heavy execution HOLD. Obtain/prove a deterministic GitHub selector for agent 32 / A1-WINDOWS-COMPUTE-02 without guessing. Then fresh-read CURRENT authority and dynamic source universe, run lightweight PRESTART on exact repaired HEAD, and only if PASS execute generation-scoped V3 restart from the earliest governed eligible source/date/ticker/observation with exact Drive readback."
 }
