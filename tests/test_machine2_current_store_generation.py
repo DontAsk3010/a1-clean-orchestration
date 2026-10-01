@@ -58,13 +58,14 @@ def test_generation_scoping_is_idempotent_for_already_physical_name():
     ) == physical
 
 
-def test_v3_durable_write_requires_exact_full_git_sha_generation():
+def test_v3_durable_write_requires_exact_full_git_sha_generation(monkeypatch):
     logical = f"{V3_SCIENTIFIC_LINEAGE}__CHECKPOINT_CURRENT.json"
+    monkeypatch.delenv("A1_M2_EXECUTION_GENERATION_ID", raising=False)
+    monkeypatch.delenv("GITHUB_SHA", raising=False)
     with pytest.raises(RuntimeError, match="M2_CURRENT_V3_EXECUTION_GENERATION_ID_REQUIRED"):
         physical_name_for_current_execution(
             MACHINE2_CHECKPOINT_FOLDER_ID,
             logical,
-            generation_id=None,
         )
     with pytest.raises(RuntimeError, match="M2_CURRENT_V3_EXECUTION_GENERATION_MUST_BE_EXACT_GIT_SHA"):
         physical_name_for_current_execution(
