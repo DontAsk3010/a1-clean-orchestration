@@ -116,6 +116,60 @@ def apply_drive_revision_policy(manifest: dict[str, Any], proof: dict[str, Any])
     return proof
 
 
+def _apply_prestart_fingerprints(
+    manifest: dict[str, Any],
+    proof: dict[str, Any],
+    *,
+    manifest_raw: bytes,
+    lock_raw: bytes,
+) -> dict[str, Any]:
+    """Populate the CURRENT PRESTART fingerprint contract from full-read evidence.
+
+    Fingerprints are derived only from already-read authority/repo evidence and the
+    CURRENT bootstrap/lock bytes. This does not weaken any fail-closed gate or invent
+    scientific state; it makes the runtime proof conform to the proof fields already
+    required by ``v32_dynamic_prestart``.
+    """
+    bootstrap_sha = _base._sha256_bytes(manifest_raw)
+    lock_sha = _base._sha256_bytes(lock_raw)
+    proof["bootstrap_manifest_sha256"] = bootstrap_sha
+    proof["active_authority_lock_sha256"] = lock_sha
+    proof["authority_document_count"] = len(proof.get("authority_documents") or [])
+    proof["repo_state_file_count"] = len(proof.get("repo_state_files") or [])
+    proof["required_data_family_registry_sha256"] = _base._sha256_json(
+        manifest.get("required_open_ended_data_families") or []
+    )
+
+    document_fingerprints = [
+        {
+            "key": row.get("key"),
+            "document_id": row.get("document_id"),
+            "observed_revision": row.get("observed_revision"),
+            "full_read": row.get("full_read"),
+            "sha256": row.get("sha256"),
+        }
+        for row in proof.get("authority_documents") or []
+    ]
+    repo_fingerprints = [
+        {
+            "path": row.get("path"),
+            "full_read": row.get("full_read"),
+            "parse_ok": row.get("parse_ok"),
+            "sha256": row.get("sha256"),
+        }
+        for row in proof.get("repo_state_files") or []
+    ]
+    proof["authority_corpus_sha256"] = _base._sha256_json(
+        {
+            "bootstrap_manifest_sha256": bootstrap_sha,
+            "active_authority_lock_sha256": lock_sha,
+            "authority_documents": document_fingerprints,
+            "repo_state_files": repo_fingerprints,
+        }
+    )
+    return proof
+
+
 def run_authority_bootstrap_drive_revision(
     *,
     manifest_path: Path = _base.DEFAULT_MANIFEST,
@@ -151,6 +205,12 @@ def run_authority_bootstrap_drive_revision(
     )
 
     proof = apply_drive_revision_policy(manifest, proof)
+    proof = _apply_prestart_fingerprints(
+        manifest,
+        proof,
+        manifest_raw=manifest_raw,
+        lock_raw=lock_raw,
+    )
     proof["revision_namespace"] = "GOOGLE_DRIVE_CURRENT_REVISION_ID"
     proof["legacy_docs_revision_tokens_used_for_drive_comparison"] = False
     if output_path is not None:
