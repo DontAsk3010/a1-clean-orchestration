@@ -1,0 +1,89 @@
+{
+  "schema": "A1_MACHINE2_V3_INHERITED_SENTINEL_AUDIT_V1",
+  "status": "MATERIAL_SYSTEMIC_NONCOMPLIANCE_PROVEN",
+  "scientific_lineage": "MACHINE2_CURRENT_FULL_DEPTH_RESTART_FROM_BEGINNING_V3",
+  "purpose": "Durable representative sentinel audit required before V3 restart. This artifact classifies inherited Machine-2 scientific completion only; it does not invalidate canonical RAW/source truth or independently valid infrastructure.",
+  "authority_effective_date": "2026-10-01",
+  "audit_scope": {
+    "source": "Raw Des 02-31-2024.csv",
+    "trading_date": "2024-12-02",
+    "ticker": "AALI",
+    "source_row_first": 4997,
+    "source_row_last": 5100,
+    "source_row_count": 104,
+    "first_clock_time": "09:00:00",
+    "last_clock_time": "16:01:00"
+  },
+  "inherited_v2_evidence": {
+    "checkpoint_drive_id": "19OYGA3Xdv2LQN3eMtDDw8dBS1YaNItRi",
+    "checkpoint_lineage": "MACHINE2_CURRENT_FULL_RESTART_FROM_BEGINNING_V2",
+    "checkpoint_status_observed": "DATE_CLOSED",
+    "checkpoint_software_revision": "500d726caa885f4956b6d1a89da07b7ffe6053e6",
+    "shard_drive_id": "1PFe4gBKyobOt3nKtbmOBa3Rxr0v6cui_",
+    "shard_name": "MACHINE2_CURRENT_FULL_RESTART_FROM_BEGINNING_V2__2024-12-02__SHARD_00001.jsonl",
+    "shard_sha256": "54a958c201499b31ce15b2de0982a1a72fe4bd10d31178faac347b226d518e68"
+  },
+  "current_v3_comparator": {
+    "checkpoint_drive_id": "1pMCRCcphtjeK4DJgepZf8nMHbhBIleel",
+    "checkpoint_lineage": "MACHINE2_CURRENT_FULL_DEPTH_RESTART_FROM_BEGINNING_V3",
+    "checkpoint_software_revision_observed": "acfb968d6f3125d65dbbb35047620ea13a6ae868",
+    "shard_drive_id": "1ViBlYp19ne0MeGOlWKcQ1rPwACdm_Ck2",
+    "shard_name": "MACHINE2_CURRENT_FULL_DEPTH_RESTART_FROM_BEGINNING_V3__2024-12-02__SHARD_00001.jsonl",
+    "shard_sha256": "925b4823dae6cff81d2a7de8c5624066bcaf20a2ddfec8173c06b04d42ccf6ee",
+    "unit_status": "CURRENT_RESTART_UNIT_COMPLETE_NOT_FINAL_PASS"
+  },
+  "same_physical_scope_proof": {
+    "same_source": true,
+    "same_trading_date": true,
+    "same_ticker": true,
+    "same_source_row_range": true,
+    "same_source_row_count": true,
+    "same_clock_envelope": true
+  },
+  "material_current_depth_absent_from_v2_sentinel": [
+    "attempt_retest_loop_topology",
+    "state_maturity_persistence_decay",
+    "lead_lag_relationship_graph",
+    "context_registry",
+    "data_quality_full_depth_audit",
+    "near_twin_counterexample_readiness",
+    "base_rate_denominator_readiness",
+    "formation_snapshots_owner_full_depth",
+    "owner_full_depth_contract",
+    "owner_full_depth_definition_version",
+    "owner_full_depth_index_alignment"
+  ],
+  "v2_preserved_but_insufficient_for_current_completeness": [
+    "availability_registry",
+    "behavior_day",
+    "behavior_lifecycle",
+    "behavior_path",
+    "blindspot_register_additions",
+    "continuous_current_enrichment",
+    "event_journeys",
+    "formation_snapshots",
+    "state_runs",
+    "terminal_carry_state",
+    "negative_quiet_failure_preserved",
+    "open_censored_preserved",
+    "unnamed_transitions_preserved"
+  ],
+  "governed_classification": {
+    "sentinel_result": "MATERIAL_SYSTEMIC_NONCOMPLIANCE",
+    "all_inherited_machine2_scientific_pass_completion_for_restart_purposes": "NOT_CURRENT_COMPLIANT",
+    "legacy_completion_may_advance_v3_cursor": false,
+    "legacy_scientific_checkpoint_may_advance_v3_cursor": false,
+    "canonical_raw_source_truth_preserved": true,
+    "independently_valid_infrastructure_repair_may_be_preserved": true,
+    "exhaustive_legacy_audit_required_before_restart": false
+  },
+  "limitations": [
+    "This sentinel does not claim V3 full Machine-2 behavior PASS.",
+    "This sentinel does not claim corpus-level near-twin or base-rate PASS.",
+    "This sentinel does not resolve KNOWN_AT bar-completion semantics.",
+    "This sentinel does not open grouping or formula stages."
+  ],
+  "grouping": "HOLD",
+  "formula_stage": "CLOSED",
+  "pass_claim": false
+}
