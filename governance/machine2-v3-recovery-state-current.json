@@ -1,0 +1,124 @@
+{
+  "schema": "A1_MACHINE2_V3_RECOVERY_STATE_V1",
+  "status": "HOLD_REQUIRES_RECONCILIATION",
+  "scientific_lineage": "MACHINE2_CURRENT_FULL_DEPTH_RESTART_FROM_BEGINNING_V3",
+  "recorded_on": "2026-10-01",
+  "repository": "DontAsk3010/a1-clean-orchestration",
+  "branch": "fix/v32-dynamic-source-universe-v1",
+  "current_head_at_record_creation": "ba080b75a51e9ab6cf7ca1919579a10a04a0f9ab",
+  "request_state": {
+    "path": "v32-full-observation-behavior-requests/current.json",
+    "enabled": false,
+    "restart_authorized": false,
+    "status": "OWNER_FORCED_HOLD",
+    "hold_reason": "HOLD_ROUTING_PLUS_PROGRESSIVE_CHECKPOINT_CONTRACT_REPAIR_REQUIRED"
+  },
+  "superseded_run": {
+    "run_id": 36876526337,
+    "head_sha": "acfb968d6f3125d65dbbb35047620ea13a6ae868",
+    "final_status": "completed",
+    "final_conclusion": "cancelled",
+    "promotable_as_current_scientific_completion": false,
+    "reason": "Execution began under routing that CURRENT Automation authority revision 84 classifies HOLD_ROUTING and before the complete V3 checkpoint governance identity contract was implemented."
+  },
+  "last_persisted_nonpromotable_boundary": {
+    "checkpoint_drive_id": "1pMCRCcphtjeK4DJgepZf8nMHbhBIleel",
+    "checkpoint_schema": "A1_M2_CURRENT_FULL_DEPTH_CHECKPOINT_V3",
+    "checkpoint_software_revision": "acfb968d6f3125d65dbbb35047620ea13a6ae868",
+    "checkpoint_status": "IN_PROGRESS",
+    "source": "Raw Des 02-31-2024.csv",
+    "trading_date": "2024-12-02",
+    "completed_units": 672,
+    "completed_source_rows": 73251,
+    "last_completed": {
+      "ticker": "PZZA",
+      "selection_position": 671,
+      "manifest_index": 671,
+      "source_row_first": 1299159,
+      "source_row_last": 1299211,
+      "data_row_count": 53,
+      "first_clock_time": "09:00:00",
+      "last_clock_time": "15:46:00"
+    },
+    "old_next_pointer": {
+      "ticker": "R-LQ45X",
+      "selection_position": 672,
+      "manifest_index": 672,
+      "source_row_first": 1299021,
+      "source_row_last": 1299037,
+      "data_row_count": 17,
+      "first_clock_time": "09:37:00",
+      "last_clock_time": "15:28:00"
+    },
+    "old_next_pointer_is_current_compliant_resume_point": false
+  },
+  "current_compliant_restart_cursor": {
+    "authority": "EARLIEST_GOVERNED_SOURCE_DATE_TICKER_OBSERVATION_FROM_FRESH_DYNAMIC_SOURCE_DISCOVERY_AFTER_PRESTART_PASS",
+    "must_inherit_672_unit_cursor": false,
+    "must_inherit_v1_v2_cursor": false,
+    "concrete_source_date_ticker_must_be_resolved_fresh_after_prestart": true
+  },
+  "repairs_already_committed": [
+    {
+      "commit": "dfad3ec43f262172bd83185a7147d6dcf677aea5",
+      "change": "Request forced HOLD; heavy restart disabled."
+    },
+    {
+      "commit": "8ddcc61aa4d9564133fe62bef6f948f1b4ed4a8d",
+      "change": "Complete authority/source/workflow/readback identity added to V3 checkpoint construction."
+    },
+    {
+      "commit": "596c30cb3e0928b9e87b14b324752523c8c3e001",
+      "change": "Checkpoint validation now fails closed on incomplete governance identity."
+    },
+    {
+      "commit": "d7c7b6ecc6b5c7c4674bbfa2125200db0a6fc974",
+      "change": "Tests updated to require complete checkpoint governance identity and reject open prestart gaps."
+    },
+    {
+      "commit": "630b07948f4ff9618ae708798ac515052ba80fff",
+      "change": "Concurrency changed to cancel superseded CURRENT runs on correction."
+    },
+    {
+      "commit": "ba080b75a51e9ab6cf7ca1919579a10a04a0f9ab",
+      "change": "Representative V2-vs-V3 sentinel audit persisted; inherited scientific completion classified NOT_CURRENT_COMPLIANT."
+    }
+  ],
+  "blocking_gaps": [
+    {
+      "code": "HOLD_ROUTING",
+      "state": "OPEN",
+      "requirement": "Prove a unique configured runner label or other supported deterministic selector for A1-WINDOWS-COMPUTE-02; do not guess the selector."
+    },
+    {
+      "code": "CHECKPOINT_REPAIR_RUNTIME_VALIDATION",
+      "state": "OPEN",
+      "requirement": "Run repaired tests and exact checkpoint construction/readback on the exact repaired HEAD after routing is valid."
+    },
+    {
+      "code": "FRESH_PRESTART_AFTER_REPAIR",
+      "state": "OPEN",
+      "requirement": "Fresh-read CURRENT authority and dynamic source universe, then rerun PRESTART after routing/checkpoint repair."
+    },
+    {
+      "code": "KNOWN_AT_BAR_COMPLETION_SEMANTICS",
+      "state": "UNKNOWN_UNPROVEN",
+      "requirement": "Do not fabricate KNOWN_AT; retain UNKNOWN_UNPROVEN until source timestamp/bar-completion semantics are proven."
+    },
+    {
+      "code": "CORPUS_LEVEL_NEAR_TWIN_BASE_RATE_CONTEXT",
+      "state": "NOT_YET_PASS",
+      "requirement": "Remain explicit downstream scientific obligations; unit-level completeness cannot claim these corpus-level passes."
+    }
+  ],
+  "preservation": {
+    "canonical_raw_source_truth": "PRESERVE",
+    "superseded_v3_partial_outputs": "PRESERVE_AS_NONPROMOTABLE_AUDIT_EVIDENCE",
+    "v1_v2_outputs": "PRESERVE_AS_AUDIT_HISTORY_NOT_CURRENT_COMPLETION",
+    "blind_duplicate_repull": "FORBIDDEN"
+  },
+  "grouping": "HOLD",
+  "formula_stage": "CLOSED",
+  "higher_pass_claim": false,
+  "next_exact_action": "Resolve and prove deterministic A1-WINDOWS-COMPUTE-02 routing without guessing a runner label; then exact-readback repaired HEAD/request and run lightweight PRESTART only."
+}
