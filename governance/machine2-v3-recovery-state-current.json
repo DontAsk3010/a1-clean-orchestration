@@ -1,11 +1,11 @@
 {
   "schema": "A1_MACHINE2_V3_RECOVERY_STATE_V1",
-  "status": "HOLD_REQUIRES_RECONCILIATION",
+  "status": "HOLD_EXTERNAL_RUNNER_ADMIN_REQUIRED",
   "scientific_lineage": "MACHINE2_CURRENT_FULL_DEPTH_RESTART_FROM_BEGINNING_V3",
   "recorded_on": "2026-10-02",
   "repository": "DontAsk3010/a1-clean-orchestration",
   "branch": "fix/v32-dynamic-source-universe-v1",
-  "current_head_before_this_record_update": "586280aeb95e13426205a9cf11c56098c85b0d23",
+  "current_head_before_this_record_update": "50a1767e94b5a99681fdc15368ebd1e1da009a54",
   "request_state": {
     "path": "v32-full-observation-behavior-requests/current.json",
     "enabled": false,
@@ -13,9 +13,9 @@
     "status": "OWNER_FORCED_HOLD",
     "actual_request_hold_reason": "HOLD_ROUTING_PLUS_PROGRESSIVE_CHECKPOINT_CONTRACT_REPAIR_REQUIRED",
     "effective_current_blockers": [
-      "HOLD_ROUTING",
+      "HOLD_ROUTING_EXTERNAL_RUNNER_ADMIN_REQUIRED",
       "CHECKPOINT_REPAIR_RUNTIME_VALIDATION_AFTER_ROUTING",
-      "FRESH_PRESTART_AFTER_REPAIR"
+      "FRESH_PRESTART_AFTER_ROUTING"
     ]
   },
   "superseded_run": {
@@ -67,9 +67,8 @@
     "concrete_source_date_ticker_must_be_resolved_fresh_after_prestart": true
   },
   "runner_routing_proof": {
-    "probe_commit": "adcc38b316d0c8d56a5e778d8fe2a7184ca016eb",
-    "probe_run_id": 36908344504,
-    "probe_mode": "READ_ONLY_LOCAL_REGISTRATION_AND_SERVICE_IDENTITY",
+    "identity_probe_commit": "adcc38b316d0c8d56a5e778d8fe2a7184ca016eb",
+    "identity_probe_run_id": 36908344504,
     "target_runner": {
       "agent_id": 32,
       "agent_name": "A1-WINDOWS-COMPUTE-02",
@@ -84,10 +83,44 @@
       "local_runner_config_labels_property_present": false
     },
     "shared_workflow_labels": ["self-hosted", "windows", "x64", "a1-clean-parity"],
-    "same_probe_dispatched_one_job_to_each_runner": true,
+    "shared_label_dispatch_proven_non_deterministic": true,
+    "target_listener_restart_run_id": 36913075207,
+    "target_listener_restart_from_agent_31_pass": true,
     "unique_server_side_label_proven": false,
     "deterministic_target_selector_proven": false,
-    "conclusion": "HOLD_ROUTING"
+    "conclusion": "HOLD_ROUTING_EXTERNAL_RUNNER_ADMIN_REQUIRED"
+  },
+  "runner_admin_capability_evidence": {
+    "github_workflow_token_runner_label_read": {
+      "run_id": 36911532909,
+      "endpoint_family": "REPOSITORY_ACTIONS_RUNNER_LABELS",
+      "http_status": 403,
+      "pass": false
+    },
+    "github_workflow_token_registration_token": {
+      "run_id": 36914380938,
+      "endpoint_family": "REPOSITORY_ACTIONS_RUNNER_REGISTRATION_TOKEN",
+      "http_status": 403,
+      "pass": false
+    },
+    "target_runner_local_gh_cli": {
+      "available": false,
+      "correction": "Earlier step-summary interpretation was a false positive caused by continue-on-error. Raw job logs prove gh executable was not available; no label mutation/readback occurred."
+    },
+    "local_git_noninteractive_admin_credential": {
+      "run_id": 36914050312,
+      "system_credential_helper_present": true,
+      "stored_noninteractive_github_credential_present": false,
+      "pass": false
+    },
+    "experimental_label_a1_machine2_exact": {
+      "registered": false,
+      "server_side_readback_pass": false,
+      "scheduler_proof_pass": false,
+      "status": "INVALID_EXPERIMENTAL_SELECTOR_DO_NOT_BIND_PRESTART"
+    },
+    "runner_private_oauth_material_direct_extraction": "NOT_USED_SAFETY_AND_AUTHORITY_BOUNDARY",
+    "supported_remaining_route": "GITHUB_REPOSITORY_RUNNER_ADMINISTRATION_BY_AUTHORIZED_OWNER_ADMIN"
   },
   "storage_generation_repair": {
     "scientific_lineage_changed": false,
@@ -116,13 +149,14 @@
     {"commit": "adcc38b316d0c8d56a5e778d8fe2a7184ca016eb", "change": "Read-only local runner registration/service probe proved exact target identity but no unique server-side label."},
     {"commit": "1cb707f9879380bbc43d5c54f47646e68091a253", "change": "V3 durable artifacts physically generation-scoped by exact Git HEAD to prevent overwrite of partial evidence."},
     {"commit": "818acc5d14cf126d9dd79d9a2d1bd015e926d9c4", "change": "Generation storage contract tests corrected for GitHub environment semantics."},
-    {"commit": "586280aeb95e13426205a9cf11c56098c85b0d23", "change": "Lightweight GitHub-hosted generation-storage contract gate added; run 36910285532 PASS."}
+    {"commit": "586280aeb95e13426205a9cf11c56098c85b0d23", "change": "Lightweight GitHub-hosted generation-storage contract gate added; run 36910285532 PASS."},
+    {"commit": "50a1767e94b5a99681fdc15368ebd1e1da009a54", "change": "Fail-closed registration-token capability probe proved workflow GITHUB_TOKEN receives HTTP 403 for runner registration-token endpoint."}
   ],
   "blocking_gaps": [
     {
-      "code": "HOLD_ROUTING",
-      "state": "OPEN_EXTERNAL_CONFIGURATION_PROOF_REQUIRED",
-      "requirement": "Prove a unique configured GitHub runner label or other supported deterministic selector for agent 32 / A1-WINDOWS-COMPUTE-02. Shared labels are proven non-deterministic; local .runner does not expose server-side labels; do not guess the selector."
+      "code": "HOLD_ROUTING_EXTERNAL_RUNNER_ADMIN_REQUIRED",
+      "state": "OPEN_EXTERNAL_ADMIN_ACTION_REQUIRED",
+      "requirement": "Using GitHub repository self-hosted runner administration, assign one unique custom label to agent 32 / A1-WINDOWS-COMPUTE-02 that is absent from agent 31 and other eligible runners. Do not change the scientific request. After the exact label exists, bind a lightweight routing proof to that label and require runner.name == A1-WINDOWS-COMPUTE-02 before PRESTART."
     },
     {
       "code": "PARTIAL_V3_OUTPUT_SUPERSESSION_STORAGE_RECONCILIATION",
@@ -135,9 +169,9 @@
       "requirement": "Run exact generation-scoped checkpoint construction/readback on the exact repaired HEAD only after routing is valid."
     },
     {
-      "code": "FRESH_PRESTART_AFTER_REPAIR",
+      "code": "FRESH_PRESTART_AFTER_ROUTING",
       "state": "OPEN_AFTER_ROUTING",
-      "requirement": "Fresh-read CURRENT authority and dynamic source universe, then rerun PRESTART after deterministic routing is proven."
+      "requirement": "Fresh-read CURRENT authority and dynamic source universe, then rerun PRESTART on the exact repaired HEAD after deterministic routing is proven."
     },
     {
       "code": "KNOWN_AT_BAR_COMPLETION_SEMANTICS",
@@ -161,5 +195,5 @@
   "grouping": "HOLD",
   "formula_stage": "CLOSED",
   "higher_pass_claim": false,
-  "next_exact_action": "Keep heavy execution HOLD. Obtain/prove a deterministic GitHub selector for agent 32 / A1-WINDOWS-COMPUTE-02 without guessing. Then fresh-read CURRENT authority and dynamic source universe, run lightweight PRESTART on exact repaired HEAD, and only if PASS execute generation-scoped V3 restart from the earliest governed eligible source/date/ticker/observation with exact Drive readback."
+  "next_exact_action": "External GitHub runner administration must assign and preserve one unique custom label on agent 32 / A1-WINDOWS-COMPUTE-02. Once the exact configured label is known, run a lightweight selector proof using only that label and require exact runner identity. If and only if routing proof PASSes: fresh-read CURRENT authority/source universe, run repaired exact-HEAD PRESTART, then execute generation-scoped V3 scientific restart from the earliest governed eligible source/date/ticker/observation with exact Drive readback."
 }
