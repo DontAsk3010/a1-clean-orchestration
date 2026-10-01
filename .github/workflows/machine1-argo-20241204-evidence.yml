@@ -54,7 +54,8 @@ jobs:
           if ($rows.Count -ne $expectedCount) { throw "ROW_COUNT_MISMATCH got=$($rows.Count) expected=$expectedCount" }
           for ($i=0; $i -lt $rows.Count; $i++) {
             if ([int]$rows[$i].source_row -ne ($sourceFirst+$i)) { throw 'SOURCE_ROW_SEQUENCE_MISMATCH' }
-            if ($rows[$i].PSObject.Properties.Count -ne 75) { throw "RETAINED_FIELD_COUNT_MISMATCH source_row=$($rows[$i].source_row)" }
+            $retainedFieldCount = @($rows[$i].PSObject.Properties).Count
+            if ($retainedFieldCount -ne 75) { throw "RETAINED_FIELD_COUNT_MISMATCH source_row=$($rows[$i].source_row) got=$retainedFieldCount expected=75" }
           }
           $tickers = @($rows | % { $_.RAW_TICKER } | Sort-Object -Unique)
           if ($tickers.Count -ne 1 -or $tickers[0] -ne $tickerExpected) { throw "TICKER_MISMATCH got=$($tickers -join ',')" }
