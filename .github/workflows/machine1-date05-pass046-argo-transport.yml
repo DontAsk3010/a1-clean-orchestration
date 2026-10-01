@@ -1,0 +1,103 @@
+name: Machine1 Date05 PASS046 ARGO Exact Transport
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [machine1/date05-audit-pass029-alka-evidence]
+    paths: [.github/workflows/machine1-date05-pass046-argo-transport.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  extract:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\TRADING SYSTEM\02_CURRENT_HISTORICAL_RAW_DATA_UJI\Raw Des 02-31-2024.csv'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract exact governed Date05 PASS046 ARGO rows
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
+          [int64]$start=90571
+          [int64]$end=90609
+          [int64]$expectedCount=39
+          [int64]$expectedSize=453806812
+          $expectedSha='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          $expectedTicker='ARGO'
+          $expectedDate='2024-12-05'
+          $expectedFirst='2024-12-05 09:01:00'
+          $expectedLast='2024-12-05 15:39:00'
+          if(-not (Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING $raw"}
+          $fi=Get-Item -LiteralPath $raw
+          if($fi.Length -ne $expectedSize){throw "RAW_SIZE_MISMATCH got=$($fi.Length) expected=$expectedSize"}
+          $sha=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($sha -ne $expectedSha){throw "RAW_SHA256_MISMATCH got=$sha expected=$expectedSha"}
+          $header=$null
+          $selected=New-Object 'System.Collections.Generic.List[string]'
+          [int64]$idx=0
+          foreach($line in [System.IO.File]::ReadLines($raw,[System.Text.Encoding]::UTF8)){
+            if($idx -eq 0){$header=$line}
+            if($idx -ge $start -and $idx -le $end){[void]$selected.Add($line)}
+            if($idx -gt $end){break}
+            $idx++
+          }
+          if($null -eq $header){throw 'HEADER_MISSING'}
+          if($selected.Count -ne $expectedCount){throw "ROW_COUNT_MISMATCH got=$($selected.Count) expected=$expectedCount"}
+          $parsed=@((@($header)+@($selected)) | ConvertFrom-Csv)
+          if($parsed.Count -ne $expectedCount){throw "PARSE_COUNT_MISMATCH got=$($parsed.Count) expected=$expectedCount"}
+          $fieldCount=@($parsed[0].PSObject.Properties).Count
+          if($fieldCount -ne 74){throw "FIELD_COUNT_MISMATCH got=$fieldCount expected=74"}
+          $tickers=@($parsed|ForEach-Object{$_.RAW_TICKER}|Sort-Object -Unique)
+          if($tickers.Count -ne 1 -or $tickers[0] -ne $expectedTicker){throw "TICKER_MISMATCH got=$($tickers -join ',')"}
+          $dates=@($parsed|ForEach-Object{[string]$_.RAW_DATETIME_ISO})
+          if(@($dates|Where-Object{-not $_.StartsWith($expectedDate)}).Count -gt 0){throw 'DATE_MISMATCH'}
+          if($dates[0] -ne $expectedFirst){throw "FIRST_TIME_MISMATCH got=$($dates[0]) expected=$expectedFirst"}
+          if($dates[$dates.Count-1] -ne $expectedLast){throw "LAST_TIME_MISMATCH got=$($dates[$dates.Count-1]) expected=$expectedLast"}
+          for($i=1;$i -lt $dates.Count;$i++){
+            $prev=[datetime]::ParseExact($dates[$i-1],'yyyy-MM-dd HH:mm:ss',[Globalization.CultureInfo]::InvariantCulture)
+            $cur=[datetime]::ParseExact($dates[$i],'yyyy-MM-dd HH:mm:ss',[Globalization.CultureInfo]::InvariantCulture)
+            if($cur -lt $prev){throw "CHRONOLOGY_FAIL index=$i prev=$($dates[$i-1]) current=$($dates[$i])"}
+          }
+          $duplicateExactRows=@($selected|Group-Object|Where-Object{$_.Count -gt 1}).Count
+          if($duplicateExactRows -ne 0){throw "DUPLICATE_EXACT_ROWS_FOUND groups=$duplicateExactRows"}
+          $out=Join-Path $PWD '.machine1_transport/date05_pass046_argo'
+          if(Test-Path -LiteralPath $out){Remove-Item -Recurse -Force -LiteralPath $out}
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $utf8=New-Object System.Text.UTF8Encoding($false)
+          $rowsPath=Join-Path $out 'ARGO_20241205_ROWS.jsonl'
+          $records=New-Object 'System.Collections.Generic.List[object]'
+          for($i=0;$i -lt $parsed.Count;$i++){
+            $o=[ordered]@{source_row=($start+$i)}
+            foreach($p in $parsed[$i].PSObject.Properties){$o[$p.Name]=[string]$p.Value}
+            [void]$records.Add([pscustomobject]$o)
+          }
+          $json=@($records|ForEach-Object{$_|ConvertTo-Json -Compress -Depth 12})
+          [System.IO.File]::WriteAllLines($rowsPath,[string[]]$json,$utf8)
+          $csvPath=Join-Path $out 'ARGO_20241205_RAW_EXACT.csv'
+          [System.IO.File]::WriteAllLines($csvPath,[string[]](@($header)+@($selected)),$utf8)
+          $rowsSha=(Get-FileHash -LiteralPath $rowsPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $csvSha=(Get-FileHash -LiteralPath $csvPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $proof=[ordered]@{
+            machine='MACHINE_1';worker='DATE05';pass='PASS046';ticker=$expectedTicker;trading_date=$expectedDate;
+            source_name='Raw Des 02-31-2024.csv';source_sha256=$sha;source_size=$fi.Length;
+            manifest_line=123;source_row_first=$start;source_row_last=$end;physical_line_first=($start+1);physical_line_last=($end+1);actual_rows=$records.Count;
+            fields_per_row=$fieldCount;first_datetime=$dates[0];last_datetime=$dates[$dates.Count-1];chronology_verified=$true;duplicate_exact_row_groups=$duplicateExactRows;
+            rows_jsonl_sha256=$rowsSha;raw_exact_csv_sha256=$csvSha;
+            transport_only=$true;semantic_read_performed=$false;checkpoint_mutated=$false;drive_mutated=$false;next_ticker_opened=$false;integrity='PASS'
+          }
+          [System.IO.File]::WriteAllText((Join-Path $out 'ARGO_20241205_PROOF.json'),($proof|ConvertTo-Json -Depth 8),$utf8)
+          $hashes=Get-ChildItem -LiteralPath $out -File|Sort-Object Name|ForEach-Object{((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())+'  '+$_.Name}
+          [System.IO.File]::WriteAllLines((Join-Path $out '_ARTIFACT_SHA256.txt'),[string[]]$hashes,$utf8)
+          Write-Host "PASS046_ARGO_TRANSPORT_READY rows=$($records.Count) fields=$fieldCount first=$($dates[0]) last=$($dates[$dates.Count-1]) source_sha=$sha"
+      - name: Upload governed ARGO exact transport artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date05-pass046-argo-exact-transport
+          path: .machine1_transport/date05_pass046_argo/
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 7
