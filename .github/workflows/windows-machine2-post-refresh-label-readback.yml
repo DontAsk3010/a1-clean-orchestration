@@ -17,24 +17,40 @@ jobs:
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 5
     steps:
-      - name: Read exact server-side label state only on target
+      - name: Target auth gate
+        if: runner.name == 'A1-WINDOWS-COMPUTE-02'
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
+          & gh auth status --hostname github.com
+          if ($LASTEXITCODE -ne 0) { throw 'M2_POST_REFRESH_LOCAL_GH_AUTH_FAILED' }
+      - name: Target label presence after reconnect
         if: runner.name == 'A1-WINDOWS-COMPUTE-02'
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
           Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
-          $target = ((& gh api 'repos/DontAsk3010/a1-clean-orchestration/actions/runners/32/labels') | ConvertFrom-Json)
+          $d = ((& gh api 'repos/DontAsk3010/a1-clean-orchestration/actions/runners/32/labels') | ConvertFrom-Json)
           if ($LASTEXITCODE -ne 0) { throw 'M2_POST_REFRESH_TARGET_LABEL_READ_FAILED' }
-          $other = ((& gh api 'repos/DontAsk3010/a1-clean-orchestration/actions/runners/31/labels') | ConvertFrom-Json)
+          $names = @($d.labels | ForEach-Object { [string]$_.name } | Sort-Object)
+          Write-Host ('M2_POST_REFRESH_TARGET_LABELS=' + ($names -join ','))
+          if ($names -notcontains 'a1-machine2-exact') { throw 'M2_POST_REFRESH_UNIQUE_LABEL_MISSING_ON_TARGET' }
+          Write-Host 'M2_POST_REFRESH_TARGET_LABEL_PRESENCE_PASS=true'
+      - name: Other runner label exclusion after reconnect
+        if: runner.name == 'A1-WINDOWS-COMPUTE-02'
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
+          $d = ((& gh api 'repos/DontAsk3010/a1-clean-orchestration/actions/runners/31/labels') | ConvertFrom-Json)
           if ($LASTEXITCODE -ne 0) { throw 'M2_POST_REFRESH_OTHER_LABEL_READ_FAILED' }
-          $targetNames = @($target.labels | ForEach-Object { [string]$_.name } | Sort-Object)
-          $otherNames = @($other.labels | ForEach-Object { [string]$_.name } | Sort-Object)
-          Write-Host ('M2_POST_REFRESH_TARGET_LABELS=' + ($targetNames -join ','))
-          Write-Host ('M2_POST_REFRESH_OTHER_LABELS=' + ($otherNames -join ','))
-          if ($targetNames -notcontains 'a1-machine2-exact') { throw 'M2_POST_REFRESH_UNIQUE_LABEL_MISSING_ON_TARGET' }
-          if ($otherNames -contains 'a1-machine2-exact') { throw 'M2_POST_REFRESH_UNIQUE_LABEL_PRESENT_ON_OTHER' }
-          Write-Host 'M2_POST_REFRESH_UNIQUE_LABEL_PERSISTENCE_PASS=true'
+          $names = @($d.labels | ForEach-Object { [string]$_.name } | Sort-Object)
+          Write-Host ('M2_POST_REFRESH_OTHER_LABELS=' + ($names -join ','))
+          if ($names -contains 'a1-machine2-exact') { throw 'M2_POST_REFRESH_UNIQUE_LABEL_PRESENT_ON_OTHER' }
+          Write-Host 'M2_POST_REFRESH_OTHER_LABEL_EXCLUSION_PASS=true'
       - name: Non-target no mutation marker
         if: runner.name != 'A1-WINDOWS-COMPUTE-02'
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
@@ -45,24 +61,40 @@ jobs:
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 5
     steps:
-      - name: Read exact server-side label state only on target
+      - name: Target auth gate
+        if: runner.name == 'A1-WINDOWS-COMPUTE-02'
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
+          & gh auth status --hostname github.com
+          if ($LASTEXITCODE -ne 0) { throw 'M2_POST_REFRESH_LOCAL_GH_AUTH_FAILED' }
+      - name: Target label presence after reconnect
         if: runner.name == 'A1-WINDOWS-COMPUTE-02'
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
           Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
-          $target = ((& gh api 'repos/DontAsk3010/a1-clean-orchestration/actions/runners/32/labels') | ConvertFrom-Json)
+          $d = ((& gh api 'repos/DontAsk3010/a1-clean-orchestration/actions/runners/32/labels') | ConvertFrom-Json)
           if ($LASTEXITCODE -ne 0) { throw 'M2_POST_REFRESH_TARGET_LABEL_READ_FAILED' }
-          $other = ((& gh api 'repos/DontAsk3010/a1-clean-orchestration/actions/runners/31/labels') | ConvertFrom-Json)
+          $names = @($d.labels | ForEach-Object { [string]$_.name } | Sort-Object)
+          Write-Host ('M2_POST_REFRESH_TARGET_LABELS=' + ($names -join ','))
+          if ($names -notcontains 'a1-machine2-exact') { throw 'M2_POST_REFRESH_UNIQUE_LABEL_MISSING_ON_TARGET' }
+          Write-Host 'M2_POST_REFRESH_TARGET_LABEL_PRESENCE_PASS=true'
+      - name: Other runner label exclusion after reconnect
+        if: runner.name == 'A1-WINDOWS-COMPUTE-02'
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
+          $d = ((& gh api 'repos/DontAsk3010/a1-clean-orchestration/actions/runners/31/labels') | ConvertFrom-Json)
           if ($LASTEXITCODE -ne 0) { throw 'M2_POST_REFRESH_OTHER_LABEL_READ_FAILED' }
-          $targetNames = @($target.labels | ForEach-Object { [string]$_.name } | Sort-Object)
-          $otherNames = @($other.labels | ForEach-Object { [string]$_.name } | Sort-Object)
-          Write-Host ('M2_POST_REFRESH_TARGET_LABELS=' + ($targetNames -join ','))
-          Write-Host ('M2_POST_REFRESH_OTHER_LABELS=' + ($otherNames -join ','))
-          if ($targetNames -notcontains 'a1-machine2-exact') { throw 'M2_POST_REFRESH_UNIQUE_LABEL_MISSING_ON_TARGET' }
-          if ($otherNames -contains 'a1-machine2-exact') { throw 'M2_POST_REFRESH_UNIQUE_LABEL_PRESENT_ON_OTHER' }
-          Write-Host 'M2_POST_REFRESH_UNIQUE_LABEL_PERSISTENCE_PASS=true'
+          $names = @($d.labels | ForEach-Object { [string]$_.name } | Sort-Object)
+          Write-Host ('M2_POST_REFRESH_OTHER_LABELS=' + ($names -join ','))
+          if ($names -contains 'a1-machine2-exact') { throw 'M2_POST_REFRESH_UNIQUE_LABEL_PRESENT_ON_OTHER' }
+          Write-Host 'M2_POST_REFRESH_OTHER_LABEL_EXCLUSION_PASS=true'
       - name: Non-target no mutation marker
         if: runner.name != 'A1-WINDOWS-COMPUTE-02'
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
