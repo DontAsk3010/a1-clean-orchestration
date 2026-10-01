@@ -1,0 +1,42 @@
+name: Machine1 ALKA 2024-12-02 Current Evidence 20261002
+on:
+  push:
+    branches: [machine1/evidence-alka-20241202]
+    paths: [.github/workflows/machine1-alka-20241202-evidence-current-20261002.yml]
+permissions:
+  contents: read
+jobs:
+  extract-alka-date02:
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract exact governed ALKA Date02 source packet
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=$env:RAW_FILE; $first=60368; $last=60384; $expected=17
+          $md5=(Get-FileHash -LiteralPath $raw -Algorithm MD5).Hash.ToLowerInvariant()
+          $sha=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($md5 -ne 'b8d42b35c90d2dff8b18ae4e1734523b' -or $sha -ne '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'){throw 'RAW_HASH_MISMATCH'}
+          Add-Type -AssemblyName Microsoft.VisualBasic
+          $p=New-Object Microsoft.VisualBasic.FileIO.TextFieldParser($raw); $p.TextFieldType='Delimited'; $p.SetDelimiters(','); $p.HasFieldsEnclosedInQuotes=$true
+          try{$h=@($p.ReadFields());$rows=@();$n=0;while(-not $p.EndOfData -and $n -lt $last){$f=@($p.ReadFields());$n++;if($n -lt $first){continue};$r=[ordered]@{source_row=$n};for($i=0;$i -lt $h.Count;$i++){$r[$h[$i]]=if($i -lt $f.Count){$f[$i]}else{$null}};$rows+=[pscustomobject]$r}}finally{$p.Close()}
+          if($rows.Count -ne $expected){throw "ROW_COUNT_MISMATCH $($rows.Count)"}
+          if((Compare-Object ($first..$last) @($rows|%{[int]$_.source_row}))){throw 'SOURCE_ROW_SEQUENCE_MISMATCH'}
+          $t=@($rows|%{$_.RAW_TICKER}|Sort-Object -Unique);if($t.Count -ne 1 -or $t[0] -ne 'ALKA'){throw 'TICKER_MISMATCH'}
+          $dt=@($rows|%{$_.RAW_DATETIME_ISO});if(@($dt|?{-not $_.StartsWith('2024-12-02')}).Count){throw 'DATE_MISMATCH'}
+          if(([datetime]$dt[0]).ToString('HH:mm:ss') -ne '09:00:00' -or ([datetime]$dt[-1]).ToString('HH:mm:ss') -ne '15:29:00'){throw 'TIME_RANGE_MISMATCH'}
+          $out='machine1_alka_20241202_evidence_current';New-Item -ItemType Directory -Path $out -Force|Out-Null
+          $rowsPath=Join-Path $out 'ALKA_20241202_ROWS.jsonl';@($rows|%{$_|ConvertTo-Json -Compress -Depth 10})|Set-Content -LiteralPath $rowsPath -Encoding UTF8
+          $packet=[ordered]@{schema='A1_CLEAN_MACHINE1_CURRENT_REVALIDATION_SOURCE_PACKET_V1';ticker='ALKA';trading_date='2024-12-02';source_name='Raw Des 02-31-2024.csv';source_md5=$md5;source_sha256=$sha;source_row_first=$first;source_row_last=$last;data_rows=$rows.Count;first_datetime=$dt[0];last_datetime=$dt[-1];header_fields=$h;rows=$rows};$packetPath=Join-Path $out 'ALKA_20241202_PACKET.json';$packet|ConvertTo-Json -Depth 20|Set-Content -LiteralPath $packetPath -Encoding UTF8
+          $proof=[ordered]@{schema='A1_CLEAN_MACHINE1_CURRENT_REVALIDATION_SOURCE_PROOF_V1';ticker='ALKA';trading_date='2024-12-02';source_md5=$md5;source_sha256=$sha;source_row_first=$first;source_row_last=$last;data_rows=$rows.Count;first_datetime=$dt[0];last_datetime=$dt[-1];packet_sha256=(Get-FileHash $packetPath -Algorithm SHA256).Hash.ToLowerInvariant();rows_jsonl_sha256=(Get-FileHash $rowsPath -Algorithm SHA256).Hash.ToLowerInvariant();checkpoint_mutated=$false;drive_mutated=$false;next_ticker_opened=$false};$proof|ConvertTo-Json -Depth 10|Set-Content (Join-Path $out 'EVIDENCE_PROOF.json') -Encoding UTF8
+          Write-Host "ALKA_CURRENT_EVIDENCE_OK rows=$($rows.Count) source=$first-$last"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: machine1-alka-20241202-current-revalidation-evidence-20261002
+          path: machine1_alka_20241202_evidence_current/
+          if-no-files-found: error
+          retention-days: 7
