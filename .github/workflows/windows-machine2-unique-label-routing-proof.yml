@@ -13,13 +13,13 @@ permissions:
 
 jobs:
   exact_runner_proof:
-    name: Exact Machine2 runner proof
+    name: Exact Machine2 runner proof post-refresh
     runs-on: [self-hosted, windows, x64, a1-machine2-exact]
     timeout-minutes: 5
     steps:
-      - name: Require exact runner identity
+      - name: Require exact runner identity post-refresh
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           Write-Host "M2_UNIQUE_ROUTE_RUNNER_NAME=$env:RUNNER_NAME"
           if ($env:RUNNER_NAME -ne 'A1-WINDOWS-COMPUTE-02') { throw "M2_UNIQUE_ROUTE_WRONG_RUNNER:$env:RUNNER_NAME" }
-          Write-Host 'M2_UNIQUE_ROUTE_EXACT_RUNNER_PASS=true'
+          Write-Host 'M2_UNIQUE_ROUTE_EXACT_RUNNER_POST_REFRESH_PASS=true'
