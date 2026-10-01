@@ -1,0 +1,71 @@
+name: Windows Machine2 Refresh Target Listener
+
+on:
+  push:
+    branches:
+      - fix/v32-dynamic-source-universe-v1
+    paths:
+      - '.github/workflows/windows-machine2-refresh-target-listener.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-windows-machine2-refresh-target-listener
+  cancel-in-progress: true
+
+jobs:
+  refresh_a:
+    name: Target listener refresh candidate A
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 8
+    steps:
+      - name: Restart target listener only from non-target runner
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Write-Host "M2_REFRESH_EXECUTOR=$env:RUNNER_NAME"
+          if ($env:RUNNER_NAME -ne 'A1-WINDOWS-COMPUTE') {
+            Write-Host 'M2_REFRESH_NON_EXECUTOR_NO_MUTATION=true'
+            exit 0
+          }
+          $targets = @(Get-CimInstance Win32_Service | Where-Object { ([string]$_.PathName -match 'actions-runner-a1-02') })
+          if ($targets.Count -ne 1) { throw "M2_REFRESH_TARGET_SERVICE_CARDINALITY:$($targets.Count)" }
+          $name = [string]$targets[0].Name
+          Write-Host "M2_REFRESH_TARGET_SERVICE=$name"
+          Restart-Service -Name $name -Force
+          $deadline = (Get-Date).AddSeconds(30)
+          do {
+            Start-Sleep -Seconds 1
+            $svc = Get-Service -Name $name
+          } while ($svc.Status -ne 'Running' -and (Get-Date) -lt $deadline)
+          if ($svc.Status -ne 'Running') { throw "M2_REFRESH_TARGET_SERVICE_NOT_RUNNING:$($svc.Status)" }
+          Write-Host 'M2_REFRESH_TARGET_LISTENER_PASS=true'
+
+  refresh_b:
+    name: Target listener refresh candidate B
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 8
+    steps:
+      - name: Restart target listener only from non-target runner
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Write-Host "M2_REFRESH_EXECUTOR=$env:RUNNER_NAME"
+          if ($env:RUNNER_NAME -ne 'A1-WINDOWS-COMPUTE') {
+            Write-Host 'M2_REFRESH_NON_EXECUTOR_NO_MUTATION=true'
+            exit 0
+          }
+          $targets = @(Get-CimInstance Win32_Service | Where-Object { ([string]$_.PathName -match 'actions-runner-a1-02') })
+          if ($targets.Count -ne 1) { throw "M2_REFRESH_TARGET_SERVICE_CARDINALITY:$($targets.Count)" }
+          $name = [string]$targets[0].Name
+          Write-Host "M2_REFRESH_TARGET_SERVICE=$name"
+          Restart-Service -Name $name -Force
+          $deadline = (Get-Date).AddSeconds(30)
+          do {
+            Start-Sleep -Seconds 1
+            $svc = Get-Service -Name $name
+          } while ($svc.Status -ne 'Running' -and (Get-Date) -lt $deadline)
+          if ($svc.Status -ne 'Running') { throw "M2_REFRESH_TARGET_SERVICE_NOT_RUNNING:$($svc.Status)" }
+          Write-Host 'M2_REFRESH_TARGET_LISTENER_PASS=true'
