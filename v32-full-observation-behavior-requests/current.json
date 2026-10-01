@@ -1,11 +1,11 @@
 {
   "schema": "A1_V32_FULL_OBSERVATION_BEHAVIOR_REQUEST_V2",
-  "enabled": false,
-  "status": "OWNER_HOLD_CLARIFY_MASTER_READING_CONTRACT",
+  "enabled": true,
+  "status": "OWNER_AUTHORIZED_CURRENT_FULL_SCIENTIFIC_RESTART_FROM_BEGINNING",
   "owner_instruction_date": "2026-10-01",
-  "owner_instruction": "HOLD_HEAVY_EXECUTION_PRESERVE_VALID_REPAIRS_CLARIFY_MACHINE2_READING_AGAINST_CURRENT_MASTER_AND_OWNER_INTENT",
-  "reason": "Owner explicitly ordered Machine 2 heavy execution stopped while preserving valid repairs. Before any future restart authorization, the active request/code/schema/tests/checkpoint/PRESTART must be clarified and audited against the complete CURRENT Master and owner intent for full-depth Machine 2 reading. Existing valid repairs remain retained; no scientific PASS or completeness is inferred from prior workflow execution.",
-  "restart_authorized": false,
+  "owner_instruction": "FULL_MACHINE2_SCIENTIFIC_RESTART_FROM_BEGINNING_NO_OLD_PASS_SKIP",
+  "reason": "Owner requires Machine 2 to run now strictly from the CURRENT Master and owner reading intent, while preserving valid implementation repairs. Historical Machine-2 scientific PASS, derived output, semantic output, and checkpoint completion remain rejected as CURRENT completion. Representative evidence of material prior reading noncompliance is sufficient to reject inherited PASS globally; do not waste execution time auditing every old object before restart. Restart from the earliest governed eligible source/date/ticker/observation, reread/rederive/recompute every applicable CURRENT Master layer, use canonical RAW only as physical input after integrity proof, persist progressive exact checkpoints, and fail closed on any Master/authority/checkpoint mismatch.",
+  "restart_authorized": true,
   "restart_gate": "FRESH_CURRENT_AUTHORITY_PLUS_COVERAGE_MATRIX_PLUS_REQUEST_CODE_SCHEMA_TEST_PROGRESSIVE_CHECKPOINT_PRESTART_PASS_BEFORE_HEAVY_EXECUTION",
   "prestart_completeness_gate_required": true,
   "renewable_authority_sync_required": true,
@@ -53,7 +53,7 @@
   "mandatory_gap_policy": "ANY_CURRENT_MASTER_REQUIRED_DIMENSION_NOT_PROVEN_COMPLETE_IS_A_BLOCKING_MACHINE2_GAP_AND_MUST_BE_CLOSED_OR_EXPLICITLY_PROVEN_UNAVAILABLE_BEFORE_FULL_COMPLETENESS_CLAIM",
   "no_pass_claim": true,
   "machine2_master_coverage_matrix_document_id": "1ectLGXbaLBd2P-6Dk12PE7zhGk-fsyv0ZMPRNQXkwjU",
-  "machine2_master_coverage_matrix_revision_id": "ANLCKQkOmmKuW7gi5xQWiENDBpDzW9JYiomF5C5w2-InP4HswNE-vxo75c71CugUlvhW_X8OR-q68n7t5rwYYq_xbTwDROeJYdO5WK5Stcg",
+  "machine2_master_coverage_matrix_revision_id": "ANLCKQno7zY1_SNCp4Ja5AXEpW8ZL5OmjpvEtCZDiFl8kQdvBfX3gqXd2BKdqp8F3msenv4suXfCpw1YkxZDk-S44RJtX4agdU9jPY5SEaE",
   "master_handbook_document_id": "1FVWKgoeWU9MsnOd3i8HOpprg36XrxgKInf6BQU6QTKQ",
   "master_handbook_revision_id": "ANLCKQmUCdbzaxWct5uttUO9w9g7Zgao6rUV2dLT8hHt2Cc8BCLojtwo2xtWV7xVElMPKXI8FipzYpZ809VmDuN5LAx_F9xbZ5Sc3eI3Wbs",
   "source_capture_handbook_document_id": "12uknstiWZxoXeDk5r0Zd5iCRBQM4k3N9obSSLKWGG6M",
@@ -69,5 +69,5 @@
   "machine1_dispatch_registry_document_id": "1hI1HAksSGktmjL0sqB1SUhGDaS7NQILHdBoSnE2vR7Q",
   "machine1_dispatch_registry_revision_id": "ANLCKQkdTQW-76ezszZJL8w6CShW7bbzS4N6-j6raOwA0uTWaAm9Pyj4zUGc6IiJ6C8oKw2Ia3yy6QuF_UCHIS1jpGystrefjtBgRU4IFe8",
   "current_execution_document_id": "1AdtN9N7oIYwsHr_7-R6UzBREx9DJd4s291iZJou6GZU",
-  "current_execution_revision_id": "ANLCKQmjuGPZZ5-WntRq5gou7-lnVo1eDhkNHbggSzzjomdQQbW3xkB4ZhUUk1fNbioCHZJ8UHPvkE_9ZAUIS8mLPFKghPMlABT-xTIgC1s"
+  "current_execution_revision_id": "ANLCKQma67431-sGbDjwAy5-Jq8Xgk9VCVNsovDebdzvdL3T5nUTw0GtLmRUSEuDTADZgAsUxhwRDpPEYzOhK3wKJcrO7o7-1ZKPJ1vd5_k"
 }
