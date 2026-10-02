@@ -124,6 +124,11 @@ def _full_request() -> dict:
             _CURRENT_FULL_DEPTH_REVALIDATION_KEY: True,
             "sunk_compute_or_old_completion_exception_allowed": False,
             "no_pass_claim": True,
+            "deterministic_exact_runner_routing_required": True,
+            "deterministic_exact_runner_routing_proven": True,
+            "deterministic_exact_runner_name": "A1-WINDOWS-COMPUTE-02",
+            "deterministic_exact_runner_selector": "a1-machine2-exact-fixture",
+            "deterministic_exact_runner_routing_proof_sha256": "routing-proof-fixture",
             "machine2_master_coverage_matrix_document_id": "MATRIX",
             "machine2_master_coverage_matrix_revision_id": "MATRIX-REV",
         }
@@ -193,6 +198,32 @@ def test_full_observation_prestart_requires_owner_full_restart_contract():
     assert result["status"] == "PASS"
     assert result["machine2_full_scientific_restart_from_beginning_required"] is True
     assert result["old_pass_skip_allowed"] is False
+    assert result["deterministic_exact_runner_routing_proven"] is True
+    assert result["deterministic_exact_runner_name"] == "A1-WINDOWS-COMPUTE-02"
+
+
+def test_full_observation_prestart_rejects_unproven_deterministic_routing():
+    request = _full_request()
+    request["deterministic_exact_runner_routing_proven"] = False
+    with pytest.raises(RuntimeError, match="PRESTART_REQUEST_DETERMINISTIC_ROUTING_NOT_PROVEN"):
+        validate_dynamic_prestart(
+            request=request,
+            lock=_full_lock(),
+            source_universe=_source_manifest(),
+            require_enabled=False,
+        )
+
+
+def test_full_observation_prestart_rejects_missing_deterministic_routing_proof_digest():
+    request = _full_request()
+    request["deterministic_exact_runner_routing_proof_sha256"] = None
+    with pytest.raises(RuntimeError, match="PRESTART_REQUEST_DETERMINISTIC_ROUTING_PROOF_DIGEST_MISSING"):
+        validate_dynamic_prestart(
+            request=request,
+            lock=_full_lock(),
+            source_universe=_source_manifest(),
+            require_enabled=False,
+        )
 
 
 def test_full_observation_prestart_requires_current_v3_full_depth_revalidation_key():

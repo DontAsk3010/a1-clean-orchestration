@@ -48,6 +48,8 @@ _LOCK_RESTART_FALSE = (
     "machine2_sunk_cost_exception_allowed",
 )
 
+_EXACT_MACHINE2_RUNNER = "A1-WINDOWS-COMPUTE-02"
+
 
 def _load(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -85,6 +87,21 @@ def _validate_full_restart_contract(request: dict[str, Any], lock: dict[str, Any
         raise RuntimeError("PRESTART_REQUEST_RESTART_CURSOR_AUTHORITY_FAIL")
     if request.get("no_pass_claim") is not True:
         raise RuntimeError("PRESTART_REQUEST_NO_PASS_CLAIM_FAIL")
+
+    # CURRENT Automation authority requires PRESTART itself to fail closed until
+    # GitHub's scheduler is bound to a server-side selector that resolves only
+    # the exact Machine-2 runner. A post-scheduling RUNNER_NAME check is not a
+    # substitute for deterministic routing proof.
+    if request.get("deterministic_exact_runner_routing_required") is not True:
+        raise RuntimeError("PRESTART_REQUEST_DETERMINISTIC_ROUTING_REQUIREMENT_MISSING")
+    if request.get("deterministic_exact_runner_routing_proven") is not True:
+        raise RuntimeError("PRESTART_REQUEST_DETERMINISTIC_ROUTING_NOT_PROVEN")
+    if str(request.get("deterministic_exact_runner_name") or "") != _EXACT_MACHINE2_RUNNER:
+        raise RuntimeError("PRESTART_REQUEST_EXACT_RUNNER_IDENTITY_DRIFT")
+    if not str(request.get("deterministic_exact_runner_selector") or ""):
+        raise RuntimeError("PRESTART_REQUEST_DETERMINISTIC_ROUTING_SELECTOR_MISSING")
+    if not str(request.get("deterministic_exact_runner_routing_proof_sha256") or ""):
+        raise RuntimeError("PRESTART_REQUEST_DETERMINISTIC_ROUTING_PROOF_DIGEST_MISSING")
 
     documents = dict(lock.get("documents") or {})
     matrix = dict(documents.get("machine2_master_coverage_matrix") or {})
@@ -166,7 +183,7 @@ def validate_dynamic_prestart(
     if int(source_universe.get("source_count", -1)) != len(names):
         raise RuntimeError("PRESTART_SOURCE_UNIVERSE_COUNT_DRIFT")
 
-    return {
+    result = {
         "status": "PASS",
         "request_schema": request.get("schema"),
         "request_enabled": request.get("enabled"),
@@ -182,6 +199,18 @@ def validate_dynamic_prestart(
         "old_pass_skip_allowed": bool(request.get("old_pass_may_skip_current_reading_unit")),
         "formula_stage": "CLOSED",
     }
+    if _is_full_observation_request(request):
+        result.update(
+            {
+                "deterministic_exact_runner_routing_proven": True,
+                "deterministic_exact_runner_name": request.get("deterministic_exact_runner_name"),
+                "deterministic_exact_runner_selector": request.get("deterministic_exact_runner_selector"),
+                "deterministic_exact_runner_routing_proof_sha256": request.get(
+                    "deterministic_exact_runner_routing_proof_sha256"
+                ),
+            }
+        )
+    return result
 
 
 def main() -> int:
