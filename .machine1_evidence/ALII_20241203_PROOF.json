@@ -1,0 +1,17 @@
+{
+    "audit_type":  "OWNER_FULL_MASTER_REREAD_RESET_20260930",
+    "ticker":  "ALII",
+    "trading_date":  "2024-12-03",
+    "recovered_date_local_index":  27,
+    "source_name":  "Raw Des 02-31-2024.csv",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  54290,
+    "source_row_last":  54344,
+    "data_rows":  55,
+    "first_datetime":  "2024-12-03 09:07:00",
+    "last_datetime":  "2024-12-03 16:06:00",
+    "rows_jsonl_sha256":  "6a16a5375e4db87227e7db90022a3e3575548bb388f5da5b567f7acfcfdf765d",
+    "semantic_status":  "TRANSPORT_ONLY_NOT_SEMANTIC_COMPLETE",
+    "formula_stage":  "CLOSED",
+    "date_advance":  "PROHIBITED"
+}
