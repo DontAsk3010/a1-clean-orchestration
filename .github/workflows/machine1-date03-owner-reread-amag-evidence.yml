@@ -1,0 +1,67 @@
+name: Machine1 Date03 Owner Full Reread AMAG Evidence
+on:
+  push:
+    branches: [machine1/evidence-kbatch-20241203]
+    paths: [.github/workflows/machine1-date03-owner-reread-amag-evidence.yml]
+permissions:
+  contents: write
+jobs:
+  extract:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract exact AMAG Date03 source rows for owner full reread
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=[System.IO.Path]::GetFullPath($env:RAW_FILE)
+          $expected='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          if(-not(Test-Path -LiteralPath $raw -PathType Leaf)){throw 'RAW_MISSING'}
+          $got=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($got -ne $expected){throw "RAW_HASH_MISMATCH $got"}
+          $first=60620;$last=60654;$count=35;$ticker='AMAG'
+          $header=$null;$lines=New-Object 'System.Collections.Generic.List[string]';$i=0
+          foreach($line in [System.IO.File]::ReadLines($raw,[System.Text.Encoding]::UTF8)){
+            if($i -eq 0){$header=$line}
+            if($i -ge $first -and $i -le $last){[void]$lines.Add($line)}
+            if($i -ge $last){break};$i++
+          }
+          if($lines.Count -ne $count){throw "COUNT got=$($lines.Count) expected=$count"}
+          $parsed=@((@($header)+@($lines))|ConvertFrom-Csv)
+          if($parsed.Count -ne $count){throw 'PARSE_COUNT'}
+          $records=@()
+          for($n=0;$n -lt $parsed.Count;$n++){$o=[ordered]@{source_row=$first+$n};foreach($p in $parsed[$n].PSObject.Properties.Name){$o[$p]=[string]$parsed[$n].$p};$records+=[pscustomobject]$o}
+          $ts=@($records|%{$_.RAW_TICKER}|Sort-Object -Unique)
+          if($ts.Count-ne1-or$ts[0]-ne$ticker){throw "TICKER $($ts -join ',')"}
+          $dts=@($records|%{[string]$_.RAW_DATETIME_ISO})
+          if(@($dts|?{-not $_.StartsWith('2024-12-03')}).Count-gt0){throw 'DATE_MISMATCH'}
+          $firstClock=([datetime]$dts[0]).ToString('HH:mm:ss');$lastClock=([datetime]$dts[-1]).ToString('HH:mm:ss')
+          if($firstClock-ne'09:00:00'-or$lastClock-ne'16:10:00'){throw "CLOCK_RANGE $firstClock-$lastClock"}
+          $out=Join-Path $PWD 'machine1_date03_owner_reread_amag';New-Item -ItemType Directory -Force $out|Out-Null
+          $enc=New-Object System.Text.UTF8Encoding($false)
+          $rp=Join-Path $out 'AMAG_20241203_ROWS.jsonl'
+          [System.IO.File]::WriteAllLines($rp,[string[]]@($records|%{$_|ConvertTo-Json -Compress -Depth 8}),$enc)
+          $proof=[ordered]@{audit_type='OWNER_FULL_MASTER_REREAD_RESET_20260930';ticker='AMAG';trading_date='2024-12-03';recovered_date_local_index=30;source_name='Raw Des 02-31-2024.csv';source_sha256=$got;source_row_first=$first;source_row_last=$last;data_rows=$records.Count;first_datetime=$dts[0];last_datetime=$dts[-1];rows_jsonl_sha256=(Get-FileHash $rp -Algorithm SHA256).Hash.ToLowerInvariant();semantic_status='TRANSPORT_ONLY_NOT_SEMANTIC_COMPLETE';formula_stage='CLOSED';date_advance='PROHIBITED'}
+          [System.IO.File]::WriteAllText((Join-Path $out 'AMAG_20241203_PROOF.json'),($proof|ConvertTo-Json -Depth 10),$enc)
+          Write-Host "AMAG_OWNER_REREAD_EVIDENCE_OK rows=$($records.Count) first=$($dts[0]) last=$($dts[-1])"
+      - name: Upload governed AMAG owner reread evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date03-owner-reread-amag-evidence
+          path: machine1_date03_owner_reread_amag/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Persist transport evidence
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item -ItemType Directory -Force '.machine1_evidence'|Out-Null
+          Copy-Item 'machine1_date03_owner_reread_amag/*' '.machine1_evidence/' -Force
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add -f '.machine1_evidence/AMAG_20241203_ROWS.jsonl' '.machine1_evidence/AMAG_20241203_PROOF.json'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m 'Persist governed AMAG Date03 owner full-reread evidence [skip ci]'
+          git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-kbatch-20241203
