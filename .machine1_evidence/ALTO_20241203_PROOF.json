@@ -1,0 +1,17 @@
+{
+    "audit_type":  "OWNER_FULL_MASTER_REREAD_RESET_20260930",
+    "ticker":  "ALTO",
+    "trading_date":  "2024-12-03",
+    "recovered_date_local_index":  29,
+    "source_name":  "Raw Des 02-31-2024.csv",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  60299,
+    "source_row_last":  60304,
+    "data_rows":  6,
+    "first_datetime":  "2024-12-03 09:55:00",
+    "last_datetime":  "2024-12-03 16:09:00",
+    "rows_jsonl_sha256":  "7c72f394d6f197cabf966448643b03d6e25bf5293050d338e7e6cc8fe221a959",
+    "semantic_status":  "TRANSPORT_ONLY_NOT_SEMANTIC_COMPLETE",
+    "formula_stage":  "CLOSED",
+    "date_advance":  "PROHIBITED"
+}
