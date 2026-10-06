@@ -6,7 +6,7 @@ import os
 
 DRIVE_READONLY_SCOPE = "https://www.googleapis.com/auth/drive.readonly"
 DRIVE_READWRITE_SCOPE = "https://www.googleapis.com/auth/drive"
-DEFAULT_DRIVE_HTTP_TIMEOUT_SECONDS = 180
+DEFAULT_DRIVE_HTTP_TIMEOUT_SECONDS = 360
 
 
 def _drive_http_timeout_seconds() -> int:
