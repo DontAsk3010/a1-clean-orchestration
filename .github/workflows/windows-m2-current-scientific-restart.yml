@@ -20,6 +20,7 @@ on:
       - 'tests/test_v32_dynamic_prestart.py'
       - 'tests/test_authority_bootstrap.py'
   # Recovery trigger after Writer OAuth reauthorization and exact Drive guardrail PASS; execution logic unchanged.
+  # Recovery trigger after BOM-safe credential loader repair; execution logic unchanged.
   workflow_dispatch:
 
 permissions:
