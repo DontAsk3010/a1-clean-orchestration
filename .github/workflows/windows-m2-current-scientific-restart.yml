@@ -19,6 +19,7 @@ on:
       - 'tests/test_source_universe_semantic_date_reconcile.py'
       - 'tests/test_v32_dynamic_prestart.py'
       - 'tests/test_authority_bootstrap.py'
+  # Recovery trigger after Writer OAuth reauthorization and exact Drive guardrail PASS; execution logic unchanged.
   workflow_dispatch:
 
 permissions:
