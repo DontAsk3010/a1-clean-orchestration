@@ -35,8 +35,11 @@ jobs:
     name: Machine2 CURRENT restart candidate ${{ matrix.lane }}
     strategy:
       fail-fast: false
+      # CURRENT durable state is single-writer. Transient Drive failures are
+      # retried/reconciled inside Machine2CurrentStore; a second heavy lane would
+      # compete for the same exact-head generation checkpoint.
       matrix:
-        lane: [A, B]
+        lane: [A]
     runs-on: [self-hosted, windows, x64, a1-machine2-exact]
     timeout-minutes: 720
     env:
@@ -114,7 +117,8 @@ jobs:
             tests/test_source_universe_manifest.py `
             tests/test_source_universe_semantic_date_reconcile.py `
             tests/test_v32_dynamic_prestart.py `
-            tests/test_v32_current_scientific_restart.py
+            tests/test_v32_current_scientific_restart.py `
+            tests/test_machine2_current_store_generation.py
           if ($LASTEXITCODE -ne 0) { throw 'M2_CURRENT_CONTRACT_TEST_FAILED' }
 
       - name: Validate CURRENT atomic restart execution contract

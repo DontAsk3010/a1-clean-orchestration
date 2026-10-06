@@ -6,6 +6,18 @@ import os
 
 DRIVE_READONLY_SCOPE = "https://www.googleapis.com/auth/drive.readonly"
 DRIVE_READWRITE_SCOPE = "https://www.googleapis.com/auth/drive"
+DEFAULT_DRIVE_HTTP_TIMEOUT_SECONDS = 180
+
+
+def _drive_http_timeout_seconds() -> int:
+    raw = str(os.environ.get("A1_DRIVE_HTTP_TIMEOUT_SECONDS") or DEFAULT_DRIVE_HTTP_TIMEOUT_SECONDS).strip()
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise RuntimeError("A1_DRIVE_HTTP_TIMEOUT_SECONDS_INVALID") from exc
+    if value < 30 or value > 900:
+        raise RuntimeError("A1_DRIVE_HTTP_TIMEOUT_SECONDS_OUT_OF_RANGE")
+    return value
 
 
 def _credential_path_for_mode(*, read_write: bool) -> str | None:
@@ -56,11 +68,17 @@ def _load_credentials(scopes: list[str], *, read_write: bool):
 
 
 def build_drive_api(*, read_write: bool = False):
+    import httplib2
+    from google_auth_httplib2 import AuthorizedHttp
     from googleapiclient.discovery import build
 
     scopes = [DRIVE_READWRITE_SCOPE if read_write else DRIVE_READONLY_SCOPE]
     creds = _load_credentials(scopes, read_write=read_write)
-    return build("drive", "v3", credentials=creds, cache_discovery=False)
+    http = AuthorizedHttp(
+        creds,
+        http=httplib2.Http(timeout=_drive_http_timeout_seconds()),
+    )
+    return build("drive", "v3", http=http, cache_discovery=False)
 
 
 def build_docs_api():

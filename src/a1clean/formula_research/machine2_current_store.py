@@ -5,8 +5,10 @@ import io
 import json
 import os
 import re
-from typing import Any, Mapping
+import time
+from typing import Any, Callable, Mapping, TypeVar
 
+from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseUpload
 
 from ..source_parity import _download_bytes, _list_children
@@ -28,6 +30,29 @@ _GENERATION_SCOPED_FOLDERS = frozenset(
     }
 )
 _EXACT_GIT_SHA = re.compile(r"^[0-9a-fA-F]{40}$")
+_DRIVE_RETRY_DELAYS_SECONDS = (0.0, 2.0, 5.0, 10.0, 20.0)
+_DRIVE_AMBIGUOUS_CREATE_RECONCILE_DELAYS_SECONDS = (2.0, 5.0, 10.0)
+_T = TypeVar("_T")
+
+
+def _is_retryable_drive_transport_error(exc: BaseException) -> bool:
+    if isinstance(exc, (TimeoutError, ConnectionError)):
+        return True
+    if isinstance(exc, HttpError):
+        status = int(getattr(exc.resp, "status", 0) or 0)
+        return status in {408, 429, 500, 502, 503, 504}
+    message = str(exc).lower()
+    return any(
+        token in message
+        for token in (
+            "timed out",
+            "timeout",
+            "connection reset",
+            "connection aborted",
+            "remote end closed",
+            "temporarily unavailable",
+        )
+    )
 
 
 def canonical_json_bytes(obj: Any) -> bytes:
@@ -98,11 +123,42 @@ class Machine2CurrentStore:
     def __init__(self, writer_api):
         self.api = writer_api
 
+    def _transport_call(
+        self,
+        operation: str,
+        call: Callable[[], _T],
+        *,
+        delays: tuple[float, ...] = _DRIVE_RETRY_DELAYS_SECONDS,
+    ) -> _T:
+        last_exc: BaseException | None = None
+        for attempt, delay in enumerate(delays, start=1):
+            if delay:
+                time.sleep(delay)
+            try:
+                return call()
+            except BaseException as exc:
+                if not _is_retryable_drive_transport_error(exc):
+                    raise
+                last_exc = exc
+                print(
+                    "M2_CURRENT_DRIVE_TRANSPORT_RETRY"
+                    f"|operation={operation}|attempt={attempt}|max_attempts={len(delays)}"
+                    f"|error={type(exc).__name__}",
+                    flush=True,
+                )
+                if attempt == len(delays):
+                    raise
+        assert last_exc is not None
+        raise last_exc
+
     def _items(self, folder_id: str) -> list[dict[str, Any]]:
-        return _list_children(
-            self.api,
-            folder_id,
-            fields="id,name,mimeType,size,md5Checksum,modifiedTime,parents",
+        return self._transport_call(
+            f"list_children:{folder_id}",
+            lambda: _list_children(
+                self.api,
+                folder_id,
+                fields="id,name,mimeType,size,md5Checksum,modifiedTime,parents",
+            ),
         )
 
     def get_optional(self, folder_id: str, name: str) -> dict[str, Any] | None:
@@ -115,7 +171,11 @@ class Machine2CurrentStore:
         return matches[0]
 
     def read_bytes(self, item: Mapping[str, Any]) -> bytes:
-        return _download_bytes(self.api, str(item["id"]))
+        file_id = str(item["id"])
+        return self._transport_call(
+            f"read_bytes:{file_id}",
+            lambda: _download_bytes(self.api, file_id),
+        )
 
     def read_json_optional(self, folder_id: str, name: str) -> dict[str, Any] | None:
         item = self.get_optional(folder_id, name)
@@ -129,41 +189,128 @@ class Machine2CurrentStore:
             raise RuntimeError(f"M2_CURRENT_JSON_NOT_OBJECT:{name}")
         return obj
 
+    def _write_receipt(
+        self,
+        *,
+        item: Mapping[str, Any],
+        physical_name: str,
+        logical_name: str,
+        data: bytes,
+    ) -> dict[str, Any]:
+        return {
+            "id": str(item["id"]),
+            "name": physical_name,
+            "logical_name": logical_name,
+            "execution_generation_id": current_execution_generation_id()
+            if physical_name != logical_name
+            else None,
+            "size": len(data),
+            "sha256": sha256_bytes(data),
+            "md5": item.get("md5Checksum"),
+            "parents": item.get("parents"),
+        }
+
+    def _exact_readback_or_none(
+        self,
+        *,
+        folder_id: str,
+        physical_name: str,
+        data: bytes,
+    ) -> dict[str, Any] | None:
+        item = self.get_optional(folder_id, physical_name)
+        if item is None:
+            return None
+        readback = self.read_bytes(item)
+        if readback == data and sha256_bytes(readback) == sha256_bytes(data):
+            return item
+        return None
+
     def upsert_bytes(self, *, folder_id: str, name: str, data: bytes, mime_type: str) -> dict[str, Any]:
         physical_name = physical_name_for_current_execution(folder_id, name)
-        existing = self.get_optional(folder_id, physical_name)
-        media = MediaIoBaseUpload(io.BytesIO(data), mimetype=mime_type, resumable=False)
-        if existing is None:
-            result = self.api.files().create(
-                body={"name": physical_name, "parents": [folder_id]},
-                media_body=media,
-                fields="id,name,size,md5Checksum,parents,mimeType",
-                supportsAllDrives=True,
-            ).execute()
-        else:
-            result = self.api.files().update(
-                fileId=str(existing["id"]),
-                media_body=media,
-                fields="id,name,size,md5Checksum,parents,mimeType",
-                supportsAllDrives=True,
-            ).execute()
-        readback = self.read_bytes({"id": result["id"]})
         expected = sha256_bytes(data)
+        existing = self.get_optional(folder_id, physical_name)
+
+        # An already-committed exact object is a successful idempotent replay.
+        if existing is not None:
+            readback = self.read_bytes(existing)
+            if readback == data and sha256_bytes(readback) == expected:
+                return self._write_receipt(
+                    item=existing,
+                    physical_name=physical_name,
+                    logical_name=name,
+                    data=data,
+                )
+
+        if existing is None:
+            # CREATE cannot be blindly retried after a lost response because that
+            # can create a duplicate object. Reconcile the exact physical name first.
+            try:
+                result = self.api.files().create(
+                    body={"name": physical_name, "parents": [folder_id]},
+                    media_body=MediaIoBaseUpload(io.BytesIO(data), mimetype=mime_type, resumable=False),
+                    fields="id,name,size,md5Checksum,parents,mimeType",
+                    supportsAllDrives=True,
+                ).execute()
+            except BaseException as exc:
+                if not _is_retryable_drive_transport_error(exc):
+                    raise
+                print(
+                    "M2_CURRENT_DRIVE_CREATE_RESPONSE_AMBIGUOUS"
+                    f"|name={physical_name}|error={type(exc).__name__}",
+                    flush=True,
+                )
+                for delay in _DRIVE_AMBIGUOUS_CREATE_RECONCILE_DELAYS_SECONDS:
+                    time.sleep(delay)
+                    committed = self._exact_readback_or_none(
+                        folder_id=folder_id,
+                        physical_name=physical_name,
+                        data=data,
+                    )
+                    if committed is not None:
+                        print(
+                            f"M2_CURRENT_DRIVE_CREATE_RECONCILED_PASS|name={physical_name}",
+                            flush=True,
+                        )
+                        return self._write_receipt(
+                            item=committed,
+                            physical_name=physical_name,
+                            logical_name=name,
+                            data=data,
+                        )
+                raise RuntimeError(
+                    f"M2_CURRENT_DRIVE_CREATE_AMBIGUOUS_HOLD:{physical_name}"
+                ) from exc
+        else:
+            # UPDATE is safe to retry because every attempt targets the same Drive
+            # file id with identical bytes. This is the path used by progressive
+            # checkpointing after the initial checkpoint object exists.
+            file_id = str(existing["id"])
+
+            def _update_once() -> dict[str, Any]:
+                media = MediaIoBaseUpload(io.BytesIO(data), mimetype=mime_type, resumable=False)
+                return self.api.files().update(
+                    fileId=file_id,
+                    media_body=media,
+                    fields="id,name,size,md5Checksum,parents,mimeType",
+                    supportsAllDrives=True,
+                ).execute()
+
+            result = self._transport_call(
+                f"update:{file_id}:{physical_name}",
+                _update_once,
+            )
+
+        # Readback itself is retry-protected and never causes a second CREATE.
+        readback = self.read_bytes({"id": result["id"]})
         actual = sha256_bytes(readback)
         if readback != data or expected != actual:
             raise RuntimeError(f"M2_CURRENT_WRITE_READBACK_MISMATCH:{physical_name}:{expected}:{actual}")
-        return {
-            "id": str(result["id"]),
-            "name": physical_name,
-            "logical_name": name,
-            "execution_generation_id": current_execution_generation_id()
-            if physical_name != name
-            else None,
-            "size": len(data),
-            "sha256": expected,
-            "md5": result.get("md5Checksum"),
-            "parents": result.get("parents"),
-        }
+        return self._write_receipt(
+            item=result,
+            physical_name=physical_name,
+            logical_name=name,
+            data=data,
+        )
 
     def upsert_json(self, *, folder_id: str, name: str, obj: Any) -> dict[str, Any]:
         return self.upsert_bytes(
