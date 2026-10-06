@@ -31,13 +31,7 @@ jobs:
               -H 'Accept: application/vnd.github+json' \
               -H 'X-GitHub-Api-Version: 2022-11-28' \
               "${api}/actions/workflows/${wf}/runs?branch=${BRANCH}&per_page=100" > runs.json
-            python - <<'PY' > run_ids.txt
-import json
-d=json.load(open('runs.json',encoding='utf-8'))
-for r in d.get('workflow_runs',[]):
-    if r.get('status') in {'queued','in_progress','waiting','pending','requested'}:
-        print(r['id'])
-PY
+            jq -r '.workflow_runs[] | select(.status=="queued" or .status=="in_progress" or .status=="waiting" or .status=="pending" or .status=="requested") | .id' runs.json > run_ids.txt
             while IFS= read -r rid; do
               [ -n "${rid}" ] || continue
               code="$(curl -sS -o /tmp/cancel.out -w '%{http_code}' -X POST \
