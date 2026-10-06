@@ -1,0 +1,19 @@
+{
+  "bootstrap_run_id": 37422306244,
+  "bootstrap_trigger_head_sha": "e98149ba9e132ffbb67dabb15dc8b1c5b1aa3761",
+  "branch": "fix/v32-dynamic-source-universe-v1",
+  "computer_identity_exact": true,
+  "generated_utc": "2026-10-06T06:33:30Z",
+  "listener_running": true,
+  "observed_computer_name": "PORSCHE-DESIGN",
+  "observed_listener_service_name": "actions.runner.DontAsk3010-a1-clean-orchestration.A1-WINDOWS-COMPUTE-02",
+  "observed_listener_service_state": "Running",
+  "observed_runner_name": "A1-WINDOWS-COMPUTE-02",
+  "repository": "DontAsk3010/a1-clean-orchestration",
+  "runner_identity_exact": true,
+  "schema": "A1_MACHINE2_EXACT_ROUTING_PROOF_V1",
+  "selector": "self-hosted,windows,x64,a1-machine2-exact",
+  "shared_parity_selector_used": false,
+  "status": "PASS",
+  "target_runner_name": "A1-WINDOWS-COMPUTE-02"
+}
