@@ -34,7 +34,7 @@ concurrency:
 jobs:
   lane_a:
     name: Dynamic PRESTART lane A
-    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    runs-on: [self-hosted, windows, x64, a1-machine2-exact]
     timeout-minutes: 30
     outputs:
       target_pass: ${{ steps.mark.outputs.target_pass }}
@@ -201,7 +201,7 @@ jobs:
 
   lane_b:
     name: Dynamic PRESTART lane B
-    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    runs-on: [self-hosted, windows, x64, a1-machine2-exact]
     timeout-minutes: 30
     outputs:
       target_pass: ${{ steps.mark.outputs.target_pass }}

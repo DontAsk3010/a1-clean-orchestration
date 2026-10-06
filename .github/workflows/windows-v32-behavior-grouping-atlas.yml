@@ -18,7 +18,7 @@ concurrency:
 jobs:
   grouping:
     name: Dynamic-source authority-bound temporal/blindspot grouping
-    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    runs-on: [self-hosted, windows, x64, a1-machine2-exact]
     timeout-minutes: 4320
     env:
       PSExecutionPolicyPreference: Bypass
