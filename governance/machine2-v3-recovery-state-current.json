@@ -126,35 +126,15 @@
     },
     "runner_private_oauth_material_direct_extraction": "NOT_USED_SAFETY_AND_AUTHORITY_BOUNDARY",
     "supported_remaining_route": "GITHUB_REPOSITORY_RUNNER_ADMINISTRATION_BY_AUTHORIZED_OWNER_ADMIN",
-    "repo_secret_runner_admin_remediation": {
-      "commit": "d3859adc20a5de7d022f8e7d62101f7d741b0aef",
-      "workflow": ".github/workflows/windows-machine2-runner-label-remediation.yml",
-      "run_id": 37409226801,
-      "pass": false,
-      "result": "MISSING_A1_GITHUB_RUNNER_ADMIN_TOKEN",
-      "label_mutation_proven": false,
-      "exact_route_proof_run": false
-    },
-    "local_bound_runner_admin_remediation": {
-      "commit": "9718a5fab04c0dcbb1a0c97946f17a7a621ed042",
-      "workflow": ".github/workflows/windows-machine2-runner-local-admin-remediation.yml",
-      "run_id": 37409396747,
-      "runner31_probe_job_ids": [
-        112094186161,
-        112094186452
+    "failed_remediation_artifacts_cleanup": {
+      "status": "PHYSICALLY_DELETED",
+      "deleted_paths": [
+        ".github/workflows/windows-machine2-runner-label-remediation.yml",
+        ".github/workflows/windows-machine2-runner-local-admin-remediation.yml",
+        "scripts/windows/Set-A1Machine2ExactRunnerLabel.ps1"
       ],
-      "runner31_probe_steps_pass": false,
-      "authorized_bound_admin_credential_proven": false,
-      "label_mutation_proven": false,
-      "exact_route_proof_run": false
-    },
-    "prepared_idempotent_owner_admin_script": {
-      "commit": "a769d07744bdf3e5b72dc0c2378f05d6bd292ce8",
-      "path": "scripts/windows/Set-A1Machine2ExactRunnerLabel.ps1",
-      "target_runner_name": "A1-WINDOWS-COMPUTE-02",
-      "target_label": "a1-machine2-exact",
-      "requires_external_authorized_admin_credential": true,
-      "credential_value_must_not_be_stored_in_repo_chat_or_evidence": true
+      "reason": "UNUSED_FAILED_REMEDIATION_PATHS_NO_ACTIVE_DEPENDENCY",
+      "hidden_or_archive_parking_used": false
     }
   },
   "storage_generation_repair": {
@@ -263,5 +243,5 @@
   "grouping": "HOLD",
   "formula_stage": "CLOSED",
   "higher_pass_claim": false,
-  "next_exact_action": "Provide one authorized GitHub repository runner-administration credential outside repo/chat, either as repository secret A1_GITHUB_RUNNER_ADMIN_TOKEN for the prepared remediation workflow or as local environment variable A1_GITHUB_RUNNER_ADMIN_TOKEN for scripts/windows/Set-A1Machine2ExactRunnerLabel.ps1; assign and preserve unique label a1-machine2-exact on agent 32 / A1-WINDOWS-COMPUTE-02; prove server-side uniqueness and exact selector routing; only then fresh-read CURRENT authority/source universe, run exact-HEAD PRESTART, runtime generation-scoped checkpoint write/readback, and resume V3 scientific restart from the earliest governed eligible source/date/ticker/observation."
+  "next_exact_action": "Use the existing proven Machine2 data-pull path and keep scientific scope unchanged. Resolve only the minimum exact-runner routing gate without introducing a new token/remediation subsystem; then fresh-read CURRENT authority/source universe, run exact-HEAD PRESTART, validate generation-scoped runtime checkpoint write/readback, and restart V3 scientific processing from the earliest governed eligible source/date/ticker/observation."
 }
