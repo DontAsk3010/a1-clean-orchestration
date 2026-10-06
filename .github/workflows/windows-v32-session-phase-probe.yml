@@ -17,7 +17,7 @@ concurrency:
 jobs:
   probe:
     name: Probe full semantic packet session fields
-    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    runs-on: [self-hosted, windows, x64, a1-machine2-exact]
     timeout-minutes: 120
     env:
       A1_RAW_DIR: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI'
