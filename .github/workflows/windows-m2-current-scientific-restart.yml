@@ -44,6 +44,7 @@ jobs:
     timeout-minutes: 720
     env:
       PSExecutionPolicyPreference: Bypass
+      A1_DRIVE_HTTP_TIMEOUT_SECONDS: "360"
     steps:
       - uses: actions/checkout@v4
         with:
