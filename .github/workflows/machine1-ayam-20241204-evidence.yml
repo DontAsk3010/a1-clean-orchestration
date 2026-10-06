@@ -1,9 +1,9 @@
-name: Machine1 BAUT 2024-12-05 Governed Evidence Extract
+name: Machine1 BAYU 2024-12-05 Governed Evidence Extract
 
 on:
   push:
     branches:
-      - machine1/evidence-baut-20241205-recovery
+      - machine1/evidence-bayu-20241205-recovery
     paths:
       - .github/workflows/machine1-ayam-20241204-evidence.yml
 
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  extract-baut:
+  extract-bayu:
     runs-on: [self-hosted, windows, x64, a1-clean-parity]
     timeout-minutes: 30
     env:
@@ -19,15 +19,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Extract exact governed BAUT packet
+      - name: Extract exact governed BAYU packet
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference='Stop'
           $raw=$env:RAW_FILE
-          $tickerExpected='BAUT'; $tradingDate='2024-12-05'
-          $sourceFirst=154523; $sourceLast=154528; $expectedCount=6
-          $expectedFirstTime='09:55:00'; $expectedLastTime='16:05:00'
-          $semanticBundle='Raw Des 02-31-2024__SEMANTIC_0014.jsonl'; $semanticBundleLine=163
+          $tickerExpected='BAYU'; $tradingDate='2024-12-05'
+          $sourceFirst=154697; $sourceLast=154719; $expectedCount=23
+          $expectedFirstTime='09:14:00'; $expectedLastTime='16:00:00'
+          $semanticBundle='Raw Des 02-31-2024__SEMANTIC_0014.jsonl'; $semanticBundleLine=164
           $expectedMd5='b8d42b35c90d2dff8b18ae4e1734523b'
           $expectedSha256='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
           if(-not(Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING: $raw"}
@@ -54,19 +54,19 @@ jobs:
           $dts=@($rows|%{$_.RAW_DATETIME_ISO}); if(@($dts|?{-not$_.StartsWith($tradingDate)}).Count-ne0){throw 'DATE_MISMATCH'}
           function Clock([string]$dt){if($dt.Contains('T')){return $dt.Split('T')[1].Substring(0,8)};return $dt.Split(' ')[-1].Substring(0,8)}
           if((Clock $dts[0])-ne$expectedFirstTime-or(Clock $dts[-1])-ne$expectedLastTime){throw 'TIME_RANGE_MISMATCH'}
-          $out=Join-Path $PWD 'machine1_baut_20241205_evidence';New-Item -ItemType Directory -Force -Path $out|Out-Null
-          $utf8=New-Object System.Text.UTF8Encoding($false);$rowsPath=Join-Path $out 'BAUT_20241205_ROWS.jsonl';$w=New-Object IO.StreamWriter($rowsPath,$false,$utf8)
+          $out=Join-Path $PWD 'machine1_bayu_20241205_evidence';New-Item -ItemType Directory -Force -Path $out|Out-Null
+          $utf8=New-Object System.Text.UTF8Encoding($false);$rowsPath=Join-Path $out 'BAYU_20241205_ROWS.jsonl';$w=New-Object IO.StreamWriter($rowsPath,$false,$utf8)
           try{foreach($r in $rows){$w.WriteLine(($r|ConvertTo-Json -Compress -Depth 10))}}finally{$w.Close()}
           $rowsSha=(Get-FileHash $rowsPath -Algorithm SHA256).Hash.ToLowerInvariant()
           $packet=[ordered]@{source_name=[IO.Path]::GetFileName($raw);source_md5=$gotMd5;source_sha256=$gotSha256;generation_id='BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01';ticker=$tickerExpected;trading_date=$tradingDate;semantic_bundle=$semanticBundle;semantic_bundle_line_number=$semanticBundleLine;source_row_first=$sourceFirst;source_row_last=$sourceLast;physical_line_first=$sourceFirst+1;physical_line_last=$sourceLast+1;data_rows=$rows.Count;raw_fields_per_row=74;retained_fields_per_row=75;first_datetime=$dts[0];last_datetime=$dts[-1];header_fields=$headers;rows_sha256=$rowsSha;rows=$rows}
-          $packetPath=Join-Path $out 'BAUT_20241205_PACKET.json';[IO.File]::WriteAllText($packetPath,($packet|ConvertTo-Json -Depth 12),$utf8);$packetSha=(Get-FileHash $packetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $packetPath=Join-Path $out 'BAYU_20241205_PACKET.json';[IO.File]::WriteAllText($packetPath,($packet|ConvertTo-Json -Depth 12),$utf8);$packetSha=(Get-FileHash $packetPath -Algorithm SHA256).Hash.ToLowerInvariant()
           $proof=[ordered]@{ticker=$tickerExpected;trading_date=$tradingDate;source_md5=$gotMd5;source_sha256=$gotSha256;semantic_bundle=$semanticBundle;semantic_bundle_line_number=$semanticBundleLine;source_row_first=$sourceFirst;source_row_last=$sourceLast;data_rows=$rows.Count;raw_fields_per_row=74;retained_fields_per_row=75;first_datetime=$dts[0];last_datetime=$dts[-1];rows_sha256=$rowsSha;packet_sha256=$packetSha;serialization_note='Native PowerShell serialization; exact RAW hashes plus bounded row contract govern source identity.'}
           [IO.File]::WriteAllText((Join-Path $out 'EVIDENCE_PROOF.json'),($proof|ConvertTo-Json -Depth 10),$utf8)
-          Write-Host "BAUT_EVIDENCE_OK rows=$($rows.Count) retained_fields=75 rows_sha256=$rowsSha packet_sha256=$packetSha"
-      - name: Upload governed BAUT evidence
+          Write-Host "BAYU_EVIDENCE_OK rows=$($rows.Count) retained_fields=75 rows_sha256=$rowsSha packet_sha256=$packetSha"
+      - name: Upload governed BAYU evidence
         uses: actions/upload-artifact@v4
         with:
-          name: machine1-baut-20241205-evidence
-          path: machine1_baut_20241205_evidence/
+          name: machine1-bayu-20241205-evidence
+          path: machine1_bayu_20241205_evidence/
           if-no-files-found: error
           retention-days: 7
