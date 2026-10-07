@@ -34,17 +34,21 @@ jobs:
           Write-Host 'Drive reader credential binding present.'
           Write-Host 'PREPARE mode performs zero canonical writes.'
 
-      - name: Install governed package
+      - name: Resolve Python and install governed package
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference='Stop'
-          py -3.11 -m pip install -e .
+          $cmd=Get-Command python -ErrorAction SilentlyContinue
+          if(-not $cmd){$cmd=Get-Command python3 -ErrorAction SilentlyContinue}
+          if(-not $cmd){throw 'No Python executable found on runner PATH'}
+          "A1_PYTHON=$($cmd.Source)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          & $cmd.Source -m pip install -e .
 
       - name: Run AUTO071 guarded PREPARE recovery
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference='Stop'
-          py -3.11 tools/auto071_writehold_recovery.py
+          & $env:A1_PYTHON tools/auto071_writehold_recovery.py
 
       - name: Upload recovery proof
         if: always()
