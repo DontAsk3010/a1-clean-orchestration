@@ -1,0 +1,92 @@
+name: Machine1 AUTO 2024-12-03 Bounded Locator And Source Evidence
+
+on:
+  push:
+    branches:
+      - machine1/evidence-auto-20241203
+    paths:
+      - .github/workflows/machine1-auto-20241203-bounded-evidence.yml
+
+permissions:
+  contents: read
+
+jobs:
+  bounded-reverify-auto-date03:
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Reverify retained AUTO locator and extract exact Date03 packet
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=$env:RAW_FILE
+          $tickerExpected='AUTO'; $tradingDate='2024-12-03'
+          $sourceFirst=122126; $sourceLast=122398; $expectedCount=273
+          $expectedFirstTime='09:00:00'; $expectedLastTime='16:14:00'
+          $expectedMd5='b8d42b35c90d2dff8b18ae4e1734523b'
+          $expectedSha256='5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          if(-not(Test-Path -LiteralPath $raw -PathType Leaf)){throw "RAW_MISSING: $raw"}
+          $md5=(Get-FileHash -LiteralPath $raw -Algorithm MD5).Hash.ToLowerInvariant()
+          $sha=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($md5-ne$expectedMd5 -or $sha-ne$expectedSha256){throw "RAW_HASH_MISMATCH md5=$md5 sha256=$sha"}
+          Add-Type -AssemblyName Microsoft.VisualBasic
+          $p=New-Object Microsoft.VisualBasic.FileIO.TextFieldParser($raw,[System.Text.Encoding]::UTF8,$true)
+          $p.TextFieldType=[Microsoft.VisualBasic.FileIO.FieldType]::Delimited; $p.SetDelimiters(','); $p.HasFieldsEnclosedInQuotes=$true
+          $rows=New-Object System.Collections.Generic.List[object]; $sourceRow=0
+          try{
+            $headers=@($p.ReadFields()); $headers[0]=$headers[0].TrimStart([char]0xFEFF)
+            if($headers.Count-ne74){throw "HEADER_FIELD_COUNT_MISMATCH got=$($headers.Count)"}
+            while(-not $p.EndOfData){
+              $f=@($p.ReadFields()); $sourceRow++
+              if($sourceRow-lt$sourceFirst){continue}
+              if($sourceRow-gt$sourceLast){break}
+              if($f.Count-ne74){throw "ROW_FIELD_COUNT_MISMATCH source_row=$sourceRow got=$($f.Count)"}
+              $o=[ordered]@{source_row=$sourceRow}; for($i=0;$i-lt$headers.Count;$i++){$o[$headers[$i]]=$f[$i]}
+              $rows.Add([pscustomobject]$o)
+            }
+          }finally{$p.Close()}
+          if($rows.Count-ne$expectedCount){throw "ROW_COUNT_MISMATCH got=$($rows.Count) expected=$expectedCount"}
+          for($i=0;$i-lt$rows.Count;$i++){if([int]$rows[$i].source_row-ne($sourceFirst+$i)){throw 'SOURCE_ROW_SEQUENCE_MISMATCH'}}
+          $tickers=@($rows|%{$_.RAW_TICKER}|sort -Unique)
+          if($tickers.Count-ne1 -or $tickers[0]-ne$tickerExpected){throw "TICKER_MISMATCH got=$($tickers -join ',')"}
+          $dts=@($rows|%{$_.RAW_DATETIME_ISO})
+          if(@($dts|?{-not $_.StartsWith($tradingDate)}).Count-ne0){throw 'DATE_MISMATCH'}
+          function Clock([string]$dt){if($dt.Contains('T')){return $dt.Split('T')[1].Substring(0,8)};return $dt.Split(' ')[-1].Substring(0,8)}
+          $ft=Clock $dts[0];$lt=Clock $dts[-1]
+          if($ft-ne$expectedFirstTime -or $lt-ne$expectedLastTime){throw "TIME_RANGE_MISMATCH got=$ft-$lt"}
+          $out=Join-Path $PWD 'machine1_auto_20241203_evidence';New-Item -ItemType Directory -Force -Path $out|Out-Null
+          $utf8=New-Object System.Text.UTF8Encoding($false)
+          $rowsPath=Join-Path $out 'AUTO_20241203_ROWS.jsonl';$w=New-Object IO.StreamWriter($rowsPath,$false,$utf8)
+          try{foreach($row in $rows){$w.WriteLine(($row|ConvertTo-Json -Compress -Depth 10))}}finally{$w.Close()}
+          $rowsSha=(Get-FileHash $rowsPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $packet=[ordered]@{
+            schema='A1_CLEAN_MACHINE1_OWNER_FULL_REREAD_SOURCE_PACKET_V1';transport_only=$true;semantic_read_performed=$false
+            locator_mode='RETAINED_LOCATOR_BOUNDED_FRESH_REVERIFY';source_name=[IO.Path]::GetFileName($raw);source_md5=$md5;source_sha256=$sha
+            generation_id='BEHAVIOR_UNIFORM_COLAB_SEMANTIC_GEN_20260910_01';ticker=$tickerExpected;trading_date=$tradingDate
+            semantic_bundle_locator_only='Raw Des 02-31-2024__SEMANTIC_0005.jsonl';semantic_bundle_line_locator_only=184
+            source_row_first=$sourceFirst;source_row_last=$sourceLast;data_rows=$rows.Count;raw_fields_per_row=74;retained_fields_per_row=75
+            first_datetime=$dts[0];last_datetime=$dts[-1];header_fields=$headers;rows_sha256=$rowsSha;rows=$rows
+          }
+          $packetPath=Join-Path $out 'AUTO_20241203_PACKET.json';[IO.File]::WriteAllText($packetPath,($packet|ConvertTo-Json -Depth 12),$utf8)
+          $packetSha=(Get-FileHash $packetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $proof=[ordered]@{
+            schema='A1_CLEAN_MACHINE1_OWNER_FULL_REREAD_SOURCE_PROOF_V1';transport_only=$true;semantic_read_performed=$false
+            locator_mode='RETAINED_LOCATOR_BOUNDED_FRESH_REVERIFY';ticker=$tickerExpected;trading_date=$tradingDate
+            source_md5=$md5;source_sha256=$sha;semantic_bundle_locator_only='Raw Des 02-31-2024__SEMANTIC_0005.jsonl';semantic_bundle_line_locator_only=184
+            source_row_first=$sourceFirst;source_row_last=$sourceLast;data_rows=$rows.Count;raw_fields_per_row=74;retained_fields_per_row=75
+            first_datetime=$dts[0];last_datetime=$dts[-1];rows_jsonl_sha256=$rowsSha;packet_sha256=$packetSha
+            checkpoint_mutated=$false;drive_mutated=$false;next_ticker_opened=$false
+          }
+          [IO.File]::WriteAllText((Join-Path $out 'EVIDENCE_PROOF.json'),($proof|ConvertTo-Json -Depth 10),$utf8)
+          Write-Host "AUTO_DATE03_BOUNDED_REVERIFY_OK rows=$($rows.Count) source_rows=$sourceFirst-$sourceLast first=$ft last=$lt rows_sha256=$rowsSha packet_sha256=$packetSha"
+      - name: Upload governed AUTO Date03 locator evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-auto-20241203-owner-reread-evidence-bounded
+          path: machine1_auto_20241203_evidence/
+          if-no-files-found: error
+          retention-days: 7
