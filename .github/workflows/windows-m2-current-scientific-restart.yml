@@ -24,8 +24,13 @@ on:
   # governed date under the durable continuation authority in current.json.
   workflow_dispatch:
     inputs:
+      period_month:
+        description: 'Calendar month batch in YYYY-MM. Empty on first run resolves from the earliest governed date.'
+        required: false
+        default: ''
+        type: string
       trading_date:
-        description: 'Exact governed trading date for continuation. Empty starts from the earliest governed date.'
+        description: 'Exact governed trading date inside period_month. Empty resolves the first governed date in that month.'
         required: false
         default: ''
         type: string
@@ -36,7 +41,7 @@ permissions:
 
 concurrency:
   group: a1-machine2-current-scientific-restart
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   restart:
@@ -53,6 +58,7 @@ jobs:
     env:
       PSExecutionPolicyPreference: Bypass
       A1_DRIVE_HTTP_TIMEOUT_SECONDS: "360"
+      A1_REQUESTED_PERIOD_MONTH: ${{ inputs.period_month }}
       A1_REQUESTED_TRADING_DATE: ${{ inputs.trading_date }}
     steps:
       - uses: actions/checkout@v4
@@ -183,19 +189,19 @@ jobs:
           "A1_M2_SOURCE_UNIVERSE_MANIFEST=$manifest" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "A1_M2_AUTHORITY_SYNC_PROOF=$proof" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Resolve exact governed target trading date
+      - name: Resolve exact governed target trading date inside monthly batch
         if: ${{ steps.route.outputs.is_target == 'true' && steps.gate.outputs.open == 'true' }}
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
           $script = @'
           import json, os
-          import os
           from a1clean.google_drive import build_drive_api
           from a1clean.pattern_discovery.source_reader import GovernedSourceReader
 
           p = os.environ['A1_M2_SOURCE_UNIVERSE_MANIFEST']
-          requested = str(os.environ.get('A1_REQUESTED_TRADING_DATE') or '').strip()
+          requested_period = str(os.environ.get('A1_REQUESTED_PERIOD_MONTH') or '').strip()
+          requested_date = str(os.environ.get('A1_REQUESTED_TRADING_DATE') or '').strip()
           m = json.load(open(p, encoding='utf-8'))
           if m.get('status') != 'PASS' or not m.get('sources'):
               raise SystemExit('M2_CURRENT_SOURCE_UNIVERSE_NOT_PASS')
@@ -204,31 +210,40 @@ jobs:
               raise SystemExit('M2_CURRENT_SEMANTIC_DATE_RECONCILIATION_NOT_PASS')
 
           api = build_drive_api(read_write=False)
-          if requested:
-              matches = [
-                  row for row in m['sources']
-                  if str(row.get('first_date') or '') <= requested <= str(row.get('last_date') or '')
-              ]
-              if len(matches) != 1:
-                  raise SystemExit(f'M2_CURRENT_TARGET_SOURCE_CARDINALITY:{requested}:{len(matches)}')
-              source = str(matches[0]['source_name'])
+
+          # Build exact governed date index from semantic manifests; no calendar guessing.
+          governed = []
+          for record in m['sources']:
+              source = str(record['source_name'])
               reader = GovernedSourceReader(api, source_name=source)
-              selected = [row for row in reader.semantic_manifest_rows if str(row.trading_date) == requested]
-              if not selected:
-                  raise SystemExit(f'M2_CURRENT_TARGET_DATE_EMPTY:{requested}')
-              first = selected[0]
+              for row in reader.semantic_manifest_rows:
+                  governed.append((str(row.trading_date), source, row))
+          governed.sort(key=lambda item: (item[0], item[1], int(item[2].manifest_index)))
+
+          if not governed:
+              raise SystemExit('M2_CURRENT_GOVERNED_DATE_UNIVERSE_EMPTY')
+
+          if requested_date:
+              period = requested_period or requested_date[:7]
+              if requested_date[:7] != period:
+                  raise SystemExit(f'M2_CURRENT_TARGET_DATE_OUTSIDE_PERIOD:{period}:{requested_date}')
+              matches = [item for item in governed if item[0] == requested_date]
+              if not matches:
+                  raise SystemExit(f'M2_CURRENT_TARGET_DATE_EMPTY:{requested_date}')
+              day, source, first = matches[0]
+          elif requested_period:
+              matches = [item for item in governed if item[0].startswith(requested_period + '-')]
+              if not matches:
+                  raise SystemExit(f'M2_CURRENT_MONTHLY_PERIOD_EMPTY:{requested_period}')
+              day, source, first = matches[0]
+              period = requested_period
           else:
-              source = str(m['sources'][0]['source_name'])
-              reader = GovernedSourceReader(api, source_name=source)
-              if not reader.semantic_manifest_rows:
-                  raise SystemExit('M2_CURRENT_FIRST_SOURCE_MANIFEST_EMPTY')
-              first = reader.semantic_manifest_rows[0]
-              requested = str(first.trading_date)
-              if str(m['sources'][0].get('first_date')) != requested:
-                  raise SystemExit('M2_CURRENT_FIRST_SOURCE_DATE_RECONCILIATION_DRIFT')
+              day, source, first = governed[0]
+              period = day[:7]
 
           print(source)
-          print(requested)
+          print(day)
+          print(period)
           print(first.ticker)
           print(first.source_row_first)
           print(first.source_row_last)
@@ -236,11 +251,12 @@ jobs:
           print(first.last_clock_time)
           '@
           $lines = $script | & $env:A1_PYTHON_EXE -
-          if ($LASTEXITCODE -ne 0 -or $lines.Count -lt 7) { throw 'M2_CURRENT_TARGET_UNIT_RESOLUTION_FAILED' }
+          if ($LASTEXITCODE -ne 0 -or $lines.Count -lt 8) { throw 'M2_CURRENT_TARGET_UNIT_RESOLUTION_FAILED' }
           "A1_M2_TARGET_SOURCE=$($lines[0])" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "A1_M2_TARGET_DATE=$($lines[1])" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "A1_M2_TARGET_TICKER=$($lines[2])" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host "M2_CURRENT_TARGET_UNIT|source=$($lines[0])|date=$($lines[1])|ticker=$($lines[2])|rows=$($lines[3])-$($lines[4])|time=$($lines[5])-$($lines[6])"
+          "A1_M2_PERIOD_MONTH=$($lines[2])" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "A1_M2_TARGET_TICKER=$($lines[3])" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "M2_CURRENT_MONTHLY_TARGET|period=$($lines[2])|source=$($lines[0])|date=$($lines[1])|ticker=$($lines[3])|rows=$($lines[4])-$($lines[5])|time=$($lines[6])-$($lines[7])"
 
       - name: Execute exact CURRENT trading date with progressive checkpointing
         if: ${{ steps.route.outputs.is_target == 'true' && steps.gate.outputs.open == 'true' }}
@@ -309,8 +325,11 @@ jobs:
           )
 
           request = json.load(open('v32-full-observation-behavior-requests/current.json', encoding='utf-8'))
-          if request.get('continue_all_remaining_dates_authorized') is not True:
-              raise SystemExit('M2_CURRENT_CONTINUE_ALL_AUTHORITY_MISSING')
+          if request.get('monthly_batch_authorized') is not True:
+              raise SystemExit('M2_CURRENT_MONTHLY_BATCH_AUTHORITY_MISSING')
+          if request.get('monthly_batch_stop_at_period_boundary') is not True:
+              raise SystemExit('M2_CURRENT_MONTH_BOUNDARY_STOP_CONTRACT_MISSING')
+          period = str(os.environ['A1_M2_PERIOD_MONTH'])
           manifest = json.load(open(os.environ['A1_M2_SOURCE_UNIVERSE_MANIFEST'], encoding='utf-8'))
           store = Machine2CurrentStore(build_drive_api(read_write=True))
           cp = store.read_json_optional(store.checkpoint_folder_id, CHECKPOINT_NAME)
@@ -328,26 +347,37 @@ jobs:
           if nxt is None:
               print('NEXT_DATE=')
               print('NEXT_SOURCE=')
+              print('NEXT_PERIOD=')
               print('M2_CURRENT_ALL_GOVERNED_DATES_CLOSED=true')
           else:
               source, day = nxt
-              print('NEXT_DATE=' + day)
-              print('NEXT_SOURCE=' + source)
-              print('M2_CURRENT_EXACT_NEXT_GOVERNED_DATE=' + source + '|' + day)
+              if day[:7] == period:
+                  print('NEXT_DATE=' + day)
+                  print('NEXT_SOURCE=' + source)
+                  print('NEXT_PERIOD=' + period)
+                  print('M2_CURRENT_EXACT_NEXT_GOVERNED_DATE_IN_MONTH=' + source + '|' + day)
+              else:
+                  print('NEXT_DATE=')
+                  print('NEXT_SOURCE=')
+                  print('NEXT_PERIOD=' + day[:7])
+                  print('M2_CURRENT_MONTH_CLOSED=' + period)
+                  print('M2_CURRENT_NEXT_PERIOD_WAITING_EXPLICIT_DISPATCH=' + day[:7])
           '@
           $lines = $script | & $env:A1_PYTHON_EXE -
           if ($LASTEXITCODE -ne 0) { throw 'M2_CURRENT_NEXT_DATE_RESOLUTION_HOLD' }
           $next = ($lines | Where-Object { $_ -like 'NEXT_DATE=*' } | Select-Object -Last 1) -replace '^NEXT_DATE=',''
           $source = ($lines | Where-Object { $_ -like 'NEXT_SOURCE=*' } | Select-Object -Last 1) -replace '^NEXT_SOURCE=',''
+          $nextPeriod = ($lines | Where-Object { $_ -like 'NEXT_PERIOD=*' } | Select-Object -Last 1) -replace '^NEXT_PERIOD=',''
           "next_date=$next" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "next_source=$source" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "next_period=$nextPeriod" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           if ([string]::IsNullOrWhiteSpace($next)) {
-            Write-Host 'M2_CURRENT_FULL_DATE_UNIVERSE_CLOSED_NO_NEXT_DISPATCH'
+            Write-Host "M2_CURRENT_MONTHLY_BATCH_STOP|period=$env:A1_M2_PERIOD_MONTH|next_period=$nextPeriod"
           } else {
-            Write-Host "M2_CURRENT_OWNER_AUTHORIZED_CONTINUATION_READY|source=$source|date=$next"
+            Write-Host "M2_CURRENT_MONTHLY_CONTINUATION_READY|period=$env:A1_M2_PERIOD_MONTH|source=$source|date=$next"
           }
 
-      - name: Dispatch exact next governed date under owner continuation authority
+      - name: Dispatch exact next governed date within current monthly batch
         if: ${{ steps.route.outputs.is_target == 'true' && steps.gate.outputs.open == 'true' && steps.next_date.outputs.next_date != '' }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -367,8 +397,11 @@ jobs:
           }
           $body = @{
             ref = $env:GITHUB_REF_NAME
-            inputs = @{ trading_date = $env:NEXT_DATE }
+            inputs = @{
+              period_month = $env:A1_M2_PERIOD_MONTH
+              trading_date = $env:NEXT_DATE
+            }
           } | ConvertTo-Json -Depth 5
           $dispatchUri = "https://api.github.com/repos/$env:GITHUB_REPOSITORY/actions/workflows/windows-m2-current-scientific-restart.yml/dispatches"
           Invoke-RestMethod -Method Post -Uri $dispatchUri -Headers $headers -ContentType 'application/json' -Body $body
-          Write-Host "M2_CURRENT_NEXT_DATE_DISPATCHED|date=$env:NEXT_DATE|head=$env:GITHUB_SHA|formula=CLOSED|grouping=HOLD"
+          Write-Host "M2_CURRENT_MONTHLY_NEXT_DATE_DISPATCHED|period=$env:A1_M2_PERIOD_MONTH|date=$env:NEXT_DATE|head=$env:GITHUB_SHA|formula=CLOSED|grouping=HOLD"

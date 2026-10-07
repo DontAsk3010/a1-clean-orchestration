@@ -53,7 +53,11 @@ _REQUIRED_REQUEST_FLAGS = {
     "winner_only_filtering_used": False,
     "summary_only_substitution_used": False,
     "no_pass_claim": True,
-    "continue_all_remaining_dates_authorized": True,
+    "continue_all_remaining_dates_authorized": False,
+    "monthly_batch_authorized": True,
+    "monthly_batch_auto_dispatch_within_period_only": True,
+    "monthly_batch_stop_at_period_boundary": True,
+    "monthly_batch_next_period_requires_explicit_dispatch": True,
     "continuation_requires_fresh_authority_and_source_discovery_each_run": True,
     "continuation_requires_exact_next_governed_date": True,
     "continuation_requires_date_close_readback_each_date": True,
@@ -137,7 +141,9 @@ def validate_request_for_current_atomic_restart(request: Mapping[str, Any]) -> N
     for key, expected in _REQUIRED_REQUEST_FLAGS.items():
         if request.get(key) is not expected:
             raise RuntimeError(f"M2_CURRENT_REQUEST_CONTRACT_MISMATCH:{key}")
-    if request.get("continuation_authority_scope") != "ALL_REMAINING_GOVERNED_TRADING_DATES_IN_DYNAMIC_SOURCE_UNIVERSE":
+    if request.get("monthly_batch_mode") != "CALENDAR_MONTH":
+        raise RuntimeError("M2_CURRENT_MONTHLY_BATCH_MODE_MISMATCH")
+    if request.get("continuation_authority_scope") != "ONE_CALENDAR_MONTH_AT_A_TIME_EXACT_GOVERNED_DATE_ORDER":
         raise RuntimeError("M2_CURRENT_CONTINUATION_AUTHORITY_SCOPE_MISMATCH")
     if request.get("formula_stage") != "CLOSED":
         raise RuntimeError("M2_CURRENT_FORMULA_STAGE_NOT_CLOSED")

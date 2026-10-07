@@ -133,9 +133,9 @@
   "current_execution_revision_id": "ANLCKQnMg1RIvEYYg-mAutNSwLj-US42Es8PhtAZDatZwCyaY8sz84yDipdfjfQqGUUvYRViJ0iZ247MJLzkczbmuIwTGdiVvcYrqVopffw",
   "current_execution_numeric_revision": "158",
   "owner_continuation_instruction_date": "2026-10-07",
-  "owner_continuation_instruction": "CONTINUE_ALL_REMAINING_GOVERNED_TRADING_DATES_WITHOUT_SKIP_OR_DEPTH_REDUCTION_AFTER_2024_12_02_DATE_CLOSE_PASS",
-  "continue_all_remaining_dates_authorized": true,
-  "continuation_authority_scope": "ALL_REMAINING_GOVERNED_TRADING_DATES_IN_DYNAMIC_SOURCE_UNIVERSE",
+  "owner_continuation_instruction": "PROCESS_ONE_CALENDAR_MONTH_AT_A_TIME_IN_EXACT_GOVERNED_DATE_ORDER_WITH_DATE_CLOSE_READBACK_AND_STOP_AT_MONTH_BOUNDARY",
+  "continue_all_remaining_dates_authorized": false,
+  "continuation_authority_scope": "ONE_CALENDAR_MONTH_AT_A_TIME_EXACT_GOVERNED_DATE_ORDER",
   "continuation_requires_fresh_authority_and_source_discovery_each_run": true,
   "continuation_requires_exact_next_governed_date": true,
   "continuation_requires_date_close_readback_each_date": true,
@@ -143,5 +143,10 @@
   "continuation_skip_or_parallel_date_forbidden": true,
   "continuation_depth_reduction_forbidden": true,
   "continuation_formula_stage_remains_closed": true,
-  "continuation_grouping_stage_remains_closed_until_separately_admitted": true
+  "continuation_grouping_stage_remains_closed_until_separately_admitted": true,
+  "monthly_batch_authorized": true,
+  "monthly_batch_mode": "CALENDAR_MONTH",
+  "monthly_batch_auto_dispatch_within_period_only": true,
+  "monthly_batch_stop_at_period_boundary": true,
+  "monthly_batch_next_period_requires_explicit_dispatch": true
 }

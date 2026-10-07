@@ -602,12 +602,21 @@ def run_trading_date(
     trading_date: str,
     software_revision: str,
     units_per_shard: int = 20,
+    period_month: str | None = None,
 ) -> dict[str, Any]:
     if units_per_shard <= 0:
         raise RuntimeError("M2_CURRENT_UNITS_PER_SHARD_MUST_BE_POSITIVE")
     if not software_revision or software_revision == "LOCAL_UNVERSIONED":
         raise RuntimeError("M2_CURRENT_SOFTWARE_REVISION_REQUIRED")
     request = _load_json(request_path)
+    monthly_batch = request.get("monthly_batch_authorized") is True
+    if monthly_batch:
+        if not period_month or len(str(period_month)) != 7:
+            raise RuntimeError("M2_CURRENT_MONTHLY_PERIOD_REQUIRED")
+        if not trading_date.startswith(str(period_month) + "-"):
+            raise RuntimeError(
+                f"M2_CURRENT_TRADING_DATE_OUTSIDE_MONTHLY_PERIOD:{period_month}:{trading_date}"
+            )
     if request.get("enabled") is not True or request.get("restart_authorized") is not True:
         raise RuntimeError("M2_CURRENT_HEAVY_RESTART_NOT_AUTHORIZED")
     if request.get("machine2_full_scientific_restart_from_beginning_required") is not True:
@@ -672,10 +681,10 @@ def run_trading_date(
         if checkpoint.get("schema") != CHECKPOINT_SCHEMA:
             raise RuntimeError("M2_CURRENT_CHECKPOINT_SCHEMA_MISMATCH")
 
-        continue_all = request.get("continue_all_remaining_dates_authorized") is True
+        continue_month = request.get("monthly_batch_authorized") is True
         same_unit = checkpoint.get("current_date") == trading_date and checkpoint.get("current_source") == source_name
 
-        if continue_all:
+        if continue_month:
             _assert_checkpoint_continuation_compatible(checkpoint, identity_contract)
             _rebind_checkpoint_to_current_run(checkpoint, identity_contract)
         else:
@@ -694,7 +703,7 @@ def run_trading_date(
         if not same_unit:
             if checkpoint.get("status") != "DATE_CLOSED":
                 raise RuntimeError("M2_CURRENT_CANNOT_ADVANCE_WITH_OPEN_DATE")
-            if not continue_all:
+            if not continue_month:
                 raise RuntimeError("M2_CURRENT_NO_AUTO_ADVANCE_DATE_OR_SOURCE")
             if request.get("continuation_requires_exact_next_governed_date") is not True:
                 raise RuntimeError("M2_CURRENT_EXACT_NEXT_DATE_AUTHORITY_MISSING")
@@ -735,7 +744,7 @@ def run_trading_date(
             checkpoint["continuation_authority_scope"] = request.get("continuation_authority_scope")
             checkpoint["updated_at_utc"] = _utc_now()
             store.upsert_json(folder_id=store.checkpoint_folder_id, name=CHECKPOINT_NAME, obj=checkpoint)
-        elif continue_all:
+        elif continue_month:
             # Same-date resume after a failed/aborted run: only volatile run and
             # fresh-discovery identity is rebound; exact cursor/carry are preserved.
             checkpoint["updated_at_utc"] = _utc_now()
@@ -856,8 +865,8 @@ def run_trading_date(
         "schema": "A1_M2_CURRENT_SCIENTIFIC_RESTART_STATE_V1",
         "lineage": LINEAGE,
         "status": (
-            "DATE_CLOSED_OWNER_CONTINUATION_AUTHORIZED"
-            if request.get("continue_all_remaining_dates_authorized") is True
+            "DATE_CLOSED_MONTHLY_BATCH_CONTINUATION_AUTHORIZED"
+            if request.get("monthly_batch_authorized") is True
             else "DATE_CLOSED_WAITING_EXPLICIT_NEXT_DATE_AUTHORITY"
         ),
         "last_closed_date": trading_date,
@@ -880,6 +889,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--source-universe-manifest", required=True, type=Path)
     parser.add_argument("--trading-date", required=True)
     parser.add_argument("--units-per-shard", type=int, default=20)
+    parser.add_argument("--period-month", default=os.environ.get("A1_M2_PERIOD_MONTH"))
     parser.add_argument("--software-revision", default=os.environ.get("GITHUB_SHA", "LOCAL_UNVERSIONED"))
     args = parser.parse_args(argv)
     result = run_trading_date(
@@ -888,6 +898,7 @@ def main(argv: list[str] | None = None) -> int:
         trading_date=args.trading_date,
         software_revision=args.software_revision,
         units_per_shard=args.units_per_shard,
+        period_month=args.period_month,
     )
     print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
     return 0

@@ -216,8 +216,13 @@ def _open_request() -> dict:
         "winner_only_filtering_used": False,
         "summary_only_substitution_used": False,
         "no_pass_claim": True,
-        "continue_all_remaining_dates_authorized": True,
-        "continuation_authority_scope": "ALL_REMAINING_GOVERNED_TRADING_DATES_IN_DYNAMIC_SOURCE_UNIVERSE",
+        "continue_all_remaining_dates_authorized": False,
+        "monthly_batch_authorized": True,
+        "monthly_batch_mode": "CALENDAR_MONTH",
+        "continuation_authority_scope": "ONE_CALENDAR_MONTH_AT_A_TIME_EXACT_GOVERNED_DATE_ORDER",
+        "monthly_batch_auto_dispatch_within_period_only": True,
+        "monthly_batch_stop_at_period_boundary": True,
+        "monthly_batch_next_period_requires_explicit_dispatch": True,
         "continuation_requires_fresh_authority_and_source_discovery_each_run": True,
         "continuation_requires_exact_next_governed_date": True,
         "continuation_requires_date_close_readback_each_date": True,
@@ -356,7 +361,7 @@ def test_current_restart_does_not_turn_missing_or_unproven_timing_into_zero():
 
 
 
-def test_owner_continue_all_authority_cannot_be_silently_weakened():
+def test_owner_monthly_batch_authority_cannot_be_silently_weakened():
     request = _open_request()
     validate_request_for_current_atomic_restart(request)
     request["continuation_requires_exact_next_governed_date"] = False
