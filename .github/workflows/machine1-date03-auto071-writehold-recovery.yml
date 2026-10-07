@@ -1,0 +1,57 @@
+name: Machine1 Date03 AUTO071 Write-Hold Recovery
+
+on:
+  push:
+    branches:
+      - machine1/date03-auto071-writehold-recovery
+    paths:
+      - tools/auto071_writehold_recovery.py
+      - .github/workflows/machine1-date03-auto071-writehold-recovery.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: machine1-date03-auto071-writehold-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 30
+    env:
+      AUTO071_MODE: PREPARE
+    steps:
+      - name: Checkout recovery branch
+        uses: actions/checkout@v4
+
+      - name: Verify Drive credential bindings
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          if([string]::IsNullOrWhiteSpace($env:A1_DRIVE_READER_CREDENTIALS)){throw 'A1_DRIVE_READER_CREDENTIALS missing'}
+          if([string]::IsNullOrWhiteSpace($env:A1_DRIVE_WRITER_CREDENTIALS)){throw 'A1_DRIVE_WRITER_CREDENTIALS missing'}
+          if(-not(Test-Path -LiteralPath $env:A1_DRIVE_READER_CREDENTIALS -PathType Leaf)){throw 'Drive reader credential file missing'}
+          if(-not(Test-Path -LiteralPath $env:A1_DRIVE_WRITER_CREDENTIALS -PathType Leaf)){throw 'Drive writer credential file missing'}
+          Write-Host 'Drive credential bindings present.'
+
+      - name: Install governed package
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          py -3.11 -m pip install -e .
+
+      - name: Run AUTO071 guarded recovery
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          py -3.11 tools/auto071_writehold_recovery.py
+
+      - name: Upload recovery proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date03-auto071-writehold-\${{ env.AUTO071_MODE }}
+          path: auto071_recovery_out/
+          if-no-files-found: warn
+          retention-days: 7
