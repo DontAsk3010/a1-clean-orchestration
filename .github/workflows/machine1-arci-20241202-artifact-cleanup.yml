@@ -1,0 +1,25 @@
+name: Machine1 ARCI 2024-12-02 Ephemeral Artifact Cleanup
+
+on:
+  push:
+    branches:
+      - machine1/evidence-arci-20241202
+    paths:
+      - .github/workflows/machine1-arci-20241202-artifact-cleanup.yml
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  delete-consumed-transport:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete consumed ARCI evidence artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: "11468990289"
+        run: |
+          set -euo pipefail
+          gh api --method DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID"
+          echo "ARCI_EPHEMERAL_ARTIFACT_DELETED artifact_id=$ARTIFACT_ID"
