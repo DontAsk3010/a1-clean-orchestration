@@ -25,15 +25,14 @@ jobs:
       - name: Checkout recovery branch
         uses: actions/checkout@v4
 
-      - name: Verify Drive credential bindings
+      - name: Verify Drive reader credential binding
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference='Stop'
           if([string]::IsNullOrWhiteSpace($env:A1_DRIVE_READER_CREDENTIALS)){throw 'A1_DRIVE_READER_CREDENTIALS missing'}
-          if([string]::IsNullOrWhiteSpace($env:A1_DRIVE_WRITER_CREDENTIALS)){throw 'A1_DRIVE_WRITER_CREDENTIALS missing'}
           if(-not(Test-Path -LiteralPath $env:A1_DRIVE_READER_CREDENTIALS -PathType Leaf)){throw 'Drive reader credential file missing'}
-          if(-not(Test-Path -LiteralPath $env:A1_DRIVE_WRITER_CREDENTIALS -PathType Leaf)){throw 'Drive writer credential file missing'}
-          Write-Host 'Drive credential bindings present.'
+          Write-Host 'Drive reader credential binding present.'
+          Write-Host 'PREPARE mode performs zero canonical writes.'
 
       - name: Install governed package
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
@@ -41,7 +40,7 @@ jobs:
           $ErrorActionPreference='Stop'
           py -3.11 -m pip install -e .
 
-      - name: Run AUTO071 guarded recovery
+      - name: Run AUTO071 guarded PREPARE recovery
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference='Stop'
@@ -51,7 +50,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: machine1-date03-auto071-writehold-\${{ env.AUTO071_MODE }}
+          name: machine1-date03-auto071-writehold-PREPARE
           path: auto071_recovery_out/
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 7
