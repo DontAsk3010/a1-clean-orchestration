@@ -147,6 +147,65 @@ def test_machine1_dispatch_registry_is_live_read_operational_not_exact_revision_
     assert registry_evidence["observed_revision_accepted_as_live_current"] is True
 
 
+def test_live_current_revision_churn_does_not_change_scientific_authority_corpus():
+    manifest = _load("governance/a1-clean-authority-bootstrap-current.json")
+    proof = {
+        "authority_documents": [
+            {
+                "key": "machine2_owner_hard_lock",
+                "document_id": "material-doc",
+                "observed_revision": "1",
+                "full_read": True,
+                "sha256": "a" * 64,
+                "revision_policy": "EXACT_BOUND",
+            },
+            {
+                "key": "machine1_dispatch_registry",
+                "document_id": "live-doc",
+                "observed_revision": "800",
+                "full_read": True,
+                "sha256": "b" * 64,
+                "revision_policy": "READ_CURRENT_LIVE",
+            },
+        ],
+        "repo_state_files": [
+            {"path": "state.json", "full_read": True, "parse_ok": True, "sha256": "c" * 64}
+        ],
+    }
+    first = drive_revision_module._apply_prestart_fingerprints(
+        manifest,
+        json.loads(json.dumps(proof)),
+        manifest_raw=b"bootstrap",
+        lock_raw=b"lock",
+    )
+
+    live_changed = json.loads(json.dumps(proof))
+    live_changed["authority_documents"][1]["observed_revision"] = "801"
+    live_changed["authority_documents"][1]["sha256"] = "d" * 64
+    second = drive_revision_module._apply_prestart_fingerprints(
+        manifest,
+        live_changed,
+        manifest_raw=b"bootstrap",
+        lock_raw=b"lock",
+    )
+
+    assert first["authority_corpus_sha256"] == second["authority_corpus_sha256"]
+    assert (
+        first["live_current_operational_corpus_sha256"]
+        != second["live_current_operational_corpus_sha256"]
+    )
+
+    material_changed = json.loads(json.dumps(proof))
+    material_changed["authority_documents"][0]["sha256"] = "e" * 64
+    third = drive_revision_module._apply_prestart_fingerprints(
+        manifest,
+        material_changed,
+        manifest_raw=b"bootstrap",
+        lock_raw=b"lock",
+    )
+    assert first["authority_corpus_sha256"] != third["authority_corpus_sha256"]
+
+
 def test_material_authority_revision_drift_still_holds_fail_closed():
     manifest = _load("governance/a1-clean-authority-bootstrap-current.json")
     proof = {

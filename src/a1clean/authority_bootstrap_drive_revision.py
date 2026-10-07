@@ -144,16 +144,41 @@ def _apply_prestart_fingerprints(
         manifest.get("required_open_ended_data_families") or []
     )
 
-    document_fingerprints = [
-        {
+    policy_by_key = {
+        str(row.get("key") or ""): drive_revision_policy(row)
+        for row in manifest.get("authority_documents_in_required_read_order") or []
+    }
+    material_document_fingerprints: list[dict[str, Any]] = []
+    live_current_operational_fingerprints: list[dict[str, Any]] = []
+    for row in proof.get("authority_documents") or []:
+        key = str(row.get("key") or "")
+        policy = policy_by_key.get(key, "EXACT_BOUND")
+        stable_identity = {
             "key": row.get("key"),
             "document_id": row.get("document_id"),
-            "observed_revision": row.get("observed_revision"),
             "full_read": row.get("full_read"),
-            "sha256": row.get("sha256"),
+            "revision_policy": policy,
         }
-        for row in proof.get("authority_documents") or []
-    ]
+        if policy == "READ_CURRENT_LIVE":
+            # Keep live operational evidence fully auditable, but do not let
+            # its expected revision churn invalidate a scientific continuation.
+            # Readability/identity remains part of the stable authority corpus.
+            material_document_fingerprints.append(stable_identity)
+            live_current_operational_fingerprints.append(
+                {
+                    **stable_identity,
+                    "observed_revision": row.get("observed_revision"),
+                    "sha256": row.get("sha256"),
+                }
+            )
+        else:
+            material_document_fingerprints.append(
+                {
+                    **stable_identity,
+                    "observed_revision": row.get("observed_revision"),
+                    "sha256": row.get("sha256"),
+                }
+            )
     repo_fingerprints = [
         {
             "path": row.get("path"),
@@ -163,11 +188,19 @@ def _apply_prestart_fingerprints(
         }
         for row in proof.get("repo_state_files") or []
     ]
+    proof["live_current_operational_fingerprints"] = live_current_operational_fingerprints
+    proof["live_current_operational_corpus_sha256"] = _base._sha256_json(
+        live_current_operational_fingerprints
+    )
+    proof["authority_corpus_semantics"] = (
+        "EXACT_BOUND_MATERIAL_AUTHORITY_PLUS_LIVE_CURRENT_DOCUMENT_IDENTITY_AND_FULL_READ;"
+        "LIVE_CURRENT_REVISION_AND_CONTENT_AUDITED_SEPARATELY"
+    )
     proof["authority_corpus_sha256"] = _base._sha256_json(
         {
             "bootstrap_manifest_sha256": bootstrap_sha,
             "active_authority_lock_sha256": lock_sha,
-            "authority_documents": document_fingerprints,
+            "authority_documents": material_document_fingerprints,
             "repo_state_files": repo_fingerprints,
         }
     )

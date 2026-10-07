@@ -10,6 +10,7 @@ on:
       - 'governance/a1-clean-active-authority-lock.json'
       - 'governance/a1-clean-authority-bootstrap-current.json'
       - 'src/a1clean/formula_research/m2_current_execution_contract.py'
+      - 'src/a1clean/authority_bootstrap_drive_revision.py'
       - 'src/a1clean/formula_research/v32_current_scientific_restart.py'
       - 'src/a1clean/formula_research/machine2_current_store.py'
       - 'src/a1clean/formula_research/v32_dynamic_prestart.py'
@@ -41,7 +42,7 @@ permissions:
 
 concurrency:
   group: a1-machine2-current-scientific-restart
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 jobs:
   restart:
