@@ -1,0 +1,25 @@
+name: Machine1 AREA 2024-12-02 Ephemeral Artifact Cleanup
+
+on:
+  push:
+    branches:
+      - machine1/evidence-area-20241202
+    paths:
+      - .github/workflows/machine1-area-20241202-artifact-cleanup.yml
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  delete-consumed-transport:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete consumed AREA evidence artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: "11470736507"
+        run: |
+          set -euo pipefail
+          gh api --method DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID"
+          echo "AREA_EPHEMERAL_ARTIFACT_DELETED artifact_id=$ARTIFACT_ID"
