@@ -883,6 +883,150 @@ def run_trading_date(
     return date_close
 
 
+def validate_monthly_date_close_checkpoint(
+    store: Machine2CurrentStore,
+    *,
+    period_month: str,
+    units_per_shard: int,
+) -> dict[str, Any]:
+    from .m2_current_execution_contract import (
+        validate_checkpoint_exact_resume,
+        validate_output_shard_checkpoint_coverage,
+    )
+
+    checkpoint = store.read_json_optional(store.checkpoint_folder_id, CHECKPOINT_NAME)
+    if not checkpoint:
+        raise RuntimeError("M2_CURRENT_MONTHLY_CHECKPOINT_MISSING")
+    if checkpoint.get("status") != "DATE_CLOSED":
+        raise RuntimeError("M2_CURRENT_MONTHLY_DATE_NOT_CLOSED")
+    current_date = str(checkpoint.get("current_date") or "")
+    if not current_date.startswith(str(period_month) + "-"):
+        raise RuntimeError(f"M2_CURRENT_MONTHLY_CHECKPOINT_OUTSIDE_PERIOD:{period_month}:{current_date}")
+    if str(checkpoint.get("last_closed_date") or "") != current_date:
+        raise RuntimeError("M2_CURRENT_MONTHLY_LAST_CLOSED_DATE_DRIFT")
+    closed_dates = list(checkpoint.get("closed_dates") or [])
+    if not closed_dates or str(closed_dates[-1]) != current_date:
+        raise RuntimeError("M2_CURRENT_MONTHLY_CLOSED_DATE_HISTORY_DRIFT")
+    if checkpoint.get("next_exact_resume_point") is not None:
+        raise RuntimeError("M2_CURRENT_MONTHLY_DATE_CLOSED_HAS_NEXT_RESUME")
+    if not checkpoint.get("date_close"):
+        raise RuntimeError("M2_CURRENT_MONTHLY_DATE_CLOSE_POINTER_MISSING")
+    validate_checkpoint_exact_resume(checkpoint)
+    validate_output_shard_checkpoint_coverage(
+        checkpoint,
+        max_units_per_shard=units_per_shard,
+    )
+    return checkpoint
+
+
+def run_month_to_boundary(
+    *,
+    request_path: Path,
+    source_universe_manifest_path: Path,
+    initial_trading_date: str,
+    software_revision: str,
+    units_per_shard: int,
+    period_month: str,
+) -> dict[str, Any]:
+    from .m2_current_execution_contract import assert_safe_atomic_units_per_shard
+
+    assert_safe_atomic_units_per_shard(units_per_shard)
+    request = _load_json(request_path)
+    if request.get("monthly_batch_single_run_sequential_dates_authorized") is not True:
+        raise RuntimeError("M2_CURRENT_MONTH_SINGLE_RUN_AUTHORITY_MISSING")
+    if request.get("monthly_batch_per_date_exact_readback_required") is not True:
+        raise RuntimeError("M2_CURRENT_MONTH_PER_DATE_READBACK_AUTHORITY_MISSING")
+    if request.get("transport_batching_no_evidence_reduction") is not True:
+        raise RuntimeError("M2_CURRENT_TRANSPORT_NO_REDUCTION_AUTHORITY_MISSING")
+
+    manifest = _load_json(source_universe_manifest_path)
+    if not manifest_digest_is_valid(manifest) or manifest.get("status") != "PASS":
+        raise RuntimeError("M2_CURRENT_SOURCE_UNIVERSE_NOT_PASS")
+
+    reader_api = build_drive_api(read_write=False)
+    store = Machine2CurrentStore(build_drive_api(read_write=True))
+    target_date = initial_trading_date
+    processed_dates: list[str] = []
+
+    existing = store.read_json_optional(store.checkpoint_folder_id, CHECKPOINT_NAME)
+    if existing:
+        existing_date = str(existing.get("current_date") or "")
+        if not existing_date.startswith(str(period_month) + "-"):
+            raise RuntimeError(f"M2_CURRENT_MONTH_RESUME_OUTSIDE_PERIOD:{period_month}:{existing_date}")
+        if existing.get("status") == "DATE_CLOSED":
+            nxt = next_governed_date_after(
+                manifest,
+                reader_api,
+                current_source=str(existing.get("current_source") or ""),
+                current_date=existing_date,
+            )
+            if nxt is None or str(nxt[1])[:7] != period_month:
+                return {
+                    "status": "MONTH_ALREADY_CLOSED_IN_CURRENT_GENERATION",
+                    "period_month": period_month,
+                    "last_closed_date": existing_date,
+                    "processed_dates_this_run": [],
+                    "next_period": None if nxt is None else str(nxt[1])[:7],
+                }
+            target_date = str(nxt[1])
+        else:
+            target_date = existing_date
+
+    while True:
+        if not target_date.startswith(str(period_month) + "-"):
+            raise RuntimeError(f"M2_CURRENT_MONTH_TARGET_OUTSIDE_PERIOD:{period_month}:{target_date}")
+
+        run_trading_date(
+            request_path=request_path,
+            source_universe_manifest_path=source_universe_manifest_path,
+            trading_date=target_date,
+            software_revision=software_revision,
+            units_per_shard=units_per_shard,
+            period_month=period_month,
+        )
+        checkpoint = validate_monthly_date_close_checkpoint(
+            store,
+            period_month=period_month,
+            units_per_shard=units_per_shard,
+        )
+        closed_date = str(checkpoint["current_date"])
+        processed_dates.append(closed_date)
+        print(
+            "M2_CURRENT_MONTH_DATE_CLOSE_READBACK_PASS"
+            f"|period={period_month}|date={closed_date}"
+            f"|units={checkpoint['completed_units_in_current_date']}"
+            f"|rows={checkpoint['completed_source_rows_in_current_date']}"
+            f"|shards={len(checkpoint.get('output_shards') or [])}",
+            flush=True,
+        )
+
+        nxt = next_governed_date_after(
+            manifest,
+            reader_api,
+            current_source=str(checkpoint["current_source"]),
+            current_date=closed_date,
+        )
+        if nxt is None:
+            return {
+                "status": "MONTH_CLOSED_ALL_GOVERNED_DATES_EXHAUSTED",
+                "period_month": period_month,
+                "last_closed_date": closed_date,
+                "processed_dates_this_run": processed_dates,
+                "next_period": None,
+            }
+        _, next_date = nxt
+        next_date = str(next_date)
+        if next_date[:7] != period_month:
+            return {
+                "status": "MONTH_CLOSED_NEXT_PERIOD_WAITING_EXPLICIT_DISPATCH",
+                "period_month": period_month,
+                "last_closed_date": closed_date,
+                "processed_dates_this_run": processed_dates,
+                "next_period": next_date[:7],
+            }
+        target_date = next_date
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Machine-2 CURRENT full-depth date worker. Exact next-date continuation is allowed only by durable owner continuation authority.")
     parser.add_argument("--request", required=True, type=Path)
@@ -891,15 +1035,28 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--units-per-shard", type=int, default=20)
     parser.add_argument("--period-month", default=os.environ.get("A1_M2_PERIOD_MONTH"))
     parser.add_argument("--software-revision", default=os.environ.get("GITHUB_SHA", "LOCAL_UNVERSIONED"))
+    parser.add_argument("--run-month-to-boundary", action="store_true")
     args = parser.parse_args(argv)
-    result = run_trading_date(
-        request_path=args.request,
-        source_universe_manifest_path=args.source_universe_manifest,
-        trading_date=args.trading_date,
-        software_revision=args.software_revision,
-        units_per_shard=args.units_per_shard,
-        period_month=args.period_month,
-    )
+    if args.run_month_to_boundary:
+        if not args.period_month:
+            raise RuntimeError("M2_CURRENT_MONTHLY_PERIOD_REQUIRED")
+        result = run_month_to_boundary(
+            request_path=args.request,
+            source_universe_manifest_path=args.source_universe_manifest,
+            initial_trading_date=args.trading_date,
+            software_revision=args.software_revision,
+            units_per_shard=args.units_per_shard,
+            period_month=str(args.period_month),
+        )
+    else:
+        result = run_trading_date(
+            request_path=args.request,
+            source_universe_manifest_path=args.source_universe_manifest,
+            trading_date=args.trading_date,
+            software_revision=args.software_revision,
+            units_per_shard=args.units_per_shard,
+            period_month=args.period_month,
+        )
     print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
     return 0
 

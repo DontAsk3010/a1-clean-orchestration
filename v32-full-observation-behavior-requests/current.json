@@ -148,5 +148,16 @@
   "monthly_batch_mode": "CALENDAR_MONTH",
   "monthly_batch_auto_dispatch_within_period_only": true,
   "monthly_batch_stop_at_period_boundary": true,
-  "monthly_batch_next_period_requires_explicit_dispatch": true
+  "monthly_batch_next_period_requires_explicit_dispatch": true,
+  "owner_throughput_instruction_date": "2026-10-08",
+  "owner_throughput_instruction": "OPTIMIZE_MACHINE2_TRANSPORT_AND_MONTHLY_ORCHESTRATION_NOW_WITHOUT_REDUCING_ANY_SCIENTIFIC_DEPTH_EVIDENCE_OR_MASTER_GATE",
+  "transport_batching_authorized": true,
+  "transport_units_per_shard": 20,
+  "transport_batching_full_scientific_objects_lossless": true,
+  "transport_batching_exact_shard_readback_required": true,
+  "transport_batching_exact_resume_at_next_unit_required": true,
+  "transport_batching_no_evidence_reduction": true,
+  "monthly_batch_single_run_sequential_dates_authorized": true,
+  "monthly_batch_per_date_exact_readback_required": true,
+  "monthly_batch_no_intra_month_workflow_redispatch_required": true
 }

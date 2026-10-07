@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 
-SAFE_ATOMIC_UNITS_PER_SHARD = 1
+SAFE_ATOMIC_UNITS_PER_SHARD = 20
 
 _REQUIRED_REQUEST_FLAGS = {
     "machine2_full_scientific_restart_from_beginning_required": True,
@@ -58,6 +58,14 @@ _REQUIRED_REQUEST_FLAGS = {
     "monthly_batch_auto_dispatch_within_period_only": True,
     "monthly_batch_stop_at_period_boundary": True,
     "monthly_batch_next_period_requires_explicit_dispatch": True,
+    "transport_batching_authorized": True,
+    "transport_batching_full_scientific_objects_lossless": True,
+    "transport_batching_exact_shard_readback_required": True,
+    "transport_batching_exact_resume_at_next_unit_required": True,
+    "transport_batching_no_evidence_reduction": True,
+    "monthly_batch_single_run_sequential_dates_authorized": True,
+    "monthly_batch_per_date_exact_readback_required": True,
+    "monthly_batch_no_intra_month_workflow_redispatch_required": True,
     "continuation_requires_fresh_authority_and_source_discovery_each_run": True,
     "continuation_requires_exact_next_governed_date": True,
     "continuation_requires_date_close_readback_each_date": True,
@@ -145,6 +153,8 @@ def validate_request_for_current_atomic_restart(request: Mapping[str, Any]) -> N
         raise RuntimeError("M2_CURRENT_MONTHLY_BATCH_MODE_MISMATCH")
     if request.get("continuation_authority_scope") != "ONE_CALENDAR_MONTH_AT_A_TIME_EXACT_GOVERNED_DATE_ORDER":
         raise RuntimeError("M2_CURRENT_CONTINUATION_AUTHORITY_SCOPE_MISMATCH")
+    if int(request.get("transport_units_per_shard") or 0) != SAFE_ATOMIC_UNITS_PER_SHARD:
+        raise RuntimeError("M2_CURRENT_TRANSPORT_UNITS_PER_SHARD_MISMATCH")
     if request.get("formula_stage") != "CLOSED":
         raise RuntimeError("M2_CURRENT_FORMULA_STAGE_NOT_CLOSED")
     if request.get("grouping_stage") not in {
@@ -258,3 +268,40 @@ def assert_safe_atomic_units_per_shard(value: int) -> None:
         raise RuntimeError(
             f"M2_CURRENT_SAFE_ATOMIC_CHECKPOINT_REQUIRES_UNITS_PER_SHARD_{SAFE_ATOMIC_UNITS_PER_SHARD}"
         )
+
+
+def validate_output_shard_checkpoint_coverage(
+    checkpoint: Mapping[str, Any],
+    *,
+    max_units_per_shard: int = SAFE_ATOMIC_UNITS_PER_SHARD,
+) -> None:
+    completed_units = int(checkpoint.get("completed_units_in_current_date") or 0)
+    completed_rows = int(checkpoint.get("completed_source_rows_in_current_date") or 0)
+    shards = list(checkpoint.get("output_shards") or [])
+    if completed_units <= 0 or completed_rows <= 0 or not shards:
+        raise RuntimeError("M2_CURRENT_SHARD_COVERAGE_EMPTY")
+    expected_first = 0
+    packet_total = 0
+    row_total = 0
+    for ordinal, shard in enumerate(shards, start=1):
+        first = int(shard.get("selection_position_first"))
+        last = int(shard.get("selection_position_last"))
+        packet_count = int(shard.get("packet_count") or 0)
+        source_rows = int(shard.get("source_row_count") or 0)
+        if first != expected_first:
+            raise RuntimeError(f"M2_CURRENT_SHARD_POSITION_GAP:{ordinal}:{expected_first}:{first}")
+        if last < first:
+            raise RuntimeError(f"M2_CURRENT_SHARD_POSITION_RANGE_INVALID:{ordinal}")
+        if packet_count != (last - first + 1):
+            raise RuntimeError(f"M2_CURRENT_SHARD_PACKET_COUNT_MISMATCH:{ordinal}")
+        if packet_count < 1 or packet_count > int(max_units_per_shard):
+            raise RuntimeError(f"M2_CURRENT_SHARD_PACKET_COUNT_UNSAFE:{ordinal}:{packet_count}")
+        if source_rows <= 0:
+            raise RuntimeError(f"M2_CURRENT_SHARD_SOURCE_ROWS_INVALID:{ordinal}")
+        expected_first = last + 1
+        packet_total += packet_count
+        row_total += source_rows
+    if packet_total != completed_units:
+        raise RuntimeError("M2_CURRENT_SHARD_COMPLETED_UNIT_RECONCILIATION_FAIL")
+    if row_total != completed_rows:
+        raise RuntimeError("M2_CURRENT_SHARD_SOURCE_ROW_RECONCILIATION_FAIL")

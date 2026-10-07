@@ -223,6 +223,15 @@ def _open_request() -> dict:
         "monthly_batch_auto_dispatch_within_period_only": True,
         "monthly_batch_stop_at_period_boundary": True,
         "monthly_batch_next_period_requires_explicit_dispatch": True,
+        "transport_batching_authorized": True,
+        "transport_units_per_shard": 20,
+        "transport_batching_full_scientific_objects_lossless": True,
+        "transport_batching_exact_shard_readback_required": True,
+        "transport_batching_exact_resume_at_next_unit_required": True,
+        "transport_batching_no_evidence_reduction": True,
+        "monthly_batch_single_run_sequential_dates_authorized": True,
+        "monthly_batch_per_date_exact_readback_required": True,
+        "monthly_batch_no_intra_month_workflow_redispatch_required": True,
         "continuation_requires_fresh_authority_and_source_discovery_each_run": True,
         "continuation_requires_exact_next_governed_date": True,
         "continuation_requires_date_close_readback_each_date": True,
@@ -258,11 +267,11 @@ def test_current_restart_has_new_owner_full_depth_v3_lineage_and_canonical_machi
     assert MACHINE2_CURRENT_STATE_FOLDER_ID == "1UGEgtftUAasKWF0OHdbDGgYErF60m4zB"
 
 
-def test_current_atomic_execution_contract_requires_one_unit_per_shard():
-    assert SAFE_ATOMIC_UNITS_PER_SHARD == 1
-    assert_safe_atomic_units_per_shard(1)
-    with pytest.raises(RuntimeError, match="M2_CURRENT_SAFE_ATOMIC_CHECKPOINT_REQUIRES_UNITS_PER_SHARD_1"):
-        assert_safe_atomic_units_per_shard(20)
+def test_current_atomic_execution_contract_requires_lossless_twenty_unit_shards():
+    assert SAFE_ATOMIC_UNITS_PER_SHARD == 20
+    assert_safe_atomic_units_per_shard(20)
+    with pytest.raises(RuntimeError, match="M2_CURRENT_SAFE_ATOMIC_CHECKPOINT_REQUIRES_UNITS_PER_SHARD_20"):
+        assert_safe_atomic_units_per_shard(1)
 
 
 def test_current_atomic_execution_contract_rejects_disabled_request():
