@@ -9,6 +9,7 @@ from . import authority_bootstrap as _base
 LIVE_CURRENT_OPERATIONAL_KEYS = frozenset(
     {
         "machine1_dispatch_registry",
+        "storage_manifest",
     }
 )
 
@@ -17,10 +18,13 @@ def drive_revision_policy(row: dict[str, Any]) -> str:
     """Return how Drive revision drift is interpreted for one authority document.
 
     Scientific/method authorities remain exact-bound and fail closed on revision drift.
-    The Machine-1 Dispatch Registry is a volatile operational coordination document:
-    Machine 2 must still fresh-read it in full and prove its identity/readability, but
-    a newer numeric Drive revision alone is not a scientific dependency and therefore
-    must not stop Machine 2.
+    The Machine-1 Dispatch Registry and Storage Manifest are volatile operational
+    coordination/inventory documents. Machine 2 must still fresh-read them in full and
+    prove identity/readability, but newer numeric Drive revisions alone are not a
+    scientific-method dependency and therefore must not stop Machine 2. The Storage
+    Manifest explicitly states that it does not define scientific methodology, and the
+    active authority lock states storage-only authority change does not trigger semantic
+    reread.
     """
     key = str(row.get("key") or "")
     return "READ_CURRENT_LIVE" if key in LIVE_CURRENT_OPERATIONAL_KEYS else "EXACT_BOUND"

@@ -74,7 +74,7 @@ def test_bootstrap_requires_complete_authority_chain_in_order():
         "91",
         "10",
         "9",
-        "16",
+        "18",
     ]
 
 
@@ -85,6 +85,14 @@ def test_machine2_owner_hard_lock_is_exact_bound_material_authority():
     assert owner["document_id"] == "1JUIXxdjVD4OsW50RY4r76E_uUp6ukCdUxJTmyJ0w5YM"
     assert owner["drive_revision_id"] == "1"
     assert drive_revision_policy(owner) == "EXACT_BOUND"
+
+
+def test_storage_manifest_is_live_read_operational_not_exact_revision_blocker():
+    manifest = _load("governance/a1-clean-authority-bootstrap-current.json")
+    docs = manifest["authority_documents_in_required_read_order"]
+    storage_manifest = next(row for row in docs if row["key"] == "storage_manifest")
+    assert storage_manifest["drive_revision_id"] == "18"
+    assert drive_revision_policy(storage_manifest) == "READ_CURRENT_LIVE"
 
 
 def test_machine1_dispatch_registry_is_live_read_operational_not_exact_revision_blocker():
