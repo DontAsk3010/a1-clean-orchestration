@@ -11,11 +11,11 @@ jobs:
     timeout-minutes: 30
     env:
       RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
-      TARGET_TICKER: 'BATR'
-      TARGET_INDEX: '87'
-      ROW_FIRST: '155160'
-      ROW_LAST: '155207'
-      ROW_COUNT: '48'
+      TARGET_TICKER: 'BAUT'
+      TARGET_INDEX: '88'
+      ROW_FIRST: '154511'
+      ROW_LAST: '154516'
+      ROW_COUNT: '6'
     steps:
       - uses: actions/checkout@v4
       - name: Extract exact governed ticker-day rows
