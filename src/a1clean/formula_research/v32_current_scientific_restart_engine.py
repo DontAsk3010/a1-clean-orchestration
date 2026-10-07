@@ -475,6 +475,88 @@ def _actual_first_date(reader: GovernedSourceReader) -> str:
     return str(reader.semantic_manifest_rows[0].trading_date)
 
 
+_CONTINUATION_VOLATILE_IDENTITY_KEYS = frozenset(
+    {
+        "run_id",
+        "run_attempt",
+        "source_universe_manifest_digest",
+        "transport_integrity_proof",
+    }
+)
+
+
+def _assert_checkpoint_continuation_compatible(
+    checkpoint: Mapping[str, Any],
+    identity_contract: Mapping[str, Any],
+) -> None:
+    """Permit only transport/run-instance volatility across an authorized continuation.
+
+    Scientific/code/authority/source identity must remain exact. Fresh source
+    discovery is still required on every run; its timestamp changes the manifest
+    digest, so that digest is treated as transport-instance evidence while the
+    complete source_identity_by_name map remains immutable for continuation.
+    """
+
+    for key, expected in identity_contract.items():
+        if key in _CONTINUATION_VOLATILE_IDENTITY_KEYS:
+            continue
+        if checkpoint.get(key) != expected:
+            raise RuntimeError(f"M2_CURRENT_CONTINUATION_IDENTITY_MISMATCH:{key}")
+
+    previous_transport = dict(checkpoint.get("transport_integrity_proof") or {})
+    current_transport = dict(identity_contract.get("transport_integrity_proof") or {})
+    for field in ("authority_corpus_sha256", "manifest_status"):
+        if previous_transport.get(field) != current_transport.get(field):
+            raise RuntimeError(f"M2_CURRENT_CONTINUATION_TRANSPORT_MISMATCH:{field}")
+
+
+def _rebind_checkpoint_to_current_run(
+    checkpoint: dict[str, Any],
+    identity_contract: Mapping[str, Any],
+) -> None:
+    previous = {
+        "run_id": checkpoint.get("run_id"),
+        "run_attempt": checkpoint.get("run_attempt"),
+        "source_universe_manifest_digest": checkpoint.get("source_universe_manifest_digest"),
+        "current_source": checkpoint.get("current_source"),
+        "current_date": checkpoint.get("current_date"),
+        "status": checkpoint.get("status"),
+        "updated_at_utc": checkpoint.get("updated_at_utc"),
+    }
+    history = list(checkpoint.get("execution_segments") or [])
+    if previous["run_id"] not in (None, "", identity_contract.get("run_id")):
+        history.append(previous)
+    checkpoint["execution_segments"] = history
+    for key, value in identity_contract.items():
+        checkpoint[key] = value
+
+
+def next_governed_date_after(
+    manifest: Mapping[str, Any],
+    reader_api,
+    *,
+    current_source: str,
+    current_date: str,
+) -> tuple[str, str] | None:
+    """Return the exact next governed (source, trading_date), never a guessed calendar day."""
+
+    sources = list(manifest.get("sources") or [])
+    names = [str(row.get("source_name") or "") for row in sources]
+    if current_source not in names:
+        raise RuntimeError(f"M2_CURRENT_CONTINUATION_SOURCE_NOT_IN_UNIVERSE:{current_source}")
+    start_index = names.index(current_source)
+    for index in range(start_index, len(sources)):
+        record = sources[index]
+        source_name = str(record.get("source_name") or "")
+        reader = GovernedSourceReader(reader_api, source_name=source_name)
+        _validate_source_identity(reader, record)
+        dates = sorted({str(row.trading_date) for row in reader.semantic_manifest_rows})
+        for candidate in dates:
+            if candidate > current_date:
+                return source_name, candidate
+    return None
+
+
 def _ref(row: SemanticManifestRow, position: int) -> dict[str, Any]:
     return {
         "selection_position": position,
@@ -575,6 +657,8 @@ def run_trading_date(
             "current_source": source_name,
             "current_date": trading_date,
             "last_closed_date": None,
+            "closed_dates": [],
+            "execution_segments": [],
             "completed_units_in_current_date": 0,
             "completed_source_rows_in_current_date": 0,
             "output_shards": [],
@@ -587,18 +671,75 @@ def run_trading_date(
     else:
         if checkpoint.get("schema") != CHECKPOINT_SCHEMA:
             raise RuntimeError("M2_CURRENT_CHECKPOINT_SCHEMA_MISMATCH")
-        actual_identity = {key: checkpoint.get(key) for key in identity_contract}
-        if actual_identity != identity_contract:
-            raise RuntimeError("M2_CURRENT_CHECKPOINT_CURRENT_CONTRACT_IDENTITY_MISMATCH")
-        if checkpoint.get("status") == "DATE_CLOSED" and checkpoint.get("current_date") == trading_date:
+
+        continue_all = request.get("continue_all_remaining_dates_authorized") is True
+        same_unit = checkpoint.get("current_date") == trading_date and checkpoint.get("current_source") == source_name
+
+        if continue_all:
+            _assert_checkpoint_continuation_compatible(checkpoint, identity_contract)
+            _rebind_checkpoint_to_current_run(checkpoint, identity_contract)
+        else:
+            actual_identity = {key: checkpoint.get(key) for key in identity_contract}
+            if actual_identity != identity_contract:
+                raise RuntimeError("M2_CURRENT_CHECKPOINT_CURRENT_CONTRACT_IDENTITY_MISMATCH")
+
+        if checkpoint.get("status") == "DATE_CLOSED" and same_unit:
             return {
                 "status": "NOOP_DATE_ALREADY_CLOSED_IN_NEW_CURRENT_LINEAGE",
                 "lineage": LINEAGE,
                 "trading_date": trading_date,
                 "next_exact_resume_point": None,
             }
-        if checkpoint.get("current_date") != trading_date or checkpoint.get("current_source") != source_name:
-            raise RuntimeError("M2_CURRENT_NO_AUTO_ADVANCE_DATE_OR_SOURCE")
+
+        if not same_unit:
+            if checkpoint.get("status") != "DATE_CLOSED":
+                raise RuntimeError("M2_CURRENT_CANNOT_ADVANCE_WITH_OPEN_DATE")
+            if not continue_all:
+                raise RuntimeError("M2_CURRENT_NO_AUTO_ADVANCE_DATE_OR_SOURCE")
+            if request.get("continuation_requires_exact_next_governed_date") is not True:
+                raise RuntimeError("M2_CURRENT_EXACT_NEXT_DATE_AUTHORITY_MISSING")
+
+            expected = next_governed_date_after(
+                manifest,
+                reader_api,
+                current_source=str(checkpoint.get("current_source") or ""),
+                current_date=str(checkpoint.get("current_date") or ""),
+            )
+            if expected is None:
+                raise RuntimeError("M2_CURRENT_ALL_GOVERNED_DATES_ALREADY_CLOSED")
+            expected_source, expected_date = expected
+            if (source_name, trading_date) != (expected_source, expected_date):
+                raise RuntimeError(
+                    "M2_CURRENT_CONTINUATION_NOT_EXACT_NEXT_GOVERNED_DATE:"
+                    f"expected={expected_source}:{expected_date}:actual={source_name}:{trading_date}"
+                )
+
+            closed_dates = list(checkpoint.get("closed_dates") or [])
+            last_closed = str(checkpoint.get("last_closed_date") or "")
+            if closed_dates and str(closed_dates[-1]) != last_closed:
+                raise RuntimeError("M2_CURRENT_CLOSED_DATE_HISTORY_DRIFT")
+            if last_closed and last_closed not in closed_dates:
+                closed_dates.append(last_closed)
+
+            checkpoint["closed_dates"] = closed_dates
+            checkpoint["status"] = "IN_PROGRESS"
+            checkpoint["current_source"] = source_name
+            checkpoint["current_date"] = trading_date
+            checkpoint["completed_units_in_current_date"] = 0
+            checkpoint["completed_source_rows_in_current_date"] = 0
+            checkpoint["output_shards"] = []
+            checkpoint["last_completed"] = None
+            checkpoint["next_exact_resume_point"] = _ref(selected[0], 0)
+            checkpoint["date_close"] = None
+            checkpoint["hold"] = None
+            checkpoint["continuation_authority_scope"] = request.get("continuation_authority_scope")
+            checkpoint["updated_at_utc"] = _utc_now()
+            store.upsert_json(folder_id=store.checkpoint_folder_id, name=CHECKPOINT_NAME, obj=checkpoint)
+        elif continue_all:
+            # Same-date resume after a failed/aborted run: only volatile run and
+            # fresh-discovery identity is rebound; exact cursor/carry are preserved.
+            checkpoint["updated_at_utc"] = _utc_now()
+            store.upsert_json(folder_id=store.checkpoint_folder_id, name=CHECKPOINT_NAME, obj=checkpoint)
 
     start = int(checkpoint.get("completed_units_in_current_date") or 0)
     if start < 0 or start > len(selected):
@@ -701,6 +842,12 @@ def run_trading_date(
     close_upload = store.upsert_json(folder_id=store.current_state_folder_id, name=close_name, obj=date_close)
     checkpoint["status"] = "DATE_CLOSED"
     checkpoint["last_closed_date"] = trading_date
+    closed_dates = list(checkpoint.get("closed_dates") or [])
+    if trading_date in closed_dates and (not closed_dates or closed_dates[-1] != trading_date):
+        raise RuntimeError("M2_CURRENT_CLOSED_DATE_DUPLICATE_OUT_OF_ORDER")
+    if not closed_dates or closed_dates[-1] != trading_date:
+        closed_dates.append(trading_date)
+    checkpoint["closed_dates"] = closed_dates
     checkpoint["date_close"] = close_upload
     checkpoint["next_exact_resume_point"] = None
     checkpoint["updated_at_utc"] = _utc_now()
@@ -708,7 +855,11 @@ def run_trading_date(
     state = {
         "schema": "A1_M2_CURRENT_SCIENTIFIC_RESTART_STATE_V1",
         "lineage": LINEAGE,
-        "status": "DATE_CLOSED_WAITING_EXPLICIT_NEXT_DATE_AUTHORITY",
+        "status": (
+            "DATE_CLOSED_OWNER_CONTINUATION_AUTHORIZED"
+            if request.get("continue_all_remaining_dates_authorized") is True
+            else "DATE_CLOSED_WAITING_EXPLICIT_NEXT_DATE_AUTHORITY"
+        ),
         "last_closed_date": trading_date,
         "current_source": source_name,
         "date_close": close_upload,
@@ -716,6 +867,7 @@ def run_trading_date(
         "old_pass_completion_inherited": False,
         "formula_stage": "CLOSED",
         "grouping_stage": "HOLD",
+        "continuation_authority_scope": request.get("continuation_authority_scope"),
         "updated_at_utc": _utc_now(),
     }
     store.upsert_json(folder_id=store.current_state_folder_id, name=CURRENT_STATE_NAME, obj=state)
@@ -723,7 +875,7 @@ def run_trading_date(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Machine-2 CURRENT scientific restart from the earliest governed unit; one trading date only, no auto-advance.")
+    parser = argparse.ArgumentParser(description="Machine-2 CURRENT full-depth date worker. Exact next-date continuation is allowed only by durable owner continuation authority.")
     parser.add_argument("--request", required=True, type=Path)
     parser.add_argument("--source-universe-manifest", required=True, type=Path)
     parser.add_argument("--trading-date", required=True)

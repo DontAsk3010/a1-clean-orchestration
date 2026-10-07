@@ -53,6 +53,15 @@ _REQUIRED_REQUEST_FLAGS = {
     "winner_only_filtering_used": False,
     "summary_only_substitution_used": False,
     "no_pass_claim": True,
+    "continue_all_remaining_dates_authorized": True,
+    "continuation_requires_fresh_authority_and_source_discovery_each_run": True,
+    "continuation_requires_exact_next_governed_date": True,
+    "continuation_requires_date_close_readback_each_date": True,
+    "continuation_single_writer_required": True,
+    "continuation_skip_or_parallel_date_forbidden": True,
+    "continuation_depth_reduction_forbidden": True,
+    "continuation_formula_stage_remains_closed": True,
+    "continuation_grouping_stage_remains_closed_until_separately_admitted": True,
 }
 
 _REQUIRED_SEMANTIC_LABEL_FIELDS = {
@@ -128,6 +137,8 @@ def validate_request_for_current_atomic_restart(request: Mapping[str, Any]) -> N
     for key, expected in _REQUIRED_REQUEST_FLAGS.items():
         if request.get(key) is not expected:
             raise RuntimeError(f"M2_CURRENT_REQUEST_CONTRACT_MISMATCH:{key}")
+    if request.get("continuation_authority_scope") != "ALL_REMAINING_GOVERNED_TRADING_DATES_IN_DYNAMIC_SOURCE_UNIVERSE":
+        raise RuntimeError("M2_CURRENT_CONTINUATION_AUTHORITY_SCOPE_MISMATCH")
     if request.get("formula_stage") != "CLOSED":
         raise RuntimeError("M2_CURRENT_FORMULA_STAGE_NOT_CLOSED")
     if request.get("grouping_stage") not in {

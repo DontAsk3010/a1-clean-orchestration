@@ -216,6 +216,16 @@ def _open_request() -> dict:
         "winner_only_filtering_used": False,
         "summary_only_substitution_used": False,
         "no_pass_claim": True,
+        "continue_all_remaining_dates_authorized": True,
+        "continuation_authority_scope": "ALL_REMAINING_GOVERNED_TRADING_DATES_IN_DYNAMIC_SOURCE_UNIVERSE",
+        "continuation_requires_fresh_authority_and_source_discovery_each_run": True,
+        "continuation_requires_exact_next_governed_date": True,
+        "continuation_requires_date_close_readback_each_date": True,
+        "continuation_single_writer_required": True,
+        "continuation_skip_or_parallel_date_forbidden": True,
+        "continuation_depth_reduction_forbidden": True,
+        "continuation_formula_stage_remains_closed": True,
+        "continuation_grouping_stage_remains_closed_until_separately_admitted": True,
         "full_depth_required_domains_spec_path": "governance/machine2-full-depth-required-domains-current.json",
         "semantic_label_required_fields": [
             "definition_version",
@@ -343,3 +353,12 @@ def test_current_restart_does_not_turn_missing_or_unproven_timing_into_zero():
     assert row["causal_timing"]["formation_eligible_at"] is None
     assert row["effort_response"]["nbss_to_price_absolute_efficiency"] is None
     assert row["price_geometry"]["path_efficiency"] is None
+
+
+
+def test_owner_continue_all_authority_cannot_be_silently_weakened():
+    request = _open_request()
+    validate_request_for_current_atomic_restart(request)
+    request["continuation_requires_exact_next_governed_date"] = False
+    with pytest.raises(RuntimeError, match="M2_CURRENT_REQUEST_CONTRACT_MISMATCH:continuation_requires_exact_next_governed_date"):
+        validate_request_for_current_atomic_restart(request)
