@@ -277,6 +277,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $script = @'
+          import os
           from a1clean.google_drive import build_drive_api
           from a1clean.formula_research.machine2_current_store import Machine2CurrentStore
           from a1clean.formula_research.m2_current_execution_contract import validate_checkpoint_exact_resume
