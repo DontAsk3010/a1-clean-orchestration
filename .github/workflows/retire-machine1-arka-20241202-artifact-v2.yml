@@ -1,0 +1,39 @@
+name: Retire Machine1 ARKA 2024-12-02 Evidence Artifact V2
+
+on:
+  push:
+    branches:
+      - machine1/evidence-arka-20241202
+    paths:
+      - .github/workflows/retire-machine1-arka-20241202-artifact-v2.yml
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  retire-artifact:
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 10
+    steps:
+      - name: Delete zero-dependency ARKA evidence artifact
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $artifactId = 11491954561
+          $uri = "https://api.github.com/repos/DontAsk3010/a1-clean-orchestration/actions/artifacts/$artifactId"
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = "application/vnd.github+json"
+            "X-GitHub-Api-Version" = "2022-11-28"
+          }
+          try {
+            Invoke-WebRequest -Method Delete -Uri $uri -Headers $headers -UseBasicParsing | Out-Null
+            Write-Host "ARTIFACT_DELETE_OK id=$artifactId"
+          } catch {
+            if ($_.Exception.Response -and [int]$_.Exception.Response.StatusCode -eq 404) {
+              Write-Host "ARTIFACT_ALREADY_ABSENT id=$artifactId"
+            } else { throw }
+          }
