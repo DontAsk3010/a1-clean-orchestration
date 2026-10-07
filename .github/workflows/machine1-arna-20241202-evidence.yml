@@ -62,3 +62,5 @@ jobs:
           path: machine1_arna_20241202_evidence/
           if-no-files-found: error
           retention-days: 7
+
+# trigger-source-evidence-run
