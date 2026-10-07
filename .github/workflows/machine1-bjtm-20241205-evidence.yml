@@ -3,7 +3,7 @@ name: Machine1 BJTM 2024-12-05 Governed Evidence Extract
 on:
   push:
     branches:
-      - machine1/evidence-bjtm-20241205
+      - machine1/evidence-bjtm-20241205-recovery
     paths:
       - .github/workflows/machine1-bjtm-20241205-evidence.yml
 
@@ -33,7 +33,7 @@ jobs:
           $expectedFirstTime = '09:00:00'
           $expectedLastTime = '16:11:00'
           $semanticBundle = 'Raw Des 02-31-2024__SEMANTIC_0014.jsonl'
-          $semanticBundleLine = 203
+          $semanticBundleLine = 205
           $expectedMd5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
           $expectedSha256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
 
@@ -174,7 +174,7 @@ jobs:
           $pointer = [ordered]@{
             ticker = 'BJTM'
             trading_date = '2024-12-05'
-            branch = 'machine1/evidence-bjtm-20241205'
+            branch = 'machine1/evidence-bjtm-20241205-recovery'
             workflow_commit = '${{ github.sha }}'
             github_run_id = [int64]'${{ github.run_id }}'
             github_artifact_id = [int64]'${{ steps.upload.outputs.artifact-id }}'
