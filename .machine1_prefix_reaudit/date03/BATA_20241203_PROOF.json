@@ -1,0 +1,17 @@
+{
+    "audit_type":  "OWNER_CORRECTED_FULL_PREFIX_REAUDIT",
+    "ticker":  "BATA",
+    "trading_date":  "2024-12-03",
+    "recovered_date_local_index":  86,
+    "source_name":  "Raw Des 02-31-2024.csv",
+    "source_sha256":  "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+    "source_row_first":  153667,
+    "source_row_last":  153671,
+    "data_rows":  5,
+    "first_datetime":  "2024-12-03 09:23:00",
+    "last_datetime":  "2024-12-03 16:13:00",
+    "rows_jsonl_sha256":  "878ea06a04a45e07f4863e26b6f79a4d2ec9a1e76e8c5cfe6038db4b8de028d1",
+    "semantic_status":  "TRANSPORT_ONLY_NOT_SEMANTIC_COMPLETE",
+    "formula_stage":  "CLOSED",
+    "date_advance":  "PROHIBITED"
+}
