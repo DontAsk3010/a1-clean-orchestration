@@ -1,0 +1,46 @@
+{
+  "project": "A1 CLEAN / MACHINE1 / DATE03",
+  "ticker": "BBCA",
+  "index": 90,
+  "stage": "CANONICAL_PROMOTION_NOT_EXECUTED",
+  "source_rows": [
+    157676,
+    158011
+  ],
+  "source_rows_count": 336,
+  "prior_checkpoint": "INDEX089_BAYU_DURABLE",
+  "candidate": {
+    "observations": {
+      "original_sha256": "2c04024c52e5fa1d3771b2c90258865af9280f4b5e138eb7bd356236d74f3b40",
+      "candidate_sha256": "608a0af5b8bf646c8a939fb2bf3d11e4eb0f73aa87d4493500edb3ebf1bce98e",
+      "count": 610,
+      "changed": [
+        "OBS_GEN01_DES2024_20241203_BBCA_001"
+      ]
+    },
+    "journeys": {
+      "original_sha256": "2de98ec9ac025bf76e38cb85768d6b23f5f8c0bcd32225c1f3a1ae22b2653eaa",
+      "candidate_sha256": "eb5f4c628507d74c6471466b8e791c1208d12d3bc598747b129ebb085ac877a2",
+      "count": 960,
+      "changed": [
+        "JRN_GEN01_DES2024_20241203_BBCA_001",
+        "JRN_GEN01_DES2024_20241203_BBCA_002"
+      ]
+    },
+    "open_carry": {
+      "original_sha256": "a1878395929c70fe6fc32ebfa0bb30a808478567c0382d98970c049a70fb5deb",
+      "candidate_sha256": "a91d7c09a297b73ec0cdab1427e3342b4fdcbdd51ec36075261cfd6be45375f5",
+      "count": 305,
+      "changed": [
+        "JRN_GEN01_DES2024_20241203_BBCA_002"
+      ]
+    }
+  },
+  "integrity": {
+    "same_object_id_sets": true,
+    "non_BBCA_changes": 0
+  },
+  "blocker": "Drive raw-file update requires connector file_uri. Existing corrected files are local /mnt/data files; no supported direct conversion to connector file_uri has been established. No write attempted. Do not bypass with a replacement or second canonical file.",
+  "next_gate": "Revalidate live metadata SHA before writing, convert candidate to accepted connector file_uri through supported mechanism, update same 3 Drive IDs, exact readback, checkpoint last, registry/handoff sync, final readback",
+  "pass090": false
+}
