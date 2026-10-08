@@ -1,0 +1,206 @@
+name: Machine1 Date03 BBCA Canonical Semantic Patch
+on:
+  push:
+    branches: [machine1/evidence-kbatch-20241203]
+    paths:
+      - .machine1_prefix_reaudit/date03/BBCA_20241203_SEMANTIC_PATCH_CURRENT.json
+
+permissions:
+  contents: read
+
+jobs:
+  patch:
+    runs-on: [self-hosted, windows, x64, a1-clean-machine1]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Drive client
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          py -3.11 -m pip install --disable-pip-version-check google-api-python-client google-auth
+
+      - name: Apply fail-closed BBCA canonical semantic patch
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          @'
+          import io, os, json, hashlib, sys
+          from googleapiclient.discovery import build
+          from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
+
+          PATCH_PATH = r".machine1_prefix_reaudit/date03/BBCA_20241203_SEMANTIC_PATCH_CURRENT.json"
+          with open(PATCH_PATH, "r", encoding="utf-8") as f:
+              patch = json.load(f)
+
+          cred_path = os.environ.get("A1_DRIVE_WRITER_CREDENTIALS") or os.environ.get("A1_GOOGLE_APPLICATION_CREDENTIALS")
+          if not cred_path:
+              raise RuntimeError("DRIVE_WRITER_CREDENTIAL_BINDING_MISSING")
+          if not os.path.isfile(cred_path):
+              raise RuntimeError("DRIVE_WRITER_CREDENTIAL_FILE_MISSING")
+
+          cred_payload = json.load(open(cred_path, "r", encoding="utf-8"))
+          scopes = ["https://www.googleapis.com/auth/drive"]
+          if cred_payload.get("type") == "service_account":
+              from google.oauth2 import service_account
+              creds = service_account.Credentials.from_service_account_file(cred_path, scopes=scopes)
+          elif cred_payload.get("type") == "authorized_user":
+              from google.oauth2.credentials import Credentials
+              creds = Credentials.from_authorized_user_file(cred_path, scopes=scopes)
+          else:
+              raise RuntimeError("UNSUPPORTED_DRIVE_CREDENTIAL_TYPE")
+          api = build("drive", "v3", credentials=creds, cache_discovery=False)
+
+          def sha256(b):
+              return hashlib.sha256(b).hexdigest()
+
+          def download(fid):
+              request = api.files().get_media(fileId=fid, supportsAllDrives=True)
+              buf = io.BytesIO()
+              dl = MediaIoBaseDownload(buf, request)
+              done = False
+              while not done:
+                  _, done = dl.next_chunk()
+              return buf.getvalue()
+
+          def update(fid, data):
+              media = MediaIoBaseUpload(io.BytesIO(data), mimetype="application/json", resumable=False)
+              return api.files().update(
+                  fileId=fid,
+                  media_body=media,
+                  supportsAllDrives=True,
+                  fields="id,name,size,md5Checksum,modifiedTime"
+              ).execute()
+
+          expected = patch["expected"]
+          specs = {
+              "obs": (expected["obs_file_id"], expected["obs_sha256"], expected["obs_count"]),
+              "journey": (expected["journey_file_id"], expected["journey_sha256"], expected["journey_count"]),
+              "open": (expected["open_file_id"], expected["open_sha256"], expected["open_count"]),
+          }
+
+          originals = {}
+          arrays = {}
+          for key,(fid,want_sha,want_count) in specs.items():
+              raw = download(fid)
+              got_sha = sha256(raw)
+              if got_sha != want_sha:
+                  raise RuntimeError(f"STALE_CANONICAL_{key.upper()} expected={want_sha} got={got_sha}")
+              arr = json.loads(raw.decode("utf-8"))
+              if not isinstance(arr, list) or len(arr) != want_count:
+                  raise RuntimeError(f"COUNT_PRECONDITION_{key.upper()} expected={want_count} got={len(arr) if isinstance(arr,list) else 'NONLIST'}")
+              originals[key] = raw
+              arrays[key] = arr
+
+          ticker = patch["ticker"]
+          obs_matches = [i for i,o in enumerate(arrays["obs"]) if o.get("ticker") == ticker]
+          if len(obs_matches) != 1:
+              raise RuntimeError(f"OBS_TICKER_CARDINALITY expected=1 got={len(obs_matches)}")
+          arrays["obs"][obs_matches[0]] = patch["replace"]["observation"]
+
+          journey_ids = set(patch["invariants"]["journey_ids"])
+          current_j = [o for o in arrays["journey"] if o.get("ticker") == ticker]
+          if len(current_j) != 2 or {o.get("journey_id") for o in current_j} != journey_ids:
+              raise RuntimeError("JOURNEY_PRECONDITION_IDENTITY_MISMATCH")
+          repl_j = {o["journey_id"]:o for o in patch["replace"]["journeys"]}
+          arrays["journey"] = [repl_j.get(o.get("journey_id"), o) if o.get("ticker")==ticker else o for o in arrays["journey"]]
+
+          open_matches = [i for i,o in enumerate(arrays["open"]) if o.get("ticker") == ticker]
+          if len(open_matches) != 1:
+              raise RuntimeError(f"OPEN_TICKER_CARDINALITY expected=1 got={len(open_matches)}")
+          arrays["open"][open_matches[0]] = patch["replace"]["open_carry"]
+
+          if len(arrays["obs"]) != expected["obs_count"] or len(arrays["journey"]) != expected["journey_count"] or len(arrays["open"]) != expected["open_count"]:
+              raise RuntimeError("GLOBAL_COUNT_CHANGED")
+
+          if sum(1 for o in arrays["obs"] if o.get("ticker")==ticker) != 1:
+              raise RuntimeError("OBS_DUPLICATE_CREATED")
+          if {o.get("journey_id") for o in arrays["journey"] if o.get("ticker")==ticker} != journey_ids:
+              raise RuntimeError("JOURNEY_ID_SET_CHANGED")
+          if sum(1 for o in arrays["open"] if o.get("ticker")==ticker) != 1:
+              raise RuntimeError("OPEN_DUPLICATE_CREATED")
+          if next(o for o in arrays["open"] if o.get("ticker")==ticker).get("journey_id") != patch["invariants"]["open_journey_id"]:
+              raise RuntimeError("OPEN_JOURNEY_POINTER_MISMATCH")
+
+          obs_obj = next(o for o in arrays["obs"] if o.get("ticker")==ticker)
+          if obs_obj.get("actual_rows_read") != 336 or obs_obj.get("source_row_first") != 157676 or obs_obj.get("source_row_last") != 158011:
+              raise RuntimeError("BBCA_SOURCE_RANGE_RECONCILIATION_FAIL")
+          if obs_obj.get("right_censored") is not False:
+              raise RuntimeError("BBCA_SOURCE_RIGHT_CENSOR_MUST_BE_FALSE")
+          if obs_obj.get("owner_reread_20261008",{}).get("prior_output_seeded") is not False:
+              raise RuntimeError("BBCA_PRIOR_OUTPUT_SEED_FLAG_FAIL")
+
+          def encode(arr):
+              return json.dumps(arr, ensure_ascii=False, separators=(",",":")).encode("utf-8")
+
+          new_bytes = {k:encode(v) for k,v in arrays.items()}
+          new_sha = {k:sha256(v) for k,v in new_bytes.items()}
+          touched=[]
+          try:
+              for key in ("obs","journey","open"):
+                  update(specs[key][0], new_bytes[key])
+                  touched.append(key)
+              readback={}
+              for key,(fid,_,count) in specs.items():
+                  rb=download(fid)
+                  rsha=sha256(rb)
+                  if rsha != new_sha[key]:
+                      raise RuntimeError(f"POSTWRITE_HASH_MISMATCH_{key.upper()} expected={new_sha[key]} got={rsha}")
+                  arr=json.loads(rb.decode("utf-8"))
+                  if len(arr) != count:
+                      raise RuntimeError(f"POSTWRITE_COUNT_MISMATCH_{key.upper()}")
+                  readback[key]={"sha256":rsha,"count":len(arr),"bytes":len(rb)}
+          except Exception:
+              rollback_errors=[]
+              for key in reversed(touched):
+                  try:
+                      update(specs[key][0], originals[key])
+                  except Exception as rb_exc:
+                      rollback_errors.append(f"{key}:{rb_exc}")
+              for key in touched:
+                  try:
+                      if sha256(download(specs[key][0])) != specs[key][1]:
+                          rollback_errors.append(f"{key}:ROLLBACK_HASH_MISMATCH")
+                  except Exception as rb_exc:
+                      rollback_errors.append(f"{key}:ROLLBACK_READBACK_ERROR:{rb_exc}")
+              if rollback_errors:
+                  print("ROLLBACK_ERRORS="+json.dumps(rollback_errors))
+              raise
+
+          proof={
+              "status":"PASS",
+              "ticker":ticker,
+              "index":patch["index"],
+              "trading_date":patch["trading_date"],
+              "expected_before":{
+                  "obs_sha256":expected["obs_sha256"],
+                  "journey_sha256":expected["journey_sha256"],
+                  "open_sha256":expected["open_sha256"]
+              },
+              "after":readback,
+              "ticker_cardinality":{"observation":1,"journeys":2,"open_carry":1},
+              "global_counts":{"observation":expected["obs_count"],"journeys":expected["journey_count"],"open_carry":expected["open_count"]},
+              "rows_jsonl_sha256":patch["replace"]["observation"]["primitive_continuous_evidence"]["rows_jsonl_sha256"],
+              "source_rows":[157676,158011],
+              "actual_rows_read":336,
+              "fresh_semantic_reread":"PASS_336_OF_336",
+              "prior_output_used_as_seed":False,
+              "source_right_censored":False,
+              "formula_stage":"CLOSED",
+              "date_advance":"PROHIBITED"
+          }
+          with open("BBCA_20241203_CANONICAL_PATCH_PROOF.json","w",encoding="utf-8",newline="\n") as f:
+              json.dump(proof,f,ensure_ascii=False,separators=(",",":"))
+          print("BBCA_CANONICAL_PATCH_PASS "+json.dumps(proof,sort_keys=True))
+          '@ | Set-Content -LiteralPath bbca_patch_drive.py -Encoding UTF8
+          py -3.11 bbca_patch_drive.py
+
+      - name: Upload patch proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-date03-bbca-canonical-patch-proof
+          path: BBCA_20241203_CANONICAL_PATCH_PROOF.json
+          if-no-files-found: ignore
+          retention-days: 7
