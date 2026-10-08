@@ -11,11 +11,12 @@ jobs:
     timeout-minutes: 30
     env:
       RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
-      TARGET_TICKER: 'BAYU'
-      TARGET_INDEX: '89'
-      ROW_FIRST: '154650'
-      ROW_LAST: '154673'
-      ROW_COUNT: '24'
+      TARGET_TICKER: 'BAPA'
+      TARGET_INDEX: '84'
+      ROW_FIRST: '152331'
+      ROW_LAST: '152362'
+      ROW_COUNT: '32'
+      CHUNK_SIZE: '16'
     steps:
       - uses: actions/checkout@v4
       - name: Extract exact governed ticker-day rows
@@ -39,11 +40,52 @@ jobs:
           $ts=@($records|ForEach-Object{$_.RAW_TICKER}|Sort-Object -Unique); if($ts.Count-ne1 -or $ts[0]-ne$ticker){throw 'TICKER_MISMATCH'}
           $dts=@($records|ForEach-Object{[string]$_.RAW_DATETIME_ISO}); if(@($dts|Where-Object{-not $_.StartsWith('2024-12-03')}).Count-gt0){throw 'DATE_MISMATCH'}
           $out=Join-Path $PWD 'machine1_date03_prefix_reaudit_next'; New-Item -ItemType Directory -Force $out|Out-Null
-          $enc=New-Object System.Text.UTF8Encoding($false); $rp=Join-Path $out ($ticker+'_20241203_ROWS.jsonl')
-          [System.IO.File]::WriteAllLines($rp,[string[]]@($records|ForEach-Object{$_|ConvertTo-Json -Compress -Depth 12}),$enc)
-          $proof=[ordered]@{audit_type='OWNER_CORRECTED_FULL_PREFIX_REAUDIT';ticker=$ticker;trading_date='2024-12-03';recovered_date_local_index=$idx;source_name='Raw Des 02-31-2024.csv';source_sha256=$got;source_row_first=$first;source_row_last=$last;data_rows=$records.Count;first_datetime=$dts[0];last_datetime=$dts[-1];rows_jsonl_sha256=(Get-FileHash $rp -Algorithm SHA256).Hash.ToLowerInvariant();semantic_status='TRANSPORT_ONLY_NOT_SEMANTIC_COMPLETE';formula_stage='CLOSED';date_advance='PROHIBITED'}
-          [System.IO.File]::WriteAllText((Join-Path $out ($ticker+'_20241203_PROOF.json')),($proof|ConvertTo-Json -Depth 10),$enc)
-          Write-Host "PREFIX_REAUDIT_EVIDENCE_OK ticker=$ticker idx=$idx rows=$($records.Count) first=$($dts[0]) last=$($dts[-1])"
+          $enc=New-Object System.Text.UTF8Encoding($false)
+          $chunkSize=[int]$env:CHUNK_SIZE
+          $chunkProofs=@()
+          $mergedLines=New-Object 'System.Collections.Generic.List[string]'
+          $chunkIndex=0
+          for($start=0;$start-lt$records.Count;$start+=$chunkSize){
+            $chunkIndex++
+            $take=[Math]::Min($chunkSize,$records.Count-$start)
+            $chunkRecords=@($records|Select-Object -Skip $start -First $take)
+            $chunkLines=@($chunkRecords|ForEach-Object{$_|ConvertTo-Json -Compress -Depth 12})
+            foreach($j in $chunkLines){[void]$mergedLines.Add($j)}
+            $chunkPath=Join-Path $out ("{0}_20241203_CHUNK_{1:D3}_ROWS.jsonl" -f $ticker,$chunkIndex)
+            [System.IO.File]::WriteAllLines($chunkPath,[string[]]$chunkLines,$enc)
+            $chunkProof=[ordered]@{
+              ticker=$ticker; trading_date='2024-12-03'; chunk_index=$chunkIndex; expected_rows=$take; actual_rows=$chunkRecords.Count;
+              source_row_first=[int]$chunkRecords[0].source_row; source_row_last=[int]$chunkRecords[-1].source_row;
+              first_datetime=[string]$chunkRecords[0].RAW_DATETIME_ISO; last_datetime=[string]$chunkRecords[-1].RAW_DATETIME_ISO;
+              chunk_sha256=(Get-FileHash -LiteralPath $chunkPath -Algorithm SHA256).Hash.ToLowerInvariant();
+              semantic_status='TRANSPORT_ONLY_NOT_SEMANTIC_COMPLETE'
+            }
+            $chunkProofPath=Join-Path $out ("{0}_20241203_CHUNK_{1:D3}_PROOF.json" -f $ticker,$chunkIndex)
+            [System.IO.File]::WriteAllText($chunkProofPath,($chunkProof|ConvertTo-Json -Depth 10),$enc)
+            $chunkProofs+=([pscustomobject]$chunkProof)
+          }
+          if($mergedLines.Count-ne$count){throw "MERGE_COUNT_FAIL got=$($mergedLines.Count) expected=$count"}
+          $rp=Join-Path $out ($ticker+'_20241203_ROWS.jsonl')
+          [System.IO.File]::WriteAllLines($rp,[string[]]$mergedLines,$enc)
+          $merged=@([System.IO.File]::ReadLines($rp,[System.Text.Encoding]::UTF8)|ForEach-Object{$_|ConvertFrom-Json})
+          if($merged.Count-ne$count){throw "MERGED_READBACK_COUNT_FAIL got=$($merged.Count) expected=$count"}
+          $mr=@($merged|ForEach-Object{[int]$_.source_row})
+          if(@($mr|Sort-Object -Unique).Count-ne$count){throw 'MERGED_DUPLICATE_OR_MISSING_ROWS'}
+          if($mr[0]-ne$first -or $mr[-1]-ne$last){throw 'MERGED_BOUNDARY_FAIL'}
+          for($n=1;$n-lt$mr.Count;$n++){if($mr[$n]-ne($mr[$n-1]+1)){throw "MERGED_CONTINUITY_FAIL prev=$($mr[$n-1]) curr=$($mr[$n])"}}
+          $sumChunkRows=($chunkProofs|Measure-Object -Property actual_rows -Sum).Sum
+          if($sumChunkRows-ne$count){throw "CHUNK_SUM_FAIL got=$sumChunkRows expected=$count"}
+          $proof=[ordered]@{
+            audit_type='OWNER_CORRECTED_FULL_PREFIX_REAUDIT'; transport_mode='DETERMINISTIC_CONTIGUOUS_CHUNKED_LOSSLESS';
+            ticker=$ticker; trading_date='2024-12-03'; recovered_date_local_index=$idx; source_name='Raw Des 02-31-2024.csv'; source_sha256=$got;
+            source_row_first=$first; source_row_last=$last; data_rows=$records.Count; first_datetime=$dts[0]; last_datetime=$dts[-1];
+            chunk_size=$chunkSize; total_chunks=$chunkProofs.Count; sum_chunk_rows=$sumChunkRows; chunk_proofs=$chunkProofs;
+            merged_unique_rows=@($mr|Sort-Object -Unique).Count; duplicate_rows=0; missing_rows=0; reordered_rows=0;
+            rows_jsonl_sha256=(Get-FileHash $rp -Algorithm SHA256).Hash.ToLowerInvariant(); lossless_merge_validation='PASS';
+            semantic_status='TRANSPORT_ONLY_NOT_SEMANTIC_COMPLETE'; formula_stage='CLOSED'; date_advance='PROHIBITED'
+          }
+          [System.IO.File]::WriteAllText((Join-Path $out ($ticker+'_20241203_PROOF.json')),($proof|ConvertTo-Json -Depth 20),$enc)
+          Write-Host "PREFIX_REAUDIT_EVIDENCE_OK ticker=$ticker idx=$idx rows=$($records.Count) chunks=$($chunkProofs.Count) merge=PASS first=$($dts[0]) last=$($dts[-1])"
       - name: Upload governed prefix reaudit evidence
         uses: actions/upload-artifact@v4
         with:
@@ -58,5 +100,5 @@ jobs:
           New-Item -ItemType Directory -Force '.machine1_prefix_reaudit/date03'|Out-Null
           Copy-Item 'machine1_date03_prefix_reaudit_next/*' '.machine1_prefix_reaudit/date03/' -Force
           git -c safe.directory="$env:GITHUB_WORKSPACE" config user.name 'a1-clean-machine1-bot'; git -c safe.directory="$env:GITHUB_WORKSPACE" config user.email 'a1-clean-machine1-bot@users.noreply.github.com'
-          git -c safe.directory="$env:GITHUB_WORKSPACE" add -f ".machine1_prefix_reaudit/date03/${ticker}_20241203_ROWS.jsonl" ".machine1_prefix_reaudit/date03/${ticker}_20241203_PROOF.json"
+          git -c safe.directory="$env:GITHUB_WORKSPACE" add -f ".machine1_prefix_reaudit/date03/${ticker}_20241203_*"
           git -c safe.directory="$env:GITHUB_WORKSPACE" commit -m "Persist governed $ticker Date03 prefix reaudit evidence [skip ci]"; git -c safe.directory="$env:GITHUB_WORKSPACE" push origin HEAD:machine1/evidence-kbatch-20241203
