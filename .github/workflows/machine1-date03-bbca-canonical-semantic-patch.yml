@@ -15,11 +15,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install Drive client
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference='Stop'
-          py -3.11 -m pip install --disable-pip-version-check google-api-python-client google-auth
+          python -m pip install --disable-pip-version-check google-api-python-client google-auth
 
       - name: Apply fail-closed BBCA canonical semantic patch
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
@@ -194,7 +199,7 @@ jobs:
               json.dump(proof,f,ensure_ascii=False,separators=(",",":"))
           print("BBCA_CANONICAL_PATCH_PASS "+json.dumps(proof,sort_keys=True))
           '@ | Set-Content -LiteralPath bbca_patch_drive.py -Encoding UTF8
-          py -3.11 bbca_patch_drive.py
+          python bbca_patch_drive.py
 
       - name: Upload patch proof
         if: always()
