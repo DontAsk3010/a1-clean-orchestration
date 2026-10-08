@@ -43,7 +43,7 @@ jobs:
             }
           } finally { $parser.Close() }
           if ($rows.Count -lt 1) { throw 'ZERO_MATCHING_ROWS' }; $expectedCount=$rows.Count; $sourceFirst=[int]$rows[0].source_row; $sourceLast=[int]$rows[-1].source_row
-          if (@($rows|ForEach-Object{[int]$_.source_row}|Sort-Object -Unique).Count -ne $rows.Count) { throw 'DUPLICATE_SOURCE_ROWS' }; if (@($rows|ForEach-Object{[int]$_.source_row}) -ne @($rows|Sort-Object source_row|ForEach-Object{[int]$_.source_row})) { throw 'SOURCE_ORDER_MISMATCH' }
+          if (@($rows|ForEach-Object{[int]$_.source_row}|Sort-Object -Unique).Count -ne $rows.Count) { throw 'DUPLICATE_SOURCE_ROWS' }; for($k=1;$k -lt $rows.Count;$k++){if([int]$rows[$k].source_row -le [int]$rows[$k-1].source_row){throw 'SOURCE_ORDER_MISMATCH'}}
           $tickers=@($rows|ForEach-Object{$_.RAW_TICKER}|Sort-Object -Unique); if($tickers.Count -ne 1 -or $tickers[0] -ne $tickerExpected){ throw "TICKER_MISMATCH got=$($tickers -join ',')" }
           $dts=@($rows|ForEach-Object{$_.RAW_DATETIME_ISO}); if(@($dts|Where-Object{-not $_.StartsWith($tradingDate)}).Count -gt 0){ throw 'DATE_MISMATCH' }
           $out=Join-Path $PWD 'machine1_aslc_20241202_evidence'; New-Item -ItemType Directory -Path $out -Force|Out-Null
