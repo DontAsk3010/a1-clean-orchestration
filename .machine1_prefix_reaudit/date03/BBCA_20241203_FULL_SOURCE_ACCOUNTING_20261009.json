@@ -1,0 +1,38 @@
+{
+  "ticker": "BBCA",
+  "date": "2024-12-03",
+  "scope": "INDEX090",
+  "state": "RAW_ACCOUNTING_VERIFIED_SEMANTIC_AND_CANONICAL_PASS_NOT_PROVEN",
+  "source_rows_first": 157676,
+  "source_rows_last": 158011,
+  "count": 336,
+  "all_source_row_numbers_contiguous": true,
+  "volume_total": 126087100,
+  "observed_day_low": 9900,
+  "observed_day_high": 10225,
+  "mechanism_code_accounting": {
+    "11": {
+      "rows": 1,
+      "volume": 10947600
+    },
+    "20": {
+      "rows": 180,
+      "volume": 36951800
+    },
+    "40": {
+      "rows": 140,
+      "volume": 46441900
+    },
+    "51": {
+      "rows": 2,
+      "volume": 30773300
+    },
+    "60": {
+      "rows": 13,
+      "volume": 972500
+    }
+  },
+  "source_path": ".machine1_prefix_reaudit/date03/BBCA_20241203_ROWS.jsonl",
+  "warning": "Code 11,20,40,51,60 are raw source mechanism codes: mapping must follow authority. Does not imply semantic PASS or canonical update.",
+  "checkpoint_unchanged": "INDEX089_BAYU"
+}
