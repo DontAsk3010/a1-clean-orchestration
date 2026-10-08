@@ -1,0 +1,13 @@
+{
+    "ticker":  "BBCA",
+    "trading_date":  "2024-12-03",
+    "chunk_index":  5,
+    "expected_rows":  40,
+    "actual_rows":  40,
+    "source_row_first":  157836,
+    "source_row_last":  157875,
+    "first_datetime":  "2024-12-03 11:39:00",
+    "last_datetime":  "2024-12-03 13:48:00",
+    "chunk_sha256":  "6b4bc8d7fe0a1d140789d41a600cc32a7f2b88c6f92bdcbcb856dc8779cd98d5",
+    "semantic_status":  "TRANSPORT_ONLY_NOT_SEMANTIC_COMPLETE"
+}
