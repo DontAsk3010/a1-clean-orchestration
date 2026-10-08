@@ -15,6 +15,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Temporarily permit runner bootstrap scripts
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Stop'
+          $prior=(Get-ExecutionPolicy -Scope CurrentUser).ToString()
+          "PRIOR_PS_CURRENTUSER_POLICY=$prior" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass -Force
+          Write-Host "CurrentUser PowerShell policy temporarily set to Bypass; prior=$prior"
+
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -200,6 +209,16 @@ jobs:
           print("BBCA_CANONICAL_PATCH_PASS "+json.dumps(proof,sort_keys=True))
           '@ | Set-Content -LiteralPath bbca_patch_drive.py -Encoding UTF8
           python bbca_patch_drive.py
+
+      - name: Restore runner PowerShell policy
+        if: always()
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference='Continue'
+          $prior=$env:PRIOR_PS_CURRENTUSER_POLICY
+          if([string]::IsNullOrWhiteSpace($prior)){ $prior='Undefined' }
+          Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy $prior -Force
+          Write-Host "Restored CurrentUser PowerShell policy to $prior"
 
       - name: Upload patch proof
         if: always()
