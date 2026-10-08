@@ -15,210 +15,203 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Temporarily permit runner bootstrap scripts
+      - name: Apply fail-closed BBCA canonical semantic patch through Drive REST
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference='Stop'
-          $prior=(Get-ExecutionPolicy -Scope CurrentUser).ToString()
-          "PRIOR_PS_CURRENTUSER_POLICY=$prior" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass -Force
-          Write-Host "CurrentUser PowerShell policy temporarily set to Bypass; prior=$prior"
+          $ProgressPreference='SilentlyContinue'
+          $patchPath='.machine1_prefix_reaudit/date03/BBCA_20241203_SEMANTIC_PATCH_CURRENT.json'
+          $patch=Get-Content -LiteralPath $patchPath -Raw -Encoding UTF8 | ConvertFrom-Json
+          $enc=New-Object System.Text.UTF8Encoding($false)
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Drive client
-        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
-        run: |
-          $ErrorActionPreference='Stop'
-          python -m pip install --disable-pip-version-check google-api-python-client google-auth
-
-      - name: Apply fail-closed BBCA canonical semantic patch
-        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
-        run: |
-          $ErrorActionPreference='Stop'
-          @'
-          import io, os, json, hashlib, sys
-          from googleapiclient.discovery import build
-          from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
-
-          PATCH_PATH = r".machine1_prefix_reaudit/date03/BBCA_20241203_SEMANTIC_PATCH_CURRENT.json"
-          with open(PATCH_PATH, "r", encoding="utf-8") as f:
-              patch = json.load(f)
-
-          cred_path = os.environ.get("A1_DRIVE_WRITER_CREDENTIALS") or os.environ.get("A1_GOOGLE_APPLICATION_CREDENTIALS")
-          if not cred_path:
-              raise RuntimeError("DRIVE_WRITER_CREDENTIAL_BINDING_MISSING")
-          if not os.path.isfile(cred_path):
-              raise RuntimeError("DRIVE_WRITER_CREDENTIAL_FILE_MISSING")
-
-          cred_payload = json.load(open(cred_path, "r", encoding="utf-8"))
-          scopes = ["https://www.googleapis.com/auth/drive"]
-          if cred_payload.get("type") == "service_account":
-              from google.oauth2 import service_account
-              creds = service_account.Credentials.from_service_account_file(cred_path, scopes=scopes)
-          elif cred_payload.get("type") == "authorized_user":
-              from google.oauth2.credentials import Credentials
-              creds = Credentials.from_authorized_user_file(cred_path, scopes=scopes)
-          else:
-              raise RuntimeError("UNSUPPORTED_DRIVE_CREDENTIAL_TYPE")
-          api = build("drive", "v3", credentials=creds, cache_discovery=False)
-
-          def sha256(b):
-              return hashlib.sha256(b).hexdigest()
-
-          def download(fid):
-              request = api.files().get_media(fileId=fid, supportsAllDrives=True)
-              buf = io.BytesIO()
-              dl = MediaIoBaseDownload(buf, request)
-              done = False
-              while not done:
-                  _, done = dl.next_chunk()
-              return buf.getvalue()
-
-          def update(fid, data):
-              media = MediaIoBaseUpload(io.BytesIO(data), mimetype="application/json", resumable=False)
-              return api.files().update(
-                  fileId=fid,
-                  media_body=media,
-                  supportsAllDrives=True,
-                  fields="id,name,size,md5Checksum,modifiedTime"
-              ).execute()
-
-          expected = patch["expected"]
-          specs = {
-              "obs": (expected["obs_file_id"], expected["obs_sha256"], expected["obs_count"]),
-              "journey": (expected["journey_file_id"], expected["journey_sha256"], expected["journey_count"]),
-              "open": (expected["open_file_id"], expected["open_sha256"], expected["open_count"]),
+          function Get-Sha256([string]$Path){
+            return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+          }
+          function B64Url([byte[]]$Bytes){
+            return ([Convert]::ToBase64String($Bytes).TrimEnd('=')).Replace('+','-').Replace('/','_')
+          }
+          function Get-DriveToken($Cred){
+            if($Cred.type -eq 'authorized_user'){
+              $resp=Invoke-RestMethod -Method Post -Uri 'https://oauth2.googleapis.com/token' -Body @{
+                client_id=[string]$Cred.client_id
+                client_secret=[string]$Cred.client_secret
+                refresh_token=[string]$Cred.refresh_token
+                grant_type='refresh_token'
+              } -ContentType 'application/x-www-form-urlencoded'
+              return [string]$resp.access_token
+            }
+            if($Cred.type -eq 'service_account'){
+              $openssl=(Get-Command openssl.exe -ErrorAction SilentlyContinue)
+              if($null -eq $openssl){
+                $gitOpenSsl='C:\Program Files\Git\usr\bin\openssl.exe'
+                if(Test-Path -LiteralPath $gitOpenSsl){ $openssl=[pscustomobject]@{Source=$gitOpenSsl} }
+              }
+              if($null -eq $openssl){ throw 'SERVICE_ACCOUNT_REQUIRES_OPENSSL_NOT_FOUND' }
+              $now=[DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+              $h=B64Url($enc.GetBytes('{"alg":"RS256","typ":"JWT"}'))
+              $payload=[ordered]@{
+                iss=[string]$Cred.client_email
+                scope='https://www.googleapis.com/auth/drive'
+                aud='https://oauth2.googleapis.com/token'
+                iat=$now
+                exp=$now+3600
+              } | ConvertTo-Json -Compress
+              $p=B64Url($enc.GetBytes($payload))
+              $unsigned="$h.$p"
+              $tmp=[System.IO.Path]::GetTempPath()
+              $key=Join-Path $tmp ('a1_drive_key_'+[guid]::NewGuid().ToString('N')+'.pem')
+              $msg=Join-Path $tmp ('a1_drive_msg_'+[guid]::NewGuid().ToString('N')+'.txt')
+              $sig=Join-Path $tmp ('a1_drive_sig_'+[guid]::NewGuid().ToString('N')+'.bin')
+              try{
+                [System.IO.File]::WriteAllText($key,[string]$Cred.private_key,$enc)
+                [System.IO.File]::WriteAllText($msg,$unsigned,$enc)
+                & $openssl.Source dgst -sha256 -sign $key -out $sig $msg
+                if($LASTEXITCODE -ne 0){ throw "OPENSSL_SIGN_FAIL exit=$LASTEXITCODE" }
+                $s=B64Url([System.IO.File]::ReadAllBytes($sig))
+                $assertion="$unsigned.$s"
+                $resp=Invoke-RestMethod -Method Post -Uri 'https://oauth2.googleapis.com/token' -Body @{
+                  grant_type='urn:ietf:params:oauth:grant-type:jwt-bearer'
+                  assertion=$assertion
+                } -ContentType 'application/x-www-form-urlencoded'
+                return [string]$resp.access_token
+              } finally {
+                Remove-Item -LiteralPath $key,$msg,$sig -Force -ErrorAction SilentlyContinue
+              }
+            }
+            throw "UNSUPPORTED_DRIVE_CREDENTIAL_TYPE $($Cred.type)"
+          }
+          function Download-DriveFile([string]$Id,[string]$Out,[string]$Token){
+            Invoke-WebRequest -UseBasicParsing -Uri "https://www.googleapis.com/drive/v3/files/$Id?alt=media&supportsAllDrives=true" -Headers @{Authorization="Bearer $Token"} -OutFile $Out
+          }
+          function Upload-DriveMedia([string]$Id,[string]$Path,[string]$Token){
+            $uri="https://www.googleapis.com/upload/drive/v3/files/$Id?uploadType=media&supportsAllDrives=true&fields=id,name,size,md5Checksum,modifiedTime"
+            $bytes=[System.IO.File]::ReadAllBytes($Path)
+            return Invoke-RestMethod -Method Patch -Uri $uri -Headers @{Authorization="Bearer $Token"} -ContentType 'application/json' -Body $bytes
+          }
+          function Write-JsonArray($Array,[string]$Path){
+            $json=ConvertTo-Json -InputObject @($Array) -Depth 100 -Compress
+            [System.IO.File]::WriteAllText($Path,$json,$enc)
+          }
+          function Count-Ticker($Array,[string]$Ticker){
+            return @($Array | Where-Object { [string]$_.ticker -eq $Ticker }).Count
           }
 
-          originals = {}
-          arrays = {}
-          for key,(fid,want_sha,want_count) in specs.items():
-              raw = download(fid)
-              got_sha = sha256(raw)
-              if got_sha != want_sha:
-                  raise RuntimeError(f"STALE_CANONICAL_{key.upper()} expected={want_sha} got={got_sha}")
-              arr = json.loads(raw.decode("utf-8"))
-              if not isinstance(arr, list) or len(arr) != want_count:
-                  raise RuntimeError(f"COUNT_PRECONDITION_{key.upper()} expected={want_count} got={len(arr) if isinstance(arr,list) else 'NONLIST'}")
-              originals[key] = raw
-              arrays[key] = arr
+          $credPath=$env:A1_DRIVE_WRITER_CREDENTIALS
+          if([string]::IsNullOrWhiteSpace($credPath)){ $credPath=$env:A1_GOOGLE_APPLICATION_CREDENTIALS }
+          if([string]::IsNullOrWhiteSpace($credPath)){ throw 'DRIVE_WRITER_CREDENTIAL_BINDING_MISSING' }
+          if(-not(Test-Path -LiteralPath $credPath -PathType Leaf)){ throw 'DRIVE_WRITER_CREDENTIAL_FILE_MISSING' }
+          $cred=Get-Content -LiteralPath $credPath -Raw -Encoding UTF8 | ConvertFrom-Json
+          $token=Get-DriveToken $cred
+          if([string]::IsNullOrWhiteSpace($token)){ throw 'DRIVE_OAUTH_TOKEN_EMPTY' }
 
-          ticker = patch["ticker"]
-          obs_matches = [i for i,o in enumerate(arrays["obs"]) if o.get("ticker") == ticker]
-          if len(obs_matches) != 1:
-              raise RuntimeError(f"OBS_TICKER_CARDINALITY expected=1 got={len(obs_matches)}")
-          arrays["obs"][obs_matches[0]] = patch["replace"]["observation"]
-
-          journey_ids = set(patch["invariants"]["journey_ids"])
-          current_j = [o for o in arrays["journey"] if o.get("ticker") == ticker]
-          if len(current_j) != 2 or {o.get("journey_id") for o in current_j} != journey_ids:
-              raise RuntimeError("JOURNEY_PRECONDITION_IDENTITY_MISMATCH")
-          repl_j = {o["journey_id"]:o for o in patch["replace"]["journeys"]}
-          arrays["journey"] = [repl_j.get(o.get("journey_id"), o) if o.get("ticker")==ticker else o for o in arrays["journey"]]
-
-          open_matches = [i for i,o in enumerate(arrays["open"]) if o.get("ticker") == ticker]
-          if len(open_matches) != 1:
-              raise RuntimeError(f"OPEN_TICKER_CARDINALITY expected=1 got={len(open_matches)}")
-          arrays["open"][open_matches[0]] = patch["replace"]["open_carry"]
-
-          if len(arrays["obs"]) != expected["obs_count"] or len(arrays["journey"]) != expected["journey_count"] or len(arrays["open"]) != expected["open_count"]:
-              raise RuntimeError("GLOBAL_COUNT_CHANGED")
-
-          if sum(1 for o in arrays["obs"] if o.get("ticker")==ticker) != 1:
-              raise RuntimeError("OBS_DUPLICATE_CREATED")
-          if {o.get("journey_id") for o in arrays["journey"] if o.get("ticker")==ticker} != journey_ids:
-              raise RuntimeError("JOURNEY_ID_SET_CHANGED")
-          if sum(1 for o in arrays["open"] if o.get("ticker")==ticker) != 1:
-              raise RuntimeError("OPEN_DUPLICATE_CREATED")
-          if next(o for o in arrays["open"] if o.get("ticker")==ticker).get("journey_id") != patch["invariants"]["open_journey_id"]:
-              raise RuntimeError("OPEN_JOURNEY_POINTER_MISMATCH")
-
-          obs_obj = next(o for o in arrays["obs"] if o.get("ticker")==ticker)
-          if obs_obj.get("actual_rows_read") != 336 or obs_obj.get("source_row_first") != 157676 or obs_obj.get("source_row_last") != 158011:
-              raise RuntimeError("BBCA_SOURCE_RANGE_RECONCILIATION_FAIL")
-          if obs_obj.get("right_censored") is not False:
-              raise RuntimeError("BBCA_SOURCE_RIGHT_CENSOR_MUST_BE_FALSE")
-          if obs_obj.get("owner_reread_20261008",{}).get("prior_output_seeded") is not False:
-              raise RuntimeError("BBCA_PRIOR_OUTPUT_SEED_FLAG_FAIL")
-
-          def encode(arr):
-              return json.dumps(arr, ensure_ascii=False, separators=(",",":")).encode("utf-8")
-
-          new_bytes = {k:encode(v) for k,v in arrays.items()}
-          new_sha = {k:sha256(v) for k,v in new_bytes.items()}
-          touched=[]
-          try:
-              for key in ("obs","journey","open"):
-                  update(specs[key][0], new_bytes[key])
-                  touched.append(key)
-              readback={}
-              for key,(fid,_,count) in specs.items():
-                  rb=download(fid)
-                  rsha=sha256(rb)
-                  if rsha != new_sha[key]:
-                      raise RuntimeError(f"POSTWRITE_HASH_MISMATCH_{key.upper()} expected={new_sha[key]} got={rsha}")
-                  arr=json.loads(rb.decode("utf-8"))
-                  if len(arr) != count:
-                      raise RuntimeError(f"POSTWRITE_COUNT_MISMATCH_{key.upper()}")
-                  readback[key]={"sha256":rsha,"count":len(arr),"bytes":len(rb)}
-          except Exception:
-              rollback_errors=[]
-              for key in reversed(touched):
-                  try:
-                      update(specs[key][0], originals[key])
-                  except Exception as rb_exc:
-                      rollback_errors.append(f"{key}:{rb_exc}")
-              for key in touched:
-                  try:
-                      if sha256(download(specs[key][0])) != specs[key][1]:
-                          rollback_errors.append(f"{key}:ROLLBACK_HASH_MISMATCH")
-                  except Exception as rb_exc:
-                      rollback_errors.append(f"{key}:ROLLBACK_READBACK_ERROR:{rb_exc}")
-              if rollback_errors:
-                  print("ROLLBACK_ERRORS="+json.dumps(rollback_errors))
-              raise
-
-          proof={
-              "status":"PASS",
-              "ticker":ticker,
-              "index":patch["index"],
-              "trading_date":patch["trading_date"],
-              "expected_before":{
-                  "obs_sha256":expected["obs_sha256"],
-                  "journey_sha256":expected["journey_sha256"],
-                  "open_sha256":expected["open_sha256"]
-              },
-              "after":readback,
-              "ticker_cardinality":{"observation":1,"journeys":2,"open_carry":1},
-              "global_counts":{"observation":expected["obs_count"],"journeys":expected["journey_count"],"open_carry":expected["open_count"]},
-              "rows_jsonl_sha256":patch["replace"]["observation"]["primitive_continuous_evidence"]["rows_jsonl_sha256"],
-              "source_rows":[157676,158011],
-              "actual_rows_read":336,
-              "fresh_semantic_reread":"PASS_336_OF_336",
-              "prior_output_used_as_seed":False,
-              "source_right_censored":False,
-              "formula_stage":"CLOSED",
-              "date_advance":"PROHIBITED"
+          $specs=[ordered]@{
+            obs=[ordered]@{id=[string]$patch.expected.obs_file_id; sha=[string]$patch.expected.obs_sha256; count=[int]$patch.expected.obs_count}
+            journey=[ordered]@{id=[string]$patch.expected.journey_file_id; sha=[string]$patch.expected.journey_sha256; count=[int]$patch.expected.journey_count}
+            open=[ordered]@{id=[string]$patch.expected.open_file_id; sha=[string]$patch.expected.open_sha256; count=[int]$patch.expected.open_count}
           }
-          with open("BBCA_20241203_CANONICAL_PATCH_PROOF.json","w",encoding="utf-8",newline="\n") as f:
-              json.dump(proof,f,ensure_ascii=False,separators=(",",":"))
-          print("BBCA_CANONICAL_PATCH_PASS "+json.dumps(proof,sort_keys=True))
-          '@ | Set-Content -LiteralPath bbca_patch_drive.py -Encoding UTF8
-          python bbca_patch_drive.py
+          $ticker=[string]$patch.ticker
+          $work=Join-Path $PWD 'bbca_patch_work'
+          New-Item -ItemType Directory -Force $work | Out-Null
+          $orig=@{}; $new=@{}; $rb=@{}; $arrays=@{}
 
-      - name: Restore runner PowerShell policy
-        if: always()
-        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
-        run: |
-          $ErrorActionPreference='Continue'
-          $prior=$env:PRIOR_PS_CURRENTUSER_POLICY
-          if([string]::IsNullOrWhiteSpace($prior)){ $prior='Undefined' }
-          Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy $prior -Force
-          Write-Host "Restored CurrentUser PowerShell policy to $prior"
+          foreach($key in @('obs','journey','open')){
+            $orig[$key]=Join-Path $work ($key+'_original.json')
+            Download-DriveFile $specs[$key].id $orig[$key] $token
+            $got=Get-Sha256 $orig[$key]
+            if($got -ne $specs[$key].sha){ throw "STALE_CANONICAL_$($key.ToUpper()) expected=$($specs[$key].sha) got=$got" }
+            $arrays[$key]=@((Get-Content -LiteralPath $orig[$key] -Raw -Encoding UTF8 | ConvertFrom-Json))
+            if($arrays[$key].Count -ne $specs[$key].count){ throw "COUNT_PRECONDITION_$($key.ToUpper()) expected=$($specs[$key].count) got=$($arrays[$key].Count)" }
+          }
+
+          $obsIdx=@()
+          for($i=0;$i-lt$arrays.obs.Count;$i++){ if([string]$arrays.obs[$i].ticker -eq $ticker){$obsIdx+=$i} }
+          if($obsIdx.Count -ne 1){ throw "OBS_TICKER_CARDINALITY expected=1 got=$($obsIdx.Count)" }
+          $arrays.obs[$obsIdx[0]]=$patch.replace.observation
+
+          $wantJourneyIds=@($patch.invariants.journey_ids | ForEach-Object {[string]$_})
+          $currentJourneyIdx=@()
+          for($i=0;$i-lt$arrays.journey.Count;$i++){ if([string]$arrays.journey[$i].ticker -eq $ticker){$currentJourneyIdx+=$i} }
+          if($currentJourneyIdx.Count -ne 2){ throw "JOURNEY_TICKER_CARDINALITY expected=2 got=$($currentJourneyIdx.Count)" }
+          $currentIds=@($currentJourneyIdx | ForEach-Object {[string]$arrays.journey[$_].journey_id} | Sort-Object)
+          $wantIds=@($wantJourneyIds | Sort-Object)
+          if(($currentIds -join '|') -ne ($wantIds -join '|')){ throw 'JOURNEY_PRECONDITION_IDENTITY_MISMATCH' }
+          foreach($idx in $currentJourneyIdx){
+            $jid=[string]$arrays.journey[$idx].journey_id
+            $replacement=@($patch.replace.journeys | Where-Object {[string]$_.journey_id -eq $jid})
+            if($replacement.Count -ne 1){ throw "JOURNEY_REPLACEMENT_CARDINALITY_$jid" }
+            $arrays.journey[$idx]=$replacement[0]
+          }
+
+          $openIdx=@()
+          for($i=0;$i-lt$arrays.open.Count;$i++){ if([string]$arrays.open[$i].ticker -eq $ticker){$openIdx+=$i} }
+          if($openIdx.Count -ne 1){ throw "OPEN_TICKER_CARDINALITY expected=1 got=$($openIdx.Count)" }
+          $arrays.open[$openIdx[0]]=$patch.replace.open_carry
+
+          if($arrays.obs.Count-ne$specs.obs.count -or $arrays.journey.Count-ne$specs.journey.count -or $arrays.open.Count-ne$specs.open.count){throw 'GLOBAL_COUNT_CHANGED'}
+          if((Count-Ticker $arrays.obs $ticker)-ne1){throw 'OBS_DUPLICATE_CREATED'}
+          if((Count-Ticker $arrays.journey $ticker)-ne2){throw 'JOURNEY_DUPLICATE_OR_MISSING'}
+          if((Count-Ticker $arrays.open $ticker)-ne1){throw 'OPEN_DUPLICATE_CREATED'}
+
+          $obsObj=@($arrays.obs|Where-Object{$_.ticker-eq$ticker})[0]
+          if([int]$obsObj.actual_rows_read-ne336 -or [int]$obsObj.source_row_first-ne157676 -or [int]$obsObj.source_row_last-ne158011){throw 'BBCA_SOURCE_RANGE_RECONCILIATION_FAIL'}
+          if([bool]$obsObj.right_censored){throw 'BBCA_SOURCE_RIGHT_CENSOR_MUST_BE_FALSE'}
+          if([bool]$obsObj.owner_reread_20261008.prior_output_seeded){throw 'BBCA_PRIOR_OUTPUT_SEED_FLAG_FAIL'}
+          $openObj=@($arrays.open|Where-Object{$_.ticker-eq$ticker})[0]
+          if([string]$openObj.journey_id-ne[string]$patch.invariants.open_journey_id){throw 'OPEN_JOURNEY_POINTER_MISMATCH'}
+          if([bool]$openObj.source_right_censored){throw 'OPEN_SOURCE_RIGHT_CENSOR_MUST_BE_FALSE'}
+
+          foreach($key in @('obs','journey','open')){
+            $new[$key]=Join-Path $work ($key+'_new.json')
+            Write-JsonArray $arrays[$key] $new[$key]
+          }
+          $newSha=[ordered]@{obs=Get-Sha256 $new.obs;journey=Get-Sha256 $new.journey;open=Get-Sha256 $new.open}
+
+          $touched=New-Object 'System.Collections.Generic.List[string]'
+          try{
+            foreach($key in @('obs','journey','open')){
+              [void](Upload-DriveMedia $specs[$key].id $new[$key] $token)
+              [void]$touched.Add($key)
+            }
+            $readback=[ordered]@{}
+            foreach($key in @('obs','journey','open')){
+              $rb[$key]=Join-Path $work ($key+'_readback.json')
+              Download-DriveFile $specs[$key].id $rb[$key] $token
+              $rsha=Get-Sha256 $rb[$key]
+              if($rsha-ne$newSha[$key]){throw "POSTWRITE_HASH_MISMATCH_$($key.ToUpper()) expected=$($newSha[$key]) got=$rsha"}
+              $arr=@((Get-Content -LiteralPath $rb[$key] -Raw -Encoding UTF8 | ConvertFrom-Json))
+              if($arr.Count-ne$specs[$key].count){throw "POSTWRITE_COUNT_MISMATCH_$($key.ToUpper())"}
+              $readback[$key]=[ordered]@{sha256=$rsha;count=$arr.Count;bytes=(Get-Item -LiteralPath $rb[$key]).Length}
+            }
+          } catch {
+            $err=$_ 
+            $rollbackErrors=@()
+            foreach($key in @($touched | Select-Object -Reverse)){
+              try{ [void](Upload-DriveMedia $specs[$key].id $orig[$key] $token) } catch { $rollbackErrors+=("$key:UPLOAD:"+$_.Exception.Message) }
+            }
+            foreach($key in @($touched)){
+              try{
+                $check=Join-Path $work ($key+'_rollback_readback.json')
+                Download-DriveFile $specs[$key].id $check $token
+                if((Get-Sha256 $check)-ne$specs[$key].sha){$rollbackErrors+=("$key:ROLLBACK_HASH_MISMATCH")}
+              } catch { $rollbackErrors+=("$key:READBACK:"+$_.Exception.Message) }
+            }
+            if($rollbackErrors.Count-gt0){Write-Host ('ROLLBACK_ERRORS='+($rollbackErrors|ConvertTo-Json -Compress))}
+            throw $err
+          }
+
+          $proof=[ordered]@{
+            status='PASS';ticker=$ticker;index=[int]$patch.index;trading_date=[string]$patch.trading_date
+            expected_before=[ordered]@{obs_sha256=$specs.obs.sha;journey_sha256=$specs.journey.sha;open_sha256=$specs.open.sha}
+            after=$readback
+            ticker_cardinality=[ordered]@{observation=1;journeys=2;open_carry=1}
+            global_counts=[ordered]@{observation=$specs.obs.count;journeys=$specs.journey.count;open_carry=$specs.open.count}
+            rows_jsonl_sha256=[string]$patch.replace.observation.primitive_continuous_evidence.rows_jsonl_sha256
+            source_rows=@(157676,158011);actual_rows_read=336
+            fresh_semantic_reread='PASS_336_OF_336';prior_output_used_as_seed=$false;source_right_censored=$false
+            formula_stage='CLOSED';date_advance='PROHIBITED'
+          }
+          [System.IO.File]::WriteAllText((Join-Path $PWD 'BBCA_20241203_CANONICAL_PATCH_PROOF.json'),($proof|ConvertTo-Json -Depth 20 -Compress),$enc)
+          Write-Host ('BBCA_CANONICAL_PATCH_PASS '+($proof|ConvertTo-Json -Depth 20 -Compress))
 
       - name: Upload patch proof
         if: always()
