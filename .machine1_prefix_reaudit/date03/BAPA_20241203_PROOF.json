@@ -1,5 +1,6 @@
 {
     "audit_type":  "OWNER_CORRECTED_FULL_PREFIX_REAUDIT",
+    "transport_mode":  "DETERMINISTIC_CONTIGUOUS_CHUNKED_LOSSLESS",
     "ticker":  "BAPA",
     "trading_date":  "2024-12-03",
     "recovered_date_local_index":  84,
@@ -10,7 +11,43 @@
     "data_rows":  32,
     "first_datetime":  "2024-12-03 09:00:00",
     "last_datetime":  "2024-12-03 15:21:00",
+    "chunk_size":  16,
+    "total_chunks":  2,
+    "sum_chunk_rows":  32,
+    "chunk_proofs":  [
+                         {
+                             "ticker":  "BAPA",
+                             "trading_date":  "2024-12-03",
+                             "chunk_index":  1,
+                             "expected_rows":  16,
+                             "actual_rows":  16,
+                             "source_row_first":  152331,
+                             "source_row_last":  152346,
+                             "first_datetime":  "2024-12-03 09:00:00",
+                             "last_datetime":  "2024-12-03 11:16:00",
+                             "chunk_sha256":  "3d8bb21104bf41ce60f4ae64ad4bdc1f98a514444e38835ea44eae6d4711d51d",
+                             "semantic_status":  "TRANSPORT_ONLY_NOT_SEMANTIC_COMPLETE"
+                         },
+                         {
+                             "ticker":  "BAPA",
+                             "trading_date":  "2024-12-03",
+                             "chunk_index":  2,
+                             "expected_rows":  16,
+                             "actual_rows":  16,
+                             "source_row_first":  152347,
+                             "source_row_last":  152362,
+                             "first_datetime":  "2024-12-03 11:17:00",
+                             "last_datetime":  "2024-12-03 15:21:00",
+                             "chunk_sha256":  "1158c95fc6dc61e6f1819a58b2bb061af0435b23e452eb6b78c6010420065240",
+                             "semantic_status":  "TRANSPORT_ONLY_NOT_SEMANTIC_COMPLETE"
+                         }
+                     ],
+    "merged_unique_rows":  32,
+    "duplicate_rows":  0,
+    "missing_rows":  0,
+    "reordered_rows":  0,
     "rows_jsonl_sha256":  "689c51d2fe7b9cbc555d0e063820b00e93d90485c35ff02d7d4341ba16c27900",
+    "lossless_merge_validation":  "PASS",
     "semantic_status":  "TRANSPORT_ONLY_NOT_SEMANTIC_COMPLETE",
     "formula_stage":  "CLOSED",
     "date_advance":  "PROHIBITED"

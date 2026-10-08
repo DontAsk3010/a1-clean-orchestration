@@ -1,0 +1,13 @@
+{
+    "ticker":  "BAPA",
+    "trading_date":  "2024-12-03",
+    "chunk_index":  1,
+    "expected_rows":  16,
+    "actual_rows":  16,
+    "source_row_first":  152331,
+    "source_row_last":  152346,
+    "first_datetime":  "2024-12-03 09:00:00",
+    "last_datetime":  "2024-12-03 11:16:00",
+    "chunk_sha256":  "3d8bb21104bf41ce60f4ae64ad4bdc1f98a514444e38835ea44eae6d4711d51d",
+    "semantic_status":  "TRANSPORT_ONLY_NOT_SEMANTIC_COMPLETE"
+}
