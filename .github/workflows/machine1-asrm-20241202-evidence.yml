@@ -1,0 +1,62 @@
+name: Machine1 ASRM 2024-12-02 Current-Revalidation Source Evidence
+
+on:
+  push:
+    branches:
+      - machine1/evidence-asrm-20241202
+    paths:
+      - .github/workflows/machine1-asrm-20241202-evidence.yml
+
+permissions:
+  contents: read
+
+jobs:
+  extract-asrm-date02:
+    runs-on: [self-hosted, windows, x64, a1-clean-parity]
+    timeout-minutes: 30
+    env:
+      RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Extract exact governed ASRM Date02 source packet
+        shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $raw = $env:RAW_FILE
+          $tickerExpected = 'ASRM'; $tradingDate = '2024-12-02'
+          $sourceFirst = $null; $sourceLast = $null; $expectedCount = $null
+          $expectedMd5 = 'b8d42b35c90d2dff8b18ae4e1734523b'
+          $expectedSha256 = '5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c'
+          if (-not (Test-Path -LiteralPath $raw -PathType Leaf)) { throw "RAW_MISSING: $raw" }
+          $gotMd5=(Get-FileHash -LiteralPath $raw -Algorithm MD5).Hash.ToLowerInvariant()
+          $gotSha256=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($gotMd5 -ne $expectedMd5 -or $gotSha256 -ne $expectedSha256) { throw "RAW_HASH_MISMATCH md5=$gotMd5 sha256=$gotSha256" }
+          Add-Type -AssemblyName Microsoft.VisualBasic
+          $parser=New-Object Microsoft.VisualBasic.FileIO.TextFieldParser($raw); $parser.TextFieldType=[Microsoft.VisualBasic.FileIO.FieldType]::Delimited; $parser.SetDelimiters(','); $parser.HasFieldsEnclosedInQuotes=$true
+          try {
+            $headers=@($parser.ReadFields()); if ($headers.Count -eq 0) { throw 'CSV_HEADER_MISSING' }
+            $rows=@(); $sourceRow=0
+            while (-not $parser.EndOfData) {
+              $fields=@($parser.ReadFields()); $sourceRow++; if ($fields.Count -ne $headers.Count) { throw "CSV_FIELD_COUNT_MISMATCH row=$sourceRow" }; $rowTicker=$fields[[array]::IndexOf($headers,'RAW_TICKER')]; $rowDate=$fields[[array]::IndexOf($headers,'RAW_DATETIME_ISO')]; if ($rowTicker -ne $tickerExpected -or -not $rowDate.StartsWith($tradingDate)) { continue }
+              $row=[ordered]@{source_row=$sourceRow}; for($i=0;$i -lt $headers.Count;$i++){ $row[$headers[$i]]=if($i -lt $fields.Count){$fields[$i]}else{$null} }; $rows += [pscustomobject]$row
+            }
+          } finally { $parser.Close() }
+          if ($rows.Count -lt 1) { throw 'ZERO_MATCHING_ROWS' }; $expectedCount=$rows.Count; $sourceFirst=[int]$rows[0].source_row; $sourceLast=[int]$rows[-1].source_row
+          if (@($rows|ForEach-Object{[int]$_.source_row}|Sort-Object -Unique).Count -ne $rows.Count) { throw 'DUPLICATE_SOURCE_ROWS' }; for($k=1;$k -lt $rows.Count;$k++){if([int]$rows[$k].source_row -le [int]$rows[$k-1].source_row){throw 'SOURCE_ORDER_MISMATCH'}}
+          $tickers=@($rows|ForEach-Object{$_.RAW_TICKER}|Sort-Object -Unique); if($tickers.Count -ne 1 -or $tickers[0] -ne $tickerExpected){ throw "TICKER_MISMATCH got=$($tickers -join ',')" }
+          $dts=@($rows|ForEach-Object{$_.RAW_DATETIME_ISO}); if(@($dts|Where-Object{-not $_.StartsWith($tradingDate)}).Count -gt 0){ throw 'DATE_MISMATCH' }
+          $out=Join-Path $PWD 'machine1_asrm_20241202_evidence'; New-Item -ItemType Directory -Path $out -Force|Out-Null
+          $packetPath=Join-Path $out 'ASRM_20241202_PACKET.json'; $rowsPath=Join-Path $out 'ASRM_20241202_ROWS.jsonl'; $proofPath=Join-Path $out 'EVIDENCE_PROOF.json'
+          [ordered]@{schema='A1_CLEAN_MACHINE1_CURRENT_REVALIDATION_SOURCE_PACKET_V1';scope='DATE02_CLAIM_066_SOURCE_TRANSPORT_ONLY';revalidation_target_observation_id='OBS_DES2024_20241202_ASRM_001';ticker=$tickerExpected;trading_date=$tradingDate;source_name=[System.IO.Path]::GetFileName($raw);source_md5=$gotMd5;source_sha256=$gotSha256;source_row_first=$sourceFirst;source_row_last=$sourceLast;physical_line_first=$sourceFirst+1;physical_line_last=$sourceLast+1;data_rows=$rows.Count;first_datetime=$dts[0];last_datetime=$dts[-1];header_fields=$headers;rows=$rows}|ConvertTo-Json -Depth 20|Set-Content -LiteralPath $packetPath -Encoding UTF8
+          @($rows|ForEach-Object{$_|ConvertTo-Json -Compress -Depth 10})|Set-Content -LiteralPath $rowsPath -Encoding UTF8
+          $packetSha=(Get-FileHash -LiteralPath $packetPath -Algorithm SHA256).Hash.ToLowerInvariant(); $rowsSha=(Get-FileHash -LiteralPath $rowsPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          [ordered]@{schema='A1_CLEAN_MACHINE1_CURRENT_REVALIDATION_SOURCE_PROOF_V1';ticker=$tickerExpected;trading_date=$tradingDate;source_md5=$gotMd5;source_sha256=$gotSha256;source_row_first=$sourceFirst;source_row_last=$sourceLast;data_rows=$rows.Count;first_datetime=$dts[0];last_datetime=$dts[-1];packet_sha256=$packetSha;rows_jsonl_sha256=$rowsSha;checkpoint_mutated=$false;drive_mutated=$false;next_ticker_opened=$false}|ConvertTo-Json -Depth 10|Set-Content -LiteralPath $proofPath -Encoding UTF8
+          Write-Host "ASRM_DATE02_SOURCE_EVIDENCE_OK rows=$($rows.Count) source_rows=$sourceFirst-$sourceLast first=$($dts[0]) last=$($dts[-1]) packet_sha256=$packetSha rows_sha256=$rowsSha"
+      - name: Upload governed ASRM Date02 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: machine1-asrm-20241202-current-revalidation-evidence
+          path: machine1_asrm_20241202_evidence/
+          if-no-files-found: error
+          retention-days: 7
