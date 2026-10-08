@@ -11,12 +11,12 @@ jobs:
     timeout-minutes: 30
     env:
       RAW_FILE: 'D:\\TRADING SYSTEM\\02_CURRENT_HISTORICAL_RAW_DATA_UJI\\Raw Des 02-31-2024.csv'
-      TARGET_TICKER: 'BAPA'
-      TARGET_INDEX: '84'
-      ROW_FIRST: '152331'
-      ROW_LAST: '152362'
-      ROW_COUNT: '32'
-      CHUNK_SIZE: '16'
+      TARGET_TICKER: 'BBCA'
+      TARGET_INDEX: '90'
+      ROW_FIRST: '157676'
+      ROW_LAST: '158011'
+      ROW_COUNT: '336'
+      CHUNK_SIZE: '40'
     steps:
       - uses: actions/checkout@v4
       - name: Extract exact governed ticker-day rows
