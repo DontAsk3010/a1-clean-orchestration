@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   restart:
-    if: ${{ github.event.issue.title == 'A1-M2-OWNER-RUN-2025-01-8de318' }}
+    if: ${{ github.event.issue.title == 'A1-M2-OWNER-RUN-2025-01-8de318-R2' }}
     name: Machine2 CURRENT restart candidate ${{ matrix.lane }}
     strategy:
       fail-fast: false
@@ -31,6 +31,7 @@ jobs:
       A1_REQUESTED_PERIOD_MONTH: "2025-01"
       A1_REQUESTED_TRADING_DATE: ""
       A1_TARGET_SOFTWARE_REVISION: "8de31863832658cad3f5cd3055540115b931aac7"
+      A1_M2_EXECUTION_GENERATION_ID: "8de31863832658cad3f5cd3055540115b931aac7"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -234,6 +235,9 @@ jobs:
         shell: 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}"'
         run: |
           $ErrorActionPreference = 'Stop'
+          $env:GITHUB_REF_NAME = 'fix/v32-dynamic-source-universe-v1'
+          $env:GITHUB_WORKFLOW = 'Windows Machine2 CURRENT Scientific Restart'
+          $env:GITHUB_WORKFLOW_REF = 'DontAsk3010/a1-clean-orchestration/.github/workflows/windows-m2-current-scientific-restart.yml@refs/heads/fix/v32-dynamic-source-universe-v1'
           & $env:A1_PYTHON_EXE -m a1clean.formula_research.v32_current_scientific_restart `
             --request v32-full-observation-behavior-requests/current.json `
             --source-universe-manifest $env:A1_M2_SOURCE_UNIVERSE_MANIFEST `
