@@ -251,6 +251,15 @@ jobs:
             --trading-date $env:A1_M2_TARGET_DATE `
             --units-per-shard 20 `
             --period-month $env:A1_M2_PERIOD_MONTH `
+            --software-revision $env:A1_TARGET_SOFTWARE_REVISION
+          if ($LASTEXITCODE -ne 0) { throw 'M2_CURRENT_CROSS_MONTH_PRIME_HOLD' }
+
+          & $env:A1_PYTHON_EXE -m a1clean.formula_research.v32_current_scientific_restart `
+            --request v32-full-observation-behavior-requests/current.json `
+            --source-universe-manifest $env:A1_M2_SOURCE_UNIVERSE_MANIFEST `
+            --trading-date $env:A1_M2_TARGET_DATE `
+            --units-per-shard 20 `
+            --period-month $env:A1_M2_PERIOD_MONTH `
             --run-month-to-boundary `
             --software-revision $env:A1_TARGET_SOFTWARE_REVISION
           if ($LASTEXITCODE -ne 0) { throw 'M2_CURRENT_MONTH_EXECUTION_HOLD' }
