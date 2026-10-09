@@ -2,7 +2,7 @@ name: Windows Machine2 CURRENT January 2025 Owner Trigger
 
 on:
   issues:
-    types: [opened, reopened]
+    types: [opened, reopened, edited]
   issue_comment:
     types: [created]
 
