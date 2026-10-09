@@ -2,7 +2,7 @@ name: Windows Machine2 CURRENT January 2025 Owner Trigger
 
 on:
   issues:
-    types: [opened]
+    types: [opened, reopened]
 
 permissions:
   contents: read
@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   restart:
-    if: ${{ github.event.issue.title == 'A1-M2-OWNER-RUN-2025-01-8de318-R3' }}
+    if: ${{ github.event.issue.title == 'A1-M2-OWNER-RUN-2025-01-8de318-R2' }}
     name: Machine2 CURRENT restart candidate ${{ matrix.lane }}
     strategy:
       fail-fast: false
