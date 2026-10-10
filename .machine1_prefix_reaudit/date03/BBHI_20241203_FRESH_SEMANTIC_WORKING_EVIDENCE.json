@@ -1,0 +1,68 @@
+{
+  "assignment": "MACHINE1|2024-12-03|BBHI|INDEX091",
+  "source_file_id": "1wvBmhpQIV-evJJOPN_g8nks3KZBzmVHC",
+  "source_sha256_from_governing_manifest": "5bddb43f243e3cbb76504ecc38d8b0981e38866b7a4ea3b4557dcbbf3024712c",
+  "source_row_zero_based": [
+    156310,
+    156354
+  ],
+  "physical_line_one_based": [
+    156311,
+    156355
+  ],
+  "actual_bars": 45,
+  "columns_each": 74,
+  "start": "2024-12-03 09:00:00",
+  "end": "2024-12-03 16:13:00",
+  "volume_total": 207900,
+  "max_high": 875,
+  "min_low": 845,
+  "gaps_greater_than_one_min": 39,
+  "max_gap_min": 94,
+  "positive_negative_evidence": [
+    {
+      "source_lines": [
+        156311,
+        156314
+      ],
+      "finding": "Opening 850→875 on first bar, 875 repeated at 09:02, declines to 870 then 850 by 09:23. Early upward displacement is not sustained."
+    },
+    {
+      "source_lines": [
+        156315,
+        156329
+      ],
+      "finding": "855 rebase with 860 visits, then 850 by 11:28 through 11:56. Sparse time support; no synthetic interpolation."
+    },
+    {
+      "source_lines": [
+        156330,
+        156334
+      ],
+      "finding": "850 plateau followed by two lows of 845 at 13:49 and 14:01, both opening 850 and closing 845, with recorded volumes 25,900 and 11,000."
+    },
+    {
+      "source_lines": [
+        156335,
+        156345
+      ],
+      "finding": "850 reclaim at 14:12 followed by repeated 850 single-price observations, no supported higher-price breakout."
+    },
+    {
+      "source_lines": [
+        156346,
+        156355
+      ],
+      "finding": "845 revisit 15:10–15:19, then 850 at 15:45, 845 at 15:47, terminal 850 16:00–16:13. 16:12 volume 50,000, without price advance."
+    }
+  ],
+  "terminal": "850 at 16:13; cross-date continuation UNKNOWN",
+  "participant_broker_identity": "UNKNOWN_UNPROVEN",
+  "causal_known_at": "UNKNOWN_UNPROVEN",
+  "unmapped_physical_slots": "PRESERVE_RAW_NO_REINTERPRETATION",
+  "source_chunk_blobs": [
+    "9515a4aa2e59aa26936c65667a8a23ab85f7853b",
+    "6081aa1ac962c2a603e85222787e2b4ae04b9be4"
+  ],
+  "note": "SOURCE EVIDENCE / NONCANONICAL. NOT ATOMIC PASS. Pending governed canonical object reconciliation and control plane."
+}
